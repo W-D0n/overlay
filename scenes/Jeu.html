@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920">
+  <title>Overlay — Jeu</title>
+  <!--
+    SCÈNE : Session de jeu (VaultCity / UE5)
+    LAYOUT : Jeu plein écran · HUD barre basse · Cam mini coin haut-gauche
+    OBS    : Browser Source 1920×1080, pointer events OFF
+    NOTE   : Background transparent — le jeu est derrière dans OBS
+  -->
+  <link rel="stylesheet" href="../tokens.css">
+  <style>
+    body { background: transparent; }
+
+    .layout {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    /* ── Barre signature top (atténuée) ─────────────────────── */
+    .bar-top {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2.5px;
+      background: var(--color-gold);
+      opacity: 0.5;
+    }
+
+    /* ── Cam mini ───────────────────────────────────────────── */
+    .cam-mini {
+      position: absolute;
+      top: 28px;
+      left: 28px;
+      width: 300px;
+      height: 200px;
+      border-radius: var(--radius-md);
+      border: var(--border-panel);
+      background: rgba(10, 10, 12, 0.75);
+    }
+
+    /* ── Barre HUD basse ────────────────────────────────────── */
+    .hud-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 96px;
+      background: rgba(10, 10, 12, 0.9);
+      border-top: 0.5px solid var(--color-gold);
+      border-top-color: rgba(200, 185, 122, 0.4);
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      gap: 0;
+    }
+
+    /* ── Cellule HUD ────────────────────────────────────────── */
+    .hud-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 40px;
+      border-right: 1px solid var(--color-rule);
+      margin-right: 40px;
+    }
+
+    .hud-cell:last-child {
+      border-right: none;
+      margin-right: 0;
+      margin-left: auto; /* aligner à droite */
+      padding-right: 0;
+    }
+
+    .hud-label {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+    }
+
+    .hud-value {
+      font-family: var(--font-mono);
+      font-size: 26px;
+      color: var(--color-text-primary);
+      line-height: 1;
+    }
+
+    .hud-value.gold { color: var(--color-gold); }
+
+    /* ── Barre de vote ──────────────────────────────────────── */
+    .poll-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .poll-question {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      color: var(--color-text-primary);
+    }
+
+    .poll-track {
+      width: 240px;
+      height: 6px;
+      border-radius: 3px;
+      background: var(--color-rule-mid);
+      overflow: hidden;
+    }
+
+    .poll-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--color-gold-dim);
+      transition: width 0.6s ease;
+    }
+
+    .poll-ratio {
+      font-family: var(--font-mono);
+      font-size: 18px;
+      color: var(--color-text-mid);
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <div class="bar-top"></div>
+
+  <!-- Cam mini -->
+  <div class="cam-mini" aria-hidden="true"></div>
+
+  <!-- HUD barre basse -->
+  <div class="hud-bar">
+
+    <!-- Nom + session -->
+    <div class="hud-cell">
+      <span class="hud-label">D0n</span>
+      <span class="hud-value gold" id="session-id">—</span>
+    </div>
+
+    <!-- Durée -->
+    <div class="hud-cell">
+      <span class="hud-label">Durée</span>
+      <span class="hud-value" id="hud-duration">00:00:00</span>
+    </div>
+
+    <!-- Viewers -->
+    <div class="hud-cell">
+      <span class="hud-label">Viewers</span>
+      <span class="hud-value" id="hud-viewers">—</span>
+    </div>
+
+    <!-- Vote chat -->
+    <div class="hud-cell" id="poll-cell" style="display:none;">
+      <span class="hud-label">Vote chat</span>
+      <div class="poll-wrap">
+        <span class="poll-question" id="poll-question"></span>
+        <div class="poll-track"><div class="poll-fill" id="poll-fill" style="width:50%"></div></div>
+        <span class="poll-ratio" id="poll-ratio"></span>
+      </div>
+    </div>
+
+    <!-- Alerte (dernière cellule, alignée à droite) -->
+    <div class="hud-cell" id="alert-cell" style="opacity:0;transition:opacity 0.4s ease;">
+      <span class="hud-label" id="alert-type-label">Alerte</span>
+      <span class="hud-value gold" id="alert-username"></span>
+    </div>
+
+  </div>
+
+</div>
+
+<script type="module">
+  import { onStateChange } from '../store.js';
+
+  let lastAlertTs   = 0;
+  let alertHideTimer = null;
+
+  onStateChange((state) => {
+    // Session / durée / viewers
+    const sessionEl  = document.getElementById('session-id');
+    const durationEl = document.getElementById('hud-duration');
+    const viewersEl  = document.getElementById('hud-viewers');
+
+    if (sessionEl)  sessionEl.textContent  = `#${state.sessionId}`;
+    if (durationEl) durationEl.textContent = state.duration;
+    if (viewersEl)  viewersEl.textContent  = state.viewers > 0 ? state.viewers.toLocaleString('fr-FR') : '—';
+
+    // Vote
+    const pollCell = document.getElementById('poll-cell');
+    if (state.activePoll) {
+      pollCell.style.display = 'flex';
+      document.getElementById('poll-question').textContent = state.activePoll.question;
+      document.getElementById('poll-fill').style.width     = `${Math.round(state.activePoll.yesRatio * 100)}%`;
+      document.getElementById('poll-ratio').textContent    = `${Math.round(state.activePoll.yesRatio * 100)}% oui`;
+    } else {
+      pollCell.style.display = 'none';
+    }
+
+    // Alerte
+    if (state.latestAlert && state.latestAlert.timestamp !== lastAlertTs) {
+      lastAlertTs = state.latestAlert.timestamp;
+      const typeLabels = { follow: '+ follow', sub: '+ sub', raid: 'raid', bits: 'bits' };
+      document.getElementById('alert-type-label').textContent = typeLabels[state.latestAlert.type] ?? 'alerte';
+      document.getElementById('alert-username').textContent   = state.latestAlert.username;
+      document.getElementById('alert-cell').style.opacity     = '1';
+
+      if (alertHideTimer) clearTimeout(alertHideTimer);
+      alertHideTimer = setTimeout(() => {
+        document.getElementById('alert-cell').style.opacity = '0';
+      }, 5000);
+    }
+  });
+</script>
+</body>
+</html>

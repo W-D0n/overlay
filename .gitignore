@@ -1,0 +1,17 @@
+# Dépendances
+node_modules/
+
+# Secrets & env (relais OBS — jamais commiter)
+.env
+.env.*
+*.local.js
+obs-config.local.js
+
+# Artefacts produits hors versionnement
+*.zip
+
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

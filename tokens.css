@@ -1,0 +1,105 @@
+/**
+ * tokens.css — Design tokens Atelier
+ * Identité visuelle stream D0n / Mozaïk
+ *
+ * USAGE : importer en premier dans chaque scène.
+ *   <link rel="stylesheet" href="../tokens.css">
+ *
+ * MODIFIER ICI pour propager les changements à toutes les scènes.
+ */
+
+:root {
+  /* ─── Couleurs ─────────────────────────────────────────────── */
+  --color-bg:           #0A0A0C;   /* fond principal */
+  --color-bg-panel:     #111114;   /* panneau cam / capture */
+  --color-bg-widget:    #0D0D0F;   /* widget sombre (alertes, fiches) */
+  --color-bg-bar:       #080808;   /* fond BRB, zones très sombres */
+
+  --color-rule:         #1E1E22;   /* séparateurs, bordures subtiles */
+  --color-rule-mid:     #2A2A32;   /* bordures légèrement visibles */
+
+  --color-gold:         #C8B97A;   /* accent principal — or patiné */
+  --color-gold-dim:     rgba(200, 185, 122, 0.5);  /* gold atténué */
+  --color-gold-bar:     rgba(200, 185, 122, 0.85); /* barre signature */
+  --color-gold-bar-bot: rgba(200, 185, 122, 0.3);  /* barre bas */
+
+  --color-text-primary: #F2F0EC;   /* titres, valeurs */
+  --color-text-mid:     #9A9890;   /* labels, secondaire */
+  --color-text-dim:     #5A5A62;   /* chat ancien, tertaire */
+  --color-text-ghost:   #3C3C48;   /* liens, métadonnées */
+  --color-text-dead:    #2A2A32;   /* watermark zone capture */
+
+  /* ─── Typographie ──────────────────────────────────────────── */
+  --font-serif:   'Times New Roman', Georgia, 'Palatino Linotype', serif;
+  --font-mono:    'Courier New', 'Lucida Console', monospace;
+
+  /* Tailles */
+  --text-xs:   7px;
+  --text-sm:   8px;
+  --text-base: 10px;
+  --text-md:   12px;
+  --text-lg:   14px;
+  --text-xl:   18px;
+  --text-2xl:  24px;
+  --text-3xl:  32px;
+
+  /* Lettre-espacement labels */
+  --tracking-label: 0.12em;
+
+  /* ─── Espacements ──────────────────────────────────────────── */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  12px;
+  --space-lg:  16px;
+  --space-xl:  24px;
+
+  /* ─── Bordures ─────────────────────────────────────────────── */
+  --radius-sm:  3px;
+  --radius-md:  4px;
+
+  --border-rule:      0.5px solid var(--color-rule);
+  --border-rule-mid:  0.5px solid var(--color-rule-mid);
+  --border-gold:      0.5px solid var(--color-gold);
+  --border-panel:     0.5px solid var(--color-rule);
+
+  /* ─── Barre signature (top) ────────────────────────────────── */
+  --bar-height: 2.5px;
+
+  /* ─── Grille de points ─────────────────────────────────────── */
+  --dot-size:    0.7px;
+  --dot-spacing: 20px;
+  --dot-opacity: 0.18;
+
+  /* ─── Z-index ──────────────────────────────────────────────── */
+  --z-bg:      0;
+  --z-content: 10;
+  --z-overlay: 20;
+  --z-alert:   30;
+
+  /* ─── Transitions ──────────────────────────────────────────── */
+  --transition-fast:   0.2s ease;
+  --transition-normal: 0.4s ease;
+  --transition-slow:   0.8s ease;
+}
+
+/* ─── Reset minimal pour Browser Source ─────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: transparent; /* OBS gère le fond */
+}
+
+body {
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg);
+  position: relative;
+}

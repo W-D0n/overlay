@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920">
+  <title>Overlay — Discussion</title>
+  <!--
+    SCÈNE : Discussion / Just Chatting
+    LAYOUT : Cam grande (gauche) · Chat live · Sujet · Stats (droite)
+    OBS    : Browser Source 1920×1080, pointer events OFF
+  -->
+  <link rel="stylesheet" href="../tokens.css">
+  <style>
+    /* ── Layout principal ───────────────────────────────────── */
+    .layout {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+    }
+
+    /* ── Zone cam (placeholder — OBS positionne la vraie cam) ── */
+    .zone-cam {
+      position: absolute;
+      top: 40px;
+      left: 40px;
+      width: 1080px;   /* ~56% largeur */
+      height: 960px;
+      border-radius: var(--radius-md);
+      border: var(--border-panel);
+      background: var(--color-bg-panel);
+    }
+
+    /* ── Séparateur vertical ────────────────────────────────── */
+    .separator {
+      position: absolute;
+      top: 40px;
+      left: 1154px;    /* cam left + cam width + 34px gap */
+      width: 1px;
+      height: 1000px;
+      background: var(--color-rule);
+    }
+
+    /* ── Colonne droite ─────────────────────────────────────── */
+    .col-right {
+      position: absolute;
+      top: 40px;
+      left: 1188px;    /* séparateur + 34px */
+      width: 692px;    /* jusqu'à 1920-40 */
+      height: 1000px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    /* ── Bloc nom + ligne or ────────────────────────────────── */
+    .name-block {
+      padding-bottom: 18px;
+      border-bottom: var(--border-gold);
+      flex-shrink: 0;
+    }
+
+    .name-block h1 {
+      font-family: var(--font-serif);
+      font-size: 74px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+
+    /* ── Section générique ──────────────────────────────────── */
+    .section {
+      padding: 20px 0;
+      border-bottom: var(--border-rule);
+      flex-shrink: 0;
+    }
+
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    /* ── Sujet du moment ────────────────────────────────────── */
+    #subject-text {
+      font-family: var(--font-serif);
+      font-size: 38px;
+      color: var(--color-text-primary);
+      line-height: 1.2;
+    }
+
+    /* ── Stats (viewers + durée côte à côte) ────────────────── */
+    .stats-row {
+      display: flex;
+      gap: 48px;
+      align-items: flex-end;
+    }
+
+    /* ── Chat ───────────────────────────────────────────────── */
+    .section-chat {
+      flex: 1;
+      padding-top: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Dernier follow ─────────────────────────────────────── */
+    .section-last-follow {
+      padding: 16px 0 0;
+      border-top: 0.3px solid var(--color-gold-dim);
+      flex-shrink: 0;
+      margin-top: auto;
+    }
+
+    #last-follow-name {
+      font-family: var(--font-serif);
+      font-size: 38px;
+      color: var(--color-text-primary);
+      margin-top: 6px;
+    }
+
+    /* ── Pied de page ───────────────────────────────────────── */
+    .footer {
+      position: absolute;
+      bottom: 20px;
+      left: 1188px;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-text-ghost);
+    }
+  </style>
+</head>
+<body>
+<div class="layout" id="layout">
+
+  <!-- Fond grille de points -->
+  <canvas id="dot-grid" style="position:absolute;inset:0;pointer-events:none;z-index:0;"></canvas>
+
+  <!-- Barre or haut -->
+  <div id="bar-top"></div>
+  <!-- Barre or bas -->
+  <div id="bar-bot"></div>
+
+  <!-- Zone cam (placeholder visuel — OBS superpose la vraie source) -->
+  <div class="zone-cam" aria-hidden="true"></div>
+
+  <!-- Séparateur -->
+  <div class="separator" aria-hidden="true"></div>
+
+  <!-- Colonne droite -->
+  <div class="col-right">
+
+    <!-- Nom -->
+    <div class="name-block">
+      <h1>D0n</h1>
+    </div>
+
+    <!-- Sujet -->
+    <div class="section">
+      <span class="section-label">Sujet du moment</span>
+      <div id="subject-text">En attente</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="section">
+      <div class="stats-row">
+        <div id="stat-viewers"></div>
+        <div id="stat-duration"></div>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="section-chat">
+      <span class="section-label">Chat</span>
+      <div id="chat-feed" style="flex:1;overflow:hidden;"></div>
+    </div>
+
+    <!-- Dernier follow -->
+    <div class="section-last-follow">
+      <span class="section-label">Dernier follow</span>
+      <div id="last-follow-name">—</div>
+    </div>
+
+  </div>
+
+  <!-- Pied de page -->
+  <div class="footer">twitch.tv/d0natelll0</div>
+
+  <!-- Alerte plein écran -->
+  <div id="alert-banner"></div>
+
+</div>
+
+<script type="module">
+  import { onStateChange }                          from '../store.js';
+  import { DotGrid, GoldBar, StatBlock, ChatFeed, AlertBanner } from '../components/index.js';
+
+  // ── Monter les composants ──────────────────────────────────
+
+  // Grille de points
+  const grid = DotGrid();
+  document.getElementById('dot-grid').replaceWith(grid.el);
+
+  // Barres or
+  const barTop = GoldBar({ position: 'top' });
+  document.getElementById('bar-top').replaceWith(barTop.el);
+
+  const barBot = GoldBar({ position: 'bottom' });
+  document.getElementById('bar-bot').replaceWith(barBot.el);
+
+  // Stats
+  const statViewers = StatBlock({
+    label: 'VIEWERS',
+    value: '—',
+    minWidth: '120px',
+  });
+  document.getElementById('stat-viewers').appendChild(statViewers.el);
+
+  const statDuration = StatBlock({
+    label:      'DURÉE',
+    value:      '00:00:00',
+    valueColor: '#C8B97A',
+  });
+  document.getElementById('stat-duration').appendChild(statDuration.el);
+
+  // Chat
+  const chat = ChatFeed({ maxMessages: 7, fontSize: '22px' });
+  document.getElementById('chat-feed').appendChild(chat.el);
+
+  // Alerte
+  const alert = AlertBanner({ displayDuration: 5000 });
+  document.getElementById('alert-banner').replaceWith(alert.el);
+
+  // ── Réactivité ─────────────────────────────────────────────
+
+  let lastAlertTimestamp = 0;
+
+  onStateChange((state) => {
+    // Stats
+    statViewers.update({ value: state.viewers > 0 ? state.viewers.toLocaleString('fr-FR') : '—' });
+    statDuration.update({ value: state.duration });
+
+    // Sujet
+    const subjectEl = document.getElementById('subject-text');
+    if (subjectEl) subjectEl.textContent = state.subjectLine || 'En attente';
+
+    // Chat
+    chat.update(state.chatMessages);
+
+    // Dernier follow
+    const followEl = document.getElementById('last-follow-name');
+    if (followEl && state.latestAlert?.type === 'follow') {
+      followEl.textContent = state.latestAlert.username;
+    }
+
+    // Alerte (éviter de rejouer la même)
+    if (state.latestAlert && state.latestAlert.timestamp !== lastAlertTimestamp) {
+      lastAlertTimestamp = state.latestAlert.timestamp;
+      alert.show(state.latestAlert);
+    }
+  });
+</script>
+</body>
+</html>

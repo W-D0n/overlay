@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920">
+  <title>Overlay — React</title>
+  <!--
+    SCÈNE : React à des vidéos
+    LAYOUT : Vidéo source gauche (~57%) · Cam + chat droite · Crédit source bas gauche
+    OBS    : Browser Source 1920×1080
+  -->
+  <link rel="stylesheet" href="../tokens.css">
+  <style>
+    .layout { position:relative; width:1920px; height:1080px; overflow:hidden; }
+
+    .zone-source {
+      position:absolute; top:40px; left:40px;
+      width:1060px; height:800px;
+      border-radius:var(--radius-md); border:var(--border-panel);
+      background:var(--color-bg-panel);
+    }
+
+    /* Crédit source */
+    .source-credit {
+      position:absolute; top:858px; left:40px;
+      width:1060px; height:76px;
+      border:0.5px solid var(--color-gold); border-radius:var(--radius-md);
+      background:var(--color-bg-widget);
+      display:flex; align-items:center; padding:0 24px; gap:20px;
+    }
+    .credit-label { font-family:var(--font-mono); font-size:var(--text-xs); color:var(--color-text-mid); letter-spacing:var(--tracking-label); text-transform:uppercase; flex-shrink:0; }
+    .credit-v { width:1px; height:32px; background:var(--color-rule); flex-shrink:0; }
+    .credit-title { font-family:var(--font-serif); font-size:30px; color:var(--color-text-primary); flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .credit-platform { font-family:var(--font-mono); font-size:20px; color:var(--color-gold); flex-shrink:0; }
+
+    /* Séparateur vertical */
+    .sep { position:absolute; top:40px; left:1134px; width:1px; height:980px; background:var(--color-rule); }
+
+    /* Cam réaction */
+    .zone-cam {
+      position:absolute; top:40px; left:1168px;
+      width:712px; height:460px;
+      border-radius:var(--radius-md); border:var(--border-panel);
+      background:var(--color-bg-panel);
+    }
+
+    /* Chat */
+    .col-chat {
+      position:absolute; top:520px; left:1168px;
+      width:712px; height:500px;
+      display:flex; flex-direction:column;
+    }
+    .chat-label { font-family:var(--font-mono); font-size:var(--text-xs); color:var(--color-text-mid); letter-spacing:var(--tracking-label); text-transform:uppercase; margin-bottom:12px; flex-shrink:0; }
+
+    /* HUD bas */
+    .hud-bottom {
+      position:absolute; bottom:0; left:0; right:0; height:60px;
+      background:var(--color-bg-widget); border-top:var(--border-rule);
+      display:flex; align-items:center; padding:0 40px; gap:40px;
+    }
+    .hud-name { font-family:var(--font-serif); font-size:28px; font-weight:700; color:var(--color-text-primary); }
+    .hud-v    { width:1px; height:28px; background:var(--color-rule); }
+    .hud-val  { font-family:var(--font-mono); font-size:22px; color:var(--color-gold); }
+    .hud-lbl  { font-family:var(--font-mono); font-size:var(--text-xs); color:var(--color-text-mid); letter-spacing:var(--tracking-label); text-transform:uppercase; }
+    .hud-pair { display:flex; flex-direction:column; gap:2px; }
+    .hud-link { font-family:var(--font-mono); font-size:var(--text-xs); color:var(--color-text-ghost); margin-left:auto; }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <canvas id="dot-grid" style="position:absolute;inset:0;pointer-events:none;z-index:0;"></canvas>
+  <div id="bar-top"></div>
+  <div id="bar-bot"></div>
+
+  <div class="zone-source" aria-hidden="true"></div>
+
+  <div class="source-credit">
+    <span class="credit-label">Source</span>
+    <div class="credit-v"></div>
+    <span class="credit-title" id="credit-title">—</span>
+    <span class="credit-platform" id="credit-platform"></span>
+  </div>
+
+  <div class="sep" aria-hidden="true"></div>
+  <div class="zone-cam" aria-hidden="true"></div>
+
+  <div class="col-chat">
+    <span class="chat-label">Chat</span>
+    <div id="chat-feed" style="flex:1;overflow:hidden;"></div>
+  </div>
+
+  <div class="hud-bottom">
+    <span class="hud-name">D0n</span>
+    <div class="hud-v"></div>
+    <div class="hud-pair"><span class="hud-lbl">Viewers</span><span class="hud-val" id="hud-viewers">—</span></div>
+    <div class="hud-v"></div>
+    <div class="hud-pair"><span class="hud-lbl">Durée</span><span class="hud-val" id="hud-duration">00:00</span></div>
+    <span class="hud-link">twitch.tv/d0natelll0</span>
+  </div>
+</div>
+<script type="module">
+  import { onStateChange } from '../store.js';
+  import { DotGrid, GoldBar, ChatFeed } from '../components/index.js';
+
+  document.getElementById('dot-grid').replaceWith(DotGrid().el);
+  document.getElementById('bar-top').replaceWith(GoldBar({ position:'top' }).el);
+  document.getElementById('bar-bot').replaceWith(GoldBar({ position:'bottom' }).el);
+
+  const chat = ChatFeed({ maxMessages:12, fontSize:'20px' });
+  document.getElementById('chat-feed').appendChild(chat.el);
+
+  onStateChange((s) => {
+    chat.update(s.chatMessages);
+    const ct = document.getElementById('credit-title');
+    const cp = document.getElementById('credit-platform');
+    const hv = document.getElementById('hud-viewers');
+    const hd = document.getElementById('hud-duration');
+    if (ct) ct.textContent = [s.sourceTitle, s.sourceAuthor].filter(Boolean).join(' · ') || '—';
+    if (cp) cp.textContent = s.sourcePlatform || '';
+    if (hv) hv.textContent = s.viewers > 0 ? s.viewers.toLocaleString('fr-FR') : '—';
+    if (hd) hd.textContent = s.duration.slice(0, 5);
+  });
+</script>
+</body>
+</html>
