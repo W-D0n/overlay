@@ -31,10 +31,12 @@ Projet long terme associé : **VaultCity** (simulation UE5, non prioritaire).
 - Barre dorée 2.5px en haut de chaque scène — élément unificateur constant
 - Séparateurs verticaux `#1E1E22` 1px pour diviser les colonnes
 
-### Fichiers produits (overlay/)
+### Fichiers produits (racine du repo)
+
+> Note : structure aplatie — plus de sous-dossier `overlay/`, tout est à la racine du repo.
 
 ```
-overlay/
+(racine du repo)
 ├── tokens.css            ← variables design centralisées (source de vérité)
 ├── types.js              ← JSDoc types (StreamState, ChatMessage, AlertEvent…)
 ├── store.js              ← état global WebSocket (OBS WS v5, ws://localhost:4455)
@@ -103,7 +105,7 @@ Remplacer le composant `DotGrid` statique (canvas simple) par `DotGridAnimated` 
 un système de fond vivant, contextuel, réactif aux événements stream,
 capable de se morphoser en formes arbitraires.
 
-À créer dans : `overlay/components/DotGridAnimated.js`
+À créer dans : `components/DotGridAnimated.js`
 
 ### Architecture — 4 couches superposées
 
