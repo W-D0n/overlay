@@ -28,9 +28,13 @@ NE PAS faire : couches 3 (morph), 4 (événements), ni la migration page-unique.
 
 ## Décisions DÉJÀ figées en session A (ne pas re-débattre)
 
-Composant `overlay/components/DotGridAnimated.js` :
+> ⚠ Structure aplatie : `components/`, `scenes/`, `store.js`, `tokens.css`, `types.js` sont
+> désormais à la **racine** du repo (plus de sous-dossier `overlay/`). Les chemins ci-dessous
+> en tiennent compte.
 
-- **Simplex noise** → fichier séparé `overlay/components/simplex.js`, porté from scratch
+Composant `components/DotGridAnimated.js` :
+
+- **Simplex noise** → fichier séparé `components/simplex.js`, porté from scratch
   (~80 lignes, domaine public Gustavson), signature `simplex2(x, y) → [-1, 1]`. Zéro dépendance npm.
 - **Opacité** → additif clampé `clamp(base + C1 + C2, 0.04, 1)`, plancher 0.04 (jamais invisible).
   base = `0.18` (token), C1 = Couche 1 signée, C2 = Couche 2 signée.

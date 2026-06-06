@@ -8,7 +8,7 @@ Direction artistique : **Atelier** — noir profond, or patiné, grille de point
 ## Structure
 
 ```
-overlay/
+(racine du repo)
 ├── tokens.css          ← Toutes les variables de design (couleurs, typo, espacements)
 ├── types.js            ← Types JSDoc (documentation des données, autocomplétion VS Code)
 ├── store.js            ← État global — WebSocket + fallback statique
@@ -45,7 +45,7 @@ Pour chaque scène OBS, empilez les sources dans cet ordre (bas → haut) :
 ```
 [Capture jeu / IDE / logiciel]   ← source principale
 [Webcam]                          ← positionnée manuellement dans la zone "cam"
-[overlay/scenes/NomScene.html]    ← Browser Source par-dessus
+[scenes/NomScene.html]            ← Browser Source par-dessus
 ```
 
 ### Scène Jeu spécifiquement
