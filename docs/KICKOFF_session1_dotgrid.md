@@ -85,5 +85,6 @@ sessions ultérieures). NE PAS écrire de logique morph/event préventive (zero 
 - S5 : éditeur jalon 1 (placement drag + lecture anchor/offset)
 - Épopée : éditeur complet, orchestration OBS programmatique, skill recherche graphique
 
-État : commit initial `69eeae6` (structure + specs archi), pas de remote (repo local seul).
+État : Session 1 livrée (couches 1+2, commit `73b1701`). Remote actif :
+`origin` → github.com:W-D0n/overlay (branche `main`). Suivi d'avancement dans `docs/MAP.md`.
 ```
