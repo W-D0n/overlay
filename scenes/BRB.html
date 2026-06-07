@@ -259,15 +259,12 @@
 </div>
 
 <script type="module">
-  import { onStateChange }              from '../store.js';
-  import { DotGrid, GoldBar, StatBlock, ChatFeed } from '../components/index.js';
+  import { onStateChange }                        from '../store.js';
+  import { GoldBar, StatBlock, ChatFeed }         from '../components/index.js';
+  import { DotGridAnimated }                      from '../components/DotGridAnimated.js';
 
-  // ── Fond animé dots ────────────────────────────────────────
-  // DotGrid standard + animation CSS sur l'opacité globale
-  const grid = DotGrid();
-  Object.assign(grid.el.style, {
-    animation: 'pulse-dot 4s ease-in-out infinite',
-  });
+  // ── Fond animé dots (Couches 1 + 2) ───────────────────────
+  const grid = DotGridAnimated({ mode: 'brb' });
   document.getElementById('dot-grid').replaceWith(grid.el);
 
   document.getElementById('bar-top').replaceWith(GoldBar({ position: 'top', opacity: 0.6 }).el);
