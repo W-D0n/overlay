@@ -12,6 +12,7 @@ HTML/CSS/JS natif, ES modules, **zero build step, zero dépendance npm**.
 | `{overview}` | `docs/overview.md` |
 | `{inbox}` | `docs/inbox.md` |
 | `{specs}` | `docs/specs/` |
+| `{workflows}` | `docs/workflows/` |
 
 ---
 
@@ -41,6 +42,6 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 - `store.js` — protocole `{ type, data }` consommé par toutes les scènes
 - `types.js` — types JSDoc partagés
 - `components/index.js` — composants réutilisés
-- Le **format de config de scène** (à spécifier) — futur socle de l'éditeur de scènes
+- Le **format de config de scène** — spécifié dans `docs/specs/scene-config-protocol.md`
 
 Modifier l'une de ces surfaces impacte plusieurs scènes : vérifier en aval avant d'éditer.
