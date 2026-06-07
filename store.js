@@ -24,6 +24,8 @@
  *   Modifier STATIC_FALLBACK pour les valeurs affichées hors connexion.
  */
 
+import { reduceMessage } from './protocol.js';
+
 /** URL du WebSocket — adapter à votre setup */
 const WS_URL = 'ws://localhost:4455'; // OBS WebSocket v5 par défaut
 
@@ -73,6 +75,8 @@ const STATIC_FALLBACK = {
   subjectLine:    '',
   recapLines:     [],
   socialLinks:    ['twitch.tv/d0natelll0'],
+  currentScene:    'brb',
+  visibilityLevel: 'full',
 };
 
 // ─── État interne ─────────────────────────────────────────────────────────────
@@ -196,81 +200,29 @@ function connectWebSocket() {
 }
 
 /**
- * Traiter un message WebSocket entrant.
- * Adapter selon le protocole MyVault ou OBS WebSocket v5.
+ * Effets de bord nommés que `reduceMessage` ne peut pas exécuter lui-même (pureté).
+ * @type {Record<import('./types.js').EffectToken, () => void>}
+ */
+const EFFECT_HANDLERS = {
+  'reset-duration-timer': () => { durationSeconds = 0; },
+};
+
+/**
+ * Traiter un message entrant.
  *
- * @param {{ type: string, data?: Record<string, unknown> }} msg
+ * `store.js` ne contient plus de logique de protocole : toute la décision est dans
+ * `protocol.js` (logique pure, testée). Cette coquille injecte l'horloge, délègue à
+ * `reduceMessage`, puis exécute la décision (warnings → patch → effets → events).
+ *
+ * @param {{ type: string, data?: unknown }} msg
  */
 function handleMessage(msg) {
-  switch (msg.type) {
+  const { patch, events, warnings, effects } = reduceMessage(store, msg, { now: Date.now() });
 
-    // ── Données stream temps réel ──────────────────────────────
-    case 'stream.stats':
-      setState({
-        viewers:  msg.data?.viewers  ?? store.viewers,
-        duration: msg.data?.duration ?? store.duration,
-      });
-      break;
-
-    // ── Chat ───────────────────────────────────────────────────
-    case 'chat.message': {
-      const newMsg = /** @type {import('./types.js').ChatMessage} */ (msg.data);
-      const updated = [newMsg, ...store.chatMessages].slice(0, 20); // 20 messages max
-      setState({ chatMessages: updated });
-      break;
-    }
-
-    // ── Alertes ────────────────────────────────────────────────
-    case 'alert.follow':
-    case 'alert.sub':
-    case 'alert.raid':
-    case 'alert.bits':
-      setState({
-        latestAlert: /** @type {import('./types.js').AlertEvent} */ ({
-          type:      msg.type.split('.')[1],
-          username:  msg.data?.username ?? 'Anonyme',
-          timestamp: Date.now(),
-          amount:    msg.data?.amount,
-        }),
-      });
-      break;
-
-    // ── Vote ───────────────────────────────────────────────────
-    case 'poll.update':
-      setState({ activePoll: /** @type {import('./types.js').PollState} */ (msg.data) });
-      break;
-
-    case 'poll.end':
-      setState({ activePoll: null });
-      break;
-
-    // ── Pomodoro ───────────────────────────────────────────────
-    case 'pomodoro.tick':
-      setState({ pomodoro: /** @type {import('./types.js').PomodoroState} */ (msg.data) });
-      break;
-
-    // ── Contexte activité ──────────────────────────────────────
-    case 'context.update':
-      setState({
-        currentActivity: msg.data?.activity ?? store.currentActivity,
-        currentFile:     msg.data?.file     ?? store.currentFile,
-        currentBranch:   msg.data?.branch   ?? store.currentBranch,
-        currentTool:     msg.data?.tool     ?? store.currentTool,
-        subjectLine:     msg.data?.subject  ?? store.subjectLine,
-        currentSong:     msg.data?.song     ?? store.currentSong,
-      });
-      break;
-
-    // ── Session ────────────────────────────────────────────────
-    case 'session.start':
-      durationSeconds = 0;
-      setState({ sessionId: msg.data?.id ?? store.sessionId });
-      break;
-
-    default:
-      // Message inconnu — ignorer silencieusement
-      break;
-  }
+  warnings.forEach(w => console.warn(w));
+  if (patch) setState(patch);                          // setState AVANT dispatch (séquencement)
+  effects.forEach(token => EFFECT_HANDLERS[token]?.());
+  events.forEach(e => document.dispatchEvent(new CustomEvent(e.name, { detail: e.detail })));
 }
 
 // ─── Initialisation ───────────────────────────────────────────────────────────

@@ -37,6 +37,8 @@
  * @property {string}   subjectLine     - Sujet du moment (Discussion)
  * @property {string[]} recapLines      - Lignes de récap session (Fin)
  * @property {string[]} socialLinks     - Liens réseaux sociaux
+ * @property {SceneId}         currentScene    - Scène active (axe scène)
+ * @property {VisibilityLevel} visibilityLevel - Niveau de visibilité (axe orthogonal)
  */
 
 /**
@@ -82,6 +84,143 @@
  * @property {number} maxViewers   - Pic de viewers
  * @property {number} newFollows   - Nouveaux follows
  * @property {string} duration     - Durée totale formatée
+ */
+
+// ─── Protocole de scène (S2) ────────────────────────────────────────────────
+
+/**
+ * Identifiants de scène valides.
+ * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|'jeu'} SceneId
+ */
+
+/**
+ * Niveaux de visibilité de l'overlay (axe orthogonal à la scène).
+ * - full    : toutes les couches visibles
+ * - minimal : goldbar uniquement (+ DotGrid fond permanent)
+ * - hidden  : aucune couche visible, body transparent (cinématique)
+ * @typedef {'full'|'minimal'|'hidden'} VisibilityLevel
+ */
+
+/**
+ * Modes ambiants de DotGridAnimated.
+ * null = scène sans DotGrid (ex : jeu).
+ * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|null} DotGridMode
+ */
+
+/**
+ * Type de transition entre deux scènes.
+ * - crossfade : fondu croisé en opacité (comportement par défaut)
+ * - cut       : changement instantané (duration et easing ignorés)
+ * @typedef {'crossfade'|'cut'} TransitionType
+ */
+
+/**
+ * Easing des transitions entre scènes (ignoré si type === 'cut').
+ * @typedef {'easeInOut'|'easeIn'|'easeOut'|'linear'} TransitionEasing
+ */
+
+/**
+ * Noms des composants JS montables dans une couche.
+ * Résolu via registry dans le runtime S3.
+ * @typedef {'GoldBar'|'StatBlock'|'ChatFeed'|'PomodoroBar'|'AlertBanner'} ComponentName
+ */
+
+/**
+ * Une instance de composant à monter dans une couche.
+ * @typedef {Object} ComponentMount
+ * @property {ComponentName} component - Nom résolu par le registry
+ * @property {Record<string, unknown>} options - Options statiques passées au constructeur
+ */
+
+/**
+ * Règles de visibilité d'une couche selon le niveau d'overlay.
+ *
+ * Invariant (niveaux imbriqués) : hidden ⟹ minimal ⟹ full.
+ * Combinaisons légales (4 seulement) :
+ *   { full:false, minimal:false, hidden:false }  → jamais visible
+ *   { full:true,  minimal:false, hidden:false }  → visible en full uniquement
+ *   { full:true,  minimal:true,  hidden:false }  → visible en full + minimal
+ *   { full:true,  minimal:true,  hidden:true  }  → toujours visible
+ *
+ * @typedef {Object} LayerVisibility
+ * @property {boolean} full    - Visible en mode plein
+ * @property {boolean} minimal - Visible en mode minimal (⟹ full doit être true)
+ * @property {boolean} hidden  - Visible en mode caché (⟹ minimal doit être true)
+ */
+
+/**
+ * Configuration d'une couche nommée dans une scène.
+ * `name` devient la valeur de l'attribut `data-layer` en S3.
+ * @typedef {Object} LayerConfig
+ * @property {string} name - Identifiant unique dans la scène (ex : 'chat', 'goldbar')
+ * @property {ComponentMount[]} components - Composants à monter (tableau vide = DOM pur)
+ * @property {LayerVisibility} visibility
+ */
+
+/**
+ * Paramètres de transition lors d'un changement de scène.
+ * Déclarés par la scène ENTRANTE.
+ * @typedef {Object} SceneTransition
+ * @property {TransitionType} type
+ * @property {number} duration - Durée en ms (ignoré si type === 'cut')
+ * @property {TransitionEasing} easing - (ignoré si type === 'cut')
+ */
+
+/**
+ * Configuration complète et sérialisable d'une scène.
+ * Format que le runtime S3 lit, et que l'éditeur de scènes écrira.
+ * @typedef {Object} SceneConfig
+ * @property {SceneId} id
+ * @property {DotGridMode} dotgridMode - null si la scène n'utilise pas DotGrid
+ * @property {SceneTransition} transition
+ * @property {LayerConfig[]} layers
+ */
+
+/**
+ * Données du message `morph.trigger`.
+ * Sources LOCALES uniquement — aucun appel à une API externe.
+ * @typedef {Object} MorphTriggerData
+ * @property {object}  [sdf]      - Descripteur SDF mathématique, calculé localement (couche 3B)
+ * @property {string}  [imageUrl] - URL bitmap PNG/SVG chargé localement (couche 3A)
+ * @property {number}  [duration] - Durée morph-in en ms (défaut : 2000)
+ * @property {number}  [hold]     - Durée maintien en ms (défaut : 3000)
+ */
+
+/**
+ * Un événement DOM à émettre, décrit de façon pure (sans le dispatcher).
+ * @typedef {Object} ProtocolEvent
+ * @property {string} name   - Nom du CustomEvent (ex : 'overlay:scene-change')
+ * @property {object} detail - Charge utile du CustomEvent
+ */
+
+/**
+ * Jeton d'effet de bord que `reduceMessage` ne peut pas exécuter lui-même (pureté).
+ * `store.js` traduit chaque jeton en effet concret.
+ * - reset-duration-timer : remet le compteur de durée local à zéro (sur `session.start`)
+ * @typedef {'reset-duration-timer'} EffectToken
+ */
+
+/**
+ * Valeurs non-déterministes injectées dans `reduceMessage` pour le garder pur et testable.
+ * @typedef {Object} ReduceContext
+ * @property {number} now - Timestamp courant (ms), fourni par l'appelant (ex : `Date.now()`).
+ */
+
+/**
+ * Résultat pur de `reduceMessage` : décrit QUOI faire, sans le faire.
+ * @typedef {Object} ReduceResult
+ * @property {Partial<StreamState>|null} patch - Changements d'état à appliquer (null = aucun)
+ * @property {ProtocolEvent[]} events          - CustomEvents à dispatcher (vide = aucun)
+ * @property {string[]} warnings               - Messages à logguer via console.warn (vide = aucun)
+ * @property {EffectToken[]} effects           - Effets nommés à exécuter par store.js (vide = aucun)
+ */
+
+/**
+ * Résultat de `validateSceneConfig`.
+ * `errors` est vide si et seulement si `ok === true`.
+ * @typedef {Object} ValidationResult
+ * @property {boolean} ok        - true si la config respecte tous les invariants
+ * @property {string[]} errors   - Liste exhaustive des violations (vide si ok)
  */
 
 // Export vide pour permettre l'import en module si besoin
