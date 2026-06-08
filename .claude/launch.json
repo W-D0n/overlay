@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "overlay",
-      "runtimeExecutable": "npx",
+      "runtimeExecutable": "bunx",
       "runtimeArgs": ["serve", "-l", "5500", "."],
       "port": 5500
     }
