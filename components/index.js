@@ -347,7 +347,8 @@ export function PomodoroBar() {
  * @param {{ displayDuration?: number }} [options] - Durée d'affichage en ms
  * @returns {{
  *   el: HTMLDivElement,
- *   show: (alert: import('../types.js').AlertEvent) => void
+ *   show: (alert: import('../types.js').AlertEvent) => void,
+ *   destroy: () => void
  * }}
  */
 export function AlertBanner({ displayDuration = 5000 } = {}) {
@@ -444,6 +445,11 @@ export function AlertBanner({ displayDuration = 5000 } = {}) {
         el.style.opacity = '0';
         el.style.transform = 'translateX(-50%) translateY(20px)';
       }, displayDuration);
+    },
+
+    /** Libérer le timer de masquage (cleanup au démontage de la scène, AC-39). */
+    destroy() {
+      if (hideTimer) clearTimeout(hideTimer);
     },
   };
 }

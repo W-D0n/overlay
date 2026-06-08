@@ -22,6 +22,14 @@ const MODE_PARAMS = {
 };
 
 /**
+ * Modes ambiants DotGrid valides — clés de `MODE_PARAMS` (source unique).
+ * Consommé par `resolveDotgridMode` (scene-resolve.js) pour valider un mode
+ * sans redéclarer la liste (DRY).
+ * @type {GridMode[]}
+ */
+export const GRID_MODES = /** @type {GridMode[]} */ (Object.keys(MODE_PARAMS));
+
+/**
  * Fond grille de points animé — direction artistique Atelier.
  *
  * Couche 1 : oscillation sinusoïdale par point (init aléatoire au chargement).

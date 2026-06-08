@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920">
+  <title>Overlay — Atelier</title>
+  <!--
+    PAGE UNIQUE (S3) — remplace les Browser Sources HTML séparées.
+    #bg-layer : DotGrid permanent (une seule instance, survit aux changements de scène).
+    #scene-root : conteneur des scènes (montage/swap/transition par scene-runtime.js).
+    Un <template data-scene="id"> par scène de référence porte structure + placement (AD-5).
+    OBS : Browser Source 1920×1080, pointer-events: none.
+  -->
+  <link rel="stylesheet" href="./tokens.css">
+  <style>
+    /* ── Couches racine ──────────────────────────────────────── */
+    #bg-layer,
+    #scene-root {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      pointer-events: none;
+    }
+    #bg-layer   { z-index: var(--z-bg, 0); }
+    #scene-root { z-index: var(--z-content, 10); }
+
+    /* Conteneur de scène — aucun fond opaque (la transparence vient du body, AC-41) */
+    .scene {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+    }
+
+    /* ════════════════ DISCUSSION ════════════════ */
+    .scene[data-scene="discussion"] .disc-cam {
+      position: absolute; top: 40px; left: 40px; width: 1080px; height: 960px;
+      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
+    }
+    .scene[data-scene="discussion"] .disc-separator {
+      position: absolute; top: 40px; left: 1154px; width: 1px; height: 1000px; background: var(--color-rule);
+    }
+    .scene[data-scene="discussion"] .disc-col-right {
+      position: absolute; top: 40px; left: 1188px; width: 692px; height: 1000px;
+      display: flex; flex-direction: column;
+    }
+    .scene[data-scene="discussion"] .disc-block { flex-shrink: 0; }
+    .scene[data-scene="discussion"] .disc-name {
+      font-family: var(--font-serif); font-size: 74px; font-weight: 700; color: var(--color-text-primary);
+      letter-spacing: -0.5px; line-height: 1; margin-bottom: 18px;
+    }
+    .scene[data-scene="discussion"] .disc-rule-gold {
+      width: 100%; height: 0.8px; background: var(--color-gold); margin-bottom: 20px;
+    }
+    .scene[data-scene="discussion"] .disc-label {
+      display: block; font-family: var(--font-mono); font-size: var(--text-xs);
+      color: var(--color-text-mid); letter-spacing: var(--tracking-label);
+      text-transform: uppercase; margin-bottom: 10px;
+    }
+    .scene[data-scene="discussion"] .subject-text {
+      font-family: var(--font-serif); font-size: 38px; color: var(--color-text-primary); line-height: 1.2;
+    }
+    .scene[data-scene="discussion"] [data-layer="subject"] { padding-bottom: 20px; border-bottom: var(--border-rule); }
+    .scene[data-scene="discussion"] [data-layer="stats"] {
+      padding: 20px 0; border-bottom: var(--border-rule); display: flex; gap: 48px; align-items: flex-end;
+    }
+    .scene[data-scene="discussion"] [data-layer="chat"] {
+      flex: 1; min-height: 0; padding-top: 20px; overflow: hidden; display: flex; flex-direction: column;
+    }
+    .scene[data-scene="discussion"] [data-layer="last-follow"] {
+      padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim); margin-top: auto;
+    }
+    .scene[data-scene="discussion"] .last-follow-name {
+      font-family: var(--font-serif); font-size: 38px; color: var(--color-text-primary); margin-top: 6px;
+    }
+    .scene[data-scene="discussion"] .disc-footer {
+      margin-top: 12px; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost);
+    }
+
+    /* ════════════════ BRB ════════════════ */
+    .scene[data-scene="brb"] .brb-block-left {
+      position: absolute; top: 80px; left: 80px; width: 1020px; bottom: 120px;
+      display: flex; flex-direction: column;
+    }
+    .scene[data-scene="brb"] .brb-tag {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 32px;
+    }
+    .scene[data-scene="brb"] .brb-name {
+      font-family: var(--font-serif); font-size: 120px; font-weight: 700; color: var(--color-text-primary);
+      letter-spacing: -2px; line-height: 0.9; margin-bottom: 24px;
+    }
+    .scene[data-scene="brb"] .brb-rule-gold {
+      width: 100%; height: 0.8px; background: var(--color-gold); margin-bottom: 32px; flex-shrink: 0;
+    }
+    .scene[data-scene="brb"] .brb-message {
+      font-family: var(--font-serif); font-size: 38px; color: var(--color-text-primary);
+      line-height: 1.4; margin-bottom: 8px;
+    }
+    .scene[data-scene="brb"] .brb-activity {
+      font-family: var(--font-serif); font-size: 38px; color: var(--color-gold); line-height: 1.4;
+    }
+    .scene[data-scene="brb"] .brb-divider {
+      width: 100%; height: 0.5px; background: var(--color-rule); margin: 32px 0; flex-shrink: 0;
+    }
+    .scene[data-scene="brb"] .brb-song-label {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 10px;
+    }
+    .scene[data-scene="brb"] .brb-song {
+      font-family: var(--font-mono); font-size: 22px; color: var(--color-gold);
+    }
+    .scene[data-scene="brb"] .brb-separator {
+      position: absolute; top: 40px; left: 1140px; width: 1px; height: 940px; background: var(--color-rule);
+    }
+    .scene[data-scene="brb"] .brb-block-right {
+      position: absolute; top: 80px; left: 1174px; width: 706px; bottom: 220px;
+      display: flex; flex-direction: column;
+    }
+    .scene[data-scene="brb"] .brb-chat-label {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 16px; flex-shrink: 0;
+    }
+    .scene[data-scene="brb"] .brb-chat-rule {
+      width: 100%; height: 0.5px; background: var(--color-rule); margin-bottom: 16px; flex-shrink: 0;
+    }
+    .scene[data-scene="brb"] [data-layer="chat"] { overflow: hidden; }
+    .scene[data-scene="brb"] .brb-stats {
+      position: absolute; left: 1174px; bottom: 140px; display: flex; gap: 40px;
+      padding-top: 16px; border-top: 0.5px solid var(--color-rule);
+    }
+    .scene[data-scene="brb"] .brb-next {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 88px;
+      background: var(--color-bg-widget); border-top: 0.5px solid var(--color-gold-dim);
+      display: flex; align-items: center; padding: 0 80px; gap: 48px;
+    }
+    .scene[data-scene="brb"] .brb-next-label {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase; flex-shrink: 0;
+    }
+    .scene[data-scene="brb"] .next-info {
+      font-family: var(--font-serif); font-size: 34px; color: var(--color-text-primary); flex: 1;
+    }
+    .scene[data-scene="brb"] .next-topic {
+      font-family: var(--font-serif); font-size: 34px; color: var(--color-gold);
+    }
+    .scene[data-scene="brb"] .brb-footer-link {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost); flex-shrink: 0;
+    }
+
+    /* ════════════════ CODAGE ════════════════ */
+    .scene[data-scene="codage"] .cod-capture {
+      position: absolute; top: 40px; left: 40px; width: 1360px; height: 992px;
+      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
+    }
+    .scene[data-scene="codage"] .cod-separator {
+      position: absolute; top: 40px; left: 1434px; width: 1px; height: 1000px; background: var(--color-rule);
+    }
+    .scene[data-scene="codage"] .cod-col-right {
+      position: absolute; top: 40px; left: 1468px; width: 412px; height: 1000px;
+      display: flex; flex-direction: column;
+    }
+    .scene[data-scene="codage"] .cod-block { flex-shrink: 0; }
+    .scene[data-scene="codage"] .cod-name-block { padding-bottom: 14px; border-bottom: var(--border-gold); }
+    .scene[data-scene="codage"] .cod-name {
+      font-family: var(--font-serif); font-size: 54px; font-weight: 700; color: var(--color-text-primary);
+      letter-spacing: -0.5px; line-height: 1;
+    }
+    .scene[data-scene="codage"] .cod-cam-mini {
+      margin-top: 16px; width: 164px; height: 164px;
+      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
+    }
+    .scene[data-scene="codage"] .cod-section { padding: 18px 0; border-bottom: var(--border-rule); }
+    .scene[data-scene="codage"] .cod-label {
+      display: block; font-family: var(--font-mono); font-size: var(--text-xs);
+      color: var(--color-text-mid); letter-spacing: var(--tracking-label);
+      text-transform: uppercase; margin-bottom: 8px;
+    }
+    .scene[data-scene="codage"] .file-name {
+      font-family: var(--font-mono); font-size: 26px; color: var(--color-text-primary);
+      margin-bottom: 6px; word-break: break-all;
+    }
+    .scene[data-scene="codage"] .git-branch {
+      font-family: var(--font-mono); font-size: 20px; color: var(--color-gold); margin-bottom: 4px;
+    }
+    .scene[data-scene="codage"] .stack-info {
+      font-family: var(--font-mono); font-size: 18px; color: var(--color-text-mid);
+    }
+    .scene[data-scene="codage"] [data-layer="stats"] { display: flex; gap: 32px; }
+    .scene[data-scene="codage"] .cod-alert-strip {
+      position: absolute; bottom: 20px; left: 40px; width: 1360px; height: 20px;
+      display: flex; align-items: center;
+    }
+    .scene[data-scene="codage"] .cod-alert-text {
+      font-family: var(--font-mono); font-size: var(--text-xs);
+      color: var(--color-text-ghost); letter-spacing: var(--tracking-label);
+    }
+    .scene[data-scene="codage"] .cod-footer {
+      margin-top: auto; padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost);
+    }
+  </style>
+</head>
+<body>
+  <!-- Fond DotGrid permanent (instance unique montée par le runtime) -->
+  <div id="bg-layer"></div>
+
+  <!-- Conteneur des scènes -->
+  <div id="scene-root"></div>
+
+  <!-- ════════════════ Templates de scène (structure + placement, AD-5) ════════════════ -->
+
+  <template data-scene="discussion">
+    <div data-layer="goldbar"></div>
+    <div data-layer="cam" class="disc-cam" aria-hidden="true"></div>
+    <div class="disc-separator" aria-hidden="true"></div>
+    <div class="disc-col-right">
+      <div data-layer="subject" class="disc-block">
+        <h1 class="disc-name">D0n</h1>
+        <div class="disc-rule-gold"></div>
+        <span class="disc-label">Sujet du moment</span>
+        <div class="subject-text">En attente</div>
+      </div>
+      <div data-layer="stats" class="disc-block"></div>
+      <div data-layer="chat" class="disc-block">
+        <span class="disc-label">Chat</span>
+      </div>
+      <div data-layer="last-follow" class="disc-block">
+        <span class="disc-label">Dernier follow</span>
+        <div class="last-follow-name">—</div>
+        <div class="disc-footer">twitch.tv/d0natelll0</div>
+      </div>
+    </div>
+    <div data-layer="alert"></div>
+  </template>
+
+  <template data-scene="brb">
+    <div data-layer="goldbar"></div>
+    <div data-layer="message" class="brb-block-left">
+      <div class="brb-tag">— Pause —</div>
+      <div class="brb-name">D0n</div>
+      <div class="brb-rule-gold"></div>
+      <div class="brb-message">Retour dans quelques minutes.</div>
+      <div class="brb-message">On était en train de travailler</div>
+      <div class="brb-activity">sur l'atelier.</div>
+      <div class="brb-divider"></div>
+      <div class="brb-song-label">En ce moment</div>
+      <div class="brb-song">—</div>
+    </div>
+    <div class="brb-separator" aria-hidden="true"></div>
+    <div data-layer="chat" class="brb-block-right">
+      <div class="brb-chat-label">Chat</div>
+      <div class="brb-chat-rule"></div>
+    </div>
+    <div data-layer="stats" class="brb-stats"></div>
+    <div data-layer="next-stream" class="brb-next">
+      <span class="brb-next-label">Prochain stream</span>
+      <span class="next-info">À venir</span>
+      <span class="next-topic"></span>
+      <span class="brb-footer-link">twitch.tv/d0natelll0</span>
+    </div>
+  </template>
+
+  <template data-scene="codage">
+    <div data-layer="goldbar"></div>
+    <div data-layer="ide-zone" class="cod-capture" aria-hidden="true"></div>
+    <div class="cod-separator" aria-hidden="true"></div>
+    <div class="cod-col-right">
+      <div data-layer="cam-mini" class="cod-block">
+        <div class="cod-name-block"><h1 class="cod-name">D0n</h1></div>
+        <div class="cod-cam-mini" aria-hidden="true"></div>
+      </div>
+      <div data-layer="ide-context" class="cod-block cod-section">
+        <span class="cod-label">Fichier actif</span>
+        <div class="file-name">—</div>
+        <div class="git-branch"></div>
+        <div class="stack-info"></div>
+      </div>
+      <div data-layer="pomodoro" class="cod-block cod-section"></div>
+      <div data-layer="stats" class="cod-block cod-section"></div>
+      <div class="cod-footer">twitch.tv/d0natelll0</div>
+    </div>
+    <div data-layer="alert">
+      <div class="cod-alert-strip"><span class="cod-alert-text"></span></div>
+    </div>
+  </template>
+
+  <script type="module" src="./scene-runtime.js"></script>
+</body>
+</html>

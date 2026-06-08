@@ -223,5 +223,38 @@
  * @property {string[]} errors   - Liste exhaustive des violations (vide si ok)
  */
 
+// ─── Runtime de scène (S3) ────────────────────────────────────────────────────
+
+/**
+ * Instance de composant montée — surface retournée par une factory de `components/index.js`.
+ * Toutes les méthodes sont optionnelles : un composant DOM pur n'expose que `el`.
+ *
+ * Vue UNIFIÉE du registry pour 5 composants aux signatures hétérogènes : `update`/`show`
+ * sont typés `unknown` (un wire qui a besoin de précision caste vers le type concret).
+ * Les types précis vivent sur les factories de `components/index.js` (inchangées).
+ *
+ * @typedef {Object} ComponentInstance
+ * @property {HTMLElement} el                       - Élément racine, inséré dans l'élément de couche
+ * @property {(data: unknown) => void} [update]     - Rafraîchit le composant
+ * @property {(alert: unknown) => void} [show]      - Affiche une alerte (AlertBanner)
+ * @property {() => void} [destroy]                 - Libère les ressources (observers, timers)
+ */
+
+/**
+ * Scène montée dans le DOM par le runtime — résultat de `mountScene(id)`.
+ * @typedef {Object} MountedScene
+ * @property {SceneId} id
+ * @property {HTMLElement} root                                       - Conteneur de la scène (enfant de #scene-root)
+ * @property {Record<string, ComponentInstance[]>} componentsByLayer - Instances groupées par `name` de couche, dans l'ordre de la config
+ * @property {() => void} destroy                                     - Démontage complet : cleanup du wire, `destroy()` de chaque composant, retrait de `root`
+ */
+
+/**
+ * Module de câblage d'une scène (AD-6) : abonne les composants montés au store.
+ * @callback SceneWire
+ * @param {MountedScene} mounted
+ * @returns {() => void} Fonction de désabonnement (cleanup), appelée au démontage
+ */
+
 // Export vide pour permettre l'import en module si besoin
 export {};
