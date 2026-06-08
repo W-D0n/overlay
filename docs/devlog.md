@@ -35,3 +35,19 @@
 - Implémentation S3 prête, découpée en 4 sous-étapes (voir `docs/handoff-latest.md`). 12 fichiers : 9 à créer, 3 surfaces à modifier (`DotGridAnimated.js` exporte `GRID_MODES`, `index.js` ajoute `AlertBanner.destroy()`, `types.js` +3 typedefs).
 - Garde-fous figés pour l'implémentation : instance `DotGridAnimated` unique (AC-02), `overlay:morph` non câblé (séquencé couche 3), `grid.setMode` jamais appelé avec `null`.
 - Tooling : référence morte `docs/workflows/spec.md` retirée du skill `/spec` global.
+
+## 2026-06-08 — S3 (implémentation) : moteur runtime page-unique livré
+
+**Ce qui a été fait :**
+- Moteur livré : `index.html` (page unique : `#bg-layer` + `#scene-root` + un `<template>` par scène), `scene-runtime.js` (montage / swap / `cut`·`crossfade` / visibilité, garde double-fire), `scene-resolve.js` (4 helpers purs, 22 tests `bun test`), `component-registry.js`, `scenes/registry.js`, wires des 3 scènes de référence.
+- Surfaces partagées : `DotGridAnimated.js` (`GRID_MODES`), `index.js` (`AlertBanner.destroy()`), `types.js` (+3 typedefs). 3 scènes HTML autonomes (`BRB`/`Discussion`/`Codage`) supprimées (superseded par `index.html`).
+- AC d'orchestration vérifiés fonctionnellement (preview 1920×1080, events réels) : DotGrid unique jamais recréé, `cut`/`crossfade`, anti-accumulation (1 scène en régime stable), visibilité full·minimal·hidden + ré-application du niveau à une scène montée. Zéro warning/erreur console.
+
+**Pourquoi :**
+- Conventions de portage « couches » établies à l'implémentation (non figées par la spec) : tout contenu visible doit vivre dans un `[data-layer]` (sinon hors du contrat de visibilité) → décorations (nom, footer) repliées dans la couche sémantique adjacente ; CSS scopé par `.scene[data-scene="id"]` pour éviter les collisions de classes pendant un `crossfade` (2 scènes coexistantes) ; **classes** (jamais d'`id`) pour les éléments DOM-pur live, car les `id` dupliqueraient pendant la transition.
+- Incohérence interne de la spec corrigée : `ComponentInstance.show` typé `unknown` (vue unifiée du registry, types précis sur les factories), aligné sur sa propre note de rationale.
+
+**Impact :**
+- S3b (5 scènes restantes) suit ce gabarit : un `<template data-scene>` + une `*.config.js` + un `*.wire.js` par scène, structure scopée par scène.
+- Le runtime est l'unique point de montage ; les composants restent store-agnostiques — seul le wire importe `store.js` (AD-6).
+- `.claude/launch.json` aligné sur `bunx` (contrainte « Bun uniquement ») pour le serveur de preview statique.

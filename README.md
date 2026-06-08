@@ -9,21 +9,33 @@ Direction artistique : **Atelier** — noir profond, or patiné, grille de point
 
 ```
 (racine du repo)
-├── tokens.css          ← Toutes les variables de design (couleurs, typo, espacements)
-├── types.js            ← Types JSDoc (documentation des données, autocomplétion VS Code)
-├── store.js            ← État global — WebSocket + fallback statique
+├── index.html            ← Page unique (runtime S3) — scènes migrées : discussion / brb / codage
+├── scene-runtime.js      ← Orchestrateur DOM : montage des couches, transitions, visibilité
+├── scene-resolve.js      ← Helpers purs : résolution transition / visibilité / mode DotGrid
+├── component-registry.js ← ComponentName → factory
+├── protocol.js           ← Logique pure du protocole { type, data }
+├── store.js              ← État global — WebSocket + fallback statique
+├── tokens.css            ← Toutes les variables de design (couleurs, typo, espacements)
+├── types.js              ← Types JSDoc (documentation des données, autocomplétion VS Code)
 ├── components/
-│   └── index.js        ← Composants réutilisables : DotGrid, GoldBar, StatBlock, ChatFeed, PomodoroBar, AlertBanner
+│   ├── index.js          ← Composants : GoldBar, StatBlock, ChatFeed, PomodoroBar, AlertBanner (+ DotGrid legacy)
+│   ├── DotGridAnimated.js ← Fond animé (Simplex par mode), monté dans #bg-layer
+│   └── simplex.js        ← Bruit Simplex 2D (zéro dépendance)
 └── scenes/
-    ├── Discussion.html  ← Just Chatting
-    ├── Codage.html      ← Session de codage
-    ├── Jeu.html         ← Session de jeu (fond transparent)
-    ├── BRB.html         ← Pause / Be Right Back
-    ├── Interview.html   ← Interview invité
-    ├── React.html       ← React à des vidéos
-    ├── Creation3D.html  ← Création 3D / Dessin (?mode=A ou ?mode=B)
-    └── FinStream.html   ← Fin de stream
+    ├── registry.js                       ← SceneId → config + wire (3 scènes de référence)
+    ├── {discussion,brb,codage}.config.js ← configs des scènes migrées
+    ├── {discussion,brb,codage}.wire.js   ← câblage composants ↔ store (AD-6)
+    ├── Jeu.html          ← (non migrée → S3b) Session de jeu (fond transparent)
+    ├── Interview.html    ← (non migrée → S3b) Interview invité
+    ├── React.html        ← (non migrée → S3b) React à des vidéos
+    ├── Creation3D.html   ← (non migrée → S3b) Création 3D / Dessin (?mode=A ou ?mode=B)
+    └── FinStream.html    ← (non migrée → S3b) Fin de stream
 ```
+
+> **Modèle page-unique (S3).** Les scènes `discussion`, `brb` et `codage` vivent désormais dans
+> `index.html` : **une seule** Browser Source OBS. Le changement de scène et le niveau de visibilité
+> sont pilotés par messages (`overlay:scene-change`, `overlay:visibility-change`), pas par fichier.
+> Les 5 scènes restantes sont encore des fichiers `.html` autonomes jusqu'à leur migration (S3b).
 
 ---
 
@@ -33,7 +45,7 @@ Direction artistique : **Atelier** — noir profond, or patiné, grille de point
 
 1. Dans OBS : **Sources → + → Browser Source**
 2. Cocher **Local file**
-3. Sélectionner le fichier `.html` correspondant
+3. Sélectionner le fichier : `index.html` pour `discussion`/`brb`/`codage` (page unique, scène pilotée par message), ou le `.html` de scène pour les 5 non migrées
 4. Dimensions : **1920 × 1080**
 5. Décocher **Interact with page** (pointer events désactivés)
 6. Laisser **Custom CSS** vide

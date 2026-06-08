@@ -4,12 +4,12 @@
 
 ## Focus actuel
 
-**Session 3** — migration page-unique runtime : moteur qui lit les `SceneConfig`, monte les couches
-par `data-layer`, applique les transitions (résolution cascade + `DEFAULT_TRANSITION`) et le niveau
-de visibilité. Consomme le protocole et le format livrés en S2.
-Spec **reviewée** (`docs/specs/scene-runtime-engine.md`, 41 AC) — implémentation à venir,
-découpée en 4 sous-étapes (helpers purs → surfaces partagées → page+runtime → wire+vérif OBS).
-Reprise : `docs/handoff-latest.md`.
+**Session 3 — livrée.** Moteur page-unique : `index.html` (`#bg-layer` DotGrid permanent + `#scene-root`
++ un `<template>` par scène), `scene-runtime.js` (montage/swap/`crossfade`·`cut`/visibilité), `scene-resolve.js`
+(helpers purs, 22 tests), registries + wires des 3 scènes de référence (`discussion`, `brb`, `codage`).
+Spec `docs/specs/scene-runtime-engine.md` (41 AC). AC purs : `bun test` vert ; AC d'orchestration :
+vérifiés fonctionnellement (montage, `cut`/`crossfade`, visibilité full·minimal·hidden, anti-accumulation).
+Suite : **S3b** = 5 scènes restantes (`interview`, `react`, `creation`, `fin`, `jeu`) + leurs configs.
 
 ## Découpage des sessions
 
@@ -17,7 +17,8 @@ Reprise : `docs/handoff-latest.md`.
 |---|---|---|
 | S1 | DotGridAnimated — couches 1 (base aléatoire) + 2 (Simplex ambiant par mode) | ✅ fait |
 | S2 | Format de config de scène + protocole `{type,data}` étendu | ✅ fait |
-| S3 | Migration page-unique runtime ([spec](specs/scene-runtime-engine.md)) | ⬜ spec ✅ — impl. à venir |
+| S3 | Moteur page-unique + 3 scènes de référence ([spec](specs/scene-runtime-engine.md)) | ✅ fait |
+| S3b | Migration des 5 scènes restantes + leurs configs | ⬜ à venir |
 | S4 | Relais Bun (WS + HTTP `/emit`, auth OBS, secret en env) | ⬜ à venir |
 | S5 | Éditeur jalon 1 (placement drag + lecture anchor/offset) | ⬜ à venir |
 | Épopée | Éditeur complet, orchestration OBS programmatique, skill recherche graphique | ⬜ hors scope |
@@ -26,7 +27,7 @@ Reprise : `docs/handoff-latest.md`.
 
 - `components/simplex.js` — Simplex 2D Gustavson, `simplex2(x,y) → [-1,1]`, zéro dépendance.
 - `components/DotGridAnimated.js` — couches 1+2, stockage SoA, `setMode`/`destroy` fonctionnels, `trigger`/`morphTo` en stubs.
-- `scenes/BRB.html` — branché sur `DotGridAnimated({ mode: 'brb' })`.
+- DotGrid testé sur `scenes/BRB.html` (S1) — depuis S3, monté par le runtime dans `index.html` (`#bg-layer`).
 
 ## Détail S2 (livré)
 
@@ -38,6 +39,18 @@ Reprise : `docs/handoff-latest.md`.
 - `protocol.test.js` — 41 tests `bun test` autonomes.
 - Décisions structurantes : AD-1 (logique pure / effets), AD-2 (placement dans le CSS), AD-3 (état de repos). Voir `devlog.md`.
 
+## Détail S3 (livré)
+
+- `index.html` — page unique : `#bg-layer` (DotGrid permanent), `#scene-root`, un `<template data-scene>` par scène de référence. Remplace les Browser Sources HTML séparées des 3 scènes migrées.
+- `scene-runtime.js` — orchestrateur DOM : montage initial, swap + transition (`cut`/`crossfade`), visibilité, garde double-fire. Écoute `overlay:scene-change` + `overlay:visibility-change` ; ne câble pas `overlay:morph` (AD-7).
+- `scene-resolve.js` — helpers purs (`resolveTransition`, `isLayerVisible`, `resolveDotgridMode`, `toCssEasing`). Zéro DOM/réseau/temps.
+- `component-registry.js` (`ComponentName` → factory) + `scenes/registry.js` (`SceneId` → config + wire).
+- `scenes/{discussion,brb,codage}.wire.js` — câblage composants ↔ store par scène (AD-6).
+- `scene-resolve.test.js` — 22 tests `bun test`.
+- Modifs surfaces partagées : `components/index.js` (`AlertBanner.destroy()`), `components/DotGridAnimated.js` (`GRID_MODES`), `types.js` (`ComponentInstance`, `MountedScene`, `SceneWire`).
+- Décisions : AD-4 (périmètre 3 scènes), AD-5 (`<template>` inline), AD-6 (wire par scène), AD-7 (`hidden` masque le fond).
+- `scenes/{BRB,Discussion,Codage}.html` supprimées (superseded par `index.html`).
+
 ## Frictions séquencées (issues de la review S2)
 
 - FRIC-S2-01 : 5 configs restantes (interview, react, creation, fin, jeu) → S3.
@@ -47,5 +60,5 @@ Reprise : `docs/handoff-latest.md`.
 
 ## Reste à faire (hors S1, déjà identifié)
 
-- Migration des 6 autres scènes (Discussion, Codage, Interview, React, Creation3D, FinStream) vers `DotGridAnimated` + branchement sur les `SceneConfig` → prévu S3.
+- Migration des 5 scènes restantes (Interview, React, Creation3D, FinStream, Jeu) + leurs configs vers la page unique → S3b. (Discussion, Codage, BRB livrées en S3.)
 - Couches 3 (morphisme) et 4 (événements stream) du DotGrid → sessions ultérieures, voir `HANDOFF_overlay_dotgrid.md`.

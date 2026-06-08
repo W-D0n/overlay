@@ -195,7 +195,7 @@ orthogonaux), pas figée par scène.
  * @typedef {Object} ComponentInstance
  * @property {HTMLElement} el                       - Élément racine, inséré dans l'élément de couche
  * @property {(data: unknown) => void} [update]     - Rafraîchit le composant (signature précise sur la factory — voir note)
- * @property {(alert: AlertEvent) => void} [show]   - Affiche une alerte (AlertBanner)
+ * @property {(alert: unknown) => void} [show]      - Affiche une alerte (AlertBanner — type précis sur la factory)
  * @property {() => void} [destroy]                 - Libère les ressources (observers, timers)
  */
 
