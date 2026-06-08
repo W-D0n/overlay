@@ -7,7 +7,9 @@
 **Session 3** — migration page-unique runtime : moteur qui lit les `SceneConfig`, monte les couches
 par `data-layer`, applique les transitions (résolution cascade + `DEFAULT_TRANSITION`) et le niveau
 de visibilité. Consomme le protocole et le format livrés en S2.
-Spec : `docs/specs/scene-runtime-engine.md` (Draft).
+Spec **reviewée** (`docs/specs/scene-runtime-engine.md`, 41 AC) — implémentation à venir,
+découpée en 4 sous-étapes (helpers purs → surfaces partagées → page+runtime → wire+vérif OBS).
+Reprise : `docs/handoff-latest.md`.
 
 ## Découpage des sessions
 
@@ -15,7 +17,7 @@ Spec : `docs/specs/scene-runtime-engine.md` (Draft).
 |---|---|---|
 | S1 | DotGridAnimated — couches 1 (base aléatoire) + 2 (Simplex ambiant par mode) | ✅ fait |
 | S2 | Format de config de scène + protocole `{type,data}` étendu | ✅ fait |
-| S3 | Migration page-unique runtime ([spec](specs/scene-runtime-engine.md)) | ⬜ à venir |
+| S3 | Migration page-unique runtime ([spec](specs/scene-runtime-engine.md)) | ⬜ spec ✅ — impl. à venir |
 | S4 | Relais Bun (WS + HTTP `/emit`, auth OBS, secret en env) | ⬜ à venir |
 | S5 | Éditeur jalon 1 (placement drag + lecture anchor/offset) | ⬜ à venir |
 | Épopée | Éditeur complet, orchestration OBS programmatique, skill recherche graphique | ⬜ hors scope |
