@@ -83,3 +83,47 @@ n'a pas de format à imposer.
 Ajouter dans MyVault un mécanisme qui **rejoue les questions du grill-me** sur une spec existante
 pour détecter les trous non couverts. (Variante active, pas simple cross-check.)
 N'appartient pas à ce projet — à reporter dans l'inbox de MyVault.
+
+---
+
+## DotGrid — retravailler la visibilité et le rythme (feedback owner, session S3b)
+
+Le fond DotGrid est jugé **trop peu visible** et son animation **trop lente / trop discrète** —
+il ne se "voit" pas assez à l'écran. À retravailler :
+
+- **Visibilité** : amplitude/opacité des points trop faibles → revoir le plancher d'opacité
+  (`clamp(base + C1 + C2, 0.04, 1)`, plancher 0.04 décidé en S1) et/ou la densité/taille des points.
+- **Rythme** : animation Simplex trop lente → revoir les `speeds` / l'échelle temporelle par mode.
+
+⚠ Surface partagée : touche `components/DotGridAnimated.js` + les paramètres Simplex par mode
+(`GRID_MODES`). Impacte toutes les scènes qui montrent le fond. À cadrer comme une passe de tuning
+design (idéalement via l'éditeur / sliders Simplex du jalon éditeur, sinon ajustement direct documenté).
+
+---
+
+## HUD scène `jeu` — lisibilité des libellés trop faible (feedback owner, session S3b)
+
+Les libellés et valeurs du HUD bas (`viewers`, `durée`, `vote`) sont jugés **trop petits**.
+À nuancer : l'observation a été faite en preview navigateur **dézoomée (~68%, fenêtre 738px / 1080px)** —
+une partie de l'effet vient de l'échelle, pas du design réel à 1080p natif. À revoir à l'œil **en OBS
+à 1920×1080** avant d'ajuster.
+
+Si confirmé trop petit en natif : remonter `--text-xs` (libellés HUD) et la taille des `.hud-value`
+(actuellement 26px) — **via `tokens.css`**, pas en dur dans la scène (source de vérité design).
+Vérifier l'impact sur les autres scènes qui réutilisent ces tokens.
+
+---
+
+## store.js — bruit console : reconnexion OBS WebSocket toutes les 3 s
+
+Quand OBS est éteint, `store.js` retente la connexion `ws://localhost:4455` toutes les 3 s et logge
+3 lignes à chaque tentative (`WebSocket non disponible` / `connection failed` / `fermé — reconnexion`).
+Inoffensif en prod (OBS tourne → connexion établie), mais spamme la console en dev/preview.
+
+**Fix proposé — "back-off silencieux" :**
+- **Back-off exponentiel** : au lieu d'un délai fixe de 3 s, augmenter progressivement (3 s → 6 s →
+  12 s… plafonné, ex. 30 s). Réduit la fréquence des tentatives.
+- **Silencieux** : logger l'échec **une seule fois** (premier passage en mode statique), puis se taire
+  sur les tentatives suivantes — ne re-logger qu'au changement d'état (reconnexion réussie / perte).
+
+Petit changement localisé dans `connectWebSocket` (`store.js`), aucune dépendance. Non bloquant.

@@ -1,7 +1,7 @@
-**Handoff — 2026-06-08**
+**Handoff — 2026-06-09**
 
-Session : **implémentation S3** (moteur runtime page-unique) — livrée, vérifiée fonctionnellement,
-commitée + pushée. Prochaine session = **S3b** (migration des 5 scènes restantes).
+Session : **S3b démarrée — scène `jeu` migrée et commitée** (`23533ed`). Vérif statique + runtime OK.
+Prochaine session = migrer les **4 scènes restantes** (`interview`, `react`, `creation`, `fin`).
 
 ---
 
@@ -9,62 +9,55 @@ commitée + pushée. Prochaine session = **S3b** (migration des 5 scènes restan
 
 | Livrable | État |
 |----------|------|
-| `scene-resolve.js` — 4 helpers purs (`resolveTransition`, `isLayerVisible`, `resolveDotgridMode`, `toCssEasing`) + `scene-resolve.test.js` (22 tests, `bun test` vert) | ✅ Fait |
-| Surfaces partagées : `GRID_MODES` (DotGridAnimated), `AlertBanner.destroy()` (index.js), 3 typedefs (`ComponentInstance`/`MountedScene`/`SceneWire`) | ✅ Fait |
-| `index.html` — page unique : `#bg-layer` + `#scene-root` + `<template>` × 3 (CSS porté, scopé par `.scene[data-scene]`) | ✅ Fait |
-| `scene-runtime.js` — orchestrateur : montage / swap / `cut`·`crossfade` / visibilité, garde double-fire, repli scène initiale | ✅ Fait |
-| `component-registry.js` + `scenes/registry.js` + wires `discussion`/`brb`/`codage` (AD-6) | ✅ Fait |
-| Vérification fonctionnelle (preview 1920×1080, events réels) : DotGrid unique, cut/crossfade, anti-accumulation, visibilité full·minimal·hidden, AC-34. Zéro warning console | ✅ Résolu |
-| Incohérence interne spec `ComponentInstance.show` (`AlertEvent` → `unknown`) | ✅ Résolu |
-| 3 scènes HTML migrées supprimées + docs vivants (MAP/README/devlog) mis à jour | ✅ Fait |
-| Migration des 5 scènes restantes (`interview`, `react`, `creation`, `fin`, `jeu`) + configs | 🔲 À faire (S3b) |
+| Scène `jeu` migrée page-unique : `scenes/jeu.config.js` + `scenes/jeu.wire.js` + `<template>` dans `index.html` + enregistrement `scenes/registry.js` | ✅ Commité `23533ed` |
+| AC-22 vérifié au runtime : `dotgridMode: null` → `#bg-layer` masqué, `setMode(null)` jamais appelé | ✅ Vérifié (preview 1920×1080) |
+| HUD câblé à l'état live (session/durée/viewers + vote + alerte, timer annulé au cleanup / AC-39) | ✅ Vérifié (`#047`, `1 243` à `y=984`) |
+| `scenes/Jeu.html` supprimée (superseded par `index.html`) | ✅ Commité |
+| `.gitattributes` ajouté (`* text=auto eol=lf`) — supprime définitivement les warnings CRLF sous Windows | ✅ Fait (closeout) |
+| Backlog capturé dans `docs/inbox.md` : DotGrid (visibilité + rythme), lisibilité HUD, back-off WS | ✅ Fait |
+| Migration des 4 scènes restantes (`interview`, `react`, `creation`, `fin`) + configs/wires | 🔲 À faire (S3b 2→5/5) |
 
 ---
 
 **État actuel des specs auditées**
 
 ```
-scene-config-protocol.md  ✅ Reviewed (S2, livré 636a1e7)
-scene-runtime-engine.md   ✅ Reviewed — implémentée + vérifiée (S3, livrée 1c67eee)
+scene-config-protocol.md  ✅ Reviewed — implémentée (S2, 636a1e7)
+scene-runtime-engine.md   ✅ Reviewed — implémentée + vérifiée (S3 + jeu en S3b)
 ```
-> Tracking JSON (`specs-audit-state.json`) non disponible dans ce projet — état issu de la session.
+> Tracking JSON (`specs-audit-state.json`) non disponible. S3b suit le gabarit de la spec S3 — pas de nouvelle spec.
 
 ---
 
-**Prochaine action recommandée — S3b (migration des 5 scènes restantes)**
+**Prochaine action recommandée — S3b (2→5/5)**
 
-Gabarit établi en S3 à reproduire pour chaque scène : un `<template data-scene="id">` dans `index.html`
-+ une `scenes/[id].config.js` + une `scenes/[id].wire.js`, puis enregistrement dans `scenes/registry.js`.
+Gabarit éprouvé sur `jeu` à reproduire pour chaque scène : `<template data-scene="id">` dans `index.html`
+(CSS scopé `.scene[data-scene="id"]`) + `scenes/[id].config.js` + `scenes/[id].wire.js`, puis enregistrement
+dans `scenes/registry.js`.
 
-1. **Créer les 5 configs** : `scenes/{interview,react,creation,fin,jeu}.config.js` (suivre `discussion.config.js`,
-   valider chacune via `validateSceneConfig` — `id ∈ SceneId`, goldbar survit au minimal, ≥1 couche full).
-   Note : `jeu` a `dotgridMode: null` (premier cas réel du chemin `setMode(null)` jamais appelé — AC-22).
-2. **Ajouter les 5 `<template data-scene>`** dans `index.html` (porter la structure depuis `scenes/{Interview,React,Creation3D,FinStream,Jeu}.html`, scoper le CSS par `.scene[data-scene="id"]`, replier les décorations dans une couche).
-3. **Créer les 5 wires** `scenes/[id].wire.js` (câblage composants ↔ store ; `clearTimeout` au cleanup si timer).
-4. **Enregistrer** les 5 configs + wires dans `scenes/registry.js` (`SCENE_CONFIGS`, `SCENE_WIRES`).
-5. **Vérifier** : `bun test` vert, puis preview 1920×1080 — montage des 5 scènes, `jeu` avec `#bg-layer` masqué (dotgrid null), supprimer les 5 HTML une fois migrées.
+1. **`interview`** : porter depuis `scenes/Interview.html` (invité = `state.guest`). Valider via `validateSceneConfig`.
+2. **`react`** : porter depuis `scenes/React.html` (source = `state.sourceTitle/Author/Platform`).
+3. **`creation`** : porter depuis `scenes/Creation3D.html` (`state.currentTool`).
+4. **`fin`** : porter depuis `scenes/FinStream.html` (`state.sessionStats`, `state.recapLines`).
+5. Pour chacune : `bun test` vert + preview 1920×1080 (penser à **dézoomer** pour voir le bas — l'overlay
+   fait 1080px, fenêtre navigateur souvent plus courte), puis **supprimer le `.html`** migré.
+6. Clôturer S3b (`docs/MAP.md` ligne S3b → ✅) puis cadrer **S4** (relais Bun).
 
 ---
 
-**Fichiers de cette session** (commités : `e68caae` feat, `fe47f8c` docs, `1c67eee` chore)
+**Fichiers modifiés cette session**
 
 ```
-scene-resolve.js               ← helpers purs
-scene-resolve.test.js          ← 22 tests bun
-scene-runtime.js               ← orchestrateur DOM
-component-registry.js          ← ComponentName → factory
-scenes/registry.js             ← SceneId → config + wire
-scenes/{discussion,brb,codage}.wire.js  ← câblage état (AD-6)
-index.html                     ← page unique + <template> × 3
-components/DotGridAnimated.js  ← export GRID_MODES
-components/index.js            ← AlertBanner.destroy()
-types.js                       ← +3 typedefs S3
-docs/MAP.md, README.md, docs/devlog.md  ← docs vivants à jour
-docs/specs/scene-runtime-engine.md      ← cohérence typedef
-.claude/launch.json            ← bunx (preview)
-scenes/{BRB,Discussion,Codage}.html     ← supprimées (→ index.html)
+scenes/jeu.config.js   ← config scène jeu (commité 23533ed)
+scenes/jeu.wire.js     ← câblage HUD live (commité 23533ed)
+index.html             ← template + CSS scène jeu (commité 23533ed)
+scenes/registry.js     ← jeu enregistré (commité 23533ed)
+scenes/Jeu.html        ← supprimée (commité 23533ed)
+.gitattributes         ← normalisation LF (closeout)
+docs/inbox.md          ← 3 items backlog (DotGrid, HUD, back-off WS)
+docs/MAP.md            ← S3b en cours (1/5)
 ```
 
-> Gaps connus (non bloquants) : décorations hors-couche (footers/séparateurs) visibles en `minimal`
-> (cosmétique) ; rendu pixel exact non capturé en preview (screenshot bloqué par la boucle rAF du DotGrid) —
-> structure + comportement validés. À vérifier à l'œil en OBS quand pratique.
+> Gaps connus (non bloquants, tracés dans `docs/inbox.md`) : DotGrid trop discret + animation trop lente
+> (tuning design à venir) ; lisibilité HUD à confirmer en OBS natif avant ajustement `tokens.css` ;
+> bruit console reconnexion OBS WS (back-off silencieux à implémenter).

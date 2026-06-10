@@ -9,7 +9,9 @@
 (helpers purs, 22 tests), registries + wires des 3 scènes de référence (`discussion`, `brb`, `codage`).
 Spec `docs/specs/scene-runtime-engine.md` (41 AC). AC purs : `bun test` vert ; AC d'orchestration :
 vérifiés fonctionnellement (montage, `cut`/`crossfade`, visibilité full·minimal·hidden, anti-accumulation).
-Suite : **S3b** = 5 scènes restantes (`interview`, `react`, `creation`, `fin`, `jeu`) + leurs configs.
+**S3b — en cours (1/5).** Scène `jeu` migrée (commit `23533ed`) : `<template>` + `jeu.config.js` + `jeu.wire.js`,
+`dotgridMode: null` (AC-22 vérifié au runtime — `#bg-layer` masqué, HUD câblé à l'état live). Restantes :
+`interview`, `react`, `creation`, `fin` + leurs configs/wires.
 
 ## Découpage des sessions
 
@@ -18,7 +20,7 @@ Suite : **S3b** = 5 scènes restantes (`interview`, `react`, `creation`, `fin`, 
 | S1 | DotGridAnimated — couches 1 (base aléatoire) + 2 (Simplex ambiant par mode) | ✅ fait |
 | S2 | Format de config de scène + protocole `{type,data}` étendu | ✅ fait |
 | S3 | Moteur page-unique + 3 scènes de référence ([spec](specs/scene-runtime-engine.md)) | ✅ fait |
-| S3b | Migration des 5 scènes restantes + leurs configs | ⬜ à venir |
+| S3b | Migration des 5 scènes restantes + leurs configs | 🔄 en cours (1/5 : `jeu`) |
 | S4 | Relais Bun (WS + HTTP `/emit`, auth OBS, secret en env) | ⬜ à venir |
 | S5 | Éditeur jalon 1 (placement drag + lecture anchor/offset) | ⬜ à venir |
 | Épopée | Éditeur complet, orchestration OBS programmatique, skill recherche graphique | ⬜ hors scope |
