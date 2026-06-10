@@ -200,6 +200,45 @@
       margin-top: auto; padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
       font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost);
     }
+
+    /* ════════════════ JEU ════════════════ */
+    .scene[data-scene="jeu"] .cam-mini {
+      position: absolute; top: 28px; left: 28px; width: 300px; height: 200px;
+      border-radius: var(--radius-md); border: var(--border-panel); background: rgba(10, 10, 12, 0.75);
+    }
+    .scene[data-scene="jeu"] .hud-bar {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 96px;
+      background: rgba(10, 10, 12, 0.9); border-top: 0.5px solid rgba(200, 185, 122, 0.4);
+      display: flex; align-items: center; padding: 0 28px;
+    }
+    .scene[data-scene="jeu"] .hud-cell {
+      display: flex; flex-direction: column; gap: 6px;
+      padding-right: 40px; border-right: 1px solid var(--color-rule); margin-right: 40px;
+    }
+    .scene[data-scene="jeu"] .hud-cell:last-child {
+      border-right: none; margin-right: 0; margin-left: auto; padding-right: 0;
+    }
+    .scene[data-scene="jeu"] .hud-label {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase;
+    }
+    .scene[data-scene="jeu"] .hud-value {
+      font-family: var(--font-mono); font-size: 26px; color: var(--color-text-primary); line-height: 1;
+    }
+    .scene[data-scene="jeu"] .hud-value.gold { color: var(--color-gold); }
+    .scene[data-scene="jeu"] .poll-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .scene[data-scene="jeu"] .poll-question {
+      font-family: var(--font-mono); font-size: 22px; color: var(--color-text-primary);
+    }
+    .scene[data-scene="jeu"] .poll-track {
+      width: 240px; height: 6px; border-radius: 3px; background: var(--color-rule-mid); overflow: hidden;
+    }
+    .scene[data-scene="jeu"] .poll-fill {
+      height: 100%; border-radius: 3px; background: var(--color-gold-dim); transition: width 0.6s ease;
+    }
+    .scene[data-scene="jeu"] .poll-ratio {
+      font-family: var(--font-mono); font-size: 18px; color: var(--color-text-mid);
+    }
   </style>
 </head>
 <body>
@@ -283,6 +322,37 @@
     </div>
     <div data-layer="alert">
       <div class="cod-alert-strip"><span class="cod-alert-text"></span></div>
+    </div>
+  </template>
+
+  <template data-scene="jeu">
+    <div data-layer="goldbar"></div>
+    <div data-layer="cam" class="cam-mini" aria-hidden="true"></div>
+    <div data-layer="hud" class="hud-bar">
+      <div class="hud-cell">
+        <span class="hud-label">D0n</span>
+        <span class="hud-value gold jeu-session">—</span>
+      </div>
+      <div class="hud-cell">
+        <span class="hud-label">Durée</span>
+        <span class="hud-value jeu-duration">00:00:00</span>
+      </div>
+      <div class="hud-cell">
+        <span class="hud-label">Viewers</span>
+        <span class="hud-value jeu-viewers">—</span>
+      </div>
+      <div class="hud-cell jeu-poll-cell" style="display:none;">
+        <span class="hud-label">Vote chat</span>
+        <div class="poll-wrap">
+          <span class="poll-question jeu-poll-question"></span>
+          <div class="poll-track"><div class="poll-fill jeu-poll-fill" style="width:50%"></div></div>
+          <span class="poll-ratio jeu-poll-ratio"></span>
+        </div>
+      </div>
+      <div class="hud-cell jeu-alert-cell" style="opacity:0;transition:opacity 0.4s ease;">
+        <span class="hud-label jeu-alert-label">Alerte</span>
+        <span class="hud-value gold jeu-alert-username"></span>
+      </div>
     </div>
   </template>
 
