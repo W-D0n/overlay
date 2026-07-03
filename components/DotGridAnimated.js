@@ -16,14 +16,14 @@ import { simplex2 } from './simplex.js';
  * @type {Record<GridMode, { freqX: number, freqY: number, freqT: number, amplitude: number }>}
  */
 export const MODE_PARAMS = {
-  discussion: { freqX: 0.03, freqY: 0.03, freqT: 0.7,  amplitude: 0.16 },
-  codage:     { freqX: 0.01, freqY: 0.01, freqT: 0.2,  amplitude: 0.06 },
-  brb:        { freqX: 0.02, freqY: 0.02, freqT: 0.4,  amplitude: 0.14 },
-  interview:  { freqX: 0.04, freqY: 0.02, freqT: 0.55, amplitude: 0.14 },
-  react:      { freqX: 0.05, freqY: 0.05, freqT: 1.0,  amplitude: 0.20 },
-  creation:   { freqX: 0.02, freqY: 0.04, freqT: 0.45, amplitude: 0.11 },
-  fin:        { freqX: 0.02, freqY: 0.02, freqT: 0.3,  amplitude: 0.09 },
-  starting:   { freqX: 0.02, freqY: 0.02, freqT: 0.35, amplitude: 0.12 },
+  discussion: { freqX: 0.045, freqY: 0.045, freqT: 0.79, amplitude: 0.16 },
+  codage    : { freqX: 0.01, freqY: 0.01, freqT: 0.2, amplitude: 0.06 },
+  brb       : { freqX: 0.02, freqY: 0.02, freqT: 0.4, amplitude: 0.14 },
+  interview : { freqX: 0.04, freqY: 0.02, freqT: 0.55, amplitude: 0.14 },
+  react     : { freqX: 0.05, freqY: 0.05, freqT: 1, amplitude: 0.2 },
+  creation  : { freqX: 0.02, freqY: 0.04, freqT: 0.45, amplitude: 0.11 },
+  fin       : { freqX: 0.02, freqY: 0.02, freqT: 0.3, amplitude: 0.09 },
+  starting  : { freqX: 0.02, freqY: 0.02, freqT: 0.35, amplitude: 0.12 },
 };
 
 /**
