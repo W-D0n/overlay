@@ -9,20 +9,23 @@
 (helpers purs, 22 tests), registries + wires des 3 scènes de référence (`discussion`, `brb`, `codage`).
 Spec `docs/specs/scene-runtime-engine.md` (41 AC). AC purs : `bun test` vert ; AC d'orchestration :
 vérifiés fonctionnellement (montage, `cut`/`crossfade`, visibilité full·minimal·hidden, anti-accumulation).
-**S3b — livrée.** 5 scènes restantes migrées : `interview`, `react`, `creation` (variante A seule —
-la variante B/panneau référence n'a plus de sens en page-unique, abandonnée, voir `docs/inbox.md`),
-`fin`. `bun test` vert (63 tests). Vérification visuelle faite par l'owner en preview navigateur
-1920×1080 (`bunx serve`) — les 4 scènes migrées sont fonctionnelles. Vérification en OBS natif
-(Browser Source réelle) encore à faire avant le premier live.
+**S3b — livrée et validée en OBS natif.** 5 scènes restantes migrées : `interview`, `react`,
+`creation` (variante A seule — la variante B/panneau référence n'a plus de sens en page-unique,
+abandonnée, voir `docs/inbox.md`), `fin`. `bun test` vert (63 tests). Vérification visuelle faite
+par l'owner d'abord en preview navigateur 1920×1080, puis **en Browser Source OBS réelle** (2026-07-03,
+avec le relais S4 branché) : scènes correctement affichées, changement de scène en direct confirmé.
 **S4 — livrée et validée en conditions réelles (2026-07-03).** Relais Bun (`relay/server.js`, spec
 `docs/specs/relay-bun-s4.md`) : client OBS WebSocket v5 (auth SHA256) → traduit
 `CurrentProgramSceneChanged` en `scene.set`, + serveur overlay WS + `POST /emit` authentifiés par
 secret partagé (`OVERLAY_RELAY_SECRET` / `obs-config.local.js`). Logique pure (`obs-auth.js`,
-`obs-scene-map.js`) testée `bun test` (8 tests). **Validé bout en bout par l'owner avec son vrai OBS**
+`obs-scene-map.js`) testée `bun test` (8 tests). **Validé bout en bout par l'owner avec son vrai OBS, y compris en Browser Source réelle**
 (4 scènes réelles : `Just Chatting`, `Coding`, `BRB`, `Gaming` → `discussion`/`codage`/`brb`/`jeu`,
-voir `relay/obs-scene-map.js`) : auth OBS OK, changement de scène OBS → overlay confirmé fonctionnel.
-`interview`/`react`/`creation`/`fin` n'ont pas de scène OBS correspondante pour l'instant (accessibles
-via `/emit` uniquement).
+voir `relay/obs-scene-map.js`) : auth OBS OK, changement de scène OBS → overlay affiché en direct
+dans OBS, confirmé fonctionnel. `interview`/`react`/`creation`/`fin` n'ont pas de scène OBS
+correspondante pour l'instant (accessibles via `/emit` uniquement).
+
+**Pipeline de lancement stream opérationnel de bout en bout** (relais + Browser Source + changement
+de scène live) — prêt pour un premier live avec les 4 scènes OBS existantes.
 
 ## Découpage des sessions
 
@@ -81,8 +84,8 @@ via `/emit` uniquement).
   Browser Source) est incompatible avec l'architecture page-unique (1 seule Browser Source) et n'a
   pas été redemandée depuis ; abandonnée (zero preemptive code), voir `docs/inbox.md`.
 - Vérification visuelle des 4 nouvelles scènes faite par l'owner en preview navigateur 1920×1080
-  (`bunx serve` — port 5500 par défaut occupé sur cette machine, servi sur 5501) : fonctionnelles.
-  Vérification en OBS natif (Browser Source réelle) encore à faire avant le premier live.
+  (`bunx serve` — port 5500 par défaut occupé sur cette machine, servi sur 5501), puis confirmée en
+  Browser Source OBS réelle (2026-07-03) : fonctionnelles.
 
 ## Détail S4 (livré)
 
