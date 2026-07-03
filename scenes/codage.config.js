@@ -22,6 +22,7 @@ export const sceneConfig = {
       name: 'ide-zone',
       components: [],
       visibility: { full: true, minimal: false, hidden: false },
+      placement: { x: 40, y: 40, width: 1360, height: 992 },
     },
     {
       // Cam mini (placeholder)
@@ -44,7 +45,7 @@ export const sceneConfig = {
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
-      // Viewers + durée
+      // Durée
       name: 'stats',
       components: [
         { component: 'StatBlock', options: { label: 'DURÉE', value: '00:00:00', valueColor: '#C8B97A' } },

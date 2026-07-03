@@ -25,6 +25,7 @@ export const sceneConfig = {
       name: 'capture-zone',
       components: [],
       visibility: { full: true, minimal: false, hidden: false },
+      placement: { x: 40, y: 40, width: 1360, height: 992 },
     },
     {
       // Cam mini + nom

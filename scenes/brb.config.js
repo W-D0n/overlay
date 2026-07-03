@@ -23,6 +23,7 @@ export const sceneConfig = {
       name: 'message',
       components: [],
       visibility: { full: true, minimal: true, hidden: false },
+      placement: { x: 80, y: 80, width: 1020, height: 880 },
     },
     {
       // Bloc droit : chat live
@@ -31,6 +32,7 @@ export const sceneConfig = {
         { component: 'ChatFeed', options: { maxMessages: 10, fontSize: '20px' } },
       ],
       visibility: { full: true, minimal: false, hidden: false },
+      placement: { x: 1174, y: 80, width: 706, height: 780 },
     },
     {
       // Stats durée

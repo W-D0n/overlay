@@ -80,8 +80,9 @@
     }
 
     /* ════════════════ BRB ════════════════ */
+    /* Position/taille de .brb-block-left pilotées par Placement (scenes/brb.config.js), voir
+       docs/specs/scene-placement-protocol.md. */
     .scene[data-scene="brb"] .brb-block-left {
-      position: absolute; top: 80px; left: 80px; width: 1020px; bottom: 120px;
       display: flex; flex-direction: column;
     }
     .scene[data-scene="brb"] .brb-tag {
@@ -115,8 +116,8 @@
     .scene[data-scene="brb"] .brb-separator {
       position: absolute; top: 40px; left: 1140px; width: 1px; height: 940px; background: var(--color-rule);
     }
+    /* Position/taille de .brb-block-right pilotées par Placement (scenes/brb.config.js). */
     .scene[data-scene="brb"] .brb-block-right {
-      position: absolute; top: 80px; left: 1174px; width: 706px; bottom: 220px;
       display: flex; flex-direction: column;
     }
     .scene[data-scene="brb"] .brb-chat-label {
@@ -151,8 +152,8 @@
     }
 
     /* ════════════════ CODAGE ════════════════ */
+    /* Position/taille de .cod-capture pilotées par Placement (scenes/codage.config.js). */
     .scene[data-scene="codage"] .cod-capture {
-      position: absolute; top: 40px; left: 40px; width: 1360px; height: 992px;
       border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
     }
     .scene[data-scene="codage"] .cod-separator {
@@ -266,8 +267,8 @@
     }
     .scene[data-scene="interview"] .int-fiche-v { width:1px; height:40px; background:var(--color-rule); flex-shrink:0; }
     .scene[data-scene="interview"] .int-fiche-role { font-family: var(--font-mono); font-size: 20px; color: var(--color-gold); }
+    /* Position/taille de .int-subject-bar pilotées par Placement (scenes/interview.config.js). */
     .scene[data-scene="interview"] .int-subject-bar {
-      position: absolute; bottom: 20px; left: 40px; width: 1520px; height: 60px;
       border: var(--border-rule); border-radius: var(--radius-md); background: var(--color-bg-widget);
       display: flex; align-items: center; padding: 0 24px; gap: 24px;
     }
@@ -291,12 +292,12 @@
     }
 
     /* ════════════════ REACT ════════════════ */
+    /* Position/taille de .react-source-zone/.react-source-credit/.react-cam pilotées par
+       Placement (scenes/react.config.js). */
     .scene[data-scene="react"] .react-source-zone {
-      position: absolute; top: 40px; left: 40px; width: 1060px; height: 800px;
       border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
     }
     .scene[data-scene="react"] .react-source-credit {
-      position: absolute; top: 858px; left: 40px; width: 1060px; height: 76px;
       border: 0.5px solid var(--color-gold); border-radius: var(--radius-md); background: var(--color-bg-widget);
       display: flex; align-items: center; padding: 0 24px; gap: 20px;
     }
@@ -314,7 +315,6 @@
       position: absolute; top: 40px; left: 1134px; width: 1px; height: 980px; background: var(--color-rule);
     }
     .scene[data-scene="react"] .react-cam {
-      position: absolute; top: 40px; left: 1168px; width: 712px; height: 460px;
       border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
     }
     .scene[data-scene="react"] .react-col-chat {
@@ -342,8 +342,8 @@
     .scene[data-scene="react"] .react-hud-link { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost); margin-left: auto; }
 
     /* ════════════════ CREATION (variante A uniquement, voir docs/inbox.md) ════════════════ */
+    /* Position/taille de .creation-capture-zone pilotées par Placement (scenes/creation.config.js). */
     .scene[data-scene="creation"] .creation-capture-zone {
-      position: absolute; top: 40px; left: 40px; width: 1360px; height: 992px;
       border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
     }
     .scene[data-scene="creation"] .creation-sep {
@@ -378,8 +378,8 @@
     .scene[data-scene="fin"] .fin-bar-bot-full {
       position: absolute; bottom: 0; left: 0; right: 0; height: 2.5px; background: var(--color-gold); opacity: 0.8;
     }
+    /* Position/taille de .fin-cam pilotées par Placement (scenes/fin.config.js). */
     .scene[data-scene="fin"] .fin-cam {
-      position: absolute; top: 40px; left: 40px; width: 800px; height: 992px;
       border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
     }
     .scene[data-scene="fin"] .fin-sep {

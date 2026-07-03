@@ -22,18 +22,21 @@ export const sceneConfig = {
       name: 'source-zone',
       components: [],
       visibility: { full: true, minimal: false, hidden: false },
+      placement: { x: 40, y: 40, width: 1060, height: 800 },
     },
     {
       // Crédit source (titre + auteur + plateforme)
       name: 'source-credit',
       components: [],
       visibility: { full: true, minimal: false, hidden: false },
+      placement: { x: 40, y: 858, width: 1060, height: 76 },
     },
     {
       // Cam réaction (placeholder)
       name: 'cam',
       components: [],
       visibility: { full: true, minimal: false, hidden: false },
+      placement: { x: 1168, y: 40, width: 712, height: 460 },
     },
     {
       name: 'chat',
@@ -43,7 +46,7 @@ export const sceneConfig = {
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
-      // HUD bas : viewers + durée
+      // HUD bas : durée
       name: 'hud',
       components: [],
       visibility: { full: true, minimal: false, hidden: false },

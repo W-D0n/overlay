@@ -34,6 +34,7 @@ export const sceneConfig = {
       name: 'subject',
       components: [],
       visibility: { full: true, minimal: false, hidden: false },
+      placement: { x: 40, y: 1000, width: 1520, height: 60 },
     },
     {
       // Colonne chat + stats durée

@@ -24,6 +24,7 @@ export const sceneConfig = {
       name: 'cam',
       components: [],
       visibility: { full: true, minimal: false, hidden: false },
+      placement: { x: 40, y: 40, width: 800, height: 992 },
     },
     {
       // Récap de session
