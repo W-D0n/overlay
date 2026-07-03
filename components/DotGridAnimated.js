@@ -17,13 +17,13 @@ import { simplex2 } from './simplex.js';
  */
 export const MODE_PARAMS = {
   discussion: { freqX: 0.045, freqY: 0.045, freqT: 0.79, amplitude: 0.16 },
-  codage    : { freqX: 0.01, freqY: 0.01, freqT: 0.2, amplitude: 0.06 },
-  brb       : { freqX: 0.02, freqY: 0.02, freqT: 0.4, amplitude: 0.14 },
-  interview : { freqX: 0.04, freqY: 0.02, freqT: 0.55, amplitude: 0.14 },
-  react     : { freqX: 0.05, freqY: 0.05, freqT: 1, amplitude: 0.2 },
-  creation  : { freqX: 0.02, freqY: 0.04, freqT: 0.45, amplitude: 0.11 },
-  fin       : { freqX: 0.02, freqY: 0.02, freqT: 0.3, amplitude: 0.09 },
-  starting  : { freqX: 0.02, freqY: 0.02, freqT: 0.35, amplitude: 0.12 },
+  codage    : { freqX: 0.045, freqY: 0.045, freqT: 0.79, amplitude: 0.16 },
+  brb       : { freqX: 0.045, freqY: 0.045, freqT: 0.79, amplitude: 0.16 },
+  interview : { freqX: 0.045, freqY: 0.045, freqT: 0.79, amplitude: 0.16 },
+  react     : { freqX: 0.045, freqY: 0.045, freqT: 0.79, amplitude: 0.16 },
+  creation  : { freqX: 0.045, freqY: 0.045, freqT: 0.79, amplitude: 0.16 },
+  fin       : { freqX: 0.045, freqY: 0.045, freqT: 0.79, amplitude: 0.16 },
+  starting  : { freqX: 0.045, freqY: 0.045, freqT: 0.79, amplitude: 0.16 },
 };
 
 /**
@@ -58,7 +58,7 @@ export const GRID_MODES = /** @type {GridMode[]} */ (Object.keys(MODE_PARAMS));
  */
 export function DotGridAnimated(options = {}) {
   const spacing     = options.spacing     ?? 20;
-  const dotRadius   = options.dotRadius   ?? 1.4;
+  const dotRadius   = options.dotRadius   ?? 2.15;
   const baseColor   = options.baseColor   ?? /** @type {[number,number,number]} */ ([200, 185, 122]);
   const baseOpacity = options.baseOpacity ?? 0.26;
 
