@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Dev — DotGrid Tuner</title>
+  <!--
+    OUTIL DE DEV — jamais chargé dans OBS, jamais référencé depuis index.html.
+    Sliders live sur les paramètres Simplex (couche 2, par mode) + baseOpacity/dotRadius (globaux).
+    Ne persiste rien : copier les valeurs affichées dans components/DotGridAnimated.js à la main
+    (jalon 1 "placement" de l'éditeur, docs/inbox.md — portée volontairement réduite au DotGrid seul).
+  -->
+  <link rel="stylesheet" href="../tokens.css">
+  <style>
+    html, body { width: auto; height: auto; overflow: auto; background: var(--color-bg); }
+    body { display: flex; height: 100vh; font-family: var(--font-mono); color: var(--color-text-primary); }
+
+    #preview {
+      position: relative;
+      flex: 1;
+      overflow: hidden;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #preview-surface {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: center center;
+      flex-shrink: 0;
+    }
+
+    #panel {
+      width: 380px;
+      flex-shrink: 0;
+      padding: 24px;
+      overflow-y: auto;
+      border-left: var(--border-rule);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    #panel h1 { font-family: var(--font-serif); font-size: 22px; color: var(--color-gold); }
+    #panel h2 {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-top: 8px;
+    }
+    label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+    label .row { display: flex; justify-content: space-between; }
+    label .val { color: var(--color-gold); font-variant-numeric: tabular-nums; }
+    input[type="range"] { width: 100%; }
+    select {
+      width: 100%; padding: 6px; background: var(--color-bg-widget); color: var(--color-text-primary);
+      border: var(--border-rule); border-radius: var(--radius-md);
+    }
+    button {
+      padding: 10px; background: var(--color-bg-widget); color: var(--color-gold);
+      border: 0.5px solid var(--color-gold); border-radius: var(--radius-md); cursor: pointer;
+      font-family: var(--font-mono); font-size: 13px;
+    }
+    button:hover { background: rgba(200,185,122,0.12); }
+    pre {
+      background: var(--color-bg-widget); border: var(--border-rule); border-radius: var(--radius-md);
+      padding: 12px; font-size: 11px; white-space: pre-wrap; word-break: break-all; max-height: 220px; overflow-y: auto;
+    }
+    #copy-status { font-size: 12px; color: var(--color-text-mid); min-height: 16px; }
+  </style>
+</head>
+<body>
+  <div id="preview"><div id="preview-surface"></div></div>
+
+  <div id="panel">
+    <h1>DotGrid Tuner</h1>
+
+    <label>
+      Mode
+      <select id="mode-select"></select>
+    </label>
+
+    <h2>Simplex (couche 2 — par mode)</h2>
+    <label><span class="row"><span>freqX</span><span class="val" id="val-freqX"></span></span>
+      <input type="range" id="freqX" min="0" max="0.1" step="0.001">
+    </label>
+    <label><span class="row"><span>freqY</span><span class="val" id="val-freqY"></span></span>
+      <input type="range" id="freqY" min="0" max="0.1" step="0.001">
+    </label>
+    <label><span class="row"><span>freqT (rythme)</span><span class="val" id="val-freqT"></span></span>
+      <input type="range" id="freqT" min="0" max="1.5" step="0.01">
+    </label>
+    <label><span class="row"><span>amplitude</span><span class="val" id="val-amplitude"></span></span>
+      <input type="range" id="amplitude" min="0" max="0.3" step="0.005">
+    </label>
+
+    <h2>Globaux (tous modes)</h2>
+    <label><span class="row"><span>baseOpacity</span><span class="val" id="val-baseOpacity"></span></span>
+      <input type="range" id="baseOpacity" min="0" max="0.6" step="0.005">
+    </label>
+    <label><span class="row"><span>dotRadius</span><span class="val" id="val-dotRadius"></span></span>
+      <input type="range" id="dotRadius" min="0.3" max="3" step="0.05">
+    </label>
+
+    <button id="copy-btn">Copier MODE_PARAMS (JS)</button>
+    <div id="copy-status"></div>
+    <pre id="output"></pre>
+  </div>
+
+  <script type="module">
+    import { DotGridAnimated, MODE_PARAMS, GRID_MODES } from '../components/DotGridAnimated.js';
+
+    const surface = document.getElementById('preview-surface');
+    const preview = document.getElementById('preview');
+
+    /** @type {{ baseOpacity: number, dotRadius: number }} */
+    const globalOptions = { baseOpacity: 0.26, dotRadius: 1.3 };
+
+    /** @type {ReturnType<typeof DotGridAnimated> | null} */
+    let grid = null;
+    let currentMode = GRID_MODES[0];
+
+    function scalePreview() {
+      const scale = Math.min(
+        (preview.clientWidth - 40) / 1920,
+        (preview.clientHeight - 40) / 1080,
+      );
+      surface.style.transform = `scale(${scale})`;
+    }
+    window.addEventListener('resize', scalePreview);
+
+    /** Recréer l'instance DotGrid — nécessaire pour appliquer baseOpacity/dotRadius (figés à la construction). */
+    function rebuildGrid() {
+      if (grid) grid.destroy();
+      surface.innerHTML = '';
+      grid = DotGridAnimated({ mode: currentMode, ...globalOptions });
+      surface.appendChild(grid.el);
+    }
+
+    const modeSelect = document.getElementById('mode-select');
+    GRID_MODES.forEach((mode) => {
+      const opt = document.createElement('option');
+      opt.value = mode;
+      opt.textContent = mode;
+      modeSelect.appendChild(opt);
+    });
+    modeSelect.value = currentMode;
+    modeSelect.addEventListener('change', () => {
+      currentMode = modeSelect.value;
+      syncSlidersToMode();
+      grid?.setMode(currentMode);
+    });
+
+    /** @type {Record<string, HTMLInputElement>} */
+    const perModeSliders = {
+      freqX: document.getElementById('freqX'),
+      freqY: document.getElementById('freqY'),
+      freqT: document.getElementById('freqT'),
+      amplitude: document.getElementById('amplitude'),
+    };
+    /** @type {Record<string, HTMLInputElement>} */
+    const globalSliders = {
+      baseOpacity: document.getElementById('baseOpacity'),
+      dotRadius: document.getElementById('dotRadius'),
+    };
+
+    function syncSlidersToMode() {
+      const params = MODE_PARAMS[currentMode];
+      Object.entries(perModeSliders).forEach(([key, input]) => {
+        input.value = String(params[key]);
+        updateValueLabel(key, params[key]);
+      });
+    }
+
+    function updateValueLabel(key, value) {
+      const el = document.getElementById(`val-${key}`);
+      if (el) el.textContent = Number(value).toFixed(3);
+    }
+
+    Object.entries(perModeSliders).forEach(([key, input]) => {
+      input.addEventListener('input', () => {
+        const value = Number(input.value);
+        MODE_PARAMS[currentMode][key] = value; // mutation directe — lue par le tick() en cours
+        updateValueLabel(key, value);
+        renderOutput();
+      });
+    });
+
+    Object.entries(globalSliders).forEach(([key, input]) => {
+      input.value = String(globalOptions[key]);
+      updateValueLabel(key, globalOptions[key]);
+      input.addEventListener('input', () => {
+        const value = Number(input.value);
+        globalOptions[key] = value;
+        updateValueLabel(key, value);
+        rebuildGrid(); // baseOpacity/dotRadius sont figés à la construction — pas de mutation live possible
+        renderOutput();
+      });
+    });
+
+    function renderOutput() {
+      const lines = GRID_MODES.map((mode) => {
+        const p = MODE_PARAMS[mode];
+        return `  ${mode.padEnd(11)}: { freqX: ${p.freqX}, freqY: ${p.freqY}, freqT: ${p.freqT}, amplitude: ${p.amplitude} },`;
+      });
+      document.getElementById('output').textContent =
+        `const MODE_PARAMS = {\n${lines.join('\n')}\n};\n\n// Globaux (options DotGridAnimated) :\nbaseOpacity: ${globalOptions.baseOpacity}, dotRadius: ${globalOptions.dotRadius}`;
+    }
+
+    document.getElementById('copy-btn').addEventListener('click', async () => {
+      const status = document.getElementById('copy-status');
+      try {
+        await navigator.clipboard.writeText(document.getElementById('output').textContent);
+        status.textContent = 'Copié — coller dans components/DotGridAnimated.js';
+      } catch {
+        status.textContent = 'Copie impossible (permissions navigateur) — sélectionner le texte ci-dessous manuellement';
+      }
+    });
+
+    syncSlidersToMode();
+    rebuildGrid();
+    renderOutput();
+    scalePreview();
+  </script>
+</body>
+</html>

@@ -7,17 +7,15 @@ import { simplex2 } from './simplex.js';
 
 /**
  * Paramètres Simplex (Couche 2) par mode scène.
- * Valeurs issues du HANDOFF (juin 2026).
+ * Retuning S3b (2026-07-03, feedback owner : fond trop peu visible / animation trop lente) —
+ * `freqT` et `amplitude` augmentés ~1.5-2× par mode vs. HANDOFF juin 2026, écarts relatifs
+ * conservés entre scènes calmes (`codage`) et dynamiques (`react`). Exporté (mutable) pour
+ * `dev/dotgrid-tuner.html` — seul consommateur externe légitime, aucun autre fichier ne doit
+ * muter cet objet directement.
  *
  * @type {Record<GridMode, { freqX: number, freqY: number, freqT: number, amplitude: number }>}
  */
-/**
- * Valeurs retuning S3b (2026-07-03) suite au feedback owner : fond jugé trop peu visible et
- * animation trop lente (voir docs/inbox.md, item résolu). `freqT` (rythme) et `amplitude`
- * (intensité du pulse) augmentés d'un facteur ~1.5-2× par mode, en conservant les écarts relatifs
- * entre scènes calmes (`codage`) et dynamiques (`react`) — premier passage, à confirmer en OBS natif.
- */
-const MODE_PARAMS = {
+export const MODE_PARAMS = {
   discussion: { freqX: 0.03, freqY: 0.03, freqT: 0.7,  amplitude: 0.16 },
   codage:     { freqX: 0.01, freqY: 0.01, freqT: 0.2,  amplitude: 0.06 },
   brb:        { freqX: 0.02, freqY: 0.02, freqT: 0.4,  amplitude: 0.14 },
