@@ -22,13 +22,27 @@ export const DEFAULT_DOTGRID_MODE = 'brb';
 
 // ─── Domaines de valeurs valides ────────────────────────────────────────────
 
-/** @type {import('./types.js').SceneId[]} */
-const SCENE_IDS = ['discussion', 'codage', 'brb', 'interview', 'react', 'creation', 'fin', 'jeu', 'starting'];
 const VISIBILITY_LEVELS = ['full', 'minimal', 'hidden'];
 const TRANSITION_TYPES = ['crossfade', 'cut'];
-/** Modes DotGrid valides (null inclus = scène sans DotGrid). */
-const DOTGRID_MODES = ['discussion', 'codage', 'brb', 'interview', 'react', 'creation', 'fin', 'starting', null];
-const COMPONENT_NAMES = ['GoldBar', 'StatBlock', 'ChatFeed', 'PomodoroBar', 'AlertBanner'];
+const COMPONENT_NAMES = [
+  'GoldBar', 'StatBlock', 'ChatFeed', 'PomodoroBar', 'AlertBanner',
+  'Box', 'Divider', 'TextLabel', 'TextList', 'PollBar', 'Badge', 'Image', 'DotGridBackground',
+];
+
+/**
+ * `SceneId` et `DotGridMode` sont des chaînes ouvertes depuis S8 (voir types.js) — la liste réelle
+ * des scènes/modes valides vit dans `scenes/registry.js`/`GRID_MODES`, pas ici (`protocol.js` reste
+ * découplé des modules de scène, AD-1). `validateSceneConfig`/`reduceMessage` ne valident donc plus
+ * qu'une structure (chaîne non-vide) ; l'existence réelle est vérifiée en aval :
+ * - `scene-runtime.js` `mountScene()` : avertit et n'affiche rien si l'id est inconnu du registry.
+ * - `scene-resolve.js` `resolveDotgridMode()` : replie sur `DEFAULT_DOTGRID_MODE` si le mode est
+ *   absent de `GRID_MODES`.
+ * @param {unknown} value
+ * @returns {value is string}
+ */
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.length > 0;
+}
 
 // ─── Helpers de construction de ReduceResult ────────────────────────────────
 
@@ -143,7 +157,7 @@ function reduceSceneSet(state, data) {
   }
 
   const scene = data.scene;
-  if (typeof scene !== 'string' || !SCENE_IDS.includes(/** @type {*} */ (scene))) {
+  if (!isNonEmptyString(scene)) {
     return warnOnly(`[overlay] scene.set : scène inconnue — ${String(scene)}`);
   }
 
@@ -273,11 +287,12 @@ export function validateSceneConfig(config) {
     if (!wellFormed) errors.push(`couche malformée à l'index ${i}`);
   });
 
-  // V1 — id ∈ SceneId
-  if (!SCENE_IDS.includes(config.id)) errors.push(`id inconnu : ${String(config.id)}`);
+  // V1 — id est une chaîne non-vide (S8 : SceneId ouvert, existence vérifiée par scene-runtime.js)
+  if (!isNonEmptyString(config.id)) errors.push(`id invalide : ${String(config.id)}`);
 
-  // V2 — dotgridMode ∈ DotGridMode (null inclus)
-  if (!DOTGRID_MODES.includes(config.dotgridMode)) {
+  // V2 — dotgridMode est null ou une chaîne non-vide (S8 : DotGridMode ouvert, existence vérifiée
+  // par resolveDotgridMode via GRID_MODES)
+  if (config.dotgridMode !== null && !isNonEmptyString(config.dotgridMode)) {
     errors.push(`dotgridMode invalide : ${String(config.dotgridMode)}`);
   }
 
@@ -333,20 +348,37 @@ export function validateSceneConfig(config) {
     errors.push('aucune couche visible en full');
   }
 
-  // V10 — placement (optionnel) : x/y finis, width/height finis strictement positifs si fournis
+  // V10 — placement de couche (optionnel, S7) : x/y finis, width/height finis positifs si fournis
   for (const l of layers) {
     if (l.placement === undefined) continue;
-    const p = l.placement;
-    const validXY = typeof p === 'object' && p !== null
-      && Number.isFinite(p.x) && Number.isFinite(p.y);
-    if (!validXY) { errors.push(`placement invalide sur ${l.name} : x/y doivent être des nombres finis`); continue; }
-    if (p.width !== undefined && (!Number.isFinite(p.width) || p.width <= 0)) {
-      errors.push(`placement invalide sur ${l.name} : width doit être un nombre fini strictement positif`);
-    }
-    if (p.height !== undefined && (!Number.isFinite(p.height) || p.height <= 0)) {
-      errors.push(`placement invalide sur ${l.name} : height doit être un nombre fini strictement positif`);
-    }
+    validatePlacement(l.placement, l.name, errors);
+  }
+
+  // V11 — placement de composant individuel (optionnel, S8, voir docs/specs/scene-definition-v2.md)
+  for (const l of layers) {
+    l.components.forEach((/** @type {*} */ c, /** @type {number} */ i) => {
+      if (c.placement === undefined) return;
+      validatePlacement(c.placement, `composant ${c.component ?? '?'} (couche ${l.name}, index ${i})`, errors);
+    });
   }
 
   return { ok: errors.length === 0, errors };
+}
+
+/**
+ * Valider un `Placement` (couche ou composant) — pousse les erreurs dans `errors` (mutation
+ * intentionnelle, même style que le reste de `validateSceneConfig`).
+ * @param {*} p
+ * @param {string} label - Décrit la cible dans le message d'erreur
+ * @param {string[]} errors
+ */
+function validatePlacement(p, label, errors) {
+  const validXY = typeof p === 'object' && p !== null && Number.isFinite(p.x) && Number.isFinite(p.y);
+  if (!validXY) { errors.push(`placement invalide sur ${label} : x/y doivent être des nombres finis`); return; }
+  if (p.width !== undefined && (!Number.isFinite(p.width) || p.width <= 0)) {
+    errors.push(`placement invalide sur ${label} : width doit être un nombre fini strictement positif`);
+  }
+  if (p.height !== undefined && (!Number.isFinite(p.height) || p.height <= 0)) {
+    errors.push(`placement invalide sur ${label} : height doit être un nombre fini strictement positif`);
+  }
 }

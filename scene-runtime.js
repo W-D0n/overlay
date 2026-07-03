@@ -12,17 +12,17 @@
  * Voir docs/specs/scene-runtime-engine.md §Comportements.
  */
 
-import { store } from './store.js';
+import { store, onStateChange } from './store.js';
 import { validateSceneConfig } from './protocol.js';
 import { resolveTransition, isLayerVisible, resolveDotgridMode, toCssEasing } from './scene-resolve.js';
 import { resolvePlacementStyle } from './placement-resolve.js';
-import { DotGridAnimated } from './components/DotGridAnimated.js';
+import { resolveBoundValue, resolveBoundOptions, hasBoundOptions } from './scene-definition-resolve.js';
 import { COMPONENT_REGISTRY } from './component-registry.js';
 import { SCENE_CONFIGS, SCENE_WIRES } from './scenes/registry.js';
 
 // ─── État du runtime ──────────────────────────────────────────────────────────
 
-/** @type {ReturnType<typeof DotGridAnimated>} */ let grid;
+/** @type {import('./types.js').ComponentInstance} */ let grid;
 /** @type {HTMLElement} */ let bgLayer;
 /** @type {HTMLElement} */ let sceneRoot;
 /** @type {import('./types.js').MountedScene | null} */ let current = null;
@@ -57,18 +57,25 @@ function mountScene(id) {
   container.className = 'scene';
   container.dataset.scene = id;
   if (template) container.appendChild(template.content.cloneNode(true));
-  else console.warn(`[overlay] mount : template absent — ${id}`);
+  // Pas de template : normal pour une scène entièrement composée de ComponentMount (S8) — les
+  // couches manquantes sont synthétisées ci-dessous, pas d'avertissement dans ce cas.
 
   /** @type {Record<string, import('./types.js').ComponentInstance[]>} */
   const componentsByLayer = {};
   /** @type {import('./types.js').ComponentInstance[]} */
   const allInstances = [];
+  /** @type {{ instance: import('./types.js').ComponentInstance, mount: import('./types.js').ComponentMount }[]} */
+  const boundMounts = [];
 
   for (const layer of config.layers) {
-    const layerEl = container.querySelector(`[data-layer="${layer.name}"]`);
+    let layerEl = container.querySelector(`[data-layer="${layer.name}"]`);
     if (!layerEl) {
-      console.warn(`[overlay] mount : couche absente du template — ${layer.name}`);
-      continue;
+      // Synthèse (S8) : une scène/couche sans <template> statique reçoit un conteneur généré —
+      // condition nécessaire pour qu'une scène créée par l'éditeur (donnée pure, pas de fichier
+      // HTML écrit à la main) puisse se monter.
+      layerEl = document.createElement('div');
+      layerEl.dataset.layer = layer.name;
+      container.appendChild(layerEl);
     }
     if (layer.placement) {
       Object.assign(/** @type {HTMLElement} */ (layerEl).style, resolvePlacementStyle(layer.placement));
@@ -81,10 +88,17 @@ function mountScene(id) {
         console.warn(`[overlay] mount : composant inconnu — ${mount.component}`);
         continue;
       }
-      const instance = factory(mount.options);
+      const resolvedOptions = resolveBoundOptions(mount.options ?? {}, store);
+      const instance = factory(resolvedOptions);
+      if (mount.placement) {
+        Object.assign(instance.el.style, resolvePlacementStyle(mount.placement));
+      }
       layerEl.appendChild(instance.el);
       instances.push(instance);
       allInstances.push(instance);
+      if (hasBoundOptions(mount.options ?? {}) || mount.trigger) {
+        boundMounts.push({ instance, mount });
+      }
     }
     componentsByLayer[layer.name] = instances;
   }
@@ -92,10 +106,12 @@ function mountScene(id) {
   sceneRoot.appendChild(container);
 
   /** @type {import('./types.js').MountedScene} */
-  const mounted = { id: /** @type {*} */ (id), root: container, componentsByLayer, destroy: () => {} };
-  const cleanup = SCENE_WIRES[id](mounted);
+  const mounted = { id: /** @type {*} */ (id), root: container, componentsByLayer, boundMounts, destroy: () => {} };
+  // Le wire est optionnel (S8) : une scène entièrement déclarative (binding via $bind/trigger)
+  // n'a pas besoin de *.wire.js écrit à la main.
+  const cleanupWire = SCENE_WIRES[id]?.(mounted) ?? (() => {});
   mounted.destroy = () => {
-    cleanup();
+    cleanupWire();
     allInstances.forEach((instance) => instance.destroy?.());
     container.remove();
   };
@@ -155,7 +171,7 @@ function applyVisibility(level) {
  */
 function applyDotgridMode(mode) {
   currentDotgridMode = mode;
-  if (mode !== null) grid.setMode(mode);
+  if (mode !== null) /** @type {*} */ (grid).setMode(mode);
   applyGlobalVisibility(currentLevel);
 }
 
@@ -228,6 +244,33 @@ function handleSceneChange(detail) {
   crossfade(previous, next, resolved);
 }
 
+// ─── Binding déclaratif (S8) ────────────────────────────────────────────────────
+
+/** Dernière valeur `trigger.when` observée par instance — détecte les changements sans re-déclencher. */
+const lastTriggerValues = new WeakMap();
+
+/**
+ * Ré-évalue les options liées (`$bind`) et les déclencheurs (`trigger`) de la scène montée,
+ * appelé à chaque changement d'état. Voir docs/specs/scene-definition-v2.md.
+ * @param {import('./types.js').StreamState} state
+ * @returns {void}
+ */
+function applyBindings(state) {
+  if (!current) return;
+  for (const { instance, mount } of current.boundMounts) {
+    if (mount.options && hasBoundOptions(mount.options)) {
+      instance.update?.(resolveBoundOptions(mount.options, state));
+    }
+    if (mount.trigger) {
+      const value = resolveBoundValue({ $bind: mount.trigger.when }, state);
+      if (value !== lastTriggerValues.get(instance)) {
+        lastTriggerValues.set(instance, value);
+        /** @type {*} */ (instance)[mount.trigger.method]?.(value);
+      }
+    }
+  }
+}
+
 // ─── Montage initial ──────────────────────────────────────────────────────────
 
 /**
@@ -238,7 +281,9 @@ function init() {
   bgLayer = /** @type {HTMLElement} */ (document.getElementById('bg-layer'));
   sceneRoot = /** @type {HTMLElement} */ (document.getElementById('scene-root'));
 
-  grid = DotGridAnimated();
+  // DotGrid rejoint le modèle de composant standard (S8) — monté via le registry, toujours une
+  // seule instance permanente dans #bg-layer (pas de système multi-animations).
+  grid = COMPONENT_REGISTRY.DotGridBackground({});
   bgLayer.appendChild(grid.el);
 
   currentLevel = store.visibilityLevel;
@@ -263,6 +308,8 @@ function init() {
   document.addEventListener('overlay:scene-change', (e) => handleSceneChange(/** @type {CustomEvent} */ (e).detail));
   document.addEventListener('overlay:visibility-change', (e) => applyVisibility(/** @type {CustomEvent} */ (e).detail.level));
   // overlay:morph NON câblé (AD-7 / AC-36)
+
+  onStateChange(applyBindings); // binding déclaratif (S8) — indépendant des *.wire.js
 }
 
 init();

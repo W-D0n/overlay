@@ -453,3 +453,213 @@ export function AlertBanner({ displayDuration = 5000 } = {}) {
     },
   };
 }
+
+// ─── Box (S8) ───────────────────────────────────────────────────────────────
+
+/**
+ * Rectangle bordé — placeholder visuel générique (caméra, capture, zone d'accueil OBS).
+ * Statique (pas de `update`) : aucun cas d'usage lié aux données aujourd'hui.
+ *
+ * @param {{ borderRadius?: string, borderColor?: string, background?: string }} [options]
+ * @returns {{ el: HTMLDivElement }}
+ */
+export function Box({ borderRadius = 'var(--radius-md)', borderColor = 'var(--border-panel)', background = 'var(--color-bg-panel)' } = {}) {
+  const el = document.createElement('div');
+  el.style.cssText = `
+    width: 100%;
+    height: 100%;
+    border-radius: ${borderRadius};
+    border: ${borderColor};
+    background: ${background};
+    box-sizing: border-box;
+  `;
+  return { el };
+}
+
+// ─── Divider (S8) ─────────────────────────────────────────────────────────────
+
+/**
+ * Ligne fine — séparateur horizontal ou vertical.
+ * Statique (pas de `update`).
+ *
+ * @param {{ orientation?: 'horizontal' | 'vertical', thickness?: string, color?: string }} [options]
+ * @returns {{ el: HTMLDivElement }}
+ */
+export function Divider({ orientation = 'horizontal', thickness = '1px', color = 'var(--color-rule)' } = {}) {
+  const el = document.createElement('div');
+  const isHorizontal = orientation === 'horizontal';
+  el.style.cssText = isHorizontal
+    ? `width: 100%; height: ${thickness}; background: ${color};`
+    : `width: ${thickness}; height: 100%; background: ${color};`;
+  return { el };
+}
+
+// ─── TextLabel (S8) ───────────────────────────────────────────────────────────
+
+/**
+ * Texte stylé générique — titres, labels, valeurs.
+ *
+ * @param {{ text?: string, font?: 'serif' | 'mono', size?: string, color?: string, weight?: string }} [options]
+ * @returns {{ el: HTMLDivElement, update: (opts: { text?: string }) => void }}
+ */
+export function TextLabel({ text = '', font = 'serif', size = '16px', color = 'var(--color-text-primary)', weight = '400' } = {}) {
+  const el = document.createElement('div');
+  el.style.cssText = `
+    font-family: var(--font-${font});
+    font-size: ${size};
+    color: ${color};
+    font-weight: ${weight};
+  `;
+  el.textContent = text;
+  return {
+    el,
+    /** @param {{ text?: string }} opts */
+    update({ text: newText } = {}) {
+      if (newText !== undefined) el.textContent = newText;
+    },
+  };
+}
+
+// ─── TextList (S8) ────────────────────────────────────────────────────────────
+
+/**
+ * Liste de lignes de texte — la 1ère ligne pleine opacité, les suivantes atténuées.
+ * Remplace le rendu manuel dupliqué (`fin.wire.js` recapLines/socialLinks, `starting.wire.js`
+ * socialLinks).
+ *
+ * @param {{ lines?: string[], itemClass?: string }} [options]
+ * @returns {{ el: HTMLDivElement, update: (lines: string[]) => void }}
+ */
+export function TextList({ lines = [], itemClass = '' } = {}) {
+  const el = document.createElement('div');
+  el.style.cssText = 'display: flex; flex-direction: column; gap: 8px;';
+
+  /**
+   * @param {string[]} items
+   */
+  function render(items) {
+    el.innerHTML = '';
+    items.forEach((line, i) => {
+      const row = document.createElement('div');
+      row.className = itemClass + (i > 0 ? ' dim' : '');
+      row.style.cssText = i > 0 ? 'color: var(--color-text-mid);' : 'color: var(--color-gold);';
+      row.textContent = line;
+      el.appendChild(row);
+    });
+  }
+  render(lines);
+
+  return {
+    el,
+    /** @param {string[]} newLines */
+    update(newLines) {
+      render(newLines ?? []);
+    },
+  };
+}
+
+// ─── PollBar (S8) ─────────────────────────────────────────────────────────────
+
+/**
+ * Barre de vote — question + barre de progression + ratio.
+ * Remplace le HTML en dur du vote chat de la scène `jeu`.
+ *
+ * @param {{ question?: string, yesRatio?: number }} [options]
+ * @returns {{ el: HTMLDivElement, update: (opts: { question?: string, yesRatio?: number }) => void }}
+ */
+export function PollBar({ question = '', yesRatio = 0 } = {}) {
+  const el = document.createElement('div');
+  el.style.cssText = 'display: flex; flex-direction: column; gap: 6px;';
+
+  const questionEl = document.createElement('span');
+  questionEl.style.cssText = 'font-family: var(--font-mono); font-size: 22px; color: var(--color-text-primary);';
+
+  const track = document.createElement('div');
+  track.style.cssText = 'width: 240px; height: 6px; border-radius: 3px; background: var(--color-rule-mid); overflow: hidden;';
+
+  const fill = document.createElement('div');
+  fill.style.cssText = 'height: 100%; border-radius: 3px; background: var(--color-gold-dim); transition: width 0.6s ease;';
+  track.appendChild(fill);
+
+  const ratioEl = document.createElement('span');
+  ratioEl.style.cssText = 'font-family: var(--font-mono); font-size: 18px; color: var(--color-text-mid);';
+
+  el.appendChild(questionEl);
+  el.appendChild(track);
+  el.appendChild(ratioEl);
+
+  /**
+   * @param {{ question?: string, yesRatio?: number }} opts
+   */
+  function render({ question: q, yesRatio: r }) {
+    const percent = Math.round((r ?? 0) * 100);
+    questionEl.textContent = q ?? '';
+    fill.style.width = `${percent}%`;
+    ratioEl.textContent = `${percent}% oui`;
+  }
+  render({ question, yesRatio });
+
+  return { el, update: render };
+}
+
+// ─── Badge (S8) ───────────────────────────────────────────────────────────────
+
+/**
+ * Pastille courte — texte + fond coloré (ex : "+follow", "LIVE").
+ * Demande explicite owner (2026-07-04), pas d'occurrence dans les scènes actuelles.
+ *
+ * @param {{ text?: string, color?: string }} [options]
+ * @returns {{ el: HTMLDivElement, update: (opts: { text?: string, color?: string }) => void }}
+ */
+export function Badge({ text = '', color = 'var(--color-gold)' } = {}) {
+  const el = document.createElement('div');
+  el.style.cssText = `
+    display: inline-flex;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: #0A0A0C;
+  `;
+  el.style.background = color;
+  el.textContent = text;
+  return {
+    el,
+    /** @param {{ text?: string, color?: string }} opts */
+    update({ text: newText, color: newColor } = {}) {
+      if (newText !== undefined) el.textContent = newText;
+      if (newColor !== undefined) el.style.background = newColor;
+    },
+  };
+}
+
+// ─── Image (S8) ───────────────────────────────────────────────────────────────
+
+/**
+ * Un chemin d'asset est "externe" s'il porte un schéma d'URL (`http://`, `https://`, `data:`…).
+ * Logique pure — testable sans DOM. Exportée pour `components/index.test.js`.
+ * @param {string} src
+ * @returns {boolean}
+ */
+export function isExternalAssetPath(src) {
+  return /^[a-z][a-z0-9+.-]*:/i.test(src);
+}
+
+/**
+ * Logo/icône — asset local uniquement (contrainte sécurité, voir
+ * docs/specs/scene-config-protocol.md §Sécurité : jamais une URL externe arbitraire).
+ * Demande explicite owner (2026-07-04), pas d'occurrence dans les scènes actuelles.
+ *
+ * @param {{ src: string, width?: string, height?: string }} options
+ * @returns {{ el: HTMLImageElement }}
+ */
+export function Image({ src, width, height }) {
+  if (isExternalAssetPath(src)) {
+    throw new Error(`Image: src doit être un chemin local relatif, pas une URL externe : ${src}`);
+  }
+  const el = document.createElement('img');
+  el.src = src;
+  if (width) el.style.width = width;
+  if (height) el.style.height = height;
+  return { el };
+}

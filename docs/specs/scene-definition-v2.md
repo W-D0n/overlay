@@ -105,15 +105,15 @@ retirée (plan à 6 sessions) — pas de double système, donc rien à retirer p
 | AC-03 | `resolveBoundValue(value, state)` retourne `state[path]` si `value` est `{ $bind: path }`, sinon retourne `value` tel quel (littéral) | test |
 | AC-04 | `resolveBoundValue` supporte les chemins imbriqués (`sessionStats.maxViewers`) | test |
 | AC-05 | `resolveBoundOptions(options, state)` résout récursivement chaque clé d'un objet `options` | test |
-| AC-06 | `Box` accepte `{ borderRadius?, borderColor?, background? }`, retourne `{ el }` (statique, pas d'`update` — pas de cas d'usage lié aux données aujourd'hui) | test |
-| AC-07 | `Divider` accepte `{ orientation: 'horizontal'\|'vertical', thickness?, color? }`, retourne `{ el }` | test |
-| AC-08 | `TextLabel` accepte `{ text, font?, size?, color?, weight? }`, retourne `{ el, update({text}) }` | test |
-| AC-09 | `TextList` accepte `{ lines: string[], itemClass? }`, retourne `{ el, update(lines) }` — un `<div>` par ligne, la 1ère avec une classe pleine opacité, les suivantes `.dim` (comportement identique à `fin.wire.js`/`starting.wire.js` actuels) | test |
+| AC-06 | `Box` accepte `{ borderRadius?, borderColor?, background? }`, retourne `{ el }` (statique, pas d'`update` — pas de cas d'usage lié aux données aujourd'hui) | visuel |
+| AC-07 | `Divider` accepte `{ orientation: 'horizontal'\|'vertical', thickness?, color? }`, retourne `{ el }` | visuel |
+| AC-08 | `TextLabel` accepte `{ text, font?, size?, color?, weight? }`, retourne `{ el, update({text}) }` | visuel |
+| AC-09 | `TextList` accepte `{ lines: string[], itemClass? }`, retourne `{ el, update(lines) }` — un `<div>` par ligne, la 1ère avec une classe pleine opacité, les suivantes `.dim` (comportement identique à `fin.wire.js`/`starting.wire.js` actuels) | visuel |
 | AC-10 | `validateSceneDefinition` (remplace `validateSceneConfig`) rejette un `id` vide ou non-string ; accepte toute chaîne non-vide sinon | test |
-| AC-11 | `PollBar` accepte `{ question, yesRatio }`, retourne `{ el, update({question, yesRatio}) }` — barre de progression reflète `yesRatio` (0-1), ratio affiché en % | test |
+| AC-11 | `PollBar` accepte `{ question, yesRatio }`, retourne `{ el, update({question, yesRatio}) }` — barre de progression reflète `yesRatio` (0-1), ratio affiché en % | visuel |
 | AC-12 | `DotGridAnimated` enregistré dans `component-registry.js` sous un nom de composant (ex. `DotGridBackground`) ; `scene-runtime.js` le monte via le registry, comportement (instance unique, `#bg-layer`, `setMode`) identique à avant | review + visuel |
-| AC-13 | `Badge` accepte `{ text, color? }`, retourne `{ el, update({text, color}) }` | test |
-| AC-14 | `Image` accepte `{ src, width?, height? }` où `src` doit être un chemin relatif local (rejette une URL absolue `http(s)://` — cohérent avec la contrainte sécurité assets locaux uniquement), retourne `{ el }` | test |
+| AC-13 | `Badge` accepte `{ text, color? }`, retourne `{ el, update({text, color}) }` | visuel |
+| AC-14 | `Image` rejette une `src` en URL absolue (`http(s)://`) — vérifiable sans DOM (throw testable) ; le rendu de l'`<img>` lui-même reste visuel | test (rejet) + visuel (rendu) |
 
 > Règle : chaque AC est vérifiable de façon autonome. "Fonctionne correctement" n'est pas un AC.
 
@@ -249,8 +249,7 @@ export function resolveBoundOptions(options, state) {
 | `types.js` | modifier | `SceneId` → `string`, `ComponentMount.placement`/`trigger`, `SceneDefinition`, `LayerDefinition` |
 | `scene-definition-resolve.js` | créer | `resolveBoundValue`, `resolveBoundOptions` — logique pure, testée |
 | `scene-definition-resolve.test.js` | créer | Tests AC-03 à AC-05 |
-| `components/index.js` | modifier | Ajouter `Box`, `Divider`, `TextLabel`, `TextList`, `PollBar`, `Badge`, `Image` — AC-06 à AC-09, AC-11, AC-13, AC-14 |
-| `components/index.test.js` | créer | Tests des 7 nouveaux composants (fichier n'existe pas encore — composants actuels jamais testés unitairement, à l'identique on ne teste que les nouveaux ici) |
+| `components/index.js` | modifier | Ajouter `Box`, `Divider`, `TextLabel`, `TextList`, `PollBar`, `Badge`, `Image` — AC-06 à AC-09, AC-11, AC-13, AC-14. Bun n'a pas de DOM en environnement de test (`document` indéfini) — comme les composants existants, ces 7 sont vérifiés visuellement, pas par `bun test` (sauf le rejet d'URL externe d'`Image`, pure logique). |
 | `component-registry.js` | modifier | Enregistrer les 7 nouveaux composants + `DotGridAnimated` — AC-12 |
 | `scene-runtime.js` | modifier | Monter DotGrid via le registry au lieu d'un import direct — AC-12 |
 | `protocol.js` | modifier | `validateSceneDefinition` (remplace/étend `validateSceneConfig`) — AC-01, AC-10 |

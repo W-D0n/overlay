@@ -64,11 +64,16 @@ test('T03 [AC-05/06] morph.trigger valide → event morph, patch null', () => {
   expect(r.patch).toBeNull();
 });
 
-test('T04 [AC-07] scene.set scène inconnue → warning, pas de patch/event', () => {
-  const r = reduceMessage(buildState(), { type: 'scene.set', data: { scene: 'nope' } }, CTX);
+test('T04 [AC-07] scene.set id vide/non-string → warning, pas de patch/event', () => {
+  const r = reduceMessage(buildState(), { type: 'scene.set', data: { scene: '' } }, CTX);
   expect(r.patch).toBeNull();
   expect(r.events).toEqual([]);
-  expect(r.warnings).toEqual(['[overlay] scene.set : scène inconnue — nope']);
+  expect(r.warnings).toEqual(['[overlay] scene.set : scène inconnue — ']);
+});
+
+test('T04b [AC-07] scene.set vers un id inconnu du registry → accepté par reduceMessage (S8, SceneId ouvert) ; rejeté en aval par scene-runtime.js au montage, pas ici (AD-1, découplage)', () => {
+  const r = reduceMessage(buildState(), { type: 'scene.set', data: { scene: 'nope' } }, CTX);
+  expect(r.patch).toEqual({ currentScene: 'nope' });
 });
 
 test('T05 [AC-08] visibility.set niveau inconnu → warning, pas de patch/event', () => {
@@ -255,14 +260,20 @@ test('T30 [AC-29] V0c — couche malformée détectée', () => {
   expect(validateSceneConfig(c).errors).toContain("couche malformée à l'index 2");
 });
 
-test('T31 [AC-29] V1 — id inconnu', () => {
-  const c = validConfig(); c.id = /** @type {*} */ ('nope');
-  expect(validateSceneConfig(c).errors).toContain('id inconnu : nope');
+test('T31 [AC-29] V1 — id invalide (chaîne vide) ; toute chaîne non-vide est acceptée (S8, SceneId ouvert)', () => {
+  const c = validConfig(); c.id = /** @type {*} */ ('');
+  expect(validateSceneConfig(c).errors).toContain('id invalide : ');
+
+  const open = validConfig(); open.id = /** @type {*} */ ('nouvelle-scene-jamais-vue');
+  expect(validateSceneConfig(open).errors).not.toContain('id invalide : nouvelle-scene-jamais-vue');
 });
 
-test('T32 [AC-29] V2 — dotgridMode invalide', () => {
-  const c = validConfig(); c.dotgridMode = /** @type {*} */ ('bad');
-  expect(validateSceneConfig(c).errors).toContain('dotgridMode invalide : bad');
+test('T32 [AC-29] V2 — dotgridMode invalide (non-string) ; toute chaîne non-vide est acceptée (S8, DotGridMode ouvert)', () => {
+  const c = validConfig(); c.dotgridMode = /** @type {*} */ (42);
+  expect(validateSceneConfig(c).errors).toContain('dotgridMode invalide : 42');
+
+  const open = validConfig(); open.dotgridMode = /** @type {*} */ ('un-mode-jamais-vu');
+  expect(validateSceneConfig(open).errors).not.toContain('dotgridMode invalide : un-mode-jamais-vu');
 });
 
 test('T33 [AC-29] V2 — dotgridMode null accepté (scène sans DotGrid)', () => {
@@ -345,4 +356,21 @@ test('T45 [AC-05] V10 — placement rejeté si width/height <= 0 ou non fini', (
   const c2 = validConfig();
   c2.layers[1].placement = { x: 0, y: 0, height: -5 };
   expect(validateSceneConfig(c2).errors).toContain('placement invalide sur body : height doit être un nombre fini strictement positif');
+});
+
+test('T46 [AC-02] V11 — placement de composant individuel valide accepté (S8)', () => {
+  const c = validConfig();
+  c.layers[0].components[0].placement = { x: 0, y: 0, width: 40, height: 2 };
+  expect(validateSceneConfig(c).errors).toEqual([]);
+});
+
+test('T47 [AC-02] V11 — placement de composant individuel rejeté si x/y non finis (S8)', () => {
+  const c = validConfig();
+  c.layers[0].components[0].placement = /** @type {*} */ ({ x: NaN, y: 0 });
+  expect(validateSceneConfig(c).errors).toContain('placement invalide sur composant GoldBar (couche goldbar, index 0) : x/y doivent être des nombres finis');
+});
+
+test('T48 [AC-02] V11 — placement absent sur un composant accepté (rétrocompatibilité)', () => {
+  const c = validConfig();
+  expect(validateSceneConfig(c).errors).toEqual([]);
 });

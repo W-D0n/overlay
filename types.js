@@ -89,8 +89,10 @@
 // ─── Protocole de scène (S2) ────────────────────────────────────────────────
 
 /**
- * Identifiants de scène valides.
- * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|'jeu'|'starting'} SceneId
+ * Identifiant de scène — chaîne ouverte (S8), validée à l'existence dans le registre chargé au
+ * runtime (`scenes/registry.js`), plus une union fermée compile-time. Permet de créer une scène
+ * en écrivant une donnée plutôt qu'en éditant ce type. Voir docs/specs/scene-definition-v2.md.
+ * @typedef {string} SceneId
  */
 
 /**
@@ -102,9 +104,10 @@
  */
 
 /**
- * Modes ambiants de DotGridAnimated.
- * null = scène sans DotGrid (ex : jeu).
- * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|'starting'|null} DotGridMode
+ * Mode ambiant de DotGridAnimated — chaîne ouverte (S8, miroir de `SceneId`), validée à
+ * l'existence dans `GRID_MODES` (`components/DotGridAnimated.js`). null = scène sans DotGrid
+ * (ex : jeu).
+ * @typedef {string | null} DotGridMode
  */
 
 /**
@@ -121,15 +124,34 @@
 
 /**
  * Noms des composants JS montables dans une couche.
- * Résolu via registry dans le runtime S3.
- * @typedef {'GoldBar'|'StatBlock'|'ChatFeed'|'PomodoroBar'|'AlertBanner'} ComponentName
+ * Résolu via registry dans le runtime S3. Étendu en S8 (bibliothèque de primitifs génériques +
+ * DotGridBackground) — voir docs/specs/scene-definition-v2.md.
+ * @typedef {'GoldBar'|'StatBlock'|'ChatFeed'|'PomodoroBar'|'AlertBanner'|'Box'|'Divider'|'TextLabel'|'TextList'|'PollBar'|'Badge'|'Image'|'DotGridBackground'} ComponentName
+ */
+
+/**
+ * Valeur d'option liée à l'état live plutôt que littérale — résolue par `resolveBoundOptions`
+ * (`scene-definition-resolve.js`, S8) au montage et à chaque changement d'état.
+ * @typedef {Object} BoundValue
+ * @property {string} $bind - Chemin dans `StreamState` (ex : 'subjectLine', 'sessionStats.maxViewers')
+ */
+
+/**
+ * Déclencheur impératif pour un comportement non-continu (ex : `AlertBanner.show()`).
+ * Appelle `instance[method](state[when])` quand `state[when]` change (S8).
+ * @typedef {Object} ComponentTrigger
+ * @property {string} method - Nom de la méthode à appeler sur l'instance montée
+ * @property {string} when - Chemin dans `StreamState` dont le changement déclenche l'appel
  */
 
 /**
  * Une instance de composant à monter dans une couche.
  * @typedef {Object} ComponentMount
  * @property {ComponentName} component - Nom résolu par le registry
- * @property {Record<string, unknown>} options - Options statiques passées au constructeur
+ * @property {Record<string, unknown|BoundValue>} options - Valeurs littérales ou liées (`$bind`)
+ * @property {Placement} [placement] - Position individuelle du composant (S8, remplace le placement
+ *   par couche de S7 pour les composants qui l'utilisent — modèle Figma, chaque élément indépendant)
+ * @property {ComponentTrigger} [trigger] - Déclencheur impératif optionnel
  */
 
 /**
@@ -259,6 +281,9 @@
  * @property {SceneId} id
  * @property {HTMLElement} root                                       - Conteneur de la scène (enfant de #scene-root)
  * @property {Record<string, ComponentInstance[]>} componentsByLayer - Instances groupées par `name` de couche, dans l'ordre de la config
+ * @property {{ instance: ComponentInstance, mount: ComponentMount }[]} boundMounts - Interne à
+ *   scene-runtime.js (S8) : composants ayant des options `$bind` ou un `trigger`, ré-évalués à
+ *   chaque changement d'état. Les `*.wire.js` n'ont pas besoin d'y toucher.
  * @property {() => void} destroy                                     - Démontage complet : cleanup du wire, `destroy()` de chaque composant, retrait de `root`
  */
 
