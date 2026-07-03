@@ -37,7 +37,7 @@ runtime (session 2/7) — format et contrat seulement, base pour tout le reste.
 - `Placement` déplacé du niveau **couche** (S7) au niveau **composant individuel** — chaque
   `ComponentMount` porte son propre `placement` optionnel. Modèle Figma : objets indépendamment
   positionnés, pas des blocs de couche.
-- 3 nouveaux composants primitifs génériques, chacun justifié par des occurrences concrètes dans
+- 4 nouveaux composants primitifs génériques, chacun justifié par des occurrences concrètes dans
   les 9 scènes existantes (zero preemptive code) :
   - `Box` — rectangle bordé (fond, bordure, radius) — remplace 9 occurrences du motif caméra/capture.
   - `Divider` — ligne fine (horizontale ou verticale) — remplace ~10 occurrences de séparateurs.
@@ -46,6 +46,18 @@ runtime (session 2/7) — format et contrat seulement, base pour tout le reste.
   - `TextList` — liste de lignes de texte (remplace le rendu manuel dupliqué dans `fin.wire.js` pour
     `recapLines` et `socialLinks`, et dans `starting.wire.js` pour `socialLinks` — 3 occurrences,
     règle des trois satisfaite).
+  - `PollBar` — question + barre de progression + ratio (remplace le HTML en dur du vote chat dans
+    le template `jeu`, 1 occurrence concrète).
+- Composants **déjà existants**, réutilisés tels quels dans la nouvelle bibliothèque (aucun
+  changement de leur code) : `GoldBar`, `StatBlock`, `ChatFeed`, `PomodoroBar`, `AlertBanner`.
+- **`DotGridAnimated` rejoint le modèle de composant standard** : enregistré dans
+  `component-registry.js` comme les autres (même contrat `{ el, update?, destroy? }`), monté par
+  `scene-runtime.js` via le registry au lieu d'un import direct spécial. Comportement inchangé
+  (**toujours une seule instance permanente dans `#bg-layer`**) — pas de système multi-animations,
+  ce serait prématuré tant qu'une seule animation de fond existe (garde-fou déjà posé dans
+  `docs/overview.md` §Couche de fond DotGrid). Le seul changement : DotGrid devient visible/gérable
+  par le même mécanisme que le reste, préparant le terrain pour que le futur panneau l'affiche sans
+  cas spécial.
 - Contrat de binding déclaratif : les `options` d'un `ComponentMount` peuvent contenir
   `{ $bind: 'state.path' }` au lieu d'une valeur littérale. Résolu au montage et à chaque changement
   d'état (réutilise le contrat existant `{ el, update?, destroy? }` de `components/index.js` — tout
@@ -81,6 +93,8 @@ runtime (session 2/7) — format et contrat seulement, base pour tout le reste.
 | AC-08 | `TextLabel` accepte `{ text, font?, size?, color?, weight? }`, retourne `{ el, update({text}) }` | test |
 | AC-09 | `TextList` accepte `{ lines: string[], itemClass? }`, retourne `{ el, update(lines) }` — un `<div>` par ligne, la 1ère avec une classe pleine opacité, les suivantes `.dim` (comportement identique à `fin.wire.js`/`starting.wire.js` actuels) | test |
 | AC-10 | `validateSceneDefinition` (remplace `validateSceneConfig`) rejette un `id` vide ou non-string ; accepte toute chaîne non-vide sinon | test |
+| AC-11 | `PollBar` accepte `{ question, yesRatio }`, retourne `{ el, update({question, yesRatio}) }` — barre de progression reflète `yesRatio` (0-1), ratio affiché en % | test |
+| AC-12 | `DotGridAnimated` enregistré dans `component-registry.js` sous un nom de composant (ex. `DotGridBackground`) ; `scene-runtime.js` le monte via le registry, comportement (instance unique, `#bg-layer`, `setMode`) identique à avant | review + visuel |
 
 > Règle : chaque AC est vérifiable de façon autonome. "Fonctionne correctement" n'est pas un AC.
 
@@ -216,9 +230,10 @@ export function resolveBoundOptions(options, state) {
 | `types.js` | modifier | `SceneId` → `string`, `ComponentMount.placement`/`trigger`, `SceneDefinition`, `LayerDefinition` |
 | `scene-definition-resolve.js` | créer | `resolveBoundValue`, `resolveBoundOptions` — logique pure, testée |
 | `scene-definition-resolve.test.js` | créer | Tests AC-03 à AC-05 |
-| `components/index.js` | modifier | Ajouter `Box`, `Divider`, `TextLabel`, `TextList` — AC-06 à AC-09 |
-| `components/index.test.js` | créer | Tests des 4 nouveaux composants (fichier n'existe pas encore — composants actuels jamais testés unitairement, à l'identique on ne teste que les nouveaux ici) |
-| `component-registry.js` | modifier | Enregistrer les 4 nouveaux composants |
+| `components/index.js` | modifier | Ajouter `Box`, `Divider`, `TextLabel`, `TextList`, `PollBar` — AC-06 à AC-09, AC-11 |
+| `components/index.test.js` | créer | Tests des 5 nouveaux composants (fichier n'existe pas encore — composants actuels jamais testés unitairement, à l'identique on ne teste que les nouveaux ici) |
+| `component-registry.js` | modifier | Enregistrer les 5 nouveaux composants + `DotGridAnimated` — AC-12 |
+| `scene-runtime.js` | modifier | Monter DotGrid via le registry au lieu d'un import direct — AC-12 |
 | `protocol.js` | modifier | `validateSceneDefinition` (remplace/étend `validateSceneConfig`) — AC-01, AC-10 |
 | `protocol.test.js` | modifier | Tests AC-01, AC-10 |
 
