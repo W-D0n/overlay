@@ -10,7 +10,7 @@ import { onStateChange } from '../store.js';
  * @returns {() => void} cleanup (désabonnement)
  */
 export function wire(mounted) {
-  const [statViewers, statDuration] = mounted.componentsByLayer.stats;
+  const [statDuration] = mounted.componentsByLayer.stats;
   const [chat] = mounted.componentsByLayer.chat;
   const activityEl = mounted.root.querySelector('.brb-activity');
   const songEl     = mounted.root.querySelector('.brb-song');
@@ -18,7 +18,6 @@ export function wire(mounted) {
   const topicEl    = mounted.root.querySelector('.next-topic');
 
   return onStateChange((state) => {
-    statViewers.update?.({ value: state.viewers > 0 ? state.viewers.toLocaleString('fr-FR') : '—' });
     statDuration.update?.({ value: state.duration });
     chat.update?.(state.chatMessages);
     if (activityEl) activityEl.textContent = state.currentActivity ? `sur ${state.currentActivity}.` : "sur l'atelier.";

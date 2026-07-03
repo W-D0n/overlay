@@ -9,7 +9,7 @@ import { onStateChange } from '../store.js';
  * @returns {() => void} cleanup (désabonnement)
  */
 export function wire(mounted) {
-  const [statViewers, statDuration] = mounted.componentsByLayer.stats;
+  const [statDuration] = mounted.componentsByLayer.stats;
   const [chat] = mounted.componentsByLayer.chat;
   const [alert] = mounted.componentsByLayer.alert;
   const subjectEl = mounted.root.querySelector('.subject-text');
@@ -18,7 +18,6 @@ export function wire(mounted) {
   let lastAlertTimestamp = 0;
 
   return onStateChange((state) => {
-    statViewers.update?.({ value: state.viewers > 0 ? state.viewers.toLocaleString('fr-FR') : '—' });
     statDuration.update?.({ value: state.duration });
     chat.update?.(state.chatMessages);
     if (subjectEl) subjectEl.textContent = state.subjectLine || 'En attente';

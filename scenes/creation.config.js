@@ -45,12 +45,5 @@ export const sceneConfig = {
       ],
       visibility: { full: true, minimal: false, hidden: false },
     },
-    {
-      name: 'stats',
-      components: [
-        { component: 'StatBlock', options: { label: 'VIEWERS', value: '—' } },
-      ],
-      visibility: { full: true, minimal: false, hidden: false },
-    },
   ],
 };

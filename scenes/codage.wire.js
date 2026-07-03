@@ -12,7 +12,7 @@ const ALERT_STRIP_LABELS = { follow: '+ follow', sub: '+ sub', raid: 'raid', bit
  * @returns {() => void} cleanup (désabonnement + timer de la bande basse)
  */
 export function wire(mounted) {
-  const [statViewers, statDuration] = mounted.componentsByLayer.stats;
+  const [statDuration] = mounted.componentsByLayer.stats;
   const [pomodoro] = mounted.componentsByLayer.pomodoro;
   const [alert] = mounted.componentsByLayer.alert;
   const fileEl   = mounted.root.querySelector('.file-name');
@@ -25,7 +25,6 @@ export function wire(mounted) {
   let stripTimer = null;
 
   const unsubscribe = onStateChange((state) => {
-    statViewers.update?.({ value: state.viewers > 0 ? state.viewers.toLocaleString('fr-FR') : '—' });
     statDuration.update?.({ value: state.duration });
     pomodoro.update?.(state.pomodoro);
     if (fileEl)   fileEl.textContent   = state.currentFile || '—';

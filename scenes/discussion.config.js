@@ -30,7 +30,6 @@ export const sceneConfig = {
     {
       name: 'stats',
       components: [
-        { component: 'StatBlock', options: { label: 'VIEWERS', value: '—' } },
         { component: 'StatBlock', options: { label: 'DURÉE', value: '00:00:00', valueColor: '#C8B97A' } },
       ],
       visibility: { full: true, minimal: false, hidden: false },

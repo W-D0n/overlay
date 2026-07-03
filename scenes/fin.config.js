@@ -40,7 +40,6 @@ export const sceneConfig = {
     {
       name: 'stats',
       components: [
-        { component: 'StatBlock', options: { label: 'VIEWERS MAX', value: '—' } },
         { component: 'StatBlock', options: { label: 'NOUVEAUX FOLLOWS', value: '—', valueColor: '#C8B97A' } },
         { component: 'StatBlock', options: { label: 'DURÉE', value: '00:00:00' } },
       ],

@@ -9,7 +9,7 @@ import { onStateChange } from '../store.js';
  * @returns {() => void} cleanup (désabonnement)
  */
 export function wire(mounted) {
-  const [statMaxViewers, statNewFollows, statDuration] = mounted.componentsByLayer.stats;
+  const [statNewFollows, statDuration] = mounted.componentsByLayer.stats;
   const root = mounted.root;
   const recapEl     = root.querySelector('.fin-recap-lines');
   const nextWhenEl  = root.querySelector('.fin-next-when');
@@ -17,7 +17,6 @@ export function wire(mounted) {
   const linksEl     = root.querySelector('.fin-links-list');
 
   return onStateChange((state) => {
-    statMaxViewers.update?.({ value: state.sessionStats.maxViewers > 0 ? state.sessionStats.maxViewers.toLocaleString('fr-FR') : '—' });
     statNewFollows.update?.({ value: state.sessionStats.newFollows > 0 ? `+${state.sessionStats.newFollows}` : '—' });
     statDuration.update?.({ value: state.sessionStats.duration || '00:00:00' });
 

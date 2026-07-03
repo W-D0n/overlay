@@ -20,7 +20,6 @@ export function wire(mounted) {
   const root = mounted.root;
   const sessionEl  = root.querySelector('.jeu-session');
   const durationEl = root.querySelector('.jeu-duration');
-  const viewersEl  = root.querySelector('.jeu-viewers');
   const pollCell        = /** @type {HTMLElement | null} */ (root.querySelector('.jeu-poll-cell'));
   const pollQuestionEl  = root.querySelector('.jeu-poll-question');
   const pollFillEl      = /** @type {HTMLElement | null} */ (root.querySelector('.jeu-poll-fill'));
@@ -36,7 +35,6 @@ export function wire(mounted) {
   const unsubscribe = onStateChange((state) => {
     if (sessionEl)  sessionEl.textContent  = `#${state.sessionId}`;
     if (durationEl) durationEl.textContent = state.duration;
-    if (viewersEl)  viewersEl.textContent  = state.viewers > 0 ? state.viewers.toLocaleString('fr-FR') : '—';
 
     if (pollCell) {
       if (state.activePoll) {
