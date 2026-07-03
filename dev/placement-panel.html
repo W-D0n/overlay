@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Dev — Placement Panel</title>
+  <!--
+    OUTIL DE DEV — jamais chargé dans OBS, jamais référencé depuis index.html.
+    Charge une SceneConfig (scenes/registry.js) + le template/CSS réel depuis index.html (fetch,
+    même origine), affiche les couches ayant un `placement` (docs/specs/scene-placement-protocol.md)
+    en rectangles déplaçables à la souris. Les couches sans `placement` (CSS scopé existant) sont
+    affichées mais non déplaçables — hors scope V1 (pas d'insertion de placement, seulement
+    déplacement d'un placement existant).
+    Persistance (session 5/5) : bouton "Sauvegarder" -> POST vers dev/placement-server.js
+    (bun dev/placement-server.js, outil de dev séparé, jamais lancé en live).
+  -->
+  <link rel="stylesheet" href="../tokens.css">
+  <style>
+    html, body { width: auto; height: auto; overflow: auto; background: var(--color-bg); }
+    body { display: flex; height: 100vh; font-family: var(--font-mono); color: var(--color-text-primary); }
+
+    #preview {
+      position: relative; flex: 1; overflow: hidden; background: #000;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #preview-surface { position: relative; width: 1920px; height: 1080px; transform-origin: center center; flex-shrink: 0; }
+
+    /* Rectangles déplaçables — par-dessus le rendu réel de la scène */
+    .placement-handle {
+      outline: 2px dashed var(--color-gold); outline-offset: -2px;
+      cursor: grab; box-sizing: border-box;
+    }
+    .placement-handle.dragging { cursor: grabbing; outline-color: #fff; }
+    .placement-handle-label {
+      position: absolute; top: 4px; left: 4px; padding: 2px 6px;
+      background: rgba(10,10,12,0.85); color: var(--color-gold);
+      font-family: var(--font-mono); font-size: 11px; pointer-events: none; white-space: nowrap;
+    }
+
+    #panel {
+      width: 380px; flex-shrink: 0; padding: 24px; overflow-y: auto;
+      border-left: var(--border-rule); display: flex; flex-direction: column; gap: 16px;
+    }
+    #panel h1 { font-family: var(--font-serif); font-size: 22px; color: var(--color-gold); }
+    #panel h2 {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-top: 8px;
+    }
+    select {
+      width: 100%; padding: 6px; background: var(--color-bg-widget); color: var(--color-text-primary);
+      border: var(--border-rule); border-radius: var(--radius-md);
+    }
+    .layer-row {
+      display: flex; flex-direction: column; gap: 4px; padding: 10px;
+      border: var(--border-rule); border-radius: var(--radius-md);
+    }
+    .layer-row .row-head { display: flex; justify-content: space-between; align-items: center; }
+    .layer-row .layer-name { color: var(--color-gold); font-size: 13px; }
+    .layer-row .layer-coords { font-size: 12px; color: var(--color-text-mid); font-variant-numeric: tabular-nums; }
+    .layer-row.unmigrated { opacity: 0.5; }
+    .layer-row button {
+      padding: 6px; background: var(--color-bg-widget); color: var(--color-gold);
+      border: 0.5px solid var(--color-gold); border-radius: var(--radius-md); cursor: pointer;
+      font-family: var(--font-mono); font-size: 12px;
+    }
+    .layer-row button:hover { background: rgba(200,185,122,0.12); }
+    .layer-row button:disabled { opacity: 0.4; cursor: not-allowed; }
+    #status { font-size: 12px; color: var(--color-text-mid); min-height: 16px; }
+  </style>
+</head>
+<body>
+  <div id="preview"><div id="preview-surface"></div></div>
+
+  <div id="panel">
+    <h1>Placement Panel</h1>
+    <label>
+      Scène
+      <select id="scene-select"></select>
+    </label>
+    <button id="reset-all-btn">Réinitialiser toutes les couches</button>
+    <div id="status"></div>
+    <h2>Couches</h2>
+    <div id="layer-list"></div>
+  </div>
+
+  <script type="module">
+    import { SCENE_CONFIGS } from '../scenes/registry.js';
+
+    const PLACEMENT_SERVER_URL = 'http://localhost:4459/save-placement';
+
+    const preview = document.getElementById('preview');
+    const surface = document.getElementById('preview-surface');
+    const sceneSelect = document.getElementById('scene-select');
+    const layerList = document.getElementById('layer-list');
+    const statusEl = document.getElementById('status');
+
+    /** @type {Document | null} */
+    let indexDoc = null;
+    let currentSceneId = Object.keys(SCENE_CONFIGS)[0];
+    /** État local des placements édités (copie mutable, pas SCENE_CONFIGS directement). */
+    let livePlacements = {};
+    /** Valeurs d'origine (au chargement de la scène), pour le bouton "Réinitialiser". */
+    let originalPlacements = {};
+
+    function scalePreview() {
+      const scale = Math.min((preview.clientWidth - 40) / 1920, (preview.clientHeight - 40) / 1080);
+      surface.dataset.scale = String(scale);
+      surface.style.transform = `scale(${scale})`;
+    }
+    window.addEventListener('resize', scalePreview);
+
+    async function loadIndexHtml() {
+      const res = await fetch('../index.html');
+      const html = await res.text();
+      indexDoc = new DOMParser().parseFromString(html, 'text/html');
+      // Réutiliser le CSS scopé réel (règles .scene[data-scene="x"] .foo { ... }) sans dupliquer à la main.
+      const styleTag = indexDoc.querySelector('style');
+      if (styleTag) document.head.appendChild(styleTag.cloneNode(true));
+    }
+
+    Object.keys(SCENE_CONFIGS).forEach((id) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = id;
+      sceneSelect.appendChild(opt);
+    });
+    sceneSelect.value = currentSceneId;
+    sceneSelect.addEventListener('change', () => {
+      currentSceneId = sceneSelect.value;
+      renderScene();
+    });
+    document.getElementById('reset-all-btn').addEventListener('click', resetAllPlacements);
+
+    function renderScene() {
+      const config = SCENE_CONFIGS[currentSceneId];
+      const template = indexDoc?.querySelector(`template[data-scene="${currentSceneId}"]`);
+
+      surface.innerHTML = '';
+      const wrapper = document.createElement('div');
+      wrapper.className = 'scene';
+      wrapper.dataset.scene = currentSceneId;
+      if (template) wrapper.appendChild(template.content.cloneNode(true));
+      surface.appendChild(wrapper);
+
+      livePlacements = {};
+      originalPlacements = {};
+      config.layers.forEach((layer) => {
+        if (!layer.placement) return;
+        livePlacements[layer.name] = { ...layer.placement };
+        originalPlacements[layer.name] = { ...layer.placement };
+      });
+
+      config.layers.forEach((layer) => {
+        if (!layer.placement) return;
+        const el = wrapper.querySelector(`[data-layer="${layer.name}"]`);
+        if (!(el instanceof HTMLElement)) return;
+        makeDraggable(el, layer.name);
+      });
+
+      renderLayerList(config);
+      statusEl.textContent = '';
+    }
+
+    function applyPlacementStyle(el, placement) {
+      el.style.position = 'absolute';
+      el.style.left = `${placement.x}px`;
+      el.style.top = `${placement.y}px`;
+      if (placement.width !== undefined) el.style.width = `${placement.width}px`;
+      if (placement.height !== undefined) el.style.height = `${placement.height}px`;
+    }
+
+    function makeDraggable(el, layerName) {
+      el.classList.add('placement-handle');
+      applyPlacementStyle(el, livePlacements[layerName]);
+
+      const label = document.createElement('span');
+      label.className = 'placement-handle-label';
+      label.textContent = layerName;
+      el.appendChild(label);
+
+      let dragging = false;
+      let startMouseX = 0, startMouseY = 0, startX = 0, startY = 0;
+
+      el.addEventListener('mousedown', (e) => {
+        dragging = true;
+        el.classList.add('dragging');
+        const scale = Number(surface.dataset.scale) || 1;
+        startMouseX = e.clientX / scale;
+        startMouseY = e.clientY / scale;
+        startX = livePlacements[layerName].x;
+        startY = livePlacements[layerName].y;
+        e.preventDefault();
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const scale = Number(surface.dataset.scale) || 1;
+        const mouseX = e.clientX / scale;
+        const mouseY = e.clientY / scale;
+        const newX = Math.round(startX + (mouseX - startMouseX));
+        const newY = Math.round(startY + (mouseY - startMouseY));
+        livePlacements[layerName] = { ...livePlacements[layerName], x: newX, y: newY };
+        applyPlacementStyle(el, livePlacements[layerName]);
+        updateLayerRow(layerName);
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false;
+        el.classList.remove('dragging');
+      });
+    }
+
+    function updateLayerRow(layerName) {
+      const coordsEl = document.getElementById(`coords-${layerName}`);
+      if (coordsEl) {
+        const p = livePlacements[layerName];
+        coordsEl.textContent = `x:${p.x} y:${p.y}` + (p.width !== undefined ? ` w:${p.width} h:${p.height}` : '');
+      }
+    }
+
+    function renderLayerList(config) {
+      layerList.innerHTML = '';
+      config.layers.forEach((layer) => {
+        const row = document.createElement('div');
+        row.className = 'layer-row' + (layer.placement ? '' : ' unmigrated');
+
+        const head = document.createElement('div');
+        head.className = 'row-head';
+        const name = document.createElement('span');
+        name.className = 'layer-name';
+        name.textContent = layer.name;
+        head.appendChild(name);
+
+        if (layer.placement) {
+          const coords = document.createElement('span');
+          coords.className = 'layer-coords';
+          coords.id = `coords-${layer.name}`;
+          const p = livePlacements[layer.name];
+          coords.textContent = `x:${p.x} y:${p.y}` + (p.width !== undefined ? ` w:${p.width} h:${p.height}` : '');
+          head.appendChild(coords);
+        } else {
+          const tag = document.createElement('span');
+          tag.className = 'layer-coords';
+          tag.textContent = 'CSS (non migrée)';
+          head.appendChild(tag);
+        }
+        row.appendChild(head);
+
+        if (layer.placement) {
+          const btnRow = document.createElement('div');
+          btnRow.style.cssText = 'display:flex;gap:8px;';
+
+          const saveBtn = document.createElement('button');
+          saveBtn.textContent = 'Sauvegarder';
+          saveBtn.style.flex = '1';
+          saveBtn.addEventListener('click', () => saveLayerPlacement(layer.name));
+          btnRow.appendChild(saveBtn);
+
+          const resetBtn = document.createElement('button');
+          resetBtn.textContent = 'Réinitialiser';
+          resetBtn.style.flex = '1';
+          resetBtn.addEventListener('click', () => resetLayerPlacement(layer.name));
+          btnRow.appendChild(resetBtn);
+
+          row.appendChild(btnRow);
+        }
+
+        layerList.appendChild(row);
+      });
+    }
+
+    function resetLayerPlacement(layerName) {
+      livePlacements[layerName] = { ...originalPlacements[layerName] };
+      const wrapper = surface.querySelector('.scene');
+      const el = wrapper?.querySelector(`[data-layer="${layerName}"]`);
+      if (el instanceof HTMLElement) applyPlacementStyle(el, livePlacements[layerName]);
+      updateLayerRow(layerName);
+      statusEl.textContent = `Réinitialisé : ${layerName} (valeur au chargement de la scène, pas encore sauvegardée)`;
+    }
+
+    function resetAllPlacements() {
+      Object.keys(originalPlacements).forEach(resetLayerPlacement);
+    }
+
+    async function saveLayerPlacement(layerName) {
+      statusEl.textContent = 'Sauvegarde en cours...';
+      try {
+        const response = await fetch(PLACEMENT_SERVER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneId: currentSceneId, layerName, placement: livePlacements[layerName] }),
+        });
+        statusEl.textContent = response.ok
+          ? `Sauvegardé : ${currentSceneId}.config.js — ${layerName}`
+          : `Échec (${response.status})`;
+      } catch {
+        statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/placement-server.js"';
+      }
+    }
+
+    await loadIndexHtml();
+    renderScene();
+    scalePreview();
+  </script>
+</body>
+</html>
