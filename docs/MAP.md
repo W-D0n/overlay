@@ -42,7 +42,7 @@ S5 (panneau de contrôle unique) et S6 (contrôle OBS programmatique, priorisé 
 | S3b | Migration des 5 scènes restantes + leurs configs | ✅ fait |
 | S4 | Relais Bun (WS + HTTP `/emit`, auth OBS, secret en env) | ✅ fait |
 | S5 | Persistance `dotgrid-tuner` (portée réduite le 2026-07-04 — placement drag & drop reporté, prérequis `anchor`/`offset` manquant, voir `docs/inbox.md`) | ✅ fait |
-| S7 | Panneau de placement — format `Placement` (pixels absolus, pas d'ancrage) + migration des 9 scènes + panneau drag & drop + persistance. 5 sessions atomiques, spec `docs/specs/scene-placement-protocol.md`. Owner a demandé "le panneau complet" (2026-07-04) après S5 réduite. | 🔄 en cours (3/5) |
+| S7 | Panneau de placement — format `Placement` (pixels absolus, pas d'ancrage) + migration des 9 scènes + panneau drag & drop + persistance. 5 sessions atomiques, spec `docs/specs/scene-placement-protocol.md`. Owner a demandé "le panneau complet" (2026-07-04) après S5 réduite. | ✅ fait |
 | S6 | Contrôle programmatique d'OBS (créer/piloter scènes OBS depuis le panneau S7) — **priorisé par l'owner (2026-07-03)**, voir `docs/inbox.md` §Contrôle OBS centralisé | ⬜ à venir, dépend de S7 |
 | Épopée | Éditeur complet au-delà de S6/S7 (bibliothèque de transitions, binding déclaratif, export/import config), skill recherche graphique | ⬜ hors scope |
 
@@ -122,6 +122,31 @@ S5 (panneau de contrôle unique) et S6 (contrôle OBS programmatique, priorisé 
 - Décision de scope (2026-07-04) : le drag & drop de placement (portée initiale du jalon 1) est
   **reporté** — prérequis `anchor`/`offset` jamais construit (AD-2 a mis le placement en CSS),
   migration non planifiée tant qu'un besoin concret ne la justifie pas. Voir `docs/inbox.md`.
+
+## Détail S7 (livré, 5/5 sessions)
+
+- `docs/specs/scene-placement-protocol.md` — spec (reviewed) : `Placement = { x, y, width?, height? }`
+  en pixels absolus, pas d'ancrage (canvas toujours 1920×1080 fixe, vérifié contre 21 règles CSS
+  existantes — un système à 9 points n'aurait apporté aucune valeur).
+- `types.js` — `Placement`, `LayerConfig.placement` (optionnel, rétrocompatible).
+- `placement-resolve.js` — résolution pure `Placement` → style CSS, testée (4 tests).
+- `protocol.js` — `validateSceneConfig` V10 (placement optionnel, x/y finis, width/height positifs
+  si fournis), testé (4 tests).
+- `scene-runtime.js` — applique le style inline au montage si `layer.placement` présent.
+- **9 scènes migrées** (10 couches au total) : `discussion`/`cam`, `jeu`/`cam`, `brb`/`message`+`chat`,
+  `codage`/`ide-zone`, `interview`/`subject`, `react`/`source-zone`+`source-credit`+`cam`,
+  `creation`/`capture-zone`, `fin`/`cam`. Couches non migrées documentées (wrappers flex, bandes
+  stretch `left:0;right:0`, couches composites à enfants indépendants) — hors scope V1.
+- `dev/placement-panel.html` — charge une `SceneConfig` + le template/CSS réel (`fetch(index.html)`,
+  DRY), couches migrées affichées en rectangles déplaçables à la souris, boutons Réinitialiser
+  (par couche + global) et Sauvegarder.
+- `dev/placement-server.js` (`bun dev/placement-server.js`, dev-only, jamais lancé en live) —
+  `POST /save-placement` réécrit `scenes/*.config.js`. Logique testée (`scene-placement-format.js`,
+  6 tests).
+- Rendu visuel identique confirmé par l'owner à chaque étape (preview 1920×1080).
+- Correction en cours de route : numérotation S6/S7 clarifiée (S7 = ce panneau, S6 = contrôle OBS
+  qui en dépend, pas S5).
+- **94 tests verts** au total.
 
 ## Reste à faire (hors S1, déjà identifié)
 

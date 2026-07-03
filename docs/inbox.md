@@ -49,34 +49,47 @@ qui écrit cette config au lieu de l'écrire à la main.
 
 ### Jalons (du proche au lointain)
 
-**Jalon 1 — Placement (reporté, prérequis manquant constaté 2026-07-04)**
-Charger une config de scène, voir le rendu réel, déplacer un widget en drag & drop, lire/copier
-les nouvelles valeurs `anchor` + `offset`. Débloque le workflow design (édition à la main = boucle
-qui tue la dynamique, profil TDAH). C'est l'ancien "toolset `dev.html`", désormais cadré comme
-jalon 1 de l'éditeur.
+**Jalon 1 — Placement (livré, S7, 2026-07-04)**
+Charger une config de scène, voir le rendu réel, déplacer un widget en drag & drop, lire/sauvegarder
+les nouvelles valeurs. Livré sans système d'ancrage (`Placement` en pixels absolus, plus simple,
+voir `docs/specs/scene-placement-protocol.md`) — `dev/placement-panel.html` +
+`dev/placement-server.js`, 10 couches migrées sur 9 scènes. Couches non migrées (wrappers flex,
+bandes stretch, composites) restent hors scope V1.
 
-**⚠ Prérequis non satisfait (constaté 2026-07-04) :** ce jalon suppose un système `anchor`+`offset`
-dans `SceneConfig` — **ça n'existe pas**. AD-2 (S2) a explicitement mis le placement dans le
-CSS/HTML par scène, pas dans une donnée sérialisable (zero preemptive code à l'époque, pas de
-besoin concret pour une donnée de position). Un outil drag & drop n'a donc ni donnée à lire ni
-mécanisme d'écriture aujourd'hui. Avant de reprendre ce jalon, il faut d'abord une session dédiée
-de migration du placement vers `anchor`+`offset` (touche les 9 scènes) — non planifiée, à cadrer
-avec l'owner quand le besoin de drag & drop redevient concret. **S5 a été réduite à la persistance
-`dotgrid-tuner` seule** (item séparé ci-dessus) en attendant.
+**Jalon 2 — Composition + gestion de scènes (demande owner confirmée, 2026-07-04)**
 
-**Jalons suivants (épopée, plus tard) :**
-- Gestion des couches (ajouter/nommer/réordonner z-index)
-- Mapper la visibilité de chaque couche par niveau (full / minimal / hidden)
-- Création / nommage de scènes
-- Cocher (checkbox) les composants inclus dans chaque couche
-- Sliders paramètres Simplex / mode DotGrid, déclenchement `trigger()`
-- Bibliothèque de transitions (fade, slide, morph DotGrid via `morphTo()`)
-- Binding de données par composant (ex : ce StatBlock → `state.viewers`)
-- Export / import JSON de la config (cœur de l'indépendance)
+> « je voulais pouvoir composer et modifier tous les éléments/composants de chaque scène, et même
+> je voulais pouvoir créer/modifier/supprimer des scènes. En tout cas c'est que j'entends (en
+> partie) quand je parle d'éditeur. »
+
+Confirme et élève ces points de la liste "jalons suivants" ci-dessous du statut hypothétique à
+**besoin réel exprimé** :
+- **Cocher les composants inclus dans chaque couche** — ajouter/retirer un `ComponentMount` d'un
+  `LayerConfig` depuis le panneau (actuellement : édition à la main de `scenes/*.config.js`).
+- **Gestion des couches** — ajouter/nommer/réordonner/supprimer une couche dans une scène.
+- **Création / modification / suppression de scènes entières** — nouveau `SceneId`, nouveau
+  `<template data-scene>` + CSS scopé, nouvelle config + wire, enregistrement `registry.js`. C'est
+  la partie la plus lourde : `SceneId` est actuellement un union type fermé (`types.js`,
+  `protocol.js` `SCENE_IDS`), pas une liste dynamique — ajouter/retirer une scène par l'éditeur
+  demande de repenser cette partie du modèle (ou d'accepter une régénération de code à chaque
+  scène créée, ce qui contredit l'esprit "zero-build").
+
+**Pas cadré ni implémenté** — chantier bien plus large que S7 (placement seul), touche le cœur du
+modèle de données (`SceneId` fermé, `component-registry.js`, `scenes/registry.js`). Nécessite sa
+propre session de décomposition avant tout code, voir `CLAUDE.md` §Session discipline.
+
+**Jalons suivants (épopée, plus lointains, toujours hypothétiques à ce stade) :**
+- Mapper la visibilité de chaque couche par niveau (full / minimal / hidden) — déjà possible à la
+  main dans `LayerConfig.visibility`, l'éditeur ne ferait qu'exposer un UI dessus.
+- Sliders paramètres Simplex / mode DotGrid, déclenchement `trigger()` — la partie DotGrid existe
+  déjà (`dev/dotgrid-tuner.html`, S5), `trigger()`/couche 4 événements stream reste un stub.
+- Bibliothèque de transitions (fade, slide, morph DotGrid via `morphTo()`) — `morphTo()` reste un stub.
+- Binding de données par composant (ex : ce StatBlock → `state.viewers`) — actuellement câblé à la
+  main dans chaque `*.wire.js`.
+- Export / import JSON de la config (cœur de l'indépendance, voir `docs/overview.md`).
 
 **Garde-fou :** on conçoit le **format de config** comme si l'éditeur complet existait, mais on ne
-construit que le jalon nécessaire au besoin courant (`zero preemptive code`). Au-delà du jalon 1,
-la config reste écrite à la main jusqu'à ce qu'un besoin concret justifie le jalon suivant.
+construit que le jalon nécessaire au besoin courant (`zero preemptive code`).
 
 ### Extension — Contrôle OBS centralisé (S6, priorisé par l'owner, 2026-07-03)
 
