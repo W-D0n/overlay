@@ -124,16 +124,18 @@ Confirmé fonctionnel en preview navigateur 1920×1080 par l'owner. Vérificatio
 
 ---
 
-## HUD scène `jeu` — lisibilité des libellés trop faible (feedback owner, session S3b)
+## HUD scène `jeu` — lisibilité résolue + viewers retiré partout (résolu, 2026-07-03)
 
-Les libellés et valeurs du HUD bas (`viewers`, `durée`, `vote`) sont jugés **trop petits**.
-À nuancer : l'observation a été faite en preview navigateur **dézoomée (~68%, fenêtre 738px / 1080px)** —
-une partie de l'effet vient de l'échelle, pas du design réel à 1080p natif. À revoir à l'œil **en OBS
-à 1920×1080** avant d'ajuster.
+Confirmé trop petit **en Browser Source OBS réelle** (pas juste un effet de zoom navigateur).
+Root cause : `--text-xs` valait **7px** (`tokens.css`) — bug de source de vérité design affectant
+tous les libellés uppercase de toutes les scènes, pas un cas isolé à `jeu`. Corrigé à `13px`.
 
-Si confirmé trop petit en natif : remonter `--text-xs` (libellés HUD) et la taille des `.hud-value`
-(actuellement 26px) — **via `tokens.css`**, pas en dur dans la scène (source de vérité design).
-Vérifier l'impact sur les autres scènes qui réutilisent ces tokens.
+En même temps, décision owner : le compteur de viewers est **retiré de tout l'overlay** (métrique
+jugée plus stressante qu'utile en live), y compris le récap post-stream `VIEWERS MAX` de `fin` —
+cohérence totale demandée, pas seulement en direct. `state.viewers` reste dans le modèle de données
+(`store.js`/`protocol.js` inchangés), seul l'affichage a été retiré des scènes concernées.
+
+Vérifié visuellement par l'owner en preview navigateur après la correction.
 
 ---
 
