@@ -6,8 +6,9 @@
   <!--
     OUTIL DE DEV — jamais chargé dans OBS, jamais référencé depuis index.html.
     Sliders live sur les paramètres Simplex (couche 2, par mode) + baseOpacity/dotRadius (globaux).
-    Ne persiste rien : copier les valeurs affichées dans components/DotGridAnimated.js à la main
-    (jalon 1 "placement" de l'éditeur, docs/inbox.md — portée volontairement réduite au DotGrid seul).
+    Persistance (S5) : bouton "Sauvegarder" -> POST vers dev/tuner-server.js (bun dev/tuner-server.js,
+    outil de dev séparé, jamais lancé pendant le live) qui réécrit components/DotGridAnimated.js.
+    Bouton "Copier" gardé en secours si le serveur de dev n'est pas lancé.
   -->
   <link rel="stylesheet" href="../tokens.css">
   <style>
@@ -100,6 +101,7 @@
       <input type="range" id="dotRadius" min="0.3" max="3" step="0.05">
     </label>
 
+    <button id="save-btn">Sauvegarder dans DotGridAnimated.js</button>
     <button id="copy-btn">Copier MODE_PARAMS (JS)</button>
     <div id="copy-status"></div>
     <pre id="output"></pre>
@@ -107,6 +109,8 @@
 
   <script type="module">
     import { DotGridAnimated, MODE_PARAMS, GRID_MODES } from '../components/DotGridAnimated.js';
+
+    const TUNER_SERVER_URL = 'http://localhost:4458/save';
 
     const surface = document.getElementById('preview-surface');
     const preview = document.getElementById('preview');
@@ -212,6 +216,23 @@
         status.textContent = 'Copié — coller dans components/DotGridAnimated.js';
       } catch {
         status.textContent = 'Copie impossible (permissions navigateur) — sélectionner le texte ci-dessous manuellement';
+      }
+    });
+
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      const status = document.getElementById('copy-status');
+      status.textContent = 'Sauvegarde en cours...';
+      try {
+        const response = await fetch(TUNER_SERVER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ modeParams: MODE_PARAMS, order: GRID_MODES, ...globalOptions }),
+        });
+        status.textContent = response.ok
+          ? 'Sauvegardé dans components/DotGridAnimated.js'
+          : `Échec de la sauvegarde (${response.status})`;
+      } catch {
+        status.textContent = 'Serveur de dev injoignable — lancer "bun dev/tuner-server.js", ou utiliser Copier';
       }
     });
 
