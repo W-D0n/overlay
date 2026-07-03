@@ -3,7 +3,7 @@ import { test, expect } from 'bun:test';
 import { mapObsSceneToOverlaySceneId, OBS_SCENE_MAP } from './obs-scene-map.js';
 
 test('mapObsSceneToOverlaySceneId returns the mapped SceneId for a known OBS scene name', () => {
-  expect(mapObsSceneToOverlaySceneId('Discussion')).toBe('discussion');
+  expect(mapObsSceneToOverlaySceneId('Just Chatting')).toBe('discussion');
   expect(mapObsSceneToOverlaySceneId('BRB')).toBe('brb');
 });
 
@@ -20,7 +20,7 @@ test('mapObsSceneToOverlaySceneId never returns a value outside SceneId, even wi
   expect(mapObsSceneToOverlaySceneId('Rogue', corruptedMap)).toBeNull();
 });
 
-test('mapObsSceneToOverlaySceneId covers all 8 overlay scenes via the default map', () => {
+test('mapObsSceneToOverlaySceneId covers the 4 OBS scenes actually configured', () => {
   const mapped = Object.keys(OBS_SCENE_MAP).map((name) => mapObsSceneToOverlaySceneId(name));
-  expect(mapped.sort()).toEqual(['brb', 'codage', 'creation', 'discussion', 'fin', 'interview', 'jeu', 'react'].sort());
+  expect(mapped.sort()).toEqual(['brb', 'codage', 'discussion', 'jeu'].sort());
 });

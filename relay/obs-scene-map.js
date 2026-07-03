@@ -3,8 +3,9 @@
  * relay/obs-scene-map.js — Correspondance nom-de-scène-OBS → `SceneId` overlay (logique pure).
  *
  * Aucun effet de bord : ni réseau, ni DOM, ni temps. Importable par `bun test` et par `server.js`.
- * Les noms de scènes OBS ci-dessous sont des EXEMPLES — l'owner doit les aligner sur les noms
- * réels de ses scènes OBS (aucune convention n'est imposée côté OBS).
+ * Noms de scènes OBS réels de D0n (setup 2026-07-03) — seules 4 scènes OBS existent pour l'instant ;
+ * `interview`/`react`/`creation`/`fin` n'ont pas de scène OBS correspondante et restent accessibles
+ * uniquement via `POST /emit` (`scene.set` manuel) tant qu'elles n'existent pas côté OBS.
  */
 
 /** @type {import('../types.js').SceneId[]} */
@@ -12,14 +13,10 @@ const VALID_SCENE_IDS = ['discussion', 'codage', 'brb', 'interview', 'react', 'c
 
 /** @type {Record<string, import('../types.js').SceneId>} */
 export const OBS_SCENE_MAP = {
-  Discussion: 'discussion',
-  Codage: 'codage',
-  BRB: 'brb',
-  Interview: 'interview',
-  React: 'react',
-  Creation: 'creation',
-  Fin: 'fin',
-  Jeu: 'jeu',
+  'Just Chatting': 'discussion',
+  'Coding':        'codage',
+  'BRB':           'brb',
+  'Gaming':        'jeu',
 };
 
 /**

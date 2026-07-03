@@ -14,13 +14,15 @@ la variante B/panneau référence n'a plus de sens en page-unique, abandonnée, 
 `fin`. `bun test` vert (63 tests). Vérification visuelle faite par l'owner en preview navigateur
 1920×1080 (`bunx serve`) — les 4 scènes migrées sont fonctionnelles. Vérification en OBS natif
 (Browser Source réelle) encore à faire avant le premier live.
-**S4 — livrée.** Relais Bun (`relay/server.js`, spec `docs/specs/relay-bun-s4.md`) : client OBS
-WebSocket v5 (auth SHA256) → traduit `CurrentProgramSceneChanged` en `scene.set`, + serveur overlay
-WS + `POST /emit` authentifiés par secret partagé (`OVERLAY_RELAY_SECRET` / `obs-config.local.js`).
-Logique pure (`obs-auth.js`, `obs-scene-map.js`) testée `bun test` (8 tests). Orchestration réseau
-vérifiée manuellement (auth WS accept/reject, `/emit` 401/200, diffusion) — **jamais testée contre
-une vraie instance OBS** (pas d'OBS dans l'environnement d'exécution) : à valider par l'owner avec
-OBS réel avant le premier live, voir `docs/obs-setup.md` §4.
+**S4 — livrée et validée en conditions réelles (2026-07-03).** Relais Bun (`relay/server.js`, spec
+`docs/specs/relay-bun-s4.md`) : client OBS WebSocket v5 (auth SHA256) → traduit
+`CurrentProgramSceneChanged` en `scene.set`, + serveur overlay WS + `POST /emit` authentifiés par
+secret partagé (`OVERLAY_RELAY_SECRET` / `obs-config.local.js`). Logique pure (`obs-auth.js`,
+`obs-scene-map.js`) testée `bun test` (8 tests). **Validé bout en bout par l'owner avec son vrai OBS**
+(4 scènes réelles : `Just Chatting`, `Coding`, `BRB`, `Gaming` → `discussion`/`codage`/`brb`/`jeu`,
+voir `relay/obs-scene-map.js`) : auth OBS OK, changement de scène OBS → overlay confirmé fonctionnel.
+`interview`/`react`/`creation`/`fin` n'ont pas de scène OBS correspondante pour l'instant (accessibles
+via `/emit` uniquement).
 
 ## Découpage des sessions
 
@@ -97,4 +99,5 @@ OBS réel avant le premier live, voir `docs/obs-setup.md` §4.
 - Couches 3 (morphisme) et 4 (événements stream) du DotGrid → sessions ultérieures, voir `HANDOFF_overlay_dotgrid.md`.
 - Intégration Twitch EventSub/chat réelle qui appellerait `/emit` (hors scope S4, voir `docs/specs/relay-bun-s4.md` §Périmètre Exclu).
 - Rate-limiting sur `/emit` + doc sécurité diffusion publique (FRIC-S2-04, séquencé avec la publication publique du projet).
-- Validation contre une vraie instance OBS (gap S4, voir §Focus actuel).
+- Scènes OBS manquantes pour `interview`/`react`/`creation`/`fin` (créer les scènes côté OBS + étendre `relay/obs-scene-map.js` quand elles existent).
+- Persistance des paramètres `dotgrid-tuner` (demande owner, voir `docs/inbox.md`) — décision d'architecture à trancher avant implémentation.
