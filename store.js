@@ -34,8 +34,11 @@ import { reduceMessage } from './protocol.js';
  */
 const { RELAY_WS_URL, RELAY_TOKEN } = await import('./obs-config.local.js').catch(() => import('./obs-config.example.js'));
 
-/** Intervalle de reconnexion WebSocket en ms */
-const WS_RECONNECT_DELAY = 3000;
+/** Délai de reconnexion initial, doublé à chaque échec (back-off exponentiel). */
+const WS_RECONNECT_DELAY_MIN = 3000;
+
+/** Plafond du back-off — au-delà, on retente toujours à ce rythme. */
+const WS_RECONNECT_DELAY_MAX = 30000;
 
 /** Délai avant de considérer le WS comme indisponible et basculer en fallback */
 const WS_TIMEOUT = 2000;
@@ -97,6 +100,12 @@ let ws = null;
 
 /** @type {boolean} */
 let wsConnected = false;
+
+/** Délai avant la prochaine tentative — croît à chaque échec, réinitialisé sur succès. */
+let currentReconnectDelay = WS_RECONNECT_DELAY_MIN;
+
+/** Évite de re-logger l'indisponibilité à chaque tentative — un seul log par passage en statique. */
+let hasLoggedUnavailable = false;
 
 // ─── Abonnements ──────────────────────────────────────────────────────────────
 
@@ -160,13 +169,22 @@ function formatDuration(s) {
 /**
  * Tenter de se connecter au WebSocket.
  * En cas d'échec, basculer en mode statique + minuterie locale.
+ *
+ * Back-off exponentiel (3s → 6s → 12s… plafonné à 30s) + logging one-shot : l'indisponibilité et
+ * la fermeture ne sont loggées qu'au premier passage dans cet état, pas à chaque tentative — sinon
+ * ça spamme la console tant qu'OBS/le relais est éteint (voir docs/inbox.md).
  */
 function connectWebSocket() {
   // Timeout : si pas de connexion dans WS_TIMEOUT ms → fallback
   const timeout = setTimeout(() => {
     if (!wsConnected) {
-      console.info('[overlay] WebSocket non disponible — mode statique actif');
+      if (!hasLoggedUnavailable) {
+        console.info('[overlay] WebSocket non disponible — mode statique actif');
+        hasLoggedUnavailable = true;
+      }
       startLocalTimer();
+      // La reconnexion est planifiée par le listener 'close' (toujours déclenché après un échec
+      // de connexion) — pas ici, pour éviter une double planification.
     }
   }, WS_TIMEOUT);
 
@@ -177,13 +195,18 @@ function connectWebSocket() {
   } catch {
     clearTimeout(timeout);
     startLocalTimer();
+    scheduleReconnect();
     return;
   }
 
   ws.addEventListener('open', () => {
     clearTimeout(timeout);
     wsConnected = true;
-    console.info('[overlay] WebSocket connecté');
+    currentReconnectDelay = WS_RECONNECT_DELAY_MIN;
+    if (hasLoggedUnavailable) {
+      console.info('[overlay] WebSocket connecté');
+      hasLoggedUnavailable = false;
+    }
   });
 
   ws.addEventListener('message', (event) => {
@@ -196,14 +219,24 @@ function connectWebSocket() {
   });
 
   ws.addEventListener('close', () => {
+    const wasConnected = wsConnected;
     wsConnected = false;
-    console.info(`[overlay] WebSocket fermé — reconnexion dans ${WS_RECONNECT_DELAY}ms`);
-    setTimeout(connectWebSocket, WS_RECONNECT_DELAY);
+    if (wasConnected && !hasLoggedUnavailable) {
+      console.info('[overlay] WebSocket fermé — reconnexion en arrière-plan');
+      hasLoggedUnavailable = true;
+    }
+    scheduleReconnect();
   });
 
   ws.addEventListener('error', () => {
     // L'événement 'close' suit toujours 'error' — pas besoin de gérer ici
   });
+}
+
+/** Planifier la prochaine tentative et faire croître le délai (back-off exponentiel). */
+function scheduleReconnect() {
+  setTimeout(connectWebSocket, currentReconnectDelay);
+  currentReconnectDelay = Math.min(currentReconnectDelay * 2, WS_RECONNECT_DELAY_MAX);
 }
 
 /**

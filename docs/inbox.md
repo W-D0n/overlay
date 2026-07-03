@@ -131,17 +131,3 @@ variante A a été portée (`scenes/creation.config.js`). La variante B n'a pas 
   (ex. `state.showReference`) plutôt que par l'URL.
 
 ---
-
-## store.js — bruit console : reconnexion OBS WebSocket toutes les 3 s
-
-Quand OBS est éteint, `store.js` retente la connexion `ws://localhost:4455` toutes les 3 s et logge
-3 lignes à chaque tentative (`WebSocket non disponible` / `connection failed` / `fermé — reconnexion`).
-Inoffensif en prod (OBS tourne → connexion établie), mais spamme la console en dev/preview.
-
-**Fix proposé — "back-off silencieux" :**
-- **Back-off exponentiel** : au lieu d'un délai fixe de 3 s, augmenter progressivement (3 s → 6 s →
-  12 s… plafonné, ex. 30 s). Réduit la fréquence des tentatives.
-- **Silencieux** : logger l'échec **une seule fois** (premier passage en mode statique), puis se taire
-  sur les tentatives suivantes — ne re-logger qu'au changement d'état (reconnexion réussie / perte).
-
-Petit changement localisé dans `connectWebSocket` (`store.js`), aucune dépendance. Non bloquant.
