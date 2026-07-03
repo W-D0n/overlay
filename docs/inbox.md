@@ -86,18 +86,17 @@ N'appartient pas à ce projet — à reporter dans l'inbox de MyVault.
 
 ---
 
-## DotGrid — retravailler la visibilité et le rythme (feedback owner, session S3b)
+## DotGrid — visibilité et rythme ajustés (résolu, session 2026-07-03)
 
-Le fond DotGrid est jugé **trop peu visible** et son animation **trop lente / trop discrète** —
-il ne se "voit" pas assez à l'écran. À retravailler :
+Ajustement direct dans `components/DotGridAnimated.js` (pas d'éditeur — jalon éditeur toujours pas
+construit, ajustement documenté ici comme prévu) :
+- `baseOpacity` 0.18 → 0.26, `dotRadius` 0.7 → **1.3** (2 passes, validées visuellement par l'owner).
+- Couche 1 (oscillation individuelle) : amplitude et vitesse augmentées (~+50-60%).
+- Couche 2 (Simplex par mode) : `freqT` et `amplitude` augmentés ~1.5-2× par mode dans `MODE_PARAMS`,
+  écarts relatifs conservés entre scènes calmes (`codage`) et dynamiques (`react`).
 
-- **Visibilité** : amplitude/opacité des points trop faibles → revoir le plancher d'opacité
-  (`clamp(base + C1 + C2, 0.04, 1)`, plancher 0.04 décidé en S1) et/ou la densité/taille des points.
-- **Rythme** : animation Simplex trop lente → revoir les `speeds` / l'échelle temporelle par mode.
-
-⚠ Surface partagée : touche `components/DotGridAnimated.js` + les paramètres Simplex par mode
-(`GRID_MODES`). Impacte toutes les scènes qui montrent le fond. À cadrer comme une passe de tuning
-design (idéalement via l'éditeur / sliders Simplex du jalon éditeur, sinon ajustement direct documenté).
+Confirmé fonctionnel en preview navigateur 1920×1080 par l'owner. Vérification OBS native encore
+à faire avant le premier live (comme le reste des scènes S3b).
 
 ---
 

@@ -11,14 +11,20 @@ import { simplex2 } from './simplex.js';
  *
  * @type {Record<GridMode, { freqX: number, freqY: number, freqT: number, amplitude: number }>}
  */
+/**
+ * Valeurs retuning S3b (2026-07-03) suite au feedback owner : fond jugé trop peu visible et
+ * animation trop lente (voir docs/inbox.md, item résolu). `freqT` (rythme) et `amplitude`
+ * (intensité du pulse) augmentés d'un facteur ~1.5-2× par mode, en conservant les écarts relatifs
+ * entre scènes calmes (`codage`) et dynamiques (`react`) — premier passage, à confirmer en OBS natif.
+ */
 const MODE_PARAMS = {
-  discussion: { freqX: 0.03, freqY: 0.03, freqT: 0.4,  amplitude: 0.12 },
-  codage:     { freqX: 0.01, freqY: 0.01, freqT: 0.1,  amplitude: 0.04 },
-  brb:        { freqX: 0.02, freqY: 0.02, freqT: 0.2,  amplitude: 0.10 },
-  interview:  { freqX: 0.04, freqY: 0.02, freqT: 0.3,  amplitude: 0.10 },
-  react:      { freqX: 0.05, freqY: 0.05, freqT: 0.6,  amplitude: 0.15 },
-  creation:   { freqX: 0.02, freqY: 0.04, freqT: 0.25, amplitude: 0.08 },
-  fin:        { freqX: 0.02, freqY: 0.02, freqT: 0.15, amplitude: 0.06 },
+  discussion: { freqX: 0.03, freqY: 0.03, freqT: 0.7,  amplitude: 0.16 },
+  codage:     { freqX: 0.01, freqY: 0.01, freqT: 0.2,  amplitude: 0.06 },
+  brb:        { freqX: 0.02, freqY: 0.02, freqT: 0.4,  amplitude: 0.14 },
+  interview:  { freqX: 0.04, freqY: 0.02, freqT: 0.55, amplitude: 0.14 },
+  react:      { freqX: 0.05, freqY: 0.05, freqT: 1.0,  amplitude: 0.20 },
+  creation:   { freqX: 0.02, freqY: 0.04, freqT: 0.45, amplitude: 0.11 },
+  fin:        { freqX: 0.02, freqY: 0.02, freqT: 0.3,  amplitude: 0.09 },
 };
 
 /**
@@ -53,9 +59,9 @@ export const GRID_MODES = /** @type {GridMode[]} */ (Object.keys(MODE_PARAMS));
  */
 export function DotGridAnimated(options = {}) {
   const spacing     = options.spacing     ?? 20;
-  const dotRadius   = options.dotRadius   ?? 0.7;
+  const dotRadius   = options.dotRadius   ?? 1.3;
   const baseColor   = options.baseColor   ?? /** @type {[number,number,number]} */ ([200, 185, 122]);
-  const baseOpacity = options.baseOpacity ?? 0.18;
+  const baseOpacity = options.baseOpacity ?? 0.26;
 
   /** @type {GridMode} */
   let currentMode = options.mode ?? 'brb';
@@ -124,8 +130,8 @@ export function DotGridAnimated(options = {}) {
 
         // Couche 1 — valeurs aléatoires uniques par chargement
         phases[idx]     = Math.random() * Math.PI * 2;
-        amplitudes[idx] = 0.05 + Math.random() * 0.08;
-        speeds[idx]     = 0.3  + Math.random() * 0.4;
+        amplitudes[idx] = 0.08 + Math.random() * 0.10;
+        speeds[idx]     = 0.5  + Math.random() * 0.6;
 
         idx++;
       }
