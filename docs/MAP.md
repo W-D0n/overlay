@@ -41,7 +41,7 @@ S5 (panneau de contrôle unique) et S6 (contrôle OBS programmatique, priorisé 
 | S3 | Moteur page-unique + 3 scènes de référence ([spec](specs/scene-runtime-engine.md)) | ✅ fait |
 | S3b | Migration des 5 scènes restantes + leurs configs | ✅ fait |
 | S4 | Relais Bun (WS + HTTP `/emit`, auth OBS, secret en env) | ✅ fait |
-| S5 | Éditeur jalon 1 — panneau de contrôle unique (placement drag + lecture anchor/offset + persistance `dotgrid-tuner`) | ⬜ à venir |
+| S5 | Persistance `dotgrid-tuner` (portée réduite le 2026-07-04 — placement drag & drop reporté, prérequis `anchor`/`offset` manquant, voir `docs/inbox.md`) | ⬜ à venir |
 | S6 | Contrôle programmatique d'OBS (créer/piloter scènes OBS depuis le panneau S5) — **priorisé par l'owner (2026-07-03)**, voir `docs/inbox.md` §Contrôle OBS centralisé | ⬜ à venir, dépend de S5 |
 | Épopée | Éditeur complet au-delà de S5/S6 (bibliothèque de transitions, binding déclaratif, export/import config), skill recherche graphique | ⬜ hors scope |
 

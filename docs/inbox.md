@@ -42,11 +42,20 @@ qui écrit cette config au lieu de l'écrire à la main.
 
 ### Jalons (du proche au lointain)
 
-**Jalon 1 — Placement (PROCHE, après la base technique)**
+**Jalon 1 — Placement (reporté, prérequis manquant constaté 2026-07-04)**
 Charger une config de scène, voir le rendu réel, déplacer un widget en drag & drop, lire/copier
 les nouvelles valeurs `anchor` + `offset`. Débloque le workflow design (édition à la main = boucle
 qui tue la dynamique, profil TDAH). C'est l'ancien "toolset `dev.html`", désormais cadré comme
-jalon 1 de l'éditeur. **Prérequis :** format de config + système anchor/offset + chargement existants.
+jalon 1 de l'éditeur.
+
+**⚠ Prérequis non satisfait (constaté 2026-07-04) :** ce jalon suppose un système `anchor`+`offset`
+dans `SceneConfig` — **ça n'existe pas**. AD-2 (S2) a explicitement mis le placement dans le
+CSS/HTML par scène, pas dans une donnée sérialisable (zero preemptive code à l'époque, pas de
+besoin concret pour une donnée de position). Un outil drag & drop n'a donc ni donnée à lire ni
+mécanisme d'écriture aujourd'hui. Avant de reprendre ce jalon, il faut d'abord une session dédiée
+de migration du placement vers `anchor`+`offset` (touche les 9 scènes) — non planifiée, à cadrer
+avec l'owner quand le besoin de drag & drop redevient concret. **S5 a été réduite à la persistance
+`dotgrid-tuner` seule** (item séparé ci-dessus) en attendant.
 
 **Jalons suivants (épopée, plus tard) :**
 - Gestion des couches (ajouter/nommer/réordonner z-index)
