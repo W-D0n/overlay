@@ -4,28 +4,33 @@
 
 ## Focus actuel
 
-**Session 3 — livrée.** Moteur page-unique : `index.html` (`#bg-layer` DotGrid permanent + `#scene-root`
-+ un `<template>` par scène), `scene-runtime.js` (montage/swap/`crossfade`·`cut`/visibilité), `scene-resolve.js`
-(helpers purs, 22 tests), registries + wires des 3 scènes de référence (`discussion`, `brb`, `codage`).
-Spec `docs/specs/scene-runtime-engine.md` (41 AC). AC purs : `bun test` vert ; AC d'orchestration :
-vérifiés fonctionnellement (montage, `cut`/`crossfade`, visibilité full·minimal·hidden, anti-accumulation).
-**S3b — livrée et validée en OBS natif.** 5 scènes restantes migrées : `interview`, `react`,
-`creation` (variante A seule — la variante B/panneau référence n'a plus de sens en page-unique,
-abandonnée, voir `docs/inbox.md`), `fin`. `bun test` vert (63 tests). Vérification visuelle faite
-par l'owner d'abord en preview navigateur 1920×1080, puis **en Browser Source OBS réelle** (2026-07-03,
-avec le relais S4 branché) : scènes correctement affichées, changement de scène en direct confirmé.
-**S4 — livrée et validée en conditions réelles (2026-07-03).** Relais Bun (`relay/server.js`, spec
-`docs/specs/relay-bun-s4.md`) : client OBS WebSocket v5 (auth SHA256) → traduit
-`CurrentProgramSceneChanged` en `scene.set`, + serveur overlay WS + `POST /emit` authentifiés par
-secret partagé (`OVERLAY_RELAY_SECRET` / `obs-config.local.js`). Logique pure (`obs-auth.js`,
-`obs-scene-map.js`) testée `bun test` (8 tests). **Validé bout en bout par l'owner avec son vrai OBS, y compris en Browser Source réelle**
-(4 scènes réelles : `Just Chatting`, `Coding`, `BRB`, `Gaming` → `discussion`/`codage`/`brb`/`jeu`,
-voir `relay/obs-scene-map.js`) : auth OBS OK, changement de scène OBS → overlay affiché en direct
-dans OBS, confirmé fonctionnel. `interview`/`react`/`creation`/`fin` n'ont pas de scène OBS
-correspondante pour l'instant (accessibles via `/emit` uniquement).
+**S1→S4 livrées, pipeline de lancement stream opérationnel et validé de bout en bout (2026-07-03).**
 
-**Pipeline de lancement stream opérationnel de bout en bout** (relais + Browser Source + changement
-de scène live) — prêt pour un premier live avec les 4 scènes OBS existantes.
+- **Moteur page-unique** (S3, spec `docs/specs/scene-runtime-engine.md`, 41 AC) + **migration complète**
+  (S3b) : `index.html` porte les **9 scènes** overlay (`discussion`, `codage`, `brb`, `jeu`,
+  `interview`, `react`, `creation`, `fin`, `starting`), chacune `<template>` + `*.config.js` +
+  `*.wire.js` + entrée `scenes/registry.js`. `creation` ne porte que sa variante A (panneau
+  référence B abandonné, page-unique = 1 seule Browser Source, voir `docs/inbox.md`).
+- **Relais Bun** (S4, `relay/server.js`, spec `docs/specs/relay-bun-s4.md`) : client OBS WebSocket v5
+  (auth SHA256) traduit les changements de scène OBS en `scene.set` ; serveur WS + `POST /emit`
+  (secret partagé, rate-limité 20 req/10s/IP). `docs/security.md` consolide le modèle de menace.
+- **Mapping OBS réel complet** (`relay/obs-scene-map.js`) : les 9 scènes OBS de D0n (`Just Chatting`,
+  `Coding`, `BRB`, `Gaming`, `Interview`, `FullScreen`, `Creation`, `Ending`, `Starting`) sont
+  chacune reliées à leur scène overlay.
+- **Validé bout en bout par l'owner en conditions réelles** : auth OBS OK, changement de scène OBS →
+  overlay affiché en direct dans une vraie Browser Source OBS, confirmé fonctionnel sur les 9 scènes.
+- **Lancement automatisé** : `.env` (chargé automatiquement par Bun) + `start-stream.bat` (double-clic
+  lance serveur statique + relais en une fois) — voir `docs/obs-setup.md` §0.
+- **Retours visuels de l'owner traités** : `--text-xs` 7px→13px (`tokens.css`, bug de lisibilité
+  systémique), compteur de viewers retiré de tout l'overlay (métrique jugée stressante), DotGrid
+  retuning visibilité/rythme (`components/DotGridAnimated.js`).
+- **Outil de dev** `dev/dotgrid-tuner.html` — sliders live sur les paramètres Simplex par mode +
+  baseOpacity/dotRadius, pas de persistance automatique (décision d'architecture en attente,
+  voir `docs/inbox.md`).
+
+**bun test : 76 tests verts.** Prêt pour un premier live. Backlog restant (non bloquant) :
+S5 (panneau de contrôle unique) et S6 (contrôle OBS programmatique, priorisé par l'owner), voir
+§Découpage des sessions.
 
 ## Découpage des sessions
 
