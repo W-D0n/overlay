@@ -112,6 +112,14 @@ construit que le jalon nécessaire au besoin courant (`zero preemptive code`).
 
 ### Extension — Contrôle OBS centralisé (S6, priorisé par l'owner, 2026-07-03)
 
+**Première tranche livrée en avance (2026-07-04)** : `relay/server.js` sait désormais envoyer des
+requêtes OBS WS v5 (pas seulement les recevoir) — `POST /refresh-source` envoie
+`PressInputPropertiesButton` pour rafraîchir le cache de la Browser Source overlay, appelé
+automatiquement par `dev/dotgrid-tuner.html` après une sauvegarde. Besoin concret immédiat (l'owner
+ne voyait pas ses réglages DotGrid appliqués sans rafraîchissement manuel), traité hors du cadrage
+complet de S6 — le mécanisme requête/réponse (opcode 6/7) posé ici sera réutilisable pour le reste
+de S6 (`CreateScene`, etc.) le moment venu.
+
 **Demande explicite de l'owner** en session (2026-07-03), après avoir testé le pipeline OBS↔relais↔overlay
 en conditions réelles : « j'aimerai bien pouvoir tout faire d'un seul endroit ». Élève cette extension
 (déjà envisagée dès la session A) au rang de session cadrée (S6, `docs/MAP.md`), dépendante de S7
