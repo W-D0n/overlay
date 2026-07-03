@@ -80,22 +80,22 @@
     </label>
 
     <h2>Simplex (couche 2 — par mode)</h2>
-    <label><span class="row"><span>freqX</span><span class="val" id="val-freqX"></span></span>
+    <label><span class="row"><span>Nb de points - Horizontal (freqX)</span><span class="val" id="val-freqX"></span></span>
       <input type="range" id="freqX" min="0" max="0.1" step="0.001">
     </label>
-    <label><span class="row"><span>freqY</span><span class="val" id="val-freqY"></span></span>
+    <label><span class="row"><span>Nb de points - Vertical (freqY)</span><span class="val" id="val-freqY"></span></span>
       <input type="range" id="freqY" min="0" max="0.1" step="0.001">
     </label>
-    <label><span class="row"><span>freqT (rythme)</span><span class="val" id="val-freqT"></span></span>
+    <label><span class="row"><span>Rythme (freqT)</span><span class="val" id="val-freqT"></span></span>
       <input type="range" id="freqT" min="0" max="1.5" step="0.01">
     </label>
     <label><span class="row"><span>amplitude</span><span class="val" id="val-amplitude"></span></span>
       <input type="range" id="amplitude" min="0" max="0.3" step="0.005">
     </label>
-    <button id="apply-all-btn">Appliquer freqX/freqY/freqT/amplitude à toutes les scènes</button>
+    <button id="apply-all-btn">Appliquer à toutes les scènes</button>
 
     <h2>Globaux (tous modes)</h2>
-    <label><span class="row"><span>baseOpacity</span><span class="val" id="val-baseOpacity"></span></span>
+    <label><span class="row"><span>Opacity</span><span class="val" id="val-baseOpacity"></span></span>
       <input type="range" id="baseOpacity" min="0" max="0.6" step="0.005">
     </label>
     <label><span class="row"><span>dotRadius</span><span class="val" id="val-dotRadius"></span></span>
@@ -103,15 +103,33 @@
     </label>
 
     <button id="save-btn">Sauvegarder dans DotGridAnimated.js</button>
-    <button id="copy-btn">Copier MODE_PARAMS (JS)</button>
     <div id="copy-status"></div>
     <pre id="output"></pre>
+    <button id="copy-btn">Copier MODE_PARAMS (JS)</button>
   </div>
 
   <script type="module">
     import { DotGridAnimated, MODE_PARAMS, GRID_MODES } from '../components/DotGridAnimated.js';
 
     const TUNER_SERVER_URL = 'http://localhost:4458/save';
+    const RELAY_REFRESH_URL = 'http://localhost:4456/refresh-source';
+
+    const { RELAY_TOKEN } = await import('../obs-config.local.js').catch(() => import('../obs-config.example.js'));
+
+    /** Best-effort : rafraîchit le cache de la Browser Source OBS via le relais (S6, tranche ciblée).
+     * N'échoue jamais bruyamment — le relais peut ne pas tourner en dev pur (pas d'OBS ouvert). */
+    async function refreshObsSource() {
+      if (!RELAY_TOKEN) return { attempted: false };
+      try {
+        const res = await fetch(RELAY_REFRESH_URL, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${RELAY_TOKEN}` },
+        });
+        return { attempted: true, ok: res.ok };
+      } catch {
+        return { attempted: true, ok: false };
+      }
+    }
 
     const surface = document.getElementById('preview-surface');
     const preview = document.getElementById('preview');
@@ -239,9 +257,13 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ modeParams: MODE_PARAMS, order: GRID_MODES, ...globalOptions }),
         });
-        status.textContent = response.ok
-          ? 'Sauvegardé dans components/DotGridAnimated.js'
-          : `Échec de la sauvegarde (${response.status})`;
+        if (!response.ok) {
+          status.textContent = `Échec de la sauvegarde (${response.status})`;
+          return;
+        }
+        const refresh = await refreshObsSource();
+        status.textContent = 'Sauvegardé dans components/DotGridAnimated.js'
+          + (refresh.attempted ? (refresh.ok ? ' — cache OBS rafraîchi' : ' — rafraîchissement OBS échoué (relais lancé ?)') : '');
       } catch {
         status.textContent = 'Serveur de dev injoignable — lancer "bun dev/tuner-server.js", ou utiliser Copier';
       }
