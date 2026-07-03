@@ -4,6 +4,7 @@ node_modules/
 # Secrets & env (relais OBS — jamais commiter)
 .env
 .env.*
+!.env.example
 *.local.js
 obs-config.local.js
 

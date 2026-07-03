@@ -4,6 +4,19 @@
 > pour les changements de scène live + l'injection de données externes. Sans (2), l'overlay tourne
 > en mode fallback statique (§Sans relais plus bas) — suffisant pour streamer avec l'habillage
 > visuel seul.
+>
+> **Une fois la config faite une première fois** (§4.2), le lancement quotidien se résume à un
+> double-clic sur `start-stream.bat` — voir §0.
+
+## 0. Lancement quotidien — `start-stream.bat`
+
+Une fois la config initiale faite (§4.2, une seule fois), double-cliquer `start-stream.bat` à la
+racine du repo lance **les deux process d'un coup** (serveur statique + relais), dans deux fenêtres
+séparées pour voir les logs de connexion. Si `.env` est absent, le script prévient au lieu de
+planter silencieusement.
+
+Les sections 1 à 4 ci-dessous détaillent ce que fait `start-stream.bat`, et servent de référence
+pour la config initiale ou en cas de problème (le lire une fois suffit).
 
 ## 1. Servir la page localement
 
@@ -67,20 +80,32 @@ intégration Twitch n'est branchée dessus pour l'instant, c'est juste le point 
 `Outils → WebSocket Server Settings` → activer le serveur (port par défaut `4455`), noter le mot
 de passe si l'authentification est activée (recommandé).
 
-### 4.2 Configurer le secret partagé
+### 4.2 Configurer les secrets (une seule fois)
+
+Deux fichiers de config locale, tous deux **gitignorés** — un secret, deux endroits car le relais
+(process Bun) et l'overlay (code navigateur) ne lisent pas les mêmes mécanismes de config :
 
 ```bash
 cp obs-config.example.js obs-config.local.js
+cp .env.example .env
 ```
 
-Éditer `obs-config.local.js` et renseigner `RELAY_TOKEN` (une chaîne aléatoire de votre choix —
-c'est le secret partagé avec le relais, **jamais commité**, déjà dans `.gitignore`).
+- **`obs-config.local.js`** (lu par le navigateur, `store.js`) : renseigner `RELAY_TOKEN` (chaîne
+  aléatoire de votre choix — c'est le secret partagé avec le relais).
+- **`.env`** (lu automatiquement par Bun au lancement de `relay/server.js`, sans rien à exporter
+  manuellement) : renseigner `OBS_WS_PASSWORD` (mot de passe OBS WS) et `OVERLAY_RELAY_SECRET`
+  (**exactement la même valeur** que `RELAY_TOKEN` ci-dessus — sinon la connexion overlay↔relais
+  est refusée).
 
 ### 4.3 Lancer le relais
 
+Une fois `.env` renseigné, `start-stream.bat` (§0) suffit. Pour lancer manuellement :
+
 ```bash
-OBS_WS_PASSWORD=<mot de passe OBS> OVERLAY_RELAY_SECRET=<même valeur que RELAY_TOKEN> bun relay/server.js
+bun relay/server.js
 ```
+
+(Bun charge `.env` automatiquement — pas besoin de préfixer la commande avec les variables.)
 
 Variables d'environnement (voir `docs/specs/relay-bun-s4.md` §Comportements) :
 
