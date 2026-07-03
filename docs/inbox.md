@@ -4,6 +4,25 @@ Capture d'idées et questions ouvertes. Trier via `/inbox-triage`.
 
 ---
 
+## Système multi-animations de fond (confirmé par l'owner, 2026-07-04)
+
+L'owner compte avoir **plusieurs animations de fond** à terme (DotGrid + au moins une autre) — pas
+juste une hypothèse, un besoin réel exprimé. Un système de coordination entre plusieurs animations
+de fond sera donc nécessaire.
+
+**Non construit maintenant** : `docs/overview.md` §Couche de fond DotGrid pose le garde-fou "on ne
+construit pas de système générique tant qu'une seule animation existe" — toujours valable, une
+seule anim (DotGrid) existe à ce jour. `docs/specs/scene-definition-v2.md` (S8) fait un premier pas
+cohérent : DotGrid rejoint le modèle de composant standard (`component-registry.js`), ce qui
+facilitera l'ajout d'une coordination multi-animations le jour où la 2e animation existe (elle
+suivra le même contrat, pas un cas spécial à réconcilier après coup).
+
+**À faire quand la 2e animation existe** : cadrer une session dédiée (mécanisme de switch/coexistence
+entre plusieurs animations de fond, potentiellement lié à `dotgridMode` généralisé ou à un nouveau
+concept de "background layer" pluriel).
+
+---
+
 ## Extensions du système de placement (voulues par l'owner à terme, 2026-07-04)
 
 Écartées de `docs/specs/scene-placement-protocol.md` (session 1/5 du panneau de contrôle S6) par

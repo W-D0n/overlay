@@ -48,6 +48,12 @@ runtime (session 2/7) — format et contrat seulement, base pour tout le reste.
     règle des trois satisfaite).
   - `PollBar` — question + barre de progression + ratio (remplace le HTML en dur du vote chat dans
     le template `jeu`, 1 occurrence concrète).
+  - `Badge` — pastille courte (texte + fond coloré, ex : "+follow", "LIVE") — pas d'occurrence dans
+    le CSS actuel, mais demande explicite de l'owner (2026-07-04) : la bibliothèque doit le
+    proposer, premier usage réel viendra de l'éditeur une fois construit.
+  - `Image` — logo/icône chargé depuis un asset local (contrainte sécurité déjà actée,
+    `docs/specs/scene-config-protocol.md` §Sécurité : assets locaux uniquement, jamais une URL
+    externe arbitraire) — même statut que `Badge`, demande explicite sans occurrence actuelle.
 - Composants **déjà existants**, réutilisés tels quels dans la nouvelle bibliothèque (aucun
   changement de leur code) : `GoldBar`, `StatBlock`, `ChatFeed`, `PomodoroBar`, `AlertBanner`.
 - **`DotGridAnimated` rejoint le modèle de composant standard** : enregistré dans
@@ -95,6 +101,8 @@ runtime (session 2/7) — format et contrat seulement, base pour tout le reste.
 | AC-10 | `validateSceneDefinition` (remplace `validateSceneConfig`) rejette un `id` vide ou non-string ; accepte toute chaîne non-vide sinon | test |
 | AC-11 | `PollBar` accepte `{ question, yesRatio }`, retourne `{ el, update({question, yesRatio}) }` — barre de progression reflète `yesRatio` (0-1), ratio affiché en % | test |
 | AC-12 | `DotGridAnimated` enregistré dans `component-registry.js` sous un nom de composant (ex. `DotGridBackground`) ; `scene-runtime.js` le monte via le registry, comportement (instance unique, `#bg-layer`, `setMode`) identique à avant | review + visuel |
+| AC-13 | `Badge` accepte `{ text, color? }`, retourne `{ el, update({text, color}) }` | test |
+| AC-14 | `Image` accepte `{ src, width?, height? }` où `src` doit être un chemin relatif local (rejette une URL absolue `http(s)://` — cohérent avec la contrainte sécurité assets locaux uniquement), retourne `{ el }` | test |
 
 > Règle : chaque AC est vérifiable de façon autonome. "Fonctionne correctement" n'est pas un AC.
 
@@ -230,9 +238,9 @@ export function resolveBoundOptions(options, state) {
 | `types.js` | modifier | `SceneId` → `string`, `ComponentMount.placement`/`trigger`, `SceneDefinition`, `LayerDefinition` |
 | `scene-definition-resolve.js` | créer | `resolveBoundValue`, `resolveBoundOptions` — logique pure, testée |
 | `scene-definition-resolve.test.js` | créer | Tests AC-03 à AC-05 |
-| `components/index.js` | modifier | Ajouter `Box`, `Divider`, `TextLabel`, `TextList`, `PollBar` — AC-06 à AC-09, AC-11 |
-| `components/index.test.js` | créer | Tests des 5 nouveaux composants (fichier n'existe pas encore — composants actuels jamais testés unitairement, à l'identique on ne teste que les nouveaux ici) |
-| `component-registry.js` | modifier | Enregistrer les 5 nouveaux composants + `DotGridAnimated` — AC-12 |
+| `components/index.js` | modifier | Ajouter `Box`, `Divider`, `TextLabel`, `TextList`, `PollBar`, `Badge`, `Image` — AC-06 à AC-09, AC-11, AC-13, AC-14 |
+| `components/index.test.js` | créer | Tests des 7 nouveaux composants (fichier n'existe pas encore — composants actuels jamais testés unitairement, à l'identique on ne teste que les nouveaux ici) |
+| `component-registry.js` | modifier | Enregistrer les 7 nouveaux composants + `DotGridAnimated` — AC-12 |
 | `scene-runtime.js` | modifier | Monter DotGrid via le registry au lieu d'un import direct — AC-12 |
 | `protocol.js` | modifier | `validateSceneDefinition` (remplace/étend `validateSceneConfig`) — AC-01, AC-10 |
 | `protocol.test.js` | modifier | Tests AC-01, AC-10 |
