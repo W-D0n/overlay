@@ -4,6 +4,28 @@ Capture d'idées et questions ouvertes. Trier via `/inbox-triage`.
 
 ---
 
+## Extensions du système de placement (voulues par l'owner à terme, 2026-07-04)
+
+Écartées de `docs/specs/scene-placement-protocol.md` (session 1/5 du panneau de contrôle S6) par
+zero-preemptive-code — pas de besoin concret au moment de la spec. **Confirmé par l'owner : ce sont
+des besoins réels, à faire à un moment**, donc tracées ici plutôt qu'oubliées. Chacune s'active
+quand elle devient concrète (pas de calendrier fixé) — extension de `Placement`/`LayerConfig`,
+pas une réécriture.
+
+- **Redimensionnement par drag** — poignées de resize dans le panneau, en plus du déplacement.
+  Étendrait le panneau (session 4/5) pour éditer `width`/`height` en live, pas seulement `x`/`y`.
+  Design à faire : comment une poignée de resize communique la nouvelle taille au panneau (probablement
+  même mécanisme que le drag de position, juste sur les coins/bords de l'élément).
+- **Placement fin à l'intérieur d'une couche composite** — ex. la couche `cams` d'`interview`
+  contient 3 éléments (cam gauche, filet, cam droite) positionnés indépendamment en CSS ; le modèle
+  actuel ne déplace la couche que comme un bloc entier. Pour aller plus loin, il faudrait un
+  sous-placement par élément dans `LayerConfig` (structure à repenser — pas juste ajouter un champ).
+- **Repositionnement dynamique en cours de scène** (ex. une alerte qui glisse à l'écran via un
+  événement) — `placement` actuel s'applique une seule fois au montage. Une version dynamique
+  écouterait des changements d'état et réappliquerait le style à chaud.
+
+---
+
 ## dotgrid-tuner — persistance résolue (S5, 2026-07-04)
 
 Serveur de dev séparé (`dev/tuner-server.js`, `bun dev/tuner-server.js`, jamais lancé en live)

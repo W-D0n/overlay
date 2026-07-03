@@ -2,7 +2,7 @@
 feature: scene-placement-protocol
 created: 2026-07-04
 updated: 2026-07-04
-status: draft
+status: reviewed
 ---
 
 # Spec : scene-placement-protocol
@@ -47,12 +47,15 @@ le runtime prouvé).
 - Panneau drag & drop (`dev/placement-panel.html`) — lit/écrit `Placement`, dépend de cette spec.
 - Persistance du panneau (écriture dans `scenes/*.config.js`) — généralisation du pattern
   `dev/tuner-server.js` (S5), session séparée après le panneau.
+
+**Exclu de cette spec, mais confirmé comme besoin réel par l'owner (2026-07-04, tracé dans
+`docs/inbox.md` §Extensions du système de placement) — à réintégrer dans une session future :**
 - Redimensionnement par drag (le panneau V1 ne fait que déplacer, pas redimensionner — `width`/
   `height` restent fixés à la migration, pas éditables en live).
 - Composition interne d'une couche à plusieurs éléments positionnés indépendamment (ex : `interview`
   couche `cams` contient 3 divs positionnés séparément) : `placement` s'applique à la couche
-  **entière** comme un bloc, pas à ses enfants. Une couche composite garde son CSS interne existant
-  (flex/positions relatives) tant qu'aucun besoin concret de granularité plus fine n'apparaît.
+  **entière** comme un bloc, pas à ses enfants.
+- Repositionnement dynamique en cours de scène (via événement, pas seulement au montage).
 
 ## Acceptance Criteria
 
