@@ -4,27 +4,12 @@ Capture d'idées et questions ouvertes. Trier via `/inbox-triage`.
 
 ---
 
-## dotgrid-tuner — persistance des paramètres (demande owner, 2026-07-03)
+## dotgrid-tuner — persistance résolue (S5, 2026-07-04)
 
-`dev/dotgrid-tuner.html` (jalon 1 réduit au DotGrid, voir §Éditeur ci-dessous) ne fait que copier le
-`MODE_PARAMS` généré dans le presse-papiers — l'owner colle et sauvegarde lui-même dans
-`components/DotGridAnimated.js`. Demande : que la sauvegarde devienne persistante (pas de
-copier-coller manuel).
-
-**Question ouverte à trancher avant implémentation** — où écrire :
-- **Fichier local via un petit serveur d'écriture** : `relay/server.js` (déjà existant, S4) pourrait
-  exposer une route `POST /dev/dotgrid-params` qui réécrit `components/DotGridAnimated.js` (ou un
-  fichier de config séparé importé par lui) sur disque. Danger : mélange un outil de *dev* dans le
-  process de *prod* (le relais tourne pendant le stream) — probablement un serveur de dev séparé
-  serait plus propre (`bun dev/tuner-server.js`, jamais lancé en live).
-- **`localStorage` navigateur** : zéro backend, mais persistance locale au navigateur seulement (pas
-  écrit dans le fichier source → désynchronisation avec `DotGridAnimated.js`, confusion possible).
-- Aligner avec le jalon 1 de l'éditeur (`docs/inbox.md` §Éditeur) : ce jalon prévoyait déjà l'écriture
-  de `SceneConfig` — la persistance DotGrid pourrait suivre le même mécanisme plutôt qu'un système
-  séparé, une fois ce mécanisme choisi.
-
-Non implémenté cette session (nécessite une décision d'architecture + probablement une petite spec) —
-voir CLAUDE.md §Ambiguity Protocol.
+Serveur de dev séparé (`dev/tuner-server.js`, `bun dev/tuner-server.js`, jamais lancé en live)
+expose `POST /save`, réécrit directement `components/DotGridAnimated.js`. Logique de remplacement
+extraite en module pur testé (`dev/dotgrid-params-format.js`). Bouton "Sauvegarder" dans
+`dotgrid-tuner.html`, bouton "Copier" gardé en secours. Testé bout en bout manuellement.
 
 ---
 

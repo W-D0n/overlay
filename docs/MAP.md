@@ -41,7 +41,7 @@ S5 (panneau de contrôle unique) et S6 (contrôle OBS programmatique, priorisé 
 | S3 | Moteur page-unique + 3 scènes de référence ([spec](specs/scene-runtime-engine.md)) | ✅ fait |
 | S3b | Migration des 5 scènes restantes + leurs configs | ✅ fait |
 | S4 | Relais Bun (WS + HTTP `/emit`, auth OBS, secret en env) | ✅ fait |
-| S5 | Persistance `dotgrid-tuner` (portée réduite le 2026-07-04 — placement drag & drop reporté, prérequis `anchor`/`offset` manquant, voir `docs/inbox.md`) | ⬜ à venir |
+| S5 | Persistance `dotgrid-tuner` (portée réduite le 2026-07-04 — placement drag & drop reporté, prérequis `anchor`/`offset` manquant, voir `docs/inbox.md`) | ✅ fait |
 | S6 | Contrôle programmatique d'OBS (créer/piloter scènes OBS depuis le panneau S5) — **priorisé par l'owner (2026-07-03)**, voir `docs/inbox.md` §Contrôle OBS centralisé | ⬜ à venir, dépend de S5 |
 | Épopée | Éditeur complet au-delà de S5/S6 (bibliothèque de transitions, binding déclaratif, export/import config), skill recherche graphique | ⬜ hors scope |
 
@@ -109,6 +109,18 @@ S5 (panneau de contrôle unique) et S6 (contrôle OBS programmatique, priorisé 
 - `relay/rate-limiter.js` — fenêtre glissante (20 req/10s/IP) sur `/emit`, testée (`bun test`, 5 tests).
 - `docs/security.md` — modèle de menace consolidé (S2+S4), règles d'exploitation (item FRIC-S2-04).
 - Décisions validées avec l'owner (2026-07-03) : `/emit` comme point d'entrée générique (pas d'intégration Twitch construite) ; auth = secret partagé simple (pas de JWT/session).
+
+## Détail S5 (livré, portée réduite)
+
+- `dev/dotgrid-params-format.js` — logique pure de remplacement du bloc `MODE_PARAMS` +
+  `baseOpacity`/`dotRadius` dans le source, testée (4 tests).
+- `dev/tuner-server.js` — serveur de dev séparé (`bun dev/tuner-server.js`, jamais lancé en live),
+  route unique `POST /save`, réécrit `components/DotGridAnimated.js` directement.
+- `dev/dotgrid-tuner.html` — bouton "Sauvegarder" ajouté (bouton "Copier" gardé en secours).
+- Testé bout en bout manuellement (sauvegarde réelle, vérification du fichier, restauration).
+- Décision de scope (2026-07-04) : le drag & drop de placement (portée initiale du jalon 1) est
+  **reporté** — prérequis `anchor`/`offset` jamais construit (AD-2 a mis le placement en CSS),
+  migration non planifiée tant qu'un besoin concret ne la justifie pas. Voir `docs/inbox.md`.
 
 ## Reste à faire (hors S1, déjà identifié)
 
