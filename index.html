@@ -659,5 +659,23 @@
   </template>
 
   <script type="module" src="./scene-runtime.js"></script>
+
+  <!--
+    Auto-reload dev (opt-in, jamais actif dans OBS) : ajouter ?livereload=1 à l'URL d'un onglet
+    de preview pour qu'il se recharge automatiquement à chaque sauvegarde depuis
+    dev/tuner-server.js (dotgrid-tuner.html) ou dev/placement-server.js (placement-panel.html).
+    Sans le paramètre, ce bloc ne fait rien — zéro impact sur la Browser Source OBS (URL sans
+    paramètre dans docs/obs-setup.md).
+  -->
+  <script type="module">
+    if (new URLSearchParams(location.search).get('livereload') === '1') {
+      const ports = [4458, 4459]; // tuner-server (DotGrid), placement-server (placement)
+      ports.forEach((port) => {
+        try {
+          new WebSocket(`ws://localhost:${port}/reload-ws`).onmessage = () => location.reload();
+        } catch { /* serveur de dev non lancé sur ce port — ignoré */ }
+      });
+    }
+  </script>
 </body>
 </html>

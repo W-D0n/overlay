@@ -5,8 +5,12 @@
  * NE JAMAIS lancer pendant le live — écrit sur disque dans `scenes/*.config.js`, séparé du
  * relais de production (`relay/server.js`). Même pattern que `dev/tuner-server.js` (S5).
  *
- * Route unique : `POST /save-placement` — `{ sceneId, layerName, placement }`, réécrit
- * uniquement la valeur `placement` de la couche ciblée (déjà migrée, pas d'insertion).
+ * Routes :
+ *   POST /save-placement — `{ sceneId, layerName, placement }`, réécrit uniquement la valeur
+ *                           `placement` de la couche ciblée (déjà migrée, pas d'insertion).
+ *   WS   /reload-ws       — diffuse `reload` à chaque sauvegarde réussie (voir dev/tuner-server.js
+ *                            pour le même mécanisme côté DotGrid ; `index.html?livereload=1` s'y
+ *                            connecte automatiquement).
  * Logique de remplacement testée séparément (AD-1) : voir `scene-placement-format.js`.
  *
  * Lancement : `bun dev/placement-server.js`
@@ -26,13 +30,25 @@ const CORS_HEADERS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
+/** @type {Set<import('bun').ServerWebSocket<unknown>>} */
+const reloadClients = new Set();
+
+function broadcastReload() {
+  reloadClients.forEach((client) => client.send('reload'));
+}
+
 Bun.serve({
   port: PORT,
-  async fetch(req) {
+  async fetch(req, server) {
     const url = new URL(req.url);
 
     if (req.method === 'OPTIONS') {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
+
+    if (url.pathname === '/reload-ws') {
+      const upgraded = server.upgrade(req);
+      return upgraded ? undefined : new Response('upgrade failed', { status: 500 });
     }
 
     if (url.pathname === '/save-placement' && req.method === 'POST') {
@@ -53,6 +69,7 @@ Bun.serve({
         await Bun.write(targetFile, updated);
 
         console.info(`[placement-server] scenes/${sceneId}.config.js — couche "${layerName}" mise à jour`);
+        broadcastReload();
         return new Response('ok', { headers: CORS_HEADERS });
       } catch (err) {
         console.error('[placement-server] échec de la sauvegarde :', err);
@@ -61,6 +78,11 @@ Bun.serve({
     }
 
     return new Response('not found', { status: 404, headers: CORS_HEADERS });
+  },
+  websocket: {
+    open(ws) { reloadClients.add(ws); },
+    close(ws) { reloadClients.delete(ws); },
+    message() {},
   },
 });
 
