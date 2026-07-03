@@ -539,6 +539,7 @@ export function TextList({ lines = [], itemClass = '' } = {}) {
    */
   function render(items) {
     el.innerHTML = '';
+    if (!Array.isArray(items)) return;
     items.forEach((line, i) => {
       const row = document.createElement('div');
       row.className = itemClass + (i > 0 ? ' dim' : '');

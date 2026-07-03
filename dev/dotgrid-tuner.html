@@ -92,6 +92,7 @@
     <label><span class="row"><span>amplitude</span><span class="val" id="val-amplitude"></span></span>
       <input type="range" id="amplitude" min="0" max="0.3" step="0.005">
     </label>
+    <button id="apply-all-btn">Appliquer freqX/freqY/freqT/amplitude à toutes les scènes</button>
 
     <h2>Globaux (tous modes)</h2>
     <label><span class="row"><span>baseOpacity</span><span class="val" id="val-baseOpacity"></span></span>
@@ -186,6 +187,16 @@
         updateValueLabel(key, value);
         renderOutput();
       });
+    });
+
+    document.getElementById('apply-all-btn').addEventListener('click', () => {
+      const current = MODE_PARAMS[currentMode];
+      GRID_MODES.forEach((mode) => {
+        MODE_PARAMS[mode] = { ...MODE_PARAMS[mode], freqX: current.freqX, freqY: current.freqY, freqT: current.freqT, amplitude: current.amplitude };
+      });
+      renderOutput();
+      document.getElementById('copy-status').textContent =
+        `Appliqué à ${GRID_MODES.length} modes (freqX/freqY/freqT/amplitude) — cliquer Sauvegarder pour écrire sur disque`;
     });
 
     Object.entries(globalSliders).forEach(([key, input]) => {
