@@ -183,10 +183,28 @@ async function handleObsMessage(ws, msg) {
 
 // ─── Serveur overlay : WS + HTTP /emit ─────────────────────────────────────────
 
+/** CORS permissif — endpoints HTTP appelés depuis des pages de dev servies sur d'autres ports
+ * (ex. dotgrid-tuner.html sur bunx serve). Trafic local uniquement (voir docs/security.md). */
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
+/** @param {Response} res */
+function withCors(res) {
+  Object.entries(CORS_HEADERS).forEach(([k, v]) => res.headers.set(k, v));
+  return res;
+}
+
 Bun.serve({
   port: RELAY_PORT,
   fetch(req, server) {
     const url = new URL(req.url);
+
+    if (req.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
 
     if (url.pathname === '/ws') {
       const token = url.searchParams.get('token');
@@ -197,32 +215,32 @@ Bun.serve({
 
     if (url.pathname === '/emit' && req.method === 'POST') {
       const auth = req.headers.get('authorization');
-      if (auth !== `Bearer ${RELAY_SECRET}`) return new Response('unauthorized', { status: 401 });
+      if (auth !== `Bearer ${RELAY_SECRET}`) return withCors(new Response('unauthorized', { status: 401 }));
 
       const clientIp = server.requestIP(req)?.address ?? 'unknown';
       if (!emitRateLimiter.allow(clientIp, Date.now())) {
-        return new Response('rate limited', { status: 429 });
+        return withCors(new Response('rate limited', { status: 429 }));
       }
 
       return req.json()
         .then((body) => {
-          if (typeof body?.type !== 'string') return new Response('invalid body', { status: 400 });
+          if (typeof body?.type !== 'string') return withCors(new Response('invalid body', { status: 400 }));
           broadcastToOverlay(body);
-          return new Response('ok');
+          return withCors(new Response('ok'));
         })
-        .catch(() => new Response('invalid json', { status: 400 }));
+        .catch(() => withCors(new Response('invalid json', { status: 400 })));
     }
 
     if (url.pathname === '/refresh-source' && req.method === 'POST') {
       const auth = req.headers.get('authorization');
-      if (auth !== `Bearer ${RELAY_SECRET}`) return new Response('unauthorized', { status: 401 });
+      if (auth !== `Bearer ${RELAY_SECRET}`) return withCors(new Response('unauthorized', { status: 401 }));
 
       return sendObsRequest('PressInputPropertiesButton', {
         inputName: OBS_BROWSER_SOURCE_NAME,
         propertyName: 'refreshnocache',
       })
-        .then(() => new Response('ok'))
-        .catch((err) => new Response(String(err), { status: 502 }));
+        .then(() => withCors(new Response('ok')))
+        .catch((err) => withCors(new Response(String(err), { status: 502 })));
     }
 
     if (url.pathname === '/') return new Response('relay ok');
