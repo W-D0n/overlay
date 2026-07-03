@@ -239,6 +239,175 @@
     .scene[data-scene="jeu"] .poll-ratio {
       font-family: var(--font-mono); font-size: 18px; color: var(--color-text-mid);
     }
+
+    /* ════════════════ INTERVIEW ════════════════ */
+    .scene[data-scene="interview"] .int-cam {
+      position: absolute; top: 40px; width: 740px; height: 820px;
+      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
+    }
+    .scene[data-scene="interview"] .int-cam-left  { left: 40px; }
+    .scene[data-scene="interview"] .int-cam-right { left: 820px; }
+    .scene[data-scene="interview"] .int-center-rule {
+      position: absolute; top: 40px; left: 793px; width: 0; height: 900px;
+      border-left: 0.5px dashed rgba(200,185,122,0.3);
+    }
+    .scene[data-scene="interview"] .int-fiche {
+      position: absolute; top: 878px; height: 100px;
+      display: flex; align-items: center; gap: 24px;
+      border: 0.5px solid var(--color-gold); border-radius: var(--radius-md);
+      background: var(--color-bg-widget); padding: 0 24px;
+    }
+    .scene[data-scene="interview"] .int-fiche-left  { left: 40px;  width: 740px; }
+    .scene[data-scene="interview"] .int-fiche-right { left: 820px; width: 740px; }
+    .scene[data-scene="interview"] .int-fiche-name {
+      font-family: var(--font-serif); font-size: 38px; font-weight: 700; color: var(--color-text-primary);
+    }
+    .scene[data-scene="interview"] .int-fiche-v { width:1px; height:40px; background:var(--color-rule); flex-shrink:0; }
+    .scene[data-scene="interview"] .int-fiche-role { font-family: var(--font-mono); font-size: 20px; color: var(--color-gold); }
+    .scene[data-scene="interview"] .int-subject-bar {
+      position: absolute; bottom: 20px; left: 40px; width: 1520px; height: 60px;
+      border: var(--border-rule); border-radius: var(--radius-md); background: var(--color-bg-widget);
+      display: flex; align-items: center; padding: 0 24px; gap: 24px;
+    }
+    .scene[data-scene="interview"] .int-subject-label {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase; flex-shrink: 0;
+    }
+    .scene[data-scene="interview"] .int-subject-v { width:1px; height:28px; background:var(--color-rule); flex-shrink:0; }
+    .scene[data-scene="interview"] .int-subject-text { font-family: var(--font-serif); font-size: 28px; color: var(--color-text-primary); }
+    .scene[data-scene="interview"] .int-col-chat {
+      position: absolute; top: 40px; left: 1600px; width: 280px; height: 860px;
+      display: flex; flex-direction: column; gap: 0; border-left: var(--border-rule); padding-left: 24px;
+    }
+    .scene[data-scene="interview"] .int-chat-label {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 12px;
+    }
+    .scene[data-scene="interview"] [data-layer="chat"] { flex: 1; min-height: 0; overflow: hidden; }
+    .scene[data-scene="interview"] [data-layer="stats"] {
+      margin-top: auto; padding-top: 16px; border-top: var(--border-rule); display: flex; flex-direction: column; gap: 12px;
+    }
+
+    /* ════════════════ REACT ════════════════ */
+    .scene[data-scene="react"] .react-source-zone {
+      position: absolute; top: 40px; left: 40px; width: 1060px; height: 800px;
+      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
+    }
+    .scene[data-scene="react"] .react-source-credit {
+      position: absolute; top: 858px; left: 40px; width: 1060px; height: 76px;
+      border: 0.5px solid var(--color-gold); border-radius: var(--radius-md); background: var(--color-bg-widget);
+      display: flex; align-items: center; padding: 0 24px; gap: 20px;
+    }
+    .scene[data-scene="react"] .react-credit-label {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase; flex-shrink: 0;
+    }
+    .scene[data-scene="react"] .react-credit-v { width:1px; height:32px; background:var(--color-rule); flex-shrink:0; }
+    .scene[data-scene="react"] .react-credit-title {
+      font-family: var(--font-serif); font-size: 30px; color: var(--color-text-primary); flex: 1;
+      overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    }
+    .scene[data-scene="react"] .react-credit-platform { font-family: var(--font-mono); font-size: 20px; color: var(--color-gold); flex-shrink: 0; }
+    .scene[data-scene="react"] .react-sep {
+      position: absolute; top: 40px; left: 1134px; width: 1px; height: 980px; background: var(--color-rule);
+    }
+    .scene[data-scene="react"] .react-cam {
+      position: absolute; top: 40px; left: 1168px; width: 712px; height: 460px;
+      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
+    }
+    .scene[data-scene="react"] .react-col-chat {
+      position: absolute; top: 520px; left: 1168px; width: 712px; height: 500px;
+      display: flex; flex-direction: column;
+    }
+    .scene[data-scene="react"] .react-chat-label {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 12px; flex-shrink: 0;
+    }
+    .scene[data-scene="react"] [data-layer="chat"] { flex: 1; overflow: hidden; }
+    .scene[data-scene="react"] .react-hud-bottom {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
+      background: var(--color-bg-widget); border-top: var(--border-rule);
+      display: flex; align-items: center; padding: 0 40px; gap: 40px;
+    }
+    .scene[data-scene="react"] .react-hud-name { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--color-text-primary); }
+    .scene[data-scene="react"] .react-hud-v    { width:1px; height:28px; background:var(--color-rule); }
+    .scene[data-scene="react"] .react-hud-val  { font-family: var(--font-mono); font-size: 22px; color: var(--color-gold); }
+    .scene[data-scene="react"] .react-hud-lbl  {
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase;
+    }
+    .scene[data-scene="react"] .react-hud-pair { display: flex; flex-direction: column; gap: 2px; }
+    .scene[data-scene="react"] .react-hud-link { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost); margin-left: auto; }
+
+    /* ════════════════ CREATION (variante A uniquement, voir docs/inbox.md) ════════════════ */
+    .scene[data-scene="creation"] .creation-capture-zone {
+      position: absolute; top: 40px; left: 40px; width: 1360px; height: 992px;
+      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
+    }
+    .scene[data-scene="creation"] .creation-sep {
+      position: absolute; top: 40px; left: 1434px; width: 1px; height: 1000px; background: var(--color-rule);
+    }
+    .scene[data-scene="creation"] .creation-col-right {
+      position: absolute; top: 40px; left: 1468px; width: 412px; height: 1000px; display: flex; flex-direction: column;
+    }
+    .scene[data-scene="creation"] .creation-name-block { padding-bottom: 14px; border-bottom: var(--border-gold); flex-shrink: 0; }
+    .scene[data-scene="creation"] .creation-name-block h1 {
+      font-family: var(--font-serif); font-size: 48px; font-weight: 700; color: var(--color-text-primary);
+      letter-spacing: -0.5px; line-height: 1;
+    }
+    .scene[data-scene="creation"] .creation-cam-mini {
+      margin-top: 16px; width: 120px; height: 120px; border-radius: var(--radius-md);
+      border: var(--border-panel); background: var(--color-bg-panel); flex-shrink: 0;
+    }
+    .scene[data-scene="creation"] .creation-section { padding: 16px 0; border-bottom: var(--border-rule); flex-shrink: 0; }
+    .scene[data-scene="creation"] .creation-label {
+      display: block; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 8px;
+    }
+    .scene[data-scene="creation"] .creation-tool-name   { font-family: var(--font-mono); font-size: 22px; color: var(--color-text-primary); margin-bottom: 4px; }
+    .scene[data-scene="creation"] .creation-tool-detail { font-family: var(--font-mono); font-size: 16px; color: var(--color-gold); margin-bottom: 4px; }
+    .scene[data-scene="creation"] .creation-tool-app    { font-family: var(--font-mono); font-size: 14px; color: var(--color-text-mid); }
+    .scene[data-scene="creation"] .creation-footer {
+      margin-top: auto; padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost);
+    }
+
+    /* ════════════════ FIN DE STREAM ════════════════ */
+    .scene[data-scene="fin"] .fin-bar-bot-full {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 2.5px; background: var(--color-gold); opacity: 0.8;
+    }
+    .scene[data-scene="fin"] .fin-cam {
+      position: absolute; top: 40px; left: 40px; width: 800px; height: 992px;
+      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
+    }
+    .scene[data-scene="fin"] .fin-sep {
+      position: absolute; top: 40px; left: 880px; width: 1px; height: 1000px; background: var(--color-rule);
+    }
+    .scene[data-scene="fin"] .fin-col-right {
+      position: absolute; top: 40px; left: 920px; width: 960px; height: 1000px; display: flex; flex-direction: column;
+    }
+    .scene[data-scene="fin"] .fin-name-block { padding-bottom: 18px; border-bottom: var(--border-gold); flex-shrink: 0; }
+    .scene[data-scene="fin"] .fin-name-block h1 {
+      font-family: var(--font-serif); font-size: 80px; font-weight: 700; color: var(--color-text-primary);
+      letter-spacing: -1px; line-height: 1;
+    }
+    .scene[data-scene="fin"] .fin-section { padding: 22px 0; border-bottom: var(--border-rule); flex-shrink: 0; }
+    .scene[data-scene="fin"] .fin-label {
+      display: block; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
+      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 14px;
+    }
+    .scene[data-scene="fin"] .fin-recap-line { font-family: var(--font-serif); font-size: 32px; color: var(--color-text-primary); line-height: 1.5; }
+    .scene[data-scene="fin"] .fin-recap-line.dim { color: var(--color-text-mid); }
+    .scene[data-scene="fin"] .fin-next-when  { font-family: var(--font-serif); font-size: 38px; color: var(--color-text-primary); margin-bottom: 6px; }
+    .scene[data-scene="fin"] .fin-next-topic { font-family: var(--font-serif); font-size: 36px; color: var(--color-gold); }
+    .scene[data-scene="fin"] .fin-stats-grid { display: flex; gap: 60px; }
+    .scene[data-scene="fin"] .fin-links-list { display: flex; flex-direction: column; gap: 8px; }
+    .scene[data-scene="fin"] .fin-link-item  { font-family: var(--font-mono); font-size: 26px; color: var(--color-gold); }
+    .scene[data-scene="fin"] .fin-link-item.dim { color: var(--color-text-mid); }
+    .scene[data-scene="fin"] .fin-footer {
+      margin-top: auto; padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
+      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost);
+    }
   </style>
 </head>
 <body>
@@ -353,6 +522,108 @@
         <span class="hud-label jeu-alert-label">Alerte</span>
         <span class="hud-value gold jeu-alert-username"></span>
       </div>
+    </div>
+  </template>
+
+  <template data-scene="interview">
+    <div data-layer="goldbar"></div>
+    <div data-layer="cams">
+      <div class="int-cam int-cam-left"  aria-hidden="true"></div>
+      <div class="int-center-rule"       aria-hidden="true"></div>
+      <div class="int-cam int-cam-right" aria-hidden="true"></div>
+    </div>
+    <div data-layer="fiches">
+      <div class="int-fiche int-fiche-left">
+        <span class="int-fiche-name">D0n</span>
+        <div class="int-fiche-v"></div>
+        <span class="int-fiche-role">Streamer · Développeur</span>
+      </div>
+      <div class="int-fiche int-fiche-right">
+        <span class="int-fiche-name fiche-name-guest">Invité</span>
+        <div class="int-fiche-v"></div>
+        <span class="int-fiche-role fiche-role-guest">—</span>
+      </div>
+    </div>
+    <div data-layer="subject" class="int-subject-bar">
+      <span class="int-subject-label">Sujet</span>
+      <div class="int-subject-v"></div>
+      <span class="int-subject-text subject-text">—</span>
+    </div>
+    <div class="int-col-chat">
+      <span class="int-chat-label">Chat</span>
+      <div data-layer="chat"></div>
+      <div data-layer="stats"></div>
+    </div>
+  </template>
+
+  <template data-scene="react">
+    <div data-layer="goldbar"></div>
+    <div data-layer="source-zone" class="react-source-zone" aria-hidden="true"></div>
+    <div data-layer="source-credit" class="react-source-credit">
+      <span class="react-credit-label">Source</span>
+      <div class="react-credit-v"></div>
+      <span class="react-credit-title">—</span>
+      <span class="react-credit-platform"></span>
+    </div>
+    <div class="react-sep" aria-hidden="true"></div>
+    <div data-layer="cam" class="react-cam" aria-hidden="true"></div>
+    <div class="react-col-chat">
+      <span class="react-chat-label">Chat</span>
+      <div data-layer="chat"></div>
+    </div>
+    <div data-layer="hud" class="react-hud-bottom">
+      <span class="react-hud-name">D0n</span>
+      <div class="react-hud-v"></div>
+      <div class="react-hud-pair"><span class="react-hud-lbl">Viewers</span><span class="react-hud-val react-hud-viewers">—</span></div>
+      <div class="react-hud-v"></div>
+      <div class="react-hud-pair"><span class="react-hud-lbl">Durée</span><span class="react-hud-val react-hud-duration">00:00</span></div>
+      <span class="react-hud-link">twitch.tv/d0natelll0</span>
+    </div>
+  </template>
+
+  <template data-scene="creation">
+    <div data-layer="goldbar"></div>
+    <div data-layer="capture-zone" class="creation-capture-zone" aria-hidden="true"></div>
+    <div class="creation-sep" aria-hidden="true"></div>
+    <div class="creation-col-right">
+      <div data-layer="cam-mini" class="creation-name-block">
+        <h1>D0n</h1>
+        <div class="creation-cam-mini" aria-hidden="true"></div>
+      </div>
+      <div data-layer="tool" class="creation-section">
+        <span class="creation-label">Outil actif</span>
+        <div class="creation-tool-name">—</div>
+        <div class="creation-tool-detail"></div>
+        <div class="creation-tool-app"></div>
+      </div>
+      <div data-layer="pomodoro" class="creation-section"></div>
+      <div data-layer="stats" class="creation-section"></div>
+      <div class="creation-footer">twitch.tv/d0natelll0</div>
+    </div>
+  </template>
+
+  <template data-scene="fin">
+    <div data-layer="goldbar"></div>
+    <div class="fin-bar-bot-full" aria-hidden="true"></div>
+    <div data-layer="cam" class="fin-cam" aria-hidden="true"></div>
+    <div class="fin-sep" aria-hidden="true"></div>
+    <div class="fin-col-right">
+      <div class="fin-name-block"><h1>D0n</h1></div>
+      <div data-layer="recap" class="fin-section">
+        <span class="fin-label">Session — Récap</span>
+        <div class="fin-recap-lines"></div>
+      </div>
+      <div data-layer="next-stream" class="fin-section">
+        <span class="fin-label">Prochain stream</span>
+        <div class="fin-next-when">À venir</div>
+        <div class="fin-next-topic"></div>
+      </div>
+      <div data-layer="stats" class="fin-section fin-stats-grid"></div>
+      <div data-layer="links" class="fin-section">
+        <span class="fin-label">Liens</span>
+        <div class="fin-links-list"></div>
+      </div>
+      <div class="fin-footer">Mozaïk · À bientôt</div>
     </div>
   </template>
 

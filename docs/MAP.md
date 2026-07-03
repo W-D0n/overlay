@@ -9,9 +9,10 @@
 (helpers purs, 22 tests), registries + wires des 3 scènes de référence (`discussion`, `brb`, `codage`).
 Spec `docs/specs/scene-runtime-engine.md` (41 AC). AC purs : `bun test` vert ; AC d'orchestration :
 vérifiés fonctionnellement (montage, `cut`/`crossfade`, visibilité full·minimal·hidden, anti-accumulation).
-**S3b — en cours (1/5).** Scène `jeu` migrée (commit `23533ed`) : `<template>` + `jeu.config.js` + `jeu.wire.js`,
-`dotgridMode: null` (AC-22 vérifié au runtime — `#bg-layer` masqué, HUD câblé à l'état live). Restantes :
-`interview`, `react`, `creation`, `fin` + leurs configs/wires.
+**S3b — livrée.** 5 scènes restantes migrées : `interview`, `react`, `creation` (variante A seule —
+la variante B/panneau référence n'a plus de sens en page-unique, abandonnée, voir `docs/inbox.md`),
+`fin`. `bun test` vert (63 tests). Vérification visuelle OBS native **non faite cette session**
+(pas de navigateur headless disponible dans l'environnement) — à faire par l'owner avant mise en prod.
 
 ## Découpage des sessions
 
@@ -20,7 +21,7 @@ vérifiés fonctionnellement (montage, `cut`/`crossfade`, visibilité full·mini
 | S1 | DotGridAnimated — couches 1 (base aléatoire) + 2 (Simplex ambiant par mode) | ✅ fait |
 | S2 | Format de config de scène + protocole `{type,data}` étendu | ✅ fait |
 | S3 | Moteur page-unique + 3 scènes de référence ([spec](specs/scene-runtime-engine.md)) | ✅ fait |
-| S3b | Migration des 5 scènes restantes + leurs configs | 🔄 en cours (1/5 : `jeu`) |
+| S3b | Migration des 5 scènes restantes + leurs configs | ✅ fait |
 | S4 | Relais Bun (WS + HTTP `/emit`, auth OBS, secret en env) | ⬜ à venir |
 | S5 | Éditeur jalon 1 (placement drag + lecture anchor/offset) | ⬜ à venir |
 | Épopée | Éditeur complet, orchestration OBS programmatique, skill recherche graphique | ⬜ hors scope |
@@ -60,7 +61,19 @@ vérifiés fonctionnellement (montage, `cut`/`crossfade`, visibilité full·mini
 - FRIC-S2-04 : doc sécurité diffusion publique → S4/publication.
 - FRIC-S2-05 : format d'échange de l'éditeur (placement = CSS) → S5.
 
+## Détail S3b (livré)
+
+- `scenes/{interview,react,creation,fin}.config.js` + `.wire.js` — 4 configs/wires restantes.
+- `index.html` — 4 `<template>` + CSS scopé ajoutés ; `scenes/registry.js` étendu (8 scènes).
+- `scenes/{Interview,React,Creation3D,FinStream}.html` supprimées (superseded).
+- Décision de scope : scène `creation` ne porte que la variante A (capture + colonne widgets) de
+  l'ancien `Creation3D.html` — la variante B (panneau référence, pilotée par `?mode=B` sur une 2e
+  Browser Source) est incompatible avec l'architecture page-unique (1 seule Browser Source) et n'a
+  pas été redemandée depuis ; abandonnée (zero preemptive code), voir `docs/inbox.md`.
+- Gap : vérification visuelle des 4 nouvelles scènes en navigateur/OBS **non faite** (pas d'outil
+  headless disponible dans l'environnement d'exécution) — `bun test` vert uniquement. À faire par
+  l'owner avant mise en prod (préview 1920×1080 dézoomée, ou OBS natif).
+
 ## Reste à faire (hors S1, déjà identifié)
 
-- Migration des 5 scènes restantes (Interview, React, Creation3D, FinStream, Jeu) + leurs configs vers la page unique → S3b. (Discussion, Codage, BRB livrées en S3.)
 - Couches 3 (morphisme) et 4 (événements stream) du DotGrid → sessions ultérieures, voir `HANDOFF_overlay_dotgrid.md`.

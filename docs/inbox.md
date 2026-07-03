@@ -114,6 +114,24 @@ Vérifier l'impact sur les autres scènes qui réutilisent ces tokens.
 
 ---
 
+## Scène `creation` — variante B (panneau référence) abandonnée en page-unique (S3b)
+
+L'ancien `Creation3D.html` gérait 2 variantes via `?mode=A|B` sur **2 Browser Sources séparées**
+pointant la même page (A : capture + widgets ; B : capture + panneau référence + widgets réduits).
+En page-unique (1 seule Browser Source pour tout l'overlay), ce mécanisme par paramètre d'URL +
+2 sources n'a plus de sens — il faudrait un concept nouveau (2e scène, ou layer conditionnel piloté
+par l'état live) pour le reproduire.
+
+**Décision S3b (zero preemptive code, pas de réponse owner obtenue en session) :** seule la
+variante A a été portée (`scenes/creation.config.js`). La variante B n'a pas été migrée.
+
+**Si le besoin revient**, options déjà identifiées (à trancher avec l'owner) :
+- Scène distincte `creation-ref`, sélectionnable comme n'importe quelle autre scène.
+- Layer `reference` dans la scène `creation`, visibilité pilotée par l'état live
+  (ex. `state.showReference`) plutôt que par l'URL.
+
+---
+
 ## store.js — bruit console : reconnexion OBS WebSocket toutes les 3 s
 
 Quand OBS est éteint, `store.js` retente la connexion `ws://localhost:4455` toutes les 3 s et logge

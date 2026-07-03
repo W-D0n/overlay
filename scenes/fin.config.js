@@ -1,0 +1,56 @@
+// @ts-check
+/**
+ * fin.config.js — Config de la scène Fin de stream (logique seule).
+ * Le placement/DOM vit dans le template HTML + CSS (AD-2).
+ * Note : barre dorée basse à pleine opacité (0.8) — seule scène où c'est le cas ;
+ * rendue en markup statique dans le template (pas via GoldBar, dont l'opacité bottom
+ * par défaut est 0.3) plutôt que d'étendre l'API du composant pour ce cas unique.
+ * @type {import('../types.js').SceneConfig}
+ */
+export const sceneConfig = {
+  id: 'fin',
+  dotgridMode: 'fin',
+  transition: { type: 'crossfade', duration: 500, easing: 'easeInOut' },
+  layers: [
+    {
+      name: 'goldbar',
+      components: [
+        { component: 'GoldBar', options: { position: 'top' } },
+      ],
+      visibility: { full: true, minimal: true, hidden: false },
+    },
+    {
+      // Cam grande gauche (placeholder)
+      name: 'cam',
+      components: [],
+      visibility: { full: true, minimal: false, hidden: false },
+    },
+    {
+      // Récap de session
+      name: 'recap',
+      components: [],
+      visibility: { full: true, minimal: false, hidden: false },
+    },
+    {
+      // Prochain stream
+      name: 'next-stream',
+      components: [],
+      visibility: { full: true, minimal: false, hidden: false },
+    },
+    {
+      name: 'stats',
+      components: [
+        { component: 'StatBlock', options: { label: 'VIEWERS MAX', value: '—' } },
+        { component: 'StatBlock', options: { label: 'NOUVEAUX FOLLOWS', value: '—', valueColor: '#C8B97A' } },
+        { component: 'StatBlock', options: { label: 'DURÉE', value: '00:00:00' } },
+      ],
+      visibility: { full: true, minimal: false, hidden: false },
+    },
+    {
+      // Liens sociaux
+      name: 'links',
+      components: [],
+      visibility: { full: true, minimal: false, hidden: false },
+    },
+  ],
+};
