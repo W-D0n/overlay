@@ -110,6 +110,14 @@
 
   <script type="module">
     import { DotGridAnimated, MODE_PARAMS, GRID_MODES } from '../components/DotGridAnimated.js';
+    import { OBS_SCENE_MAP } from '../relay/obs-scene-map.js';
+
+    /** Nom(s) de scène OBS pointant vers chaque mode overlay (inverse de OBS_SCENE_MAP) — pour
+     * affichage seulement, aucun mode n'a de garantie d'avoir une scène OBS correspondante. */
+    const OBS_NAMES_BY_MODE = Object.entries(OBS_SCENE_MAP).reduce((acc, [obsName, sceneId]) => {
+      (acc[sceneId] ??= []).push(obsName);
+      return acc;
+    }, /** @type {Record<string, string[]>} */ ({}));
 
     const TUNER_SERVER_URL = 'http://localhost:4458/save';
     const RELAY_REFRESH_URL = 'http://localhost:4456/refresh-source';
@@ -162,7 +170,8 @@
     GRID_MODES.forEach((mode) => {
       const opt = document.createElement('option');
       opt.value = mode;
-      opt.textContent = mode;
+      const obsNames = OBS_NAMES_BY_MODE[mode];
+      opt.textContent = obsNames ? `${obsNames.join(', ')} (${mode})` : mode;
       modeSelect.appendChild(opt);
     });
     modeSelect.value = currentMode;

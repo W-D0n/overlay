@@ -58,7 +58,7 @@ export const GRID_MODES = /** @type {GridMode[]} */ (Object.keys(MODE_PARAMS));
  */
 export function DotGridAnimated(options = {}) {
   const spacing     = options.spacing     ?? 20;
-  const dotRadius   = options.dotRadius   ?? 1.3;
+  const dotRadius   = options.dotRadius   ?? 1.4;
   const baseColor   = options.baseColor   ?? /** @type {[number,number,number]} */ ([200, 185, 122]);
   const baseOpacity = options.baseOpacity ?? 0.26;
 
