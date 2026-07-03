@@ -1,7 +1,9 @@
-# Configuration OBS — Browser Source
+# Configuration OBS — Browser Source + relais
 
-> Étape 1 du lancement stream : afficher l'overlay dans OBS. Ne couvre **pas** les données live
-> (viewers, chat, alertes) — voir §Limite actuelle plus bas et `docs/MAP.md` (S4).
+> Deux étapes pour un lancement complet : (1) afficher l'overlay dans OBS, (2) démarrer le relais
+> pour les changements de scène live + l'injection de données externes. Sans (2), l'overlay tourne
+> en mode fallback statique (§Sans relais plus bas) — suffisant pour streamer avec l'habillage
+> visuel seul.
 
 ## 1. Servir la page localement
 
@@ -53,19 +55,63 @@ classique sur `localhost:5500`) :
 document.dispatchEvent(new CustomEvent('overlay:scene-change', { detail: { scene: 'discussion' } }));
 ```
 
-## Limite actuelle — pas de données live
+## 4. Démarrer le relais (S4 — changement de scène live)
 
-`store.js` tente une connexion WebSocket sur `ws://localhost:4455` (voir `store.js:30`) mais **aucun
-serveur n'écoute encore sur ce port** — le relais qui parlerait le vrai protocole OBS WebSocket v5
-(handshake, auth SHA256) ou qui relaierait des événements Twitch n'est pas construit (S4 du
-`docs/MAP.md`, non démarré).
+Le relais (`relay/server.js`, `docs/specs/relay-bun-s4.md`) fait deux choses : (a) se connecte à
+OBS en client WS v5 et traduit les changements de scène OBS en `scene.set` pour l'overlay, (b)
+expose `POST /emit` pour pousser manuellement `{type,data}` (viewers, chat, alertes…) — aucune
+intégration Twitch n'est branchée dessus pour l'instant, c'est juste le point d'entrée.
 
-Conséquence concrète : sans S4, l'overlay tourne en **mode fallback statique** — `viewers`, `chat`,
-`alertes`, `guest`, etc. restent aux valeurs par défaut (`STATIC_FALLBACK` dans `store.js`), seule la
-**durée** avance via une minuterie locale. C'est suffisant pour streamer avec l'habillage visuel
-(bandes dorées, grille de points, structure de scène), mais pas pour un affichage viewers/chat/alertes
-en temps réel.
+### 4.1 Activer le WebSocket dans OBS
 
-**Prochaine étape recommandée** pour débloquer les données live : cadrer et implémenter S4
-(voir `docs/MAP.md` §Découpage des sessions) — relais Bun qui parle OBS WebSocket v5 côté OBS et
-expose `{ type, data }` côté overlay (protocole déjà spécifié, `docs/specs/scene-config-protocol.md`).
+`Outils → WebSocket Server Settings` → activer le serveur (port par défaut `4455`), noter le mot
+de passe si l'authentification est activée (recommandé).
+
+### 4.2 Configurer le secret partagé
+
+```bash
+cp obs-config.example.js obs-config.local.js
+```
+
+Éditer `obs-config.local.js` et renseigner `RELAY_TOKEN` (une chaîne aléatoire de votre choix —
+c'est le secret partagé avec le relais, **jamais commité**, déjà dans `.gitignore`).
+
+### 4.3 Lancer le relais
+
+```bash
+OBS_WS_PASSWORD=<mot de passe OBS> OVERLAY_RELAY_SECRET=<même valeur que RELAY_TOKEN> bun relay/server.js
+```
+
+Variables d'environnement (voir `docs/specs/relay-bun-s4.md` §Comportements) :
+
+| Variable | Défaut | Rôle |
+|---|---|---|
+| `OBS_WS_URL` | `ws://localhost:4455` | Où le relais se connecte à OBS |
+| `OBS_WS_PASSWORD` | (vide) | Mot de passe OBS WS (si auth activée côté OBS) |
+| `OVERLAY_RELAY_SECRET` | **requis** | Secret partagé avec `obs-config.local.js` — le relais refuse de démarrer sans |
+| `RELAY_PORT` | `4456` | Port d'écoute du relais pour l'overlay (WS + `/emit`) |
+
+Le relais log `[relay] connecté à OBS WebSocket` puis `[relay] OBS identifié`. Changer de scène
+dans OBS doit alors changer la scène affichée par l'overlay (si les noms de scènes OBS sont dans
+`relay/obs-scene-map.js` — à adapter à vos noms réels de scènes OBS, voir le fichier).
+
+À démarrer **avant** OBS (ou après — le relais retente la connexion OBS toutes les 3s tant qu'elle échoue).
+
+### 4.4 Injecter des données externes
+
+```bash
+curl -X POST http://localhost:4456/emit \
+  -H "Authorization: Bearer <OVERLAY_RELAY_SECRET>" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"viewers.update","data":{"count":42}}'
+```
+
+Types de messages acceptés : voir `docs/specs/scene-config-protocol.md` §Format de données.
+
+## Sans relais — mode fallback statique
+
+Si le relais n'est pas lancé (ou `obs-config.local.js` absent), l'overlay bascule automatiquement
+en mode fallback : `viewers`, `chat`, `alertes`, `guest`, etc. restent aux valeurs par défaut
+(`STATIC_FALLBACK` dans `store.js`), seule la **durée** avance via une minuterie locale. Suffisant
+pour streamer avec l'habillage visuel seul (bandes dorées, grille de points, structure de scène),
+sans changement de scène ni données live.

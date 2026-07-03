@@ -26,8 +26,13 @@
 
 import { reduceMessage } from './protocol.js';
 
-/** URL du WebSocket — adapter à votre setup */
-const WS_URL = 'ws://localhost:4455'; // OBS WebSocket v5 par défaut
+/**
+ * Config de connexion au relais (S4) — `obs-config.local.js` (gitignoré, secret réel) prime sur
+ * `obs-config.example.js` (committé, valeurs vides). Sans relais local configuré, le token est
+ * vide → le relais refuse la connexion → bascule en mode fallback statique (comportement existant).
+ * @type {{ RELAY_WS_URL: string, RELAY_TOKEN: string }}
+ */
+const { RELAY_WS_URL, RELAY_TOKEN } = await import('./obs-config.local.js').catch(() => import('./obs-config.example.js'));
 
 /** Intervalle de reconnexion WebSocket en ms */
 const WS_RECONNECT_DELAY = 3000;
@@ -165,8 +170,10 @@ function connectWebSocket() {
     }
   }, WS_TIMEOUT);
 
+  const url = RELAY_TOKEN ? `${RELAY_WS_URL}?token=${encodeURIComponent(RELAY_TOKEN)}` : RELAY_WS_URL;
+
   try {
-    ws = new WebSocket(WS_URL);
+    ws = new WebSocket(url);
   } catch {
     clearTimeout(timeout);
     startLocalTimer();

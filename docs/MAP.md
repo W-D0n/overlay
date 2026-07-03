@@ -13,6 +13,13 @@ vérifiés fonctionnellement (montage, `cut`/`crossfade`, visibilité full·mini
 la variante B/panneau référence n'a plus de sens en page-unique, abandonnée, voir `docs/inbox.md`),
 `fin`. `bun test` vert (63 tests). Vérification visuelle OBS native **non faite cette session**
 (pas de navigateur headless disponible dans l'environnement) — à faire par l'owner avant mise en prod.
+**S4 — livrée.** Relais Bun (`relay/server.js`, spec `docs/specs/relay-bun-s4.md`) : client OBS
+WebSocket v5 (auth SHA256) → traduit `CurrentProgramSceneChanged` en `scene.set`, + serveur overlay
+WS + `POST /emit` authentifiés par secret partagé (`OVERLAY_RELAY_SECRET` / `obs-config.local.js`).
+Logique pure (`obs-auth.js`, `obs-scene-map.js`) testée `bun test` (8 tests). Orchestration réseau
+vérifiée manuellement (auth WS accept/reject, `/emit` 401/200, diffusion) — **jamais testée contre
+une vraie instance OBS** (pas d'OBS dans l'environnement d'exécution) : à valider par l'owner avec
+OBS réel avant le premier live, voir `docs/obs-setup.md` §4.
 
 ## Découpage des sessions
 
@@ -22,7 +29,7 @@ la variante B/panneau référence n'a plus de sens en page-unique, abandonnée, 
 | S2 | Format de config de scène + protocole `{type,data}` étendu | ✅ fait |
 | S3 | Moteur page-unique + 3 scènes de référence ([spec](specs/scene-runtime-engine.md)) | ✅ fait |
 | S3b | Migration des 5 scènes restantes + leurs configs | ✅ fait |
-| S4 | Relais Bun (WS + HTTP `/emit`, auth OBS, secret en env) | ⬜ à venir |
+| S4 | Relais Bun (WS + HTTP `/emit`, auth OBS, secret en env) | ✅ fait |
 | S5 | Éditeur jalon 1 (placement drag + lecture anchor/offset) | ⬜ à venir |
 | Épopée | Éditeur complet, orchestration OBS programmatique, skill recherche graphique | ⬜ hors scope |
 
@@ -74,6 +81,19 @@ la variante B/panneau référence n'a plus de sens en page-unique, abandonnée, 
   headless disponible dans l'environnement d'exécution) — `bun test` vert uniquement. À faire par
   l'owner avant mise en prod (préview 1920×1080 dézoomée, ou OBS natif).
 
+## Détail S4 (livré)
+
+- `relay/obs-scene-map.js` — table de correspondance nom-scène-OBS → `SceneId` + fonction pure, testée.
+- `relay/obs-auth.js` — calcul de l'auth SHA256 OBS WS v5, testé contre une référence `node:crypto` indépendante.
+- `relay/server.js` — orchestration : client OBS WS v5 (reconnexion 3s), serveur `Bun.serve` (WS overlay + `POST /emit`), auth par secret partagé, refuse de démarrer sans `OVERLAY_RELAY_SECRET`.
+- `obs-config.example.js` (committé) / `obs-config.local.js` (gitignoré) — `store.js` importe le local en priorité, retombe sur l'exemple (token vide → fallback statique).
+- `store.js` — connexion WS pointe désormais sur le relais (`RELAY_WS_URL`, port `4456`) au lieu du port OBS natif (`4455`, repris par OBS lui-même).
+- `docs/obs-setup.md` — §4 ajouté (activation OBS WS, config secret, lancement relais, `/emit`).
+- Décisions validées avec l'owner (2026-07-03) : `/emit` comme point d'entrée générique (pas d'intégration Twitch construite) ; auth = secret partagé simple (pas de JWT/session).
+
 ## Reste à faire (hors S1, déjà identifié)
 
 - Couches 3 (morphisme) et 4 (événements stream) du DotGrid → sessions ultérieures, voir `HANDOFF_overlay_dotgrid.md`.
+- Intégration Twitch EventSub/chat réelle qui appellerait `/emit` (hors scope S4, voir `docs/specs/relay-bun-s4.md` §Périmètre Exclu).
+- Rate-limiting sur `/emit` + doc sécurité diffusion publique (FRIC-S2-04, séquencé avec la publication publique du projet).
+- Validation contre une vraie instance OBS (gap S4, voir §Focus actuel).
