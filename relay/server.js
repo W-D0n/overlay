@@ -9,12 +9,14 @@
  * Logique pure extraite et testée séparément (AD-1) :
  *   - `obs-scene-map.js`  → correspondance nom-scène-OBS → SceneId
  *   - `obs-auth.js`       → calcul de l'auth SHA256 OBS WS v5
+ *   - `rate-limiter.js`   → fenêtre glissante appliquée à `/emit`
  *
  * Lancement : `bun relay/server.js` (variables d'env requises, voir §Config ci-dessous).
  * Voir docs/specs/relay-bun-s4.md.
  */
 import { mapObsSceneToOverlaySceneId } from './obs-scene-map.js';
 import { computeObsAuthResponse } from './obs-auth.js';
+import { createRateLimiter } from './rate-limiter.js';
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -29,6 +31,9 @@ if (!RELAY_SECRET) {
 }
 
 const OBS_RECONNECT_DELAY_MS = 3000;
+
+/** `/emit` : 20 requêtes / 10s / IP — généreux pour un usage légitime (scripts, bot), borne l'abus. */
+const emitRateLimiter = createRateLimiter({ windowMs: 10000, maxRequests: 20 });
 
 // ─── Diffusion vers les clients overlay ────────────────────────────────────────
 
@@ -143,6 +148,12 @@ Bun.serve({
     if (url.pathname === '/emit' && req.method === 'POST') {
       const auth = req.headers.get('authorization');
       if (auth !== `Bearer ${RELAY_SECRET}`) return new Response('unauthorized', { status: 401 });
+
+      const clientIp = server.requestIP(req)?.address ?? 'unknown';
+      if (!emitRateLimiter.allow(clientIp, Date.now())) {
+        return new Response('rate limited', { status: 429 });
+      }
+
       return req.json()
         .then((body) => {
           if (typeof body?.type !== 'string') return new Response('invalid body', { status: 400 });

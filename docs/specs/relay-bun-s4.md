@@ -36,9 +36,13 @@ d'entrée `/emit`.
 
 **Exclu (sessions futures) :**
 - Intégration Twitch EventSub/chat réelle (qui appellerait `/emit`) — hors scope, juste le endpoint.
-- Rate-limiting sur `/emit` (FRIC-S2-04, séquencé avec la publication publique).
 - Contrôle programmatique d'OBS (créer scènes, transformer sources) — épopée éditeur, hors scope.
 - `morph.trigger` / couche 3A DotGrid — hors scope de ce relais.
+
+**Ajouté après la livraison initiale (2026-07-03) :** rate-limiting sur `/emit`
+(`relay/rate-limiter.js`, fenêtre glissante 20 req/10s/IP, testé `bun test`) + `docs/security.md`
+consolidant le modèle de menace — item FRIC-S2-04 initialement déféré, traité dans la foulée de la
+validation OBS réelle plutôt que reporté à une session de publication.
 
 ## Acceptance Criteria
 

@@ -95,12 +95,13 @@ de scène live) — prêt pour un premier live avec les 4 scènes OBS existantes
 - `obs-config.example.js` (committé) / `obs-config.local.js` (gitignoré) — `store.js` importe le local en priorité, retombe sur l'exemple (token vide → fallback statique).
 - `store.js` — connexion WS pointe désormais sur le relais (`RELAY_WS_URL`, port `4456`) au lieu du port OBS natif (`4455`, repris par OBS lui-même).
 - `docs/obs-setup.md` — §4 ajouté (activation OBS WS, config secret, lancement relais, `/emit`).
+- `relay/rate-limiter.js` — fenêtre glissante (20 req/10s/IP) sur `/emit`, testée (`bun test`, 5 tests).
+- `docs/security.md` — modèle de menace consolidé (S2+S4), règles d'exploitation (item FRIC-S2-04).
 - Décisions validées avec l'owner (2026-07-03) : `/emit` comme point d'entrée générique (pas d'intégration Twitch construite) ; auth = secret partagé simple (pas de JWT/session).
 
 ## Reste à faire (hors S1, déjà identifié)
 
 - Couches 3 (morphisme) et 4 (événements stream) du DotGrid → sessions ultérieures, voir `HANDOFF_overlay_dotgrid.md`.
 - Intégration Twitch EventSub/chat réelle qui appellerait `/emit` (hors scope S4, voir `docs/specs/relay-bun-s4.md` §Périmètre Exclu).
-- Rate-limiting sur `/emit` + doc sécurité diffusion publique (FRIC-S2-04, séquencé avec la publication publique du projet).
 - Scènes OBS manquantes pour `interview`/`react`/`creation`/`fin` (créer les scènes côté OBS + étendre `relay/obs-scene-map.js` quand elles existent).
 - Persistance des paramètres `dotgrid-tuner` (demande owner, voir `docs/inbox.md`) — décision d'architecture à trancher avant implémentation.
