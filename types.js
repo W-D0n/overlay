@@ -149,12 +149,25 @@
  */
 
 /**
+ * Position et taille d'une couche, en pixels absolus dans le canvas 1920×1080.
+ * Pas de système d'ancrage — le canvas ne change jamais de taille (contrainte projet),
+ * un ancrage n'apporterait aucune valeur fonctionnelle ici.
+ * Voir docs/specs/scene-placement-protocol.md.
+ * @typedef {Object} Placement
+ * @property {number} x - Distance en pixels depuis le bord gauche du canvas
+ * @property {number} y - Distance en pixels depuis le bord haut du canvas
+ * @property {number} [width] - Largeur en pixels (omis = dicté par le contenu/CSS existant)
+ * @property {number} [height] - Hauteur en pixels (omis = dicté par le contenu/CSS existant)
+ */
+
+/**
  * Configuration d'une couche nommée dans une scène.
  * `name` devient la valeur de l'attribut `data-layer` en S3.
  * @typedef {Object} LayerConfig
  * @property {string} name - Identifiant unique dans la scène (ex : 'chat', 'goldbar')
  * @property {ComponentMount[]} components - Composants à monter (tableau vide = DOM pur)
  * @property {LayerVisibility} visibility
+ * @property {Placement} [placement] - Position/taille en pixels absolus (omis = CSS scopé existant fait foi)
  */
 
 /**

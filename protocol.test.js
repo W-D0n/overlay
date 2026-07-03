@@ -315,3 +315,34 @@ test('T41 [AC-29] V9 — aucune couche visible en full (co-occurrence V5/V7 docu
   c.layers[1].visibility = { full: false, minimal: false, hidden: false };
   expect(validateSceneConfig(c).errors).toContain('aucune couche visible en full');
 });
+
+test('T42 [AC-06] V10 — placement absent accepté (rétrocompatibilité)', () => {
+  const c = validConfig();
+  expect(validateSceneConfig(c).errors).toEqual([]);
+});
+
+test('T43 [AC-03/AC-04] V10 — placement valide accepté, x/y=0 accepté', () => {
+  const c = validConfig();
+  c.layers[1].placement = { x: 0, y: 0, width: 100, height: 100 };
+  expect(validateSceneConfig(c).errors).toEqual([]);
+});
+
+test('T44 [AC-04] V10 — placement rejeté si x/y non finis', () => {
+  const c = validConfig();
+  c.layers[1].placement = /** @type {*} */ ({ x: NaN, y: 40 });
+  expect(validateSceneConfig(c).errors).toContain('placement invalide sur body : x/y doivent être des nombres finis');
+
+  const c2 = validConfig();
+  c2.layers[1].placement = /** @type {*} */ ({ x: 40, y: 'nope' });
+  expect(validateSceneConfig(c2).errors).toContain('placement invalide sur body : x/y doivent être des nombres finis');
+});
+
+test('T45 [AC-05] V10 — placement rejeté si width/height <= 0 ou non fini', () => {
+  const c = validConfig();
+  c.layers[1].placement = { x: 0, y: 0, width: 0 };
+  expect(validateSceneConfig(c).errors).toContain('placement invalide sur body : width doit être un nombre fini strictement positif');
+
+  const c2 = validConfig();
+  c2.layers[1].placement = { x: 0, y: 0, height: -5 };
+  expect(validateSceneConfig(c2).errors).toContain('placement invalide sur body : height doit être un nombre fini strictement positif');
+});

@@ -15,6 +15,7 @@
 import { store } from './store.js';
 import { validateSceneConfig } from './protocol.js';
 import { resolveTransition, isLayerVisible, resolveDotgridMode, toCssEasing } from './scene-resolve.js';
+import { resolvePlacementStyle } from './placement-resolve.js';
 import { DotGridAnimated } from './components/DotGridAnimated.js';
 import { COMPONENT_REGISTRY } from './component-registry.js';
 import { SCENE_CONFIGS, SCENE_WIRES } from './scenes/registry.js';
@@ -68,6 +69,9 @@ function mountScene(id) {
     if (!layerEl) {
       console.warn(`[overlay] mount : couche absente du template — ${layer.name}`);
       continue;
+    }
+    if (layer.placement) {
+      Object.assign(/** @type {HTMLElement} */ (layerEl).style, resolvePlacementStyle(layer.placement));
     }
     /** @type {import('./types.js').ComponentInstance[]} */
     const instances = [];

@@ -333,5 +333,20 @@ export function validateSceneConfig(config) {
     errors.push('aucune couche visible en full');
   }
 
+  // V10 — placement (optionnel) : x/y finis, width/height finis strictement positifs si fournis
+  for (const l of layers) {
+    if (l.placement === undefined) continue;
+    const p = l.placement;
+    const validXY = typeof p === 'object' && p !== null
+      && Number.isFinite(p.x) && Number.isFinite(p.y);
+    if (!validXY) { errors.push(`placement invalide sur ${l.name} : x/y doivent être des nombres finis`); continue; }
+    if (p.width !== undefined && (!Number.isFinite(p.width) || p.width <= 0)) {
+      errors.push(`placement invalide sur ${l.name} : width doit être un nombre fini strictement positif`);
+    }
+    if (p.height !== undefined && (!Number.isFinite(p.height) || p.height <= 0)) {
+      errors.push(`placement invalide sur ${l.name} : height doit être un nombre fini strictement positif`);
+    }
+  }
+
   return { ok: errors.length === 0, errors };
 }
