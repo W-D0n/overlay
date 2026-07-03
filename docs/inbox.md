@@ -82,7 +82,9 @@ la config reste écrite à la main jusqu'à ce qu'un besoin concret justifie le 
 
 **Demande explicite de l'owner** en session (2026-07-03), après avoir testé le pipeline OBS↔relais↔overlay
 en conditions réelles : « j'aimerai bien pouvoir tout faire d'un seul endroit ». Élève cette extension
-(déjà envisagée dès la session A) au rang de session cadrée (S6, `docs/MAP.md`), dépendante de S5.
+(déjà envisagée dès la session A) au rang de session cadrée (S6, `docs/MAP.md`), dépendante de S7
+(panneau de placement, en cours — la numérotation S6/S7 a été clarifiée le 2026-07-04 : S7 est le
+panneau lui-même, S6 le contrôle OBS qui s'y branche ensuite).
 
 OBS WebSocket v5 est **bidirectionnel** : au-delà d'écouter les événements, le client peut envoyer
 des requêtes qui modifient OBS (créer scènes, créer/placer sources, transformer position/taille,

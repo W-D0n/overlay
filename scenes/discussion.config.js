@@ -2,7 +2,7 @@
 /**
  * discussion.config.js — Config de la scène Discussion (logique seule).
  * Le placement/DOM vit dans le template HTML + CSS (AD-2), sauf la couche `cam` — migrée vers
- * `Placement` (S6 session 2/5, docs/specs/scene-placement-protocol.md, scène de référence).
+ * `Placement` (S7 session 2/5, docs/specs/scene-placement-protocol.md, scène de référence).
  * @type {import('../types.js').SceneConfig}
  */
 export const sceneConfig = {
