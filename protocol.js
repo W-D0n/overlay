@@ -23,11 +23,11 @@ export const DEFAULT_DOTGRID_MODE = 'brb';
 // ─── Domaines de valeurs valides ────────────────────────────────────────────
 
 /** @type {import('./types.js').SceneId[]} */
-const SCENE_IDS = ['discussion', 'codage', 'brb', 'interview', 'react', 'creation', 'fin', 'jeu'];
+const SCENE_IDS = ['discussion', 'codage', 'brb', 'interview', 'react', 'creation', 'fin', 'jeu', 'starting'];
 const VISIBILITY_LEVELS = ['full', 'minimal', 'hidden'];
 const TRANSITION_TYPES = ['crossfade', 'cut'];
 /** Modes DotGrid valides (null inclus = scène sans DotGrid). */
-const DOTGRID_MODES = ['discussion', 'codage', 'brb', 'interview', 'react', 'creation', 'fin', null];
+const DOTGRID_MODES = ['discussion', 'codage', 'brb', 'interview', 'react', 'creation', 'fin', 'starting', null];
 const COMPONENT_NAMES = ['GoldBar', 'StatBlock', 'ChatFeed', 'PomodoroBar', 'AlertBanner'];
 
 // ─── Helpers de construction de ReduceResult ────────────────────────────────

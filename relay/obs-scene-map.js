@@ -8,7 +8,7 @@
  */
 
 /** @type {import('../types.js').SceneId[]} */
-const VALID_SCENE_IDS = ['discussion', 'codage', 'brb', 'interview', 'react', 'creation', 'fin', 'jeu'];
+const VALID_SCENE_IDS = ['discussion', 'codage', 'brb', 'interview', 'react', 'creation', 'fin', 'jeu', 'starting'];
 
 /** @type {Record<string, import('../types.js').SceneId>} */
 export const OBS_SCENE_MAP = {
@@ -20,6 +20,7 @@ export const OBS_SCENE_MAP = {
   'FullScreen':    'react',
   'Creation':      'creation',
   'Ending':        'fin',
+  'Starting':      'starting',
 };
 
 /**

@@ -14,6 +14,7 @@ import { sceneConfig as interview }  from './interview.config.js';
 import { sceneConfig as react }      from './react.config.js';
 import { sceneConfig as creation }   from './creation.config.js';
 import { sceneConfig as fin }        from './fin.config.js';
+import { sceneConfig as starting }   from './starting.config.js';
 import { wire as wireDiscussion }    from './discussion.wire.js';
 import { wire as wireBrb }           from './brb.wire.js';
 import { wire as wireCodage }        from './codage.wire.js';
@@ -22,9 +23,10 @@ import { wire as wireInterview }     from './interview.wire.js';
 import { wire as wireReact }         from './react.wire.js';
 import { wire as wireCreation }      from './creation.wire.js';
 import { wire as wireFin }           from './fin.wire.js';
+import { wire as wireStarting }      from './starting.wire.js';
 
 /** @type {Record<string, import('../types.js').SceneConfig>} */
-export const SCENE_CONFIGS = { discussion, brb, codage, jeu, interview, react, creation, fin };
+export const SCENE_CONFIGS = { discussion, brb, codage, jeu, interview, react, creation, fin, starting };
 
 /** @type {Record<string, import('../types.js').SceneWire>} */
 export const SCENE_WIRES = {
@@ -36,4 +38,5 @@ export const SCENE_WIRES = {
   react: wireReact,
   creation: wireCreation,
   fin: wireFin,
+  starting: wireStarting,
 };

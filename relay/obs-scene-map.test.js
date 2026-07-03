@@ -20,7 +20,7 @@ test('mapObsSceneToOverlaySceneId never returns a value outside SceneId, even wi
   expect(mapObsSceneToOverlaySceneId('Rogue', corruptedMap)).toBeNull();
 });
 
-test('mapObsSceneToOverlaySceneId covers all 8 overlay scenes via the real OBS scene names', () => {
+test('mapObsSceneToOverlaySceneId covers all 9 overlay scenes via the real OBS scene names', () => {
   const mapped = Object.keys(OBS_SCENE_MAP).map((name) => mapObsSceneToOverlaySceneId(name));
-  expect(mapped.sort()).toEqual(['brb', 'codage', 'creation', 'discussion', 'fin', 'interview', 'jeu', 'react'].sort());
+  expect(mapped.sort()).toEqual(['brb', 'codage', 'creation', 'discussion', 'fin', 'interview', 'jeu', 'react', 'starting'].sort());
 });

@@ -2,7 +2,7 @@
 import { simplex2 } from './simplex.js';
 
 /**
- * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'} GridMode
+ * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|'starting'} GridMode
  */
 
 /**
@@ -23,6 +23,7 @@ export const MODE_PARAMS = {
   react:      { freqX: 0.05, freqY: 0.05, freqT: 1.0,  amplitude: 0.20 },
   creation:   { freqX: 0.02, freqY: 0.04, freqT: 0.45, amplitude: 0.11 },
   fin:        { freqX: 0.02, freqY: 0.02, freqT: 0.3,  amplitude: 0.09 },
+  starting:   { freqX: 0.02, freqY: 0.02, freqT: 0.35, amplitude: 0.12 },
 };
 
 /**

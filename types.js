@@ -90,7 +90,7 @@
 
 /**
  * Identifiants de scène valides.
- * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|'jeu'} SceneId
+ * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|'jeu'|'starting'} SceneId
  */
 
 /**
@@ -104,7 +104,7 @@
 /**
  * Modes ambiants de DotGridAnimated.
  * null = scène sans DotGrid (ex : jeu).
- * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|null} DotGridMode
+ * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|'starting'|null} DotGridMode
  */
 
 /**
