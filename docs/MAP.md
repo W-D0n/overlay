@@ -44,7 +44,8 @@ S5 (panneau de contrôle unique) et S6 (contrôle OBS programmatique, priorisé 
 | S5 | Persistance `dotgrid-tuner` (portée réduite le 2026-07-04 — placement drag & drop reporté, prérequis `anchor`/`offset` manquant, voir `docs/inbox.md`) | ✅ fait |
 | S7 | Panneau de placement — format `Placement` (pixels absolus, pas d'ancrage) + migration des 9 scènes + panneau drag & drop + persistance. 5 sessions atomiques, spec `docs/specs/scene-placement-protocol.md`. Owner a demandé "le panneau complet" (2026-07-04) après S5 réduite. | ✅ fait |
 | S6 | Contrôle programmatique d'OBS (créer/piloter scènes OBS depuis le panneau S7) — **priorisé par l'owner (2026-07-03)**, voir `docs/inbox.md` §Contrôle OBS centralisé | ⬜ à venir, dépend de S7 |
-| Épopée | Éditeur complet au-delà de S6/S7 (bibliothèque de transitions, binding déclaratif, export/import config), skill recherche graphique | ⬜ hors scope |
+| S8 | Moteur de scène dynamique (jalon 2 de l'éditeur) — `SceneDefinition` remplace `SceneConfig` statique, `placement` par composant (pas par couche), bibliothèque de composants étoffée (Box/Divider/TextLabel/TextList), binding déclaratif. 7 sessions atomiques, spec `docs/specs/scene-definition-v2.md`. Pivot architectural demandé par l'owner (2026-07-04) : composer/modifier les composants d'une scène + créer/modifier/supprimer des scènes, modèle Figma. | 🔄 en cours (1/7) |
+| Épopée | Éditeur complet au-delà de S6/S8 (bibliothèque de transitions, export/import config), skill recherche graphique | ⬜ hors scope |
 
 ## Détail S1 (livré)
 
