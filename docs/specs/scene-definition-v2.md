@@ -5,7 +5,7 @@ updated: 2026-07-04
 status: draft
 ---
 
-# Spec : scene-definition-v2 (S8 — moteur de scène dynamique)
+# Spec : scene-definition-v2 (S8 — moteur de scène dynamique, 6 sessions)
 
 ## Contexte
 
@@ -25,9 +25,19 @@ L'architecture actuelle ne le permet pas :
 - S7 a posé `Placement` **par couche** (toute la couche bouge comme un bloc) — insuffisant pour le
   modèle Figma où chaque élément est indépendamment positionnable.
 
-Cette spec redéfinit le format de scène (`SceneDefinition`, remplace `SceneConfig`) et le contrat de
-binding déclaratif. Elle ne migre pas encore les 9 scènes (session 3/7) ni ne construit le moteur
-runtime (session 2/7) — format et contrat seulement, base pour tout le reste.
+Cette spec **étend** `SceneConfig`/`LayerConfig`/`ComponentMount` (pas de type parallèle à faire
+cohabiter puis retirer — même pattern additif et rétrocompatible que `Placement` en S7) et pose le
+contrat de binding déclaratif. Elle ne migre pas encore les 9 scènes (session 3/6) ni ne construit
+le moteur runtime (session 2/6) — format et contrat seulement, base pour tout le reste.
+
+**Correction de cap (session 2/6) :** le plan initial envisageait un nouveau type `SceneDefinition`
+séparé de `SceneConfig`, avec une session "cutover" pour retirer l'ancien système (plan initial à
+7 sessions). En y regardant de plus près, ce n'est pas nécessaire — les extensions (placement par
+composant, binding déclaratif, `SceneId` ouvert) s'ajoutent à `SceneConfig` existant sans rien
+casser, exactement comme S7 a ajouté `placement` à `LayerConfig`. La session "cutover" est donc
+retirée (plan à 6 sessions) — pas de double système, donc rien à retirer plus tard.
+`SceneDefinition`/`LayerDefinition` ci-dessous doivent se lire comme `SceneConfig`/`LayerConfig`
+étendus, pas de nouveaux types.
 
 ## Périmètre
 
@@ -72,15 +82,16 @@ runtime (session 2/7) — format et contrat seulement, base pour tout le reste.
   when: 'state.path' }` — appelle `instance[method](state[path])` quand `state[path]` change
   (généralise le pattern déjà utilisé à la main pour `AlertBanner.show()`).
 
-**Exclu (sessions futures) :**
-- Moteur runtime qui consomme `SceneDefinition` (session 2/7).
-- Migration des 9 scènes existantes (session 3/7).
-- Retrait de l'ancien système `scenes/*.config.js`/`.wire.js`/`<template>` statique (session 4/7,
-  après preuve du nouveau système — pas de double système qui traîne).
-- Persistance (créer/modifier/supprimer une scène = écrire/lire la donnée) (session 5/7).
+**Exclu (sessions futures — 6 restantes, la session "cutover" a été retirée, voir §Correction de cap) :**
+- Moteur runtime qui consomme le format étendu (session 2/6).
+- Migration des 9 scènes existantes — bespoke CSS/HTML → composants + binding déclaratif
+  (session 3/6). Le `<template data-scene>` reste nécessaire tant qu'une scène a des couches non
+  génériques ; les scènes entièrement composées de `ComponentMount` n'en ont plus besoin
+  (`scene-runtime.js` peut synthétiser les `<div data-layer>` manquants).
+- Persistance (créer/modifier/supprimer une scène = écrire/lire la donnée) (session 4/6).
 - UI de composition (cocher/ajouter un composant par couche, formulaires dédiés par type)
-  (session 6/7).
-- UI de création/suppression de scène avec confirmation + archivage (session 7/7).
+  (session 5/6).
+- UI de création/suppression de scène avec confirmation + archivage (session 6/6).
 - Liste avec template par item personnalisable (`TextList` V1 = une ligne = un `<div>` avec une
   classe de style fixe, pas de template arbitraire par item — les 3 cas concrets actuels n'en ont
   pas besoin).
@@ -260,5 +271,5 @@ export function resolveBoundOptions(options, state) {
       `AlertBanner.show()`. D'autres comportements impératifs complexes (ex : le minuteur
       d'affichage HUD de `jeu`, actuellement géré à la main dans `jeu.wire.js` avec
       `setTimeout`/`clearTimeout`) ne sont pas couverts par cette spec — à traiter au cas par cas
-      pendant la migration (session 3/7), potentiellement via un composant dédié plutôt que
+      pendant la migration (session 3/6), potentiellement via un composant dédié plutôt que
       d'étendre le mécanisme `trigger` générique.
