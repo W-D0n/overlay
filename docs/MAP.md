@@ -11,8 +11,9 @@ Spec `docs/specs/scene-runtime-engine.md` (41 AC). AC purs : `bun test` vert ; A
 vérifiés fonctionnellement (montage, `cut`/`crossfade`, visibilité full·minimal·hidden, anti-accumulation).
 **S3b — livrée.** 5 scènes restantes migrées : `interview`, `react`, `creation` (variante A seule —
 la variante B/panneau référence n'a plus de sens en page-unique, abandonnée, voir `docs/inbox.md`),
-`fin`. `bun test` vert (63 tests). Vérification visuelle OBS native **non faite cette session**
-(pas de navigateur headless disponible dans l'environnement) — à faire par l'owner avant mise en prod.
+`fin`. `bun test` vert (63 tests). Vérification visuelle faite par l'owner en preview navigateur
+1920×1080 (`bunx serve`) — les 4 scènes migrées sont fonctionnelles. Vérification en OBS natif
+(Browser Source réelle) encore à faire avant le premier live.
 **S4 — livrée.** Relais Bun (`relay/server.js`, spec `docs/specs/relay-bun-s4.md`) : client OBS
 WebSocket v5 (auth SHA256) → traduit `CurrentProgramSceneChanged` en `scene.set`, + serveur overlay
 WS + `POST /emit` authentifiés par secret partagé (`OVERLAY_RELAY_SECRET` / `obs-config.local.js`).
@@ -77,9 +78,9 @@ OBS réel avant le premier live, voir `docs/obs-setup.md` §4.
   l'ancien `Creation3D.html` — la variante B (panneau référence, pilotée par `?mode=B` sur une 2e
   Browser Source) est incompatible avec l'architecture page-unique (1 seule Browser Source) et n'a
   pas été redemandée depuis ; abandonnée (zero preemptive code), voir `docs/inbox.md`.
-- Gap : vérification visuelle des 4 nouvelles scènes en navigateur/OBS **non faite** (pas d'outil
-  headless disponible dans l'environnement d'exécution) — `bun test` vert uniquement. À faire par
-  l'owner avant mise en prod (préview 1920×1080 dézoomée, ou OBS natif).
+- Vérification visuelle des 4 nouvelles scènes faite par l'owner en preview navigateur 1920×1080
+  (`bunx serve` — port 5500 par défaut occupé sur cette machine, servi sur 5501) : fonctionnelles.
+  Vérification en OBS natif (Browser Source réelle) encore à faire avant le premier live.
 
 ## Détail S4 (livré)
 
