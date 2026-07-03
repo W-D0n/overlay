@@ -36,8 +36,9 @@ de scène live) — prêt pour un premier live avec les 4 scènes OBS existantes
 | S3 | Moteur page-unique + 3 scènes de référence ([spec](specs/scene-runtime-engine.md)) | ✅ fait |
 | S3b | Migration des 5 scènes restantes + leurs configs | ✅ fait |
 | S4 | Relais Bun (WS + HTTP `/emit`, auth OBS, secret en env) | ✅ fait |
-| S5 | Éditeur jalon 1 (placement drag + lecture anchor/offset) | ⬜ à venir |
-| Épopée | Éditeur complet, orchestration OBS programmatique, skill recherche graphique | ⬜ hors scope |
+| S5 | Éditeur jalon 1 — panneau de contrôle unique (placement drag + lecture anchor/offset + persistance `dotgrid-tuner`) | ⬜ à venir |
+| S6 | Contrôle programmatique d'OBS (créer/piloter scènes OBS depuis le panneau S5) — **priorisé par l'owner (2026-07-03)**, voir `docs/inbox.md` §Contrôle OBS centralisé | ⬜ à venir, dépend de S5 |
+| Épopée | Éditeur complet au-delà de S5/S6 (bibliothèque de transitions, binding déclaratif, export/import config), skill recherche graphique | ⬜ hors scope |
 
 ## Détail S1 (livré)
 
@@ -86,6 +87,11 @@ de scène live) — prêt pour un premier live avec les 4 scènes OBS existantes
 - Vérification visuelle des 4 nouvelles scènes faite par l'owner en preview navigateur 1920×1080
   (`bunx serve` — port 5500 par défaut occupé sur cette machine, servi sur 5501), puis confirmée en
   Browser Source OBS réelle (2026-07-03) : fonctionnelles.
+- **Post-S3b (2026-07-03)** : 9e scène `starting` ajoutée (écran d'attente pré-live) suite à la
+  découverte d'une scène OBS `Starting` chez l'owner sans équivalent overlay. `scenes/starting.{config,wire}.js`
+  + `<template>` + mode DotGrid dédié + entrées `SceneId`/`DotGridMode` (`types.js`, `protocol.js`).
+  Retrait du compteur de viewers de toutes les scènes (feedback owner) + correctif `--text-xs`
+  7px→13px (`tokens.css`, bug de lisibilité systémique) traités dans la même fenêtre de travail.
 
 ## Détail S4 (livré)
 

@@ -62,20 +62,40 @@ jalon 1 de l'éditeur. **Prérequis :** format de config + système anchor/offse
 construit que le jalon nécessaire au besoin courant (`zero preemptive code`). Au-delà du jalon 1,
 la config reste écrite à la main jusqu'à ce qu'un besoin concret justifie le jalon suivant.
 
-### Extension — pilotage programmatique d'OBS (éditeur total)
+### Extension — Contrôle OBS centralisé (S6, priorisé par l'owner, 2026-07-03)
+
+**Demande explicite de l'owner** en session (2026-07-03), après avoir testé le pipeline OBS↔relais↔overlay
+en conditions réelles : « j'aimerai bien pouvoir tout faire d'un seul endroit ». Élève cette extension
+(déjà envisagée dès la session A) au rang de session cadrée (S6, `docs/MAP.md`), dépendante de S5.
 
 OBS WebSocket v5 est **bidirectionnel** : au-delà d'écouter les événements, le client peut envoyer
 des requêtes qui modifient OBS (créer scènes, créer/placer sources, transformer position/taille,
 activer/désactiver visibilité, configurer filtres et transitions, définir la scène active).
 
-→ L'éditeur total pourrait **programmer la composition de scènes OBS** : cocher des composants dans
-l'éditeur web → requêtes OBS WS v5 → OBS crée la scène et place les sources. L'éditeur devient chef
-d'orchestre d'OBS ; l'overlay (fond animé + widgets) n'est qu'une des sources placées. S'aligne avec
-le recentrage C (OBS fait le compositing, l'éditeur le programme).
+→ Le panneau de contrôle unique (S5 jalon 1 + S6) deviendrait le **seul endroit** où l'owner :
+- place/ajuste les widgets de l'overlay (jalon 1, `anchor`/`offset`) ;
+- règle les paramètres DotGrid par mode (`dev/dotgrid-tuner.html`, avec persistance résolue, voir
+  item ci-dessus) ;
+- crée/pilote les scènes OBS elles-mêmes (`CreateScene`, `SetSceneItemTransform`, activer une
+  scène) — sans repasser par l'UI native d'OBS pour ces opérations.
+
+L'overlay (fond animé + widgets) devient une des sources qu'OBS compose ; le panneau programme cette
+composition plutôt que de l'exiger manuelle. S'aligne avec le recentrage C (OBS fait le compositing,
+le panneau le programme).
+
+**Prérequis technique :** S5 doit exister en premier — le contrôle OBS a besoin d'un panneau où
+s'afficher, pas de sens en tant qu'endpoint isolé.
 
 **⚠ À vérifier avant implémentation :** noms exacts des requêtes OBS WS v5 (`CreateScene`,
 `SetSceneItemTransform`, etc.) et leurs payloads — non vérifiés contre la doc officielle du
-protocole. Principe confirmé, détails à valider.
+protocole. Principe confirmé, détails à valider en S6.
+
+**Question ouverte** (à trancher au cadrage S6) : le panneau tourne-t-il comme extension du relais
+`relay/server.js` (déjà connecté à OBS WS v5, réutilise la connexion existante) ou comme process
+séparé qui ouvre sa propre connexion OBS WS v5 ? Le relais tourne pendant tout le live — y ajouter
+des capacités d'écriture (créer/modifier des scènes) élargit sa surface pendant le direct ; un
+process de contrôle séparé, lancé à la demande hors-live, serait plus prudent. À trancher avec
+l'owner avant d'écrire le premier `CreateScene`.
 
 ---
 
