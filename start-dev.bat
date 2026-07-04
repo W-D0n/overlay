@@ -4,7 +4,8 @@ REM NE JAMAIS utiliser ce script pendant un live — lance des serveurs de dev q
 REM sur disque (tuner-server.js, placement-server.js). Pour streamer, utiliser start-stream.bat.
 REM
 REM Lance : serveur statique + relais OBS (données live + rafraîchissement auto du cache OBS)
-REM         + serveur d'écriture DotGrid + serveur d'écriture placement.
+REM         + serveur d'écriture DotGrid + serveur d'écriture placement
+REM         + serveur de données de scènes (création/suppression/composition, S8 sessions 4-6).
 REM Ouvre : un onglet de preview auto-reload + les deux panneaux de réglage.
 
 cd /d "%~dp0"
@@ -21,6 +22,7 @@ start "Overlay DEV - Serveur statique (5500)" cmd /k bunx serve -l 5500 .
 start "Overlay DEV - Relais OBS" cmd /k bun relay\server.js
 start "Overlay DEV - Tuner DotGrid" cmd /k bun dev\tuner-server.js
 start "Overlay DEV - Tuner Placement" cmd /k bun dev\placement-server.js
+start "Overlay DEV - Données de scènes" cmd /k bun dev\scene-data-server.js
 
 timeout /t 2 /nobreak >nul
 
