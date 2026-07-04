@@ -11,8 +11,9 @@
  *   POST /update-scene  — `{ sceneId, sceneConfig }`, réécrit une scène dynamique existante.
  *                         Rejette un id absent du manifeste, ou un `sceneConfig.id` qui ne
  *                         correspond pas à `sceneId` (review S8 session 4/6).
- *   POST /delete-scene  — `{ sceneId }`, supprime le fichier + retire l'id du manifeste.
- *                         Rejette un id absent du manifeste.
+ *   POST /delete-scene  — `{ sceneId }`, archive le fichier (`scenes/data/archived/<id>.scene.json`,
+ *                         S8 session 6/6) + retire l'id du manifeste. Rejette un id absent du
+ *                         manifeste. Restauration manuelle (pas d'UI, voir docs/inbox.md).
  *
  * Logique de manifeste testée séparément (AD-1) : voir `scene-data-format.js`.
  * Toutes les opérations qui lisent-puis-écrivent le manifeste passent par `withManifestLock` —
@@ -29,6 +30,7 @@ import { addSceneToManifest, removeSceneFromManifest } from './scene-data-format
 
 const PORT = Number(process.env.SCENE_DATA_PORT ?? 4460);
 const DATA_DIR = `${import.meta.dir}/../scenes/data`;
+const ARCHIVE_DIR = `${DATA_DIR}/archived`;
 const MANIFEST_FILE = `${DATA_DIR}/manifest.json`;
 
 /** Évite l'accès à un fichier arbitraire via un `sceneId` malicieux (path traversal). */
@@ -150,9 +152,10 @@ async function handleUpdateScene(req) {
 }
 
 /**
- * POST /delete-scene — `{ sceneId }`. Supprime le fichier AVANT de retirer l'id du manifeste
- * (review S8 session 4/6) : si la suppression du fichier échoue, le manifeste garde l'id — pire
- * cas un fichier orphelin visible et rechargeable, jamais un id fantôme sans fichier.
+ * POST /delete-scene — `{ sceneId }`. Archive le fichier (déplace vers `scenes/data/archived/`,
+ * S8 session 6/6 — récupérable sans passer par git) AVANT de retirer l'id du manifeste (même ordre
+ * que la suppression simple en session 4/6) : si l'archivage échoue, le manifeste garde l'id — pire
+ * cas un fichier actif orphelin, jamais un id fantôme sans fichier.
  * @param {Request} req
  * @returns {Promise<Response>}
  */
@@ -164,7 +167,10 @@ async function handleDeleteScene(req) {
   return withManifestLock(async (manifest) => {
     if (!manifest.includes(sceneId)) return jsonError(`scène dynamique inconnue : ${sceneId}`, 404);
 
-    await Bun.file(`${DATA_DIR}/${sceneId}.scene.json`).delete();
+    const activePath = `${DATA_DIR}/${sceneId}.scene.json`;
+    const archivedPath = `${ARCHIVE_DIR}/${sceneId}.scene.json`;
+    await Bun.write(archivedPath, await Bun.file(activePath).text());
+    await Bun.file(activePath).delete();
     await writeManifest(removeSceneFromManifest(manifest, sceneId));
 
     console.info(`[scene-data-server] scène supprimée — ${sceneId}`);

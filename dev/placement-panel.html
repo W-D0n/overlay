@@ -15,8 +15,15 @@
 
     Composition (S8 session 5/6) : ajouter/retirer/éditer les ComponentMount d'une couche, un
     formulaire par type (dev/component-field-schemas.js) -> POST vers dev/scene-data-server.js
-    (/update-scene, bun dev/scene-data-server.js, S8 session 4/6). Gestion des couches et placement
-    par composant individuel restent hors scope (voir docs/inbox.md).
+    (/update-scene, bun dev/scene-data-server.js, S8 session 4/6).
+
+    Création/suppression de scène + gestion minimale des couches (S8 session 6/6) : création
+    (id + couche goldbar minimale) -> POST /create-scene ; suppression (confirmation navigateur)
+    -> POST /delete-scene, qui ARCHIVE le fichier (scenes/data/archived/, pas de suppression
+    définitive) plutôt que de le supprimer. Ajouter/supprimer une couche entière (bouton désactivé
+    sur goldbar, invariant V4) réutilise POST /update-scene, pas de nouvelle route. Renommage,
+    réordonnancement des couches et placement par composant individuel restent hors scope
+    (voir docs/inbox.md).
   -->
   <link rel="stylesheet" href="../tokens.css">
   <style>
@@ -88,6 +95,22 @@
     .add-component-row { display: flex; gap: 6px; margin-top: 4px; }
     .add-component-row select { flex: 1; }
     .add-component-row button { flex: 0 0 auto; }
+
+    /* Création/suppression de scène + couches (S8 session 6/6) */
+    #panel > button, .create-scene-row button, .add-layer-row button, .remove-layer-btn {
+      padding: 6px; background: var(--color-bg-widget); color: var(--color-gold);
+      border: 0.5px solid var(--color-gold); border-radius: var(--radius-md); cursor: pointer;
+      font-family: var(--font-mono); font-size: 12px;
+    }
+    #panel > button:hover, .create-scene-row button:hover, .add-layer-row button:hover, .remove-layer-btn:hover {
+      background: rgba(200,185,122,0.12);
+    }
+    .create-scene-row, .add-layer-row { display: flex; gap: 6px; }
+    .create-scene-row input, .add-layer-row input { flex: 1; }
+    .create-scene-row button, .add-layer-row button { flex: 0 0 auto; }
+    #delete-scene-btn, .remove-layer-btn { border-color: #C85A5A; color: #E08A8A; }
+    #delete-scene-btn:hover, .remove-layer-btn:hover { background: rgba(200,90,90,0.12); }
+    .remove-layer-btn:disabled { opacity: 0.3; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -99,19 +122,34 @@
       Scène
       <select id="scene-select"></select>
     </label>
+    <button id="delete-scene-btn">Supprimer cette scène</button>
+    <h2>Nouvelle scène</h2>
+    <div class="create-scene-row">
+      <input type="text" id="new-scene-id" placeholder="id-nouvelle-scene">
+      <button id="create-scene-btn">Créer</button>
+    </div>
     <button id="reset-all-btn">Réinitialiser toutes les couches</button>
     <div id="status"></div>
     <h2>Couches</h2>
+    <div class="add-layer-row">
+      <input type="text" id="new-layer-name" placeholder="nom-de-couche">
+      <button id="add-layer-btn">Ajouter une couche</button>
+    </div>
     <div id="layer-list"></div>
   </div>
 
   <script type="module">
     import { SCENE_CONFIGS, loadDynamicScenes } from '../scenes/registry.js';
     import { OBS_SCENE_MAP } from '../relay/obs-scene-map.js';
+    import { DEFAULT_TRANSITION } from '../protocol.js';
     import { COMPONENT_FIELD_SCHEMAS, COMPOSABLE_COMPONENT_NAMES } from './component-field-schemas.js';
 
     const PLACEMENT_SERVER_URL = 'http://localhost:4459/save-placement';
     const SCENE_DATA_SERVER_URL = 'http://localhost:4460/update-scene';
+    const SCENE_DATA_CREATE_URL = 'http://localhost:4460/create-scene';
+    const SCENE_DATA_DELETE_URL = 'http://localhost:4460/delete-scene';
+    /** Même motif que scene-data-server.js — validation côté client avant l'appel réseau (AC-32). */
+    const VALID_SCENE_ID = /^[a-z][a-z0-9-]*$/;
 
     // Les 9 scènes historiques sont désormais des scènes dynamiques (JSON, S8 migration) —
     // SCENE_CONFIGS est vide tant que ce chargement n'a pas résolu (review S8 session 4/6).
@@ -155,19 +193,121 @@
       if (styleTag) document.head.appendChild(styleTag.cloneNode(true));
     }
 
-    Object.keys(SCENE_CONFIGS).forEach((id) => {
-      const opt = document.createElement('option');
-      opt.value = id;
-      const obsNames = OBS_NAMES_BY_SCENE[id];
-      opt.textContent = obsNames ? `${obsNames.join(', ')} (${id})` : id;
-      sceneSelect.appendChild(opt);
-    });
-    sceneSelect.value = currentSceneId;
+    /** Reconstruit le menu déroulant depuis SCENE_CONFIGS — rappelable après création/suppression (S8 session 6/6). */
+    function refreshSceneOptions(selectId) {
+      sceneSelect.innerHTML = '';
+      Object.keys(SCENE_CONFIGS).forEach((id) => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        const obsNames = OBS_NAMES_BY_SCENE[id];
+        opt.textContent = obsNames ? `${obsNames.join(', ')} (${id})` : id;
+        sceneSelect.appendChild(opt);
+      });
+      currentSceneId = selectId && Object.keys(SCENE_CONFIGS).includes(selectId) ? selectId : Object.keys(SCENE_CONFIGS)[0];
+      sceneSelect.value = currentSceneId ?? '';
+    }
+
+    refreshSceneOptions(currentSceneId);
     sceneSelect.addEventListener('change', () => {
       currentSceneId = sceneSelect.value;
       renderScene();
     });
     document.getElementById('reset-all-btn').addEventListener('click', resetAllPlacements);
+    document.getElementById('create-scene-btn').addEventListener('click', createScene);
+    document.getElementById('delete-scene-btn').addEventListener('click', deleteScene);
+    document.getElementById('add-layer-btn').addEventListener('click', addLayer);
+
+    /** Créer une scène minimale (une couche goldbar) — AC-32, AC-33. */
+    async function createScene() {
+      const input = document.getElementById('new-scene-id');
+      const id = input.value.trim();
+      if (!VALID_SCENE_ID.test(id)) {
+        statusEl.textContent = 'Id invalide — lettres minuscules/chiffres/tirets, doit commencer par une lettre';
+        return;
+      }
+
+      /** @type {import('../types.js').SceneConfig} */
+      const sceneConfig = {
+        id,
+        dotgridMode: null,
+        transition: DEFAULT_TRANSITION,
+        layers: [
+          {
+            name: 'goldbar',
+            components: [{ component: 'GoldBar', options: { position: 'top' } }],
+            visibility: { full: true, minimal: true, hidden: true },
+          },
+        ],
+      };
+
+      statusEl.textContent = 'Création en cours...';
+      try {
+        const response = await fetch(SCENE_DATA_CREATE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneConfig }),
+        });
+        if (!response.ok) {
+          statusEl.textContent = `Échec (${response.status}) : ${await response.text()}`;
+          return;
+        }
+        input.value = '';
+        await loadDynamicScenes(); // fusionne la nouvelle scène dans SCENE_CONFIGS (additif, sans risque)
+        refreshSceneOptions(id);
+        renderScene();
+        statusEl.textContent = `Scène créée : ${id}`;
+      } catch {
+        statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/scene-data-server.js"';
+      }
+    }
+
+    /** Supprimer (archiver) la scène courante — AC-34, AC-35. */
+    async function deleteScene() {
+      if (!currentSceneId) return;
+      if (!window.confirm(`Supprimer la scène "${currentSceneId}" ? Le fichier sera archivé (scenes/data/archived/), pas détruit.`)) return;
+
+      statusEl.textContent = 'Suppression en cours...';
+      try {
+        const response = await fetch(SCENE_DATA_DELETE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneId: currentSceneId }),
+        });
+        if (!response.ok) {
+          statusEl.textContent = `Échec (${response.status}) : ${await response.text()}`;
+          return;
+        }
+        // loadDynamicScenes() ne retire jamais une clé (fusion additive, S8 session 4/6) — retrait explicite.
+        delete SCENE_CONFIGS[currentSceneId];
+        const deletedId = currentSceneId;
+        refreshSceneOptions(null);
+        if (currentSceneId) renderScene();
+        else { surface.innerHTML = ''; layerList.innerHTML = ''; }
+        statusEl.textContent = `Scène archivée : ${deletedId}`;
+      } catch {
+        statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/scene-data-server.js"';
+      }
+    }
+
+    /** Ajouter une couche vide à la scène courante — AC-37. Réutilise saveSceneConfig (session 5/6). */
+    function addLayer() {
+      const input = document.getElementById('new-layer-name');
+      const name = input.value.trim();
+      if (!name) { statusEl.textContent = 'Nom de couche vide'; return; }
+      if (liveConfig.layers.some((l) => l.name === name)) { statusEl.textContent = `Nom de couche déjà pris : ${name}`; return; }
+
+      liveConfig.layers.push({ name, components: [], visibility: { full: true, minimal: false, hidden: false } });
+      input.value = '';
+      saveSceneConfig(`ajout couche ${name}`);
+      renderLayerList(liveConfig);
+    }
+
+    /** Supprimer une couche entière — jamais `goldbar` (invariant V4, AC-36). */
+    function removeLayer(layerName) {
+      liveConfig.layers = liveConfig.layers.filter((l) => l.name !== layerName);
+      saveSceneConfig(`suppression couche ${layerName}`);
+      renderLayerList(liveConfig);
+    }
 
     function renderScene() {
       // Copie de travail unique : placement ET composition mutent liveConfig, jamais SCENE_CONFIGS
@@ -287,6 +427,20 @@
           tag.textContent = 'CSS (non migrée)';
           head.appendChild(tag);
         }
+
+        // Retrait de couche entière (S8 session 6/6) — jamais goldbar, invariant V4 (AC-36).
+        const removeLayerBtn = document.createElement('button');
+        removeLayerBtn.className = 'remove-layer-btn';
+        removeLayerBtn.textContent = '✕';
+        removeLayerBtn.title = 'Supprimer cette couche';
+        if (layer.name === 'goldbar') {
+          removeLayerBtn.disabled = true;
+          removeLayerBtn.title = 'La couche goldbar ne peut pas être supprimée';
+        } else {
+          removeLayerBtn.addEventListener('click', () => removeLayer(layer.name));
+        }
+        head.appendChild(removeLayerBtn);
+
         row.appendChild(head);
 
         if (layer.placement) {

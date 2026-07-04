@@ -486,3 +486,93 @@ migration précédente) — `/update-scene` (session 4/6) accepte déjà n'impor
 > - Chaque AC → implémenté et vérifiable
 > - Chaque type défini → utilisé par au moins un fichier listé
 > - Chaque fichier listé → existe ou est créé dans cette session
+
+---
+
+## Session 6/6 — Création/suppression de scène + gestion minimale des couches (2026-07-05)
+
+### Contexte
+
+Dernière session de S8. Le backend (`/create-scene`, `/delete-scene`) existe déjà depuis la session
+4/6, testé. Cette session est majoritairement de l'UI. Deux extensions de périmètre décidées par
+l'owner (2026-07-05) au-delà du texte original de la spec :
+- **Archivage réel** : `/delete-scene` déplace le fichier au lieu de le supprimer (au-delà du simple
+  "git = filet de sécurité" acté en session 4/6).
+- **Gestion minimale des couches** (ajouter/supprimer une couche) — sans ça, une scène créée ne
+  contiendrait que sa couche `goldbar` obligatoire (`validateSceneConfig` V4/V9) et resterait une
+  coquille vide inutilisable tant qu'une session "gestion des couches" dédiée n'existe pas
+  (voir `docs/inbox.md`). Renommage/réordonnancement des couches restent hors scope (non demandés).
+
+### Périmètre
+
+**Inclus :**
+- Formulaire de création : id (validé contre le même motif que le serveur, `/^[a-z][a-z0-9-]*$/`) +
+  bouton "Créer" → construit une `SceneConfig` minimale (une seule couche `goldbar`, visible à tous
+  les niveaux, `dotgridMode: null`, `transition` = `DEFAULT_TRANSITION` de `protocol.js`) →
+  `POST /create-scene`.
+- Bouton de suppression de la scène sélectionnée, confirmation via `window.confirm()` (suffisant
+  pour un outil de dev local, pas de modale personnalisée) → `POST /delete-scene`.
+- `dev/scene-data-server.js` `/delete-scene` : déplace `scenes/data/<id>.scene.json` vers
+  `scenes/data/archived/<id>.scene.json` avant de retirer l'id du manifeste (ordre préservé : le
+  fichier actif disparaît avant que le manifeste ne soit mis à jour, cohérent avec le fix de
+  la session 4/6 — pire cas un id fantôme, jamais un fichier orphelin).
+- Gestion minimale des couches dans le panneau : ajouter une couche (nom + bouton), supprimer une
+  couche (bouton par couche, désactivé sur `goldbar` — invariant V4 : exactement une couche
+  `goldbar`). Réutilise `saveSceneConfig()` (session 5/6) — pas de nouvelle route serveur.
+
+**Exclu :**
+- Restauration depuis `scenes/data/archived/` — manuel (copier le fichier + rajouter l'id au
+  manifeste) tant qu'aucun besoin concret de le faire depuis l'UI ne s'exprime (zero preemptive code).
+- Renommage et réordonnancement des couches — non demandés.
+- Confirmation/archivage à la suppression d'une **couche** (seulement à la suppression d'une
+  **scène**) — une couche reste récupérable par "Réinitialiser"/re-création manuelle, portée jugée
+  suffisante pour cette session.
+
+### Acceptance Criteria
+
+| ID | Critère | Vérifiable par |
+|---|---|---|
+| AC-32 | Le formulaire de création rejette un id vide ou ne respectant pas `/^[a-z][a-z0-9-]*$/` avant l'appel réseau | visuel |
+| AC-33 | Une scène créée passe `validateSceneConfig` (une couche `goldbar`, visible full+minimal+hidden) | test |
+| AC-34 | La suppression demande confirmation (`window.confirm`) avant d'appeler `/delete-scene` | visuel |
+| AC-35 | `/delete-scene` déplace le fichier vers `scenes/data/archived/<id>.scene.json` — le fichier n'existe plus à son emplacement actif, mais son contenu est intact dans `archived/` | test |
+| AC-36 | Le bouton de suppression de couche est absent ou désactivé pour la couche `goldbar` | visuel |
+| AC-37 | Ajouter une couche l'insère avec un nom unique (rejet si nom déjà pris), `components: []`, visibilité `{full:true, minimal:false, hidden:false}` | visuel |
+
+> Règle : chaque AC est vérifiable de façon autonome. "Fonctionne correctement" n'est pas un AC.
+
+### Comportements
+
+**Cas nominaux**
+1. Créer une scène → `POST /create-scene` → succès → `loadDynamicScenes()` rappelée (idempotente,
+   fusionne la nouvelle scène dans `SCENE_CONFIGS`) → le menu déroulant se met à jour → la nouvelle
+   scène est sélectionnée.
+2. Supprimer une scène → confirmation → `POST /delete-scene` → succès → `delete SCENE_CONFIGS[id]`
+   côté client (le retrait n'est pas automatique, voir Edge cases) → menu déroulant mis à jour →
+   sélection d'une scène restante (ou état vide si aucune scène ne reste).
+
+**Cas d'erreur**
+- `POST /create-scene` échoue (id déjà pris, validation) → message d'erreur affiché, aucun changement
+  local.
+- `POST /delete-scene` échoue → message d'erreur affiché, la scène reste dans le menu déroulant.
+
+**Edge cases**
+- `loadDynamicScenes()` ne retire jamais une clé de `SCENE_CONFIGS` (fusion additive uniquement,
+  S8 session 4/6) — une scène supprimée doit être retirée explicitement côté client
+  (`delete SCENE_CONFIGS[id]`), pas en rappelant `loadDynamicScenes()` qui ne le ferait pas.
+- Supprimer la dernière scène restante → menu déroulant vide, aucun rendu — état accepté (risque
+  déjà acté en session 4/6, atténué par l'archivage réel de cette session).
+- Créer une scène avec un id déjà pris (statique ou dynamique) → rejeté par le serveur (409, déjà
+  testé en session 4/6), message affiché tel quel.
+
+### Fichiers
+
+| Fichier | Action | Notes |
+|---|---|---|
+| `dev/scene-data-server.js` | modifier | `/delete-scene` archive au lieu de supprimer (AC-35) |
+| `dev/placement-panel.html` | modifier | création/suppression de scène + gestion minimale des couches (AC-32 à AC-34, AC-36, AC-37) |
+
+> Règle de cross-check (avant de déclarer "done") :
+> - Chaque AC → implémenté et vérifiable
+> - Chaque type défini → utilisé par au moins un fichier listé
+> - Chaque fichier listé → existe ou est créé dans cette session
