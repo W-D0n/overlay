@@ -1,0 +1,51 @@
+{
+  "id": "fin",
+  "dotgridMode": "fin",
+  "transition": { "type": "crossfade", "duration": 500, "easing": "easeInOut" },
+  "layers": [
+    {
+      "name": "goldbar",
+      "components": [
+        { "component": "GoldBar", "options": { "position": "top" } }
+      ],
+      "visibility": { "full": true, "minimal": true, "hidden": false }
+    },
+    {
+      "name": "cam",
+      "components": [{ "component": "Box", "options": {} }],
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 40, "y": 40, "width": 800, "height": 992 }
+    },
+    {
+      "name": "recap",
+      "components": [
+        { "component": "TextList", "options": { "lines": { "$bind": "recapLines" }, "itemClass": "fin-recap-line" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "next-stream",
+      "components": [
+        { "component": "TextLabel", "options": { "text": "Prochain stream", "className": "fin-label", "tag": "span" } },
+        { "component": "TextLabel", "options": { "text": "À venir", "className": "fin-next-when" } },
+        { "component": "TextLabel", "options": { "text": "", "className": "fin-next-topic" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "stats",
+      "components": [
+        { "component": "StatBlock", "options": { "label": "NOUVEAUX FOLLOWS", "value": "—", "valueColor": "#C8B97A" } },
+        { "component": "StatBlock", "options": { "label": "DURÉE", "value": "00:00:00" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "links",
+      "components": [
+        { "component": "TextList", "options": { "lines": { "$bind": "socialLinks" }, "itemClass": "fin-link-item" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    }
+  ]
+}

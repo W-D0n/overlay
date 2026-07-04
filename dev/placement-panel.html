@@ -83,10 +83,14 @@
   </div>
 
   <script type="module">
-    import { SCENE_CONFIGS } from '../scenes/registry.js';
+    import { SCENE_CONFIGS, loadDynamicScenes } from '../scenes/registry.js';
     import { OBS_SCENE_MAP } from '../relay/obs-scene-map.js';
 
     const PLACEMENT_SERVER_URL = 'http://localhost:4459/save-placement';
+
+    // Les 9 scènes historiques sont désormais des scènes dynamiques (JSON, S8 migration) —
+    // SCENE_CONFIGS est vide tant que ce chargement n'a pas résolu (review S8 session 4/6).
+    await loadDynamicScenes();
 
     /** Nom(s) de scène OBS pointant vers chaque mode overlay — affichage seulement. */
     const OBS_NAMES_BY_SCENE = Object.entries(OBS_SCENE_MAP).reduce((acc, [obsName, sceneId]) => {
@@ -299,7 +303,7 @@
           body: JSON.stringify({ sceneId: currentSceneId, layerName, placement: livePlacements[layerName] }),
         });
         statusEl.textContent = response.ok
-          ? `Sauvegardé : ${currentSceneId}.config.js — ${layerName}`
+          ? `Sauvegardé : ${currentSceneId}.scene.json — ${layerName}`
           : `Échec (${response.status})`;
       } catch {
         statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/placement-server.js"';

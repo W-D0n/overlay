@@ -8,9 +8,9 @@
 
 import { test, expect } from 'bun:test';
 import { reduceMessage, validateSceneConfig, DEFAULT_TRANSITION, DEFAULT_DOTGRID_MODE } from './protocol.js';
-import { sceneConfig as discussionConfig } from './scenes/discussion.config.js';
-import { sceneConfig as brbConfig } from './scenes/brb.config.js';
-import { sceneConfig as codageConfig } from './scenes/codage.config.js';
+import discussionConfig from './scenes/data/discussion.scene.json';
+import brbConfig from './scenes/data/brb.scene.json';
+import codageConfig from './scenes/data/codage.scene.json';
 
 const CTX = { now: 1000 };
 

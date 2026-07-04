@@ -1,20 +1,16 @@
 // @ts-check
 /**
- * scenes/registry.js — `SceneId` → config + wire (S3).
+ * scenes/registry.js — `SceneId` → config + wire (S3, étendu S8 session 4/6 + migration JSON).
  *
- * Agrégation intentionnelle des ressources de scène (config sérialisable ET wire),
- * consommée par le runtime. 3 scènes de référence (S3, AD-4) + `jeu` (pilote S3b) ;
- * les 4 scènes restantes arrivent en S3b.
+ * `SCENE_CONFIGS` ne contient plus aucune config au chargement du module : les 9 scènes
+ * historiques ET les scènes créées par l'éditeur sont désormais chargées uniformément par
+ * `loadDynamicScenes()` (`scenes/data/*.scene.json`) — un seul mécanisme d'écriture pour l'éditeur
+ * (décision owner, 2026-07-04, voir docs/inbox.md). `*.wire.js` reste du JS statique importé ici :
+ * seul le format `SceneConfig` a migré, le câblage impératif des scènes historiques est inchangé.
+ *
+ * Aucune protection contre suppression/écrasement (risque accepté, owner 2026-07-04, voir
+ * docs/inbox.md) : `STATIC_SCENE_IDS` reste vide tant qu'aucune scène n'est réservée.
  */
-import { sceneConfig as discussion } from './discussion.config.js';
-import { sceneConfig as brb }        from './brb.config.js';
-import { sceneConfig as codage }     from './codage.config.js';
-import { sceneConfig as jeu }        from './jeu.config.js';
-import { sceneConfig as interview }  from './interview.config.js';
-import { sceneConfig as react }      from './react.config.js';
-import { sceneConfig as creation }   from './creation.config.js';
-import { sceneConfig as fin }        from './fin.config.js';
-import { sceneConfig as starting }   from './starting.config.js';
 import { wire as wireDiscussion }    from './discussion.wire.js';
 import { wire as wireBrb }           from './brb.wire.js';
 import { wire as wireCodage }        from './codage.wire.js';
@@ -26,7 +22,7 @@ import { wire as wireFin }           from './fin.wire.js';
 import { wire as wireStarting }      from './starting.wire.js';
 
 /** @type {Record<string, import('../types.js').SceneConfig>} */
-export const SCENE_CONFIGS = { discussion, brb, codage, jeu, interview, react, creation, fin, starting };
+export const SCENE_CONFIGS = {};
 
 /** @type {Record<string, import('../types.js').SceneWire>} */
 export const SCENE_WIRES = {
@@ -42,21 +38,28 @@ export const SCENE_WIRES = {
 };
 
 /**
- * Ids des 9 scènes statiques, capturés avant toute fusion dynamique (S8 session 4/6) — source de
- * vérité unique, réutilisée par `dev/scene-data-server.js` (au lieu d'une liste dupliquée) et par
- * `loadDynamicScenes` ci-dessous pour interdire à une scène dynamique d'écraser une scène statique.
+ * Ids de scènes réservés, jamais fusionnables via `loadDynamicScenes` (défense en profondeur —
+ * vide aujourd'hui, aucune scène n'est protégée contre suppression/écrasement, décision owner
+ * 2026-07-04). Laissé en place pour que le mécanisme de garde ci-dessous reste correct si une
+ * scène venait un jour à être protégée, sans réintroduire la vérification à ce moment-là.
  * @type {string[]}
  */
-export const STATIC_SCENE_IDS = Object.keys(SCENE_CONFIGS);
+export const STATIC_SCENE_IDS = [];
 
 /**
- * Charge les scènes créées par l'éditeur (JSON, S8 session 4/6) et les fusionne dans
- * `SCENE_CONFIGS`. Aucun wire associé (le binding déclaratif $bind/trigger suffit, voir
- * scene-runtime.js §Binding déclaratif) — cohérent avec le mécanisme "wire optionnel" déjà en place.
+ * Charge les scènes (JSON, `scenes/data/*.scene.json`, y compris les 9 scènes historiques depuis
+ * leur migration S8) et les fusionne dans `SCENE_CONFIGS`. Aucun wire déclaré ici pour une scène
+ * chargée dynamiquement : les 9 scènes historiques restent câblées via `SCENE_WIRES` (import
+ * statique ci-dessus) ; une scène créée par l'éditeur n'a pas de wire (binding déclaratif
+ * $bind/trigger, voir scene-runtime.js §Binding déclaratif).
  *
  * Ne lève jamais : manifeste absent (404), corrompu (JSON invalide) ou de mauvaise forme (pas un
- * tableau) → aucune scène dynamique ajoutée, les 9 scènes statiques restent fonctionnelles (voir
- * docs/specs/scene-definition-v2.md §Session 4/6, edge case "manifeste corrompu").
+ * tableau) → aucune scène ajoutée (voir docs/specs/scene-definition-v2.md §Session 4/6, edge case
+ * "manifeste corrompu").
+ *
+ * Chemins ABSOLUS (`/scenes/data/...`) — appelé aussi bien depuis `index.html` (racine) que depuis
+ * `dev/placement-panel.html` (sous-dossier) ; un chemin relatif résoudrait différemment selon la
+ * page appelante (review S8 session 4/6, migration des 9 scènes).
  *
  * @returns {Promise<void>}
  */
@@ -64,7 +67,7 @@ export async function loadDynamicScenes() {
   /** @type {string[]} */
   let manifest;
   try {
-    const res = await fetch('./scenes/data/manifest.json');
+    const res = await fetch('/scenes/data/manifest.json');
     const parsed = res.ok ? await res.json() : [];
     if (!Array.isArray(parsed)) {
       console.warn('[overlay] loadDynamicScenes : manifeste de forme invalide (pas un tableau), ignoré');
@@ -78,11 +81,11 @@ export async function loadDynamicScenes() {
 
   await Promise.all(manifest.map(async (id) => {
     if (STATIC_SCENE_IDS.includes(id)) {
-      console.warn(`[overlay] loadDynamicScenes : id réservé à une scène statique, ignoré — ${id}`);
+      console.warn(`[overlay] loadDynamicScenes : id réservé, ignoré — ${id}`);
       return;
     }
     try {
-      const res = await fetch(`./scenes/data/${id}.scene.json`);
+      const res = await fetch(`/scenes/data/${id}.scene.json`);
       if (!res.ok) {
         console.warn(`[overlay] loadDynamicScenes : scène introuvable — ${id}`);
         return;

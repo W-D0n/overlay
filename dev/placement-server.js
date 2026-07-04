@@ -2,8 +2,9 @@
 /**
  * dev/placement-server.js — Serveur d'écriture pour placement-panel.html (S7, dev-only).
  *
- * NE JAMAIS lancer pendant le live — écrit sur disque dans `scenes/*.config.js`, séparé du
- * relais de production (`relay/server.js`). Même pattern que `dev/tuner-server.js` (S5).
+ * NE JAMAIS lancer pendant le live — écrit sur disque dans `scenes/data/*.scene.json` (migration
+ * S8 : toutes les scènes, historiques comme créées par l'éditeur, vivent au même endroit), séparé
+ * du relais de production (`relay/server.js`). Même pattern que `dev/scene-data-server.js` (S8).
  *
  * Routes :
  *   POST /save-placement — `{ sceneId, layerName, placement }`, réécrit uniquement la valeur
@@ -15,13 +16,13 @@
  *
  * Lancement : `bun dev/placement-server.js`
  */
-import { applyPlacementToLayerSource } from './scene-placement-format.js';
+import { applyPlacementToLayer } from './scene-placement-format.js';
 
 const PORT = Number(process.env.PLACEMENT_PORT ?? 4459);
-const SCENES_DIR = `${import.meta.dir}/../scenes`;
+const DATA_DIR = `${import.meta.dir}/../scenes/data`;
 
 /** Évite l'accès à un fichier arbitraire via un `sceneId` malicieux (path traversal). */
-const VALID_SCENE_ID = /^[a-z-]+$/;
+const VALID_SCENE_ID = /^[a-z][a-z0-9-]*$/;
 
 /** CORS permissif — outil de dev local uniquement, jamais exposé. */
 const CORS_HEADERS = {
@@ -63,12 +64,12 @@ Bun.serve({
           return new Response('layerName invalide', { status: 400, headers: CORS_HEADERS });
         }
 
-        const targetFile = `${SCENES_DIR}/${sceneId}.config.js`;
-        const current = await Bun.file(targetFile).text();
-        const updated = applyPlacementToLayerSource(current, layerName, placement);
-        await Bun.write(targetFile, updated);
+        const targetFile = `${DATA_DIR}/${sceneId}.scene.json`;
+        const current = await Bun.file(targetFile).json();
+        const updated = applyPlacementToLayer(current, layerName, placement);
+        await Bun.write(targetFile, `${JSON.stringify(updated, null, 2)}\n`);
 
-        console.info(`[placement-server] scenes/${sceneId}.config.js — couche "${layerName}" mise à jour`);
+        console.info(`[placement-server] scenes/data/${sceneId}.scene.json — couche "${layerName}" mise à jour`);
         broadcastReload();
         return new Response('ok', { headers: CORS_HEADERS });
       } catch (err) {
@@ -86,5 +87,5 @@ Bun.serve({
   },
 });
 
-console.info(`[placement-server] écoute sur http://localhost:${PORT} — écrit dans scenes/*.config.js`);
+console.info(`[placement-server] écoute sur http://localhost:${PORT} — écrit dans scenes/data/*.scene.json`);
 console.info('[placement-server] outil de DEV uniquement — ne pas lancer pendant le live');

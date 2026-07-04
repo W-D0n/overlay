@@ -41,11 +41,24 @@ particulière. Risque accepté explicitement — un seul opérateur local, `scen
 committé en git comme les `.config.js` actuels, donc une suppression accidentelle reste récupérable
 via l'historique git, pas une perte définitive.
 
-**Reste à faire** (pas implémenté dans cette conversation, migration = travail concret à planifier) :
-convertir les 9 `scenes/*.config.js` en `scenes/data/*.scene.json`, retirer leurs imports statiques de
-`scenes/registry.js` (`SCENE_CONFIGS`/`STATIC_SCENE_IDS` redevient vide), les ajouter à
-`scenes/data/manifest.json`, revalider visuellement les 9 scènes (formalité, pas un vrai risque de
-régression vu l'analyse ci-dessus).
+**Migration effectuée (2026-07-04)** : les 9 `scenes/*.config.js` sont converties en
+`scenes/data/*.scene.json`, ajoutées à `scenes/data/manifest.json`, `scenes/registry.js` ne construit
+plus `SCENE_CONFIGS` par import statique (`STATIC_SCENE_IDS` vide, aucune scène protégée, décision
+ci-dessus). Effets de bord découverts et corrigés pendant l'implémentation :
+- `loadDynamicScenes()` utilisait des chemins relatifs (`./scenes/data/...`) qui ne résolvaient
+  correctement que depuis `index.html` (racine) — cassé pour `dev/placement-panel.html` (sous-dossier).
+  Corrigé en chemins absolus (`/scenes/data/...`).
+- `dev/placement-panel.html` n'appelait jamais `loadDynamicScenes()` — corrigé (son menu de scènes
+  était vide sans ça).
+- `dev/scene-placement-format.js`/`dev/placement-server.js` (S7) réécrivaient le `placement` par
+  regex sur source JS — remplacés par un parse/mutate/stringify JSON direct, ciblant
+  `scenes/data/*.scene.json`. Testé bout en bout (sauvegarde réelle via le serveur, relecture du
+  fichier, restauration).
+- `protocol.test.js` important 3 configs directement en JS — basculé sur l'import JSON natif de Bun.
+
+`bun test` : 114/114 verts. **Vérification visuelle OBS/navigateur des 9 scènes toujours à faire par
+l'owner** (aucun outil de screenshot disponible dans cet environnement) — risque jugé faible (même
+donnée, même chemin de rendu qu'avant), mais pas confirmé visuellement.
 
 ---
 

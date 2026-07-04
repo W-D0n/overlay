@@ -60,7 +60,15 @@ verts sur tous les fichiers touchés — **vérification visuelle en attente** (
 bout). Décision owner (2026-07-04) : les 9 scènes existantes migreront à terme vers ce même format
 JSON (option B, coût réévalué faible — configs déjà des littéraux purs), aucune protection contre
 suppression via les routes génériques (risque accepté, git = filet de sécurité) — voir `docs/inbox.md`.
-Migration `jeu` vers `AlertBanner`/`PollBar` actée mais différée après S8 (owner, voir `docs/inbox.md`). | 🔄 en cours (4/6 fait, reste 5-6 + migration 9 scènes) |
+**Migration des 9 scènes effectuée** (2026-07-04) : `scenes/*.config.js` → `scenes/data/*.scene.json`,
+`scenes/registry.js` ne construit plus `SCENE_CONFIGS` par import statique. `*.wire.js` inchangé
+(reste du JS statique). Effets de bord corrigés au passage : chemins de `loadDynamicScenes()` rendus
+absolus (cassaient depuis `dev/placement-panel.html`), panneau de placement (S7) mis à jour pour
+appeler `loadDynamicScenes()` et son mécanisme d'écriture réécrit en JSON pur (`dev/scene-placement-format.js`,
+`dev/placement-server.js`, remplace la réécriture par regex sur source JS). `protocol.test.js` bascule
+sur l'import JSON natif Bun. `bun test` : 114/114. **Vérification visuelle OBS/navigateur des 9 scènes
+toujours à faire par l'owner** (pas d'outil de screenshot dans cet environnement). Migration `jeu` vers
+`AlertBanner`/`PollBar` actée mais différée après S8 (owner, voir `docs/inbox.md`). | 🔄 en cours (4/6 + migration 9 scènes faits, reste sessions 5-6) |
 | Épopée | Éditeur complet au-delà de S6/S8 (bibliothèque de transitions, export/import config), skill recherche graphique | ⬜ hors scope |
 
 ## Détail S1 (livré)

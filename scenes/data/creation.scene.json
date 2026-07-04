@@ -1,0 +1,46 @@
+{
+  "id": "creation",
+  "dotgridMode": "creation",
+  "transition": { "type": "crossfade", "duration": 400, "easing": "easeInOut" },
+  "layers": [
+    {
+      "name": "goldbar",
+      "components": [
+        { "component": "GoldBar", "options": { "position": "top" } },
+        { "component": "GoldBar", "options": { "position": "bottom" } }
+      ],
+      "visibility": { "full": true, "minimal": true, "hidden": false }
+    },
+    {
+      "name": "capture-zone",
+      "components": [{ "component": "Box", "options": {} }],
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 40, "y": 40, "width": 1360, "height": 992 }
+    },
+    {
+      "name": "cam-mini",
+      "components": [
+        { "component": "TextLabel", "options": { "text": "D0n", "className": "", "tag": "h1" } },
+        { "component": "Box", "options": { "className": "creation-cam-mini" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "tool",
+      "components": [
+        { "component": "TextLabel", "options": { "text": "Outil actif", "className": "creation-label", "tag": "span" } },
+        { "component": "TextLabel", "options": { "text": "—", "className": "creation-tool-name" } },
+        { "component": "TextLabel", "options": { "text": "", "className": "creation-tool-detail" } },
+        { "component": "TextLabel", "options": { "text": "", "className": "creation-tool-app" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "pomodoro",
+      "components": [
+        { "component": "PomodoroBar", "options": {} }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    }
+  ]
+}

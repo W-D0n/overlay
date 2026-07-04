@@ -1,0 +1,27 @@
+{
+  "id": "starting",
+  "dotgridMode": "starting",
+  "transition": { "type": "crossfade", "duration": 500, "easing": "easeInOut" },
+  "layers": [
+    {
+      "name": "goldbar",
+      "components": [
+        { "component": "GoldBar", "options": { "position": "top" } },
+        { "component": "GoldBar", "options": { "position": "bottom" } }
+      ],
+      "visibility": { "full": true, "minimal": true, "hidden": false }
+    },
+    {
+      "name": "message",
+      "components": [],
+      "visibility": { "full": true, "minimal": true, "hidden": false }
+    },
+    {
+      "name": "links",
+      "components": [
+        { "component": "TextList", "options": { "lines": { "$bind": "socialLinks" }, "itemClass": "starting-link-item" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    }
+  ]
+}

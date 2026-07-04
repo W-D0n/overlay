@@ -1,0 +1,57 @@
+{
+  "id": "codage",
+  "dotgridMode": "codage",
+  "transition": { "type": "crossfade", "duration": 300, "easing": "easeInOut" },
+  "layers": [
+    {
+      "name": "goldbar",
+      "components": [
+        { "component": "GoldBar", "options": { "position": "top" } },
+        { "component": "GoldBar", "options": { "position": "bottom" } }
+      ],
+      "visibility": { "full": true, "minimal": true, "hidden": false }
+    },
+    {
+      "name": "ide-zone",
+      "components": [{ "component": "Box", "options": {} }],
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 40, "y": 40, "width": 1360, "height": 992 }
+    },
+    {
+      "name": "cam-mini",
+      "components": [],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "ide-context",
+      "components": [
+        { "component": "TextLabel", "options": { "text": "Fichier actif", "className": "cod-label", "tag": "span" } },
+        { "component": "TextLabel", "options": { "text": "—", "className": "file-name" } },
+        { "component": "TextLabel", "options": { "text": "", "className": "git-branch" } },
+        { "component": "TextLabel", "options": { "text": "", "className": "stack-info" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "pomodoro",
+      "components": [
+        { "component": "PomodoroBar", "options": {} }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "stats",
+      "components": [
+        { "component": "StatBlock", "options": { "label": "DURÉE", "value": "00:00:00", "valueColor": "#C8B97A" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "alert",
+      "components": [
+        { "component": "AlertBanner", "options": {} }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    }
+  ]
+}

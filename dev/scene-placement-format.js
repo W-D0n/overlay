@@ -1,41 +1,34 @@
 // @ts-check
 /**
- * dev/scene-placement-format.js — Réécriture ciblée d'un `placement` dans un `scenes/*.config.js`
+ * dev/scene-placement-format.js — Application d'un `placement` dans une `SceneConfig` JSON
  * (logique pure).
  *
- * N'écrit QUE la valeur `placement` d'une couche déjà migrée (S7 session 3/5) — ne sait pas insérer
- * un `placement` sur une couche qui n'en a pas encore (portée du panneau : déplacer, pas migrer).
- * Aucun effet de bord (pas de lecture/écriture disque ici — géré par `placement-server.js`).
+ * Depuis la migration des scènes vers JSON (S8, `scenes/data/*.scene.json`), remplace la
+ * réécriture par regex sur source JS (S7) par un parse/mutate/stringify direct — la donnée est
+ * déjà un objet, plus besoin de la traiter comme du texte à motif.
+ * N'écrit QUE la valeur `placement` d'une couche déjà migrée (même portée qu'en S7 : déplacer,
+ * pas migrer) — la couche doit déjà avoir un `placement` existant. Aucun effet de bord (pas de
+ * lecture/écriture disque ici — géré par `placement-server.js`).
  */
 
 /**
- * @param {import('../types.js').Placement} placement
- * @returns {string}
- */
-export function formatPlacementLiteral(placement) {
-  const parts = [`x: ${placement.x}`, `y: ${placement.y}`];
-  if (placement.width !== undefined) parts.push(`width: ${placement.width}`);
-  if (placement.height !== undefined) parts.push(`height: ${placement.height}`);
-  return `{ ${parts.join(', ')} }`;
-}
-
-/**
- * Remplacer la valeur `placement` de la couche `layerName` dans le code source d'un
- * `scenes/*.config.js`. La couche doit déjà avoir un `placement` existant (pas d'insertion).
+ * Retourne une nouvelle `SceneConfig` avec le `placement` de la couche `layerName` remplacé.
+ * Ne mute pas l'entrée.
  *
- * @param {string} sourceCode
+ * @param {import('../types.js').SceneConfig} sceneConfig
  * @param {string} layerName
  * @param {import('../types.js').Placement} placement
- * @returns {string}
+ * @returns {import('../types.js').SceneConfig}
  * @throws {Error} Si la couche ou son `placement` existant sont introuvables
  */
-export function applyPlacementToLayerSource(sourceCode, layerName, placement) {
-  const escapedName = layerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const layerBlockRegex = new RegExp(`(name: '${escapedName}',[\\s\\S]*?placement: )\\{[^}]*\\}`);
-
-  if (!layerBlockRegex.test(sourceCode)) {
+export function applyPlacementToLayer(sceneConfig, layerName, placement) {
+  const layer = sceneConfig.layers.find((l) => l.name === layerName);
+  if (!layer || !layer.placement) {
     throw new Error(`placement introuvable pour la couche "${layerName}" — pas encore migrée, ou nom incorrect.`);
   }
 
-  return sourceCode.replace(layerBlockRegex, (_match, prefix) => `${prefix}${formatPlacementLiteral(placement)}`);
+  return {
+    ...sceneConfig,
+    layers: sceneConfig.layers.map((l) => (l.name === layerName ? { ...l, placement } : l)),
+  };
 }

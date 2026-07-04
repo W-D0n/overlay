@@ -1,0 +1,49 @@
+{
+  "id": "interview",
+  "dotgridMode": "interview",
+  "transition": { "type": "crossfade", "duration": 400, "easing": "easeInOut" },
+  "layers": [
+    {
+      "name": "goldbar",
+      "components": [
+        { "component": "GoldBar", "options": { "position": "top" } },
+        { "component": "GoldBar", "options": { "position": "bottom" } }
+      ],
+      "visibility": { "full": true, "minimal": true, "hidden": false }
+    },
+    {
+      "name": "cams",
+      "components": [],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "fiches",
+      "components": [],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "subject",
+      "components": [
+        { "component": "TextLabel", "options": { "text": "Sujet", "className": "int-subject-label", "tag": "span" } },
+        { "component": "Divider", "options": { "className": "int-subject-v" } },
+        { "component": "TextLabel", "options": { "text": "—", "className": "int-subject-text subject-text", "tag": "span" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 40, "y": 1000, "width": 1520, "height": 60 }
+    },
+    {
+      "name": "chat",
+      "components": [
+        { "component": "ChatFeed", "options": { "maxMessages": 10, "fontSize": "18px" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "stats",
+      "components": [
+        { "component": "StatBlock", "options": { "label": "DURÉE", "value": "00:00:00", "valueColor": "#C8B97A" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    }
+  ]
+}
