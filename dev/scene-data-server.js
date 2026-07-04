@@ -25,7 +25,11 @@
  * Lancement : `bun dev/scene-data-server.js`
  */
 import { validateSceneConfig } from '../protocol.js';
-import { STATIC_SCENE_IDS } from '../scenes/registry.js';
+// Import depuis reserved-scene-ids.js (PAS scenes/registry.js, fix production 2026-07-05) :
+// registry.js importe les 9 *.wire.js, qui importent store.js, dont le chargement du module ouvre
+// une vraie connexion WebSocket au relais — ce process (Bun, sans navigateur) n'a pas de `document`
+// et plantait sur chaque scene.set reçu. Voir scenes/reserved-scene-ids.js pour le détail.
+import { STATIC_SCENE_IDS } from '../scenes/reserved-scene-ids.js';
 import { addSceneToManifest, removeSceneFromManifest } from './scene-data-format.js';
 
 const PORT = Number(process.env.SCENE_DATA_PORT ?? 4460);

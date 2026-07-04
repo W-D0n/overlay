@@ -20,6 +20,9 @@ import { wire as wireReact }         from './react.wire.js';
 import { wire as wireCreation }      from './creation.wire.js';
 import { wire as wireFin }           from './fin.wire.js';
 import { wire as wireStarting }      from './starting.wire.js';
+import { STATIC_SCENE_IDS } from './reserved-scene-ids.js';
+
+export { STATIC_SCENE_IDS };
 
 /** @type {Record<string, import('../types.js').SceneConfig>} */
 export const SCENE_CONFIGS = {};
@@ -36,15 +39,6 @@ export const SCENE_WIRES = {
   fin: wireFin,
   starting: wireStarting,
 };
-
-/**
- * Ids de scènes réservés, jamais fusionnables via `loadDynamicScenes` (défense en profondeur —
- * vide aujourd'hui, aucune scène n'est protégée contre suppression/écrasement, décision owner
- * 2026-07-04). Laissé en place pour que le mécanisme de garde ci-dessous reste correct si une
- * scène venait un jour à être protégée, sans réintroduire la vérification à ce moment-là.
- * @type {string[]}
- */
-export const STATIC_SCENE_IDS = [];
 
 /**
  * Charge les scènes (JSON, `scenes/data/*.scene.json`, y compris les 9 scènes historiques depuis
