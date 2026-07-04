@@ -8,14 +8,22 @@
 > **Une fois la config faite une première fois** (§4.2), le lancement quotidien se résume à un
 > double-clic sur `start-stream.bat` — voir §0.
 
-## 0. Lancement quotidien — `start-stream.bat`
+## 0. Lancement quotidien — `start-stream.bat` / `start-dev.bat`
 
-Une fois la config initiale faite (§4.2, une seule fois), double-cliquer `start-stream.bat` à la
-racine du repo lance **les deux process d'un coup** (serveur statique + relais), dans deux fenêtres
-séparées pour voir les logs de connexion. Si `.env` est absent, le script prévient au lieu de
-planter silencieusement.
+Deux scripts, deux usages **distincts** — ne pas les confondre :
 
-Les sections 1 à 4 ci-dessous détaillent ce que fait `start-stream.bat`, et servent de référence
+- **`start-stream.bat`** — pour streamer. Lance serveur statique + relais uniquement. C'est celui
+  à utiliser en live.
+- **`start-dev.bat`** — pour une session de réglage (DotGrid, placement). Lance serveur statique +
+  relais + les 2 serveurs d'écriture de dev (`tuner-server.js`, `placement-server.js`) + ouvre 3
+  onglets automatiquement (preview avec auto-reload, tuner DotGrid, panneau de placement).
+  **Ne jamais lancer pendant un live** — les serveurs de dev écrivent sur disque, pas faits pour
+  tourner en continu pendant un stream.
+
+Un double-clic sur le bon script après la config initiale (§4.2, une seule fois). Si `.env` est
+absent, les deux scripts préviennent au lieu de planter silencieusement.
+
+Les sections 1 à 4 ci-dessous détaillent ce que font ces scripts, et servent de référence
 pour la config initiale ou en cas de problème (le lire une fois suffit).
 
 ## 1. Servir la page localement
