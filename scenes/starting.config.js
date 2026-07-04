@@ -24,9 +24,11 @@ export const sceneConfig = {
       visibility: { full: true, minimal: true, hidden: false },
     },
     {
-      // Liens sociaux
+      // Liens sociaux (S8 : TextList déclaratif, remplace le rendu manuel dans starting.wire.js)
       name: 'links',
-      components: [],
+      components: [
+        { component: 'TextList', options: { lines: { $bind: 'socialLinks' }, itemClass: 'starting-link-item' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
     },
   ],

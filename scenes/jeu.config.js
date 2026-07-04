@@ -23,7 +23,7 @@ export const sceneConfig = {
     {
       // Cam mini coin haut-gauche (décoration DOM pure)
       name: 'cam',
-      components: [],
+      components: [{ component: 'Box', options: { background: 'rgba(10, 10, 12, 0.75)' } }], // S8 : remplace .cam-mini
       visibility: { full: true, minimal: false, hidden: false },
       placement: { x: 28, y: 28, width: 300, height: 200 },
     },

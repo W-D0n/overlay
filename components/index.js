@@ -523,7 +523,11 @@ export function TextLabel({ text = '', font = 'serif', size = '16px', color = 'v
 // ─── TextList (S8) ────────────────────────────────────────────────────────────
 
 /**
- * Liste de lignes de texte — la 1ère ligne pleine opacité, les suivantes atténuées.
+ * Liste de lignes de texte — la 1ère ligne pleine opacité (`itemClass` seul), les suivantes
+ * atténuées (`itemClass dim`). Le style (couleur, police, taille) vient à 100% du CSS scopé de la
+ * scène via `itemClass`/`.dim` — ce composant ne fixe aucune couleur en inline (chaque scène a des
+ * couleurs de mise en avant différentes : or pour les liens sociaux, texte primaire pour un récap —
+ * un inline unique casserait l'une des deux, corrigé après l'avoir constaté en migration S8).
  * Remplace le rendu manuel dupliqué (`fin.wire.js` recapLines/socialLinks, `starting.wire.js`
  * socialLinks).
  *
@@ -543,7 +547,6 @@ export function TextList({ lines = [], itemClass = '' } = {}) {
     items.forEach((line, i) => {
       const row = document.createElement('div');
       row.className = itemClass + (i > 0 ? ' dim' : '');
-      row.style.cssText = i > 0 ? 'color: var(--color-text-mid);' : 'color: var(--color-gold);';
       row.textContent = line;
       el.appendChild(row);
     });

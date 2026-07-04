@@ -23,7 +23,7 @@ export const sceneConfig = {
     {
       // Zone de capture logiciel (placeholder visuel — OBS superpose la vraie source)
       name: 'capture-zone',
-      components: [],
+      components: [{ component: 'Box', options: {} }], // S8 : remplace .creation-capture-zone
       visibility: { full: true, minimal: false, hidden: false },
       placement: { x: 40, y: 40, width: 1360, height: 992 },
     },

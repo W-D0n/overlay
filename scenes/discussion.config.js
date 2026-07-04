@@ -20,7 +20,7 @@ export const sceneConfig = {
     },
     {
       name: 'cam',
-      components: [],
+      components: [{ component: 'Box', options: {} }], // S8 : remplace .disc-cam
       visibility: { full: true, minimal: false, hidden: false },
       placement: { x: 40, y: 40, width: 1080, height: 960 },
     },

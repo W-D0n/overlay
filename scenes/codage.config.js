@@ -20,7 +20,7 @@ export const sceneConfig = {
     {
       // Zone de capture IDE (placeholder visuel — OBS superpose la vraie source)
       name: 'ide-zone',
-      components: [],
+      components: [{ component: 'Box', options: {} }], // S8 : remplace .cod-capture
       visibility: { full: true, minimal: false, hidden: false },
       placement: { x: 40, y: 40, width: 1360, height: 992 },
     },

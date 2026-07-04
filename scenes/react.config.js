@@ -20,7 +20,7 @@ export const sceneConfig = {
     {
       // Zone vidéo source (placeholder visuel — OBS superpose la vraie source)
       name: 'source-zone',
-      components: [],
+      components: [{ component: 'Box', options: {} }], // S8 : remplace .react-source-zone
       visibility: { full: true, minimal: false, hidden: false },
       placement: { x: 40, y: 40, width: 1060, height: 800 },
     },
@@ -34,7 +34,7 @@ export const sceneConfig = {
     {
       // Cam réaction (placeholder)
       name: 'cam',
-      components: [],
+      components: [{ component: 'Box', options: {} }], // S8 : remplace .react-cam
       visibility: { full: true, minimal: false, hidden: false },
       placement: { x: 1168, y: 40, width: 712, height: 460 },
     },

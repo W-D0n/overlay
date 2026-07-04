@@ -22,14 +22,16 @@ export const sceneConfig = {
     {
       // Cam grande gauche (placeholder)
       name: 'cam',
-      components: [],
+      components: [{ component: 'Box', options: {} }], // S8 : remplace .fin-cam
       visibility: { full: true, minimal: false, hidden: false },
       placement: { x: 40, y: 40, width: 800, height: 992 },
     },
     {
-      // Récap de session
+      // Récap de session (S8 : TextList déclaratif, remplace le rendu manuel dans fin.wire.js)
       name: 'recap',
-      components: [],
+      components: [
+        { component: 'TextList', options: { lines: { $bind: 'recapLines' }, itemClass: 'fin-recap-line' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
@@ -47,9 +49,11 @@ export const sceneConfig = {
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
-      // Liens sociaux
+      // Liens sociaux (S8 : TextList déclaratif)
       name: 'links',
-      components: [],
+      components: [
+        { component: 'TextList', options: { lines: { $bind: 'socialLinks' }, itemClass: 'fin-link-item' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
     },
   ],

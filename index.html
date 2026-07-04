@@ -34,11 +34,8 @@
     }
 
     /* ════════════════ DISCUSSION ════════════════ */
-    /* Position/taille de .disc-cam pilotées par Placement (scenes/discussion.config.js), voir
-       docs/specs/scene-placement-protocol.md — seul le style visuel reste ici. */
-    .scene[data-scene="discussion"] .disc-cam {
-      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
-    }
+    /* .disc-cam retiré (S8) — remplacé par le composant Box (options par défaut), voir
+       scenes/discussion.config.js. Position toujours pilotée par Placement (couche `cam`). */
     .scene[data-scene="discussion"] .disc-separator {
       position: absolute; top: 40px; left: 1154px; width: 1px; height: 1000px; background: var(--color-rule);
     }
@@ -152,10 +149,7 @@
     }
 
     /* ════════════════ CODAGE ════════════════ */
-    /* Position/taille de .cod-capture pilotées par Placement (scenes/codage.config.js). */
-    .scene[data-scene="codage"] .cod-capture {
-      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
-    }
+    /* .cod-capture retiré (S8) — remplacé par le composant Box (options par défaut). */
     .scene[data-scene="codage"] .cod-separator {
       position: absolute; top: 40px; left: 1434px; width: 1px; height: 1000px; background: var(--color-rule);
     }
@@ -204,11 +198,8 @@
     }
 
     /* ════════════════ JEU ════════════════ */
-    /* Position/taille de .cam-mini pilotées par Placement (scenes/jeu.config.js), voir
-       docs/specs/scene-placement-protocol.md — seul le style visuel reste ici. */
-    .scene[data-scene="jeu"] .cam-mini {
-      border-radius: var(--radius-md); border: var(--border-panel); background: rgba(10, 10, 12, 0.75);
-    }
+    /* .cam-mini retiré (S8) — remplacé par le composant Box (background rgba custom), voir
+       scenes/jeu.config.js. */
     .scene[data-scene="jeu"] .hud-bar {
       position: absolute; bottom: 0; left: 0; right: 0; height: 96px;
       background: rgba(10, 10, 12, 0.9); border-top: 0.5px solid rgba(200, 185, 122, 0.4);
@@ -292,11 +283,8 @@
     }
 
     /* ════════════════ REACT ════════════════ */
-    /* Position/taille de .react-source-zone/.react-source-credit/.react-cam pilotées par
-       Placement (scenes/react.config.js). */
-    .scene[data-scene="react"] .react-source-zone {
-      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
-    }
+    /* .react-source-zone/.react-cam retirés (S8) — remplacés par le composant Box (défauts).
+       .react-source-credit garde son CSS (contenu structuré, pas un simple placeholder). */
     .scene[data-scene="react"] .react-source-credit {
       border: 0.5px solid var(--color-gold); border-radius: var(--radius-md); background: var(--color-bg-widget);
       display: flex; align-items: center; padding: 0 24px; gap: 20px;
@@ -313,9 +301,6 @@
     .scene[data-scene="react"] .react-credit-platform { font-family: var(--font-mono); font-size: 20px; color: var(--color-gold); flex-shrink: 0; }
     .scene[data-scene="react"] .react-sep {
       position: absolute; top: 40px; left: 1134px; width: 1px; height: 980px; background: var(--color-rule);
-    }
-    .scene[data-scene="react"] .react-cam {
-      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
     }
     .scene[data-scene="react"] .react-col-chat {
       position: absolute; top: 520px; left: 1168px; width: 712px; height: 500px;
@@ -342,10 +327,7 @@
     .scene[data-scene="react"] .react-hud-link { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost); margin-left: auto; }
 
     /* ════════════════ CREATION (variante A uniquement, voir docs/inbox.md) ════════════════ */
-    /* Position/taille de .creation-capture-zone pilotées par Placement (scenes/creation.config.js). */
-    .scene[data-scene="creation"] .creation-capture-zone {
-      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
-    }
+    /* .creation-capture-zone retiré (S8) — remplacé par le composant Box (options par défaut). */
     .scene[data-scene="creation"] .creation-sep {
       position: absolute; top: 40px; left: 1434px; width: 1px; height: 1000px; background: var(--color-rule);
     }
@@ -378,10 +360,7 @@
     .scene[data-scene="fin"] .fin-bar-bot-full {
       position: absolute; bottom: 0; left: 0; right: 0; height: 2.5px; background: var(--color-gold); opacity: 0.8;
     }
-    /* Position/taille de .fin-cam pilotées par Placement (scenes/fin.config.js). */
-    .scene[data-scene="fin"] .fin-cam {
-      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
-    }
+    /* .fin-cam retiré (S8) — remplacé par le composant Box (options par défaut). */
     .scene[data-scene="fin"] .fin-sep {
       position: absolute; top: 40px; left: 880px; width: 1px; height: 1000px; background: var(--color-rule);
     }
@@ -403,7 +382,7 @@
     .scene[data-scene="fin"] .fin-next-when  { font-family: var(--font-serif); font-size: 38px; color: var(--color-text-primary); margin-bottom: 6px; }
     .scene[data-scene="fin"] .fin-next-topic { font-family: var(--font-serif); font-size: 36px; color: var(--color-gold); }
     .scene[data-scene="fin"] .fin-stats-grid { display: flex; gap: 60px; }
-    .scene[data-scene="fin"] .fin-links-list { display: flex; flex-direction: column; gap: 8px; }
+    /* Conteneur .fin-links-list retiré (S8) — display:flex/gap fournis par le composant TextList. */
     .scene[data-scene="fin"] .fin-link-item  { font-family: var(--font-mono); font-size: 26px; color: var(--color-gold); }
     .scene[data-scene="fin"] .fin-link-item.dim { color: var(--color-text-mid); }
     .scene[data-scene="fin"] .fin-footer {
@@ -430,8 +409,9 @@
     .scene[data-scene="starting"] .starting-subject-text {
       font-family: var(--font-serif); font-size: 38px; color: var(--color-text-primary); max-width: 1200px;
     }
+    /* display:flex/gap fournis par le composant TextList lui-même (S8) — seul margin-top reste ici. */
     .scene[data-scene="starting"] .starting-links-list {
-      display: flex; flex-direction: column; gap: 8px; margin-top: 12px;
+      margin-top: 12px;
     }
     .scene[data-scene="starting"] .starting-link-item { font-family: var(--font-mono); font-size: 24px; color: var(--color-gold); }
     .scene[data-scene="starting"] .starting-link-item.dim { color: var(--color-text-mid); }
@@ -448,7 +428,7 @@
 
   <template data-scene="discussion">
     <div data-layer="goldbar"></div>
-    <div data-layer="cam" class="disc-cam" aria-hidden="true"></div>
+    <div data-layer="cam" aria-hidden="true"></div>
     <div class="disc-separator" aria-hidden="true"></div>
     <div class="disc-col-right">
       <div data-layer="subject" class="disc-block">
@@ -499,7 +479,7 @@
 
   <template data-scene="codage">
     <div data-layer="goldbar"></div>
-    <div data-layer="ide-zone" class="cod-capture" aria-hidden="true"></div>
+    <div data-layer="ide-zone" aria-hidden="true"></div>
     <div class="cod-separator" aria-hidden="true"></div>
     <div class="cod-col-right">
       <div data-layer="cam-mini" class="cod-block">
@@ -523,7 +503,7 @@
 
   <template data-scene="jeu">
     <div data-layer="goldbar"></div>
-    <div data-layer="cam" class="cam-mini" aria-hidden="true"></div>
+    <div data-layer="cam" aria-hidden="true"></div>
     <div data-layer="hud" class="hud-bar">
       <div class="hud-cell">
         <span class="hud-label">D0n</span>
@@ -581,7 +561,7 @@
 
   <template data-scene="react">
     <div data-layer="goldbar"></div>
-    <div data-layer="source-zone" class="react-source-zone" aria-hidden="true"></div>
+    <div data-layer="source-zone" aria-hidden="true"></div>
     <div data-layer="source-credit" class="react-source-credit">
       <span class="react-credit-label">Source</span>
       <div class="react-credit-v"></div>
@@ -589,7 +569,7 @@
       <span class="react-credit-platform"></span>
     </div>
     <div class="react-sep" aria-hidden="true"></div>
-    <div data-layer="cam" class="react-cam" aria-hidden="true"></div>
+    <div data-layer="cam" aria-hidden="true"></div>
     <div class="react-col-chat">
       <span class="react-chat-label">Chat</span>
       <div data-layer="chat"></div>
@@ -604,7 +584,7 @@
 
   <template data-scene="creation">
     <div data-layer="goldbar"></div>
-    <div data-layer="capture-zone" class="creation-capture-zone" aria-hidden="true"></div>
+    <div data-layer="capture-zone" aria-hidden="true"></div>
     <div class="creation-sep" aria-hidden="true"></div>
     <div class="creation-col-right">
       <div data-layer="cam-mini" class="creation-name-block">
@@ -625,13 +605,12 @@
   <template data-scene="fin">
     <div data-layer="goldbar"></div>
     <div class="fin-bar-bot-full" aria-hidden="true"></div>
-    <div data-layer="cam" class="fin-cam" aria-hidden="true"></div>
+    <div data-layer="cam" aria-hidden="true"></div>
     <div class="fin-sep" aria-hidden="true"></div>
     <div class="fin-col-right">
       <div class="fin-name-block"><h1>D0n</h1></div>
       <div data-layer="recap" class="fin-section">
         <span class="fin-label">Session — Récap</span>
-        <div class="fin-recap-lines"></div>
       </div>
       <div data-layer="next-stream" class="fin-section">
         <span class="fin-label">Prochain stream</span>
@@ -641,7 +620,6 @@
       <div data-layer="stats" class="fin-section fin-stats-grid"></div>
       <div data-layer="links" class="fin-section">
         <span class="fin-label">Liens</span>
-        <div class="fin-links-list"></div>
       </div>
       <div class="fin-footer">Mozaïk · À bientôt</div>
     </div>

@@ -11,19 +11,10 @@ import { onStateChange } from '../store.js';
 export function wire(mounted) {
   const root = mounted.root;
   const subjectEl = root.querySelector('.starting-subject-text');
-  const linksEl    = root.querySelector('.starting-links-list');
+  // 'links' est géré déclarativement (TextList + $bind, voir starting.config.js, S8) — ce wire ne
+  // câble plus que le sujet (fallback textuel non exprimable en binding pur, garde ce champ ici).
 
   return onStateChange((state) => {
     if (subjectEl) subjectEl.textContent = state.subjectLine || 'Au programme aujourd\'hui — surprise.';
-
-    if (linksEl && state.socialLinks.length > 0) {
-      linksEl.innerHTML = '';
-      state.socialLinks.forEach((link, i) => {
-        const div = document.createElement('div');
-        div.className = `starting-link-item${i > 0 ? ' dim' : ''}`;
-        div.textContent = link;
-        linksEl.appendChild(div);
-      });
-    }
   });
 }

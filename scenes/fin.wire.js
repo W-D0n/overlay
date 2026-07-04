@@ -11,10 +11,9 @@ import { onStateChange } from '../store.js';
 export function wire(mounted) {
   const [statNewFollows, statDuration] = mounted.componentsByLayer.stats;
   const root = mounted.root;
-  const recapEl     = root.querySelector('.fin-recap-lines');
   const nextWhenEl  = root.querySelector('.fin-next-when');
   const nextTopicEl = root.querySelector('.fin-next-topic');
-  const linksEl     = root.querySelector('.fin-links-list');
+  // 'recap' et 'links' sont gérés déclarativement (TextList + $bind, voir fin.config.js, S8).
 
   return onStateChange((state) => {
     statNewFollows.update?.({ value: state.sessionStats.newFollows > 0 ? `+${state.sessionStats.newFollows}` : '—' });
@@ -22,25 +21,5 @@ export function wire(mounted) {
 
     if (nextWhenEl)  nextWhenEl.textContent  = state.nextStream || 'À venir';
     if (nextTopicEl) nextTopicEl.textContent = state.nextStreamTopic || '';
-
-    if (recapEl && state.recapLines.length > 0) {
-      recapEl.innerHTML = '';
-      state.recapLines.forEach((line, i) => {
-        const div = document.createElement('div');
-        div.className = `fin-recap-line${i > 0 ? ' dim' : ''}`;
-        div.textContent = line;
-        recapEl.appendChild(div);
-      });
-    }
-
-    if (linksEl && state.socialLinks.length > 0) {
-      linksEl.innerHTML = '';
-      state.socialLinks.forEach((link, i) => {
-        const div = document.createElement('div');
-        div.className = `fin-link-item${i > 0 ? ' dim' : ''}`;
-        div.textContent = link;
-        linksEl.appendChild(div);
-      });
-    }
   });
 }
