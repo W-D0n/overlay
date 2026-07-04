@@ -77,7 +77,17 @@ sauvegardent immédiatement (`POST /update-scene`), édition de champ attend le 
 sauvegarde de composition n'écrase un placement fraîchement glissé-déposé. Gestion des couches et
 placement par composant individuel restent hors scope (décision owner, `docs/inbox.md`). Vérifié
 bout en bout (flux ajout-composant simulé contre un vrai `scene-data-server`, persistance confirmée
-sur disque). `bun test` : 114/114. | 🔄 en cours (4/6, migration 9 scènes, 5/6 faits, reste session 6/6) |
+sur disque). `bun test` : 114/114. Session 6/6 **terminée** (2026-07-05, dernière de l'épopée S8) :
+création de scène (formulaire id + couche `goldbar` minimale, `POST /create-scene`) et suppression
+avec confirmation navigateur (`POST /delete-scene`) ajoutées au panneau. Extension owner au-delà du
+texte original de la spec : `/delete-scene` **archive** désormais le fichier
+(`scenes/data/archived/<id>.scene.json`) au lieu de le supprimer — récupérable sans passer par git.
+Gestion minimale des couches ajoutée (ajouter/supprimer une couche entière, bouton désactivé sur
+`goldbar`) pour qu'une scène créée ne reste pas une coquille vide — réutilise `POST /update-scene`
+(session 5/6), aucune nouvelle route. Renommage/réordonnancement de couches et placement par
+composant individuel restent hors scope. Vérifié bout en bout (création → ajout de couche →
+suppression simulés contre un vrai `scene-data-server`, fichier confirmé déplacé vers `archived/`
+avec contenu intact). `bun test` : 114/114. **S8 complet (6/6).** | ✅ fait |
 | Épopée | Éditeur complet au-delà de S6/S8 (bibliothèque de transitions, export/import config), skill recherche graphique | ⬜ hors scope |
 
 ## Détail S1 (livré)
