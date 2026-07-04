@@ -209,8 +209,11 @@
       display: flex; flex-direction: column; gap: 6px;
       padding-right: 40px; border-right: 1px solid var(--color-rule); margin-right: 40px;
     }
-    .scene[data-scene="jeu"] .hud-cell:last-child {
-      border-right: none; margin-right: 0; margin-left: auto; padding-right: 0;
+    /* Générique (pas .hud-cell:last-child) : le dernier enfant du hud-bar est poussé à droite,
+       quel que soit son type — S8 migration, le vote (PollBar, ComponentMount) a remplacé l'alerte
+       (déplacée en bannière centrée, AlertBanner) comme dernier élément. */
+    .scene[data-scene="jeu"] .hud-bar > *:last-child {
+      margin-left: auto;
     }
     .scene[data-scene="jeu"] .hud-label {
       font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
@@ -220,19 +223,10 @@
       font-family: var(--font-mono); font-size: 26px; color: var(--color-text-primary); line-height: 1;
     }
     .scene[data-scene="jeu"] .hud-value.gold { color: var(--color-gold); }
-    .scene[data-scene="jeu"] .poll-wrap { display: flex; flex-direction: column; gap: 6px; }
-    .scene[data-scene="jeu"] .poll-question {
-      font-family: var(--font-mono); font-size: 22px; color: var(--color-text-primary);
-    }
-    .scene[data-scene="jeu"] .poll-track {
-      width: 240px; height: 6px; border-radius: 3px; background: var(--color-rule-mid); overflow: hidden;
-    }
-    .scene[data-scene="jeu"] .poll-fill {
-      height: 100%; border-radius: 3px; background: var(--color-gold-dim); transition: width 0.6s ease;
-    }
-    .scene[data-scene="jeu"] .poll-ratio {
-      font-family: var(--font-mono); font-size: 18px; color: var(--color-text-mid);
-    }
+    /* .poll-wrap/.poll-question/.poll-track/.poll-fill/.poll-ratio retirés (S8 migration) —
+       remplacés par le composant PollBar (styles inline équivalents, voir components/index.js).
+       .jeu-alert-cell/.jeu-alert-label/.jeu-alert-username retirés — l'alerte est désormais
+       AlertBanner (bannière centrée, comme discussion/codage), plus une cellule HUD dédiée. */
 
     /* ════════════════ INTERVIEW ════════════════ */
     .scene[data-scene="interview"] .int-cam {
@@ -484,19 +478,12 @@
         <span class="hud-label">Durée</span>
         <span class="hud-value jeu-duration">00:00:00</span>
       </div>
-      <div class="hud-cell jeu-poll-cell" style="display:none;">
-        <span class="hud-label">Vote chat</span>
-        <div class="poll-wrap">
-          <span class="poll-question jeu-poll-question"></span>
-          <div class="poll-track"><div class="poll-fill jeu-poll-fill" style="width:50%"></div></div>
-          <span class="poll-ratio jeu-poll-ratio"></span>
-        </div>
-      </div>
-      <div class="hud-cell jeu-alert-cell" style="opacity:0;transition:opacity 0.4s ease;">
-        <span class="hud-label jeu-alert-label">Alerte</span>
-        <span class="hud-value gold jeu-alert-username"></span>
-      </div>
+      <!-- Vote chat (PollBar) monté par scenes/data/jeu.scene.json — masqué hors vote actif par
+           jeu.wire.js (S8 migration, $bind ne sait pas exprimer "masquer si null"). -->
     </div>
+    <!-- Alerte : AlertBanner (bannière centrée), unifié avec discussion/codage (S8 migration,
+         remplace la cellule HUD dédiée). -->
+    <div data-layer="alert"></div>
   </template>
 
   <template data-scene="interview">

@@ -18,7 +18,16 @@
     },
     {
       "name": "hud",
-      "components": [],
+      "components": [
+        { "component": "PollBar", "options": { "question": { "$bind": "activePoll.question" }, "yesRatio": { "$bind": "activePoll.yesRatio" } } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "alert",
+      "components": [
+        { "component": "AlertBanner", "options": {} }
+      ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
     }
   ]

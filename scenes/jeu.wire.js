@@ -1,67 +1,41 @@
 // @ts-check
 /**
- * jeu.wire.js — Câblage de la scène Jeu à l'état live (AD-6).
- * HUD bas DOM-pur (aucun composant monté hors goldbar) : tout est câblé par querySelector.
- * L'alerte utilise un fondu local piloté par un timer, annulé au démontage (AC-39).
+ * jeu.wire.js — Câblage de la scène Jeu à l'état live (AD-6, migré S8).
+ *
+ * Session/durée restent en DOM pur (querySelector) — simples spans, pas de composant dédié
+ * justifié (aucun style partagé avec d'autres scènes). Le vote (PollBar) et l'alerte (AlertBanner)
+ * sont désormais des `ComponentMount` déclaratifs (scenes/data/jeu.scene.json) : PollBar reçoit ses
+ * valeurs via `$bind` (résolu automatiquement par `applyBindings`, scene-runtime.js — ce fichier n'a
+ * plus besoin de les pousser à la main), et AlertBanner gère son propre minuteur d'auto-masquage en
+ * interne (fini le `setTimeout`/`clearTimeout` dupliqué à la main, voir docs/inbox.md).
+ *
+ * Seule la visibilité du PollBar (masqué hors vote actif) reste gérée ici — `$bind` ne sait pas
+ * exprimer "masquer si null" (voir docs/specs/scene-definition-v2.md).
  */
 import { onStateChange } from '../store.js';
 
-/** Libellés courts par type d'alerte, affichés dans la cellule HUD. */
-const ALERT_LABELS = { follow: '+ follow', sub: '+ sub', raid: 'raid', bits: 'bits' };
-
-/** Durée d'affichage de l'alerte dans le HUD (ms). */
-const ALERT_DISPLAY_DURATION = 5000;
-
 /**
  * @param {import('../types.js').MountedScene} mounted
- * @returns {() => void} cleanup (désabonnement + annulation du timer d'alerte)
+ * @returns {() => void} cleanup (désabonnement)
  */
 export function wire(mounted) {
   const root = mounted.root;
   const sessionEl  = root.querySelector('.jeu-session');
   const durationEl = root.querySelector('.jeu-duration');
-  const pollCell        = /** @type {HTMLElement | null} */ (root.querySelector('.jeu-poll-cell'));
-  const pollQuestionEl  = root.querySelector('.jeu-poll-question');
-  const pollFillEl      = /** @type {HTMLElement | null} */ (root.querySelector('.jeu-poll-fill'));
-  const pollRatioEl     = root.querySelector('.jeu-poll-ratio');
-  const alertCell       = /** @type {HTMLElement | null} */ (root.querySelector('.jeu-alert-cell'));
-  const alertLabelEl    = root.querySelector('.jeu-alert-label');
-  const alertUsernameEl = root.querySelector('.jeu-alert-username');
+  const [pollBar]     = mounted.componentsByLayer.hud;
+  const [alertBanner] = mounted.componentsByLayer.alert;
 
   let lastAlertTimestamp = 0;
-  /** @type {ReturnType<typeof setTimeout> | null} */
-  let alertHideTimer = null;
 
-  const unsubscribe = onStateChange((state) => {
+  return onStateChange((state) => {
     if (sessionEl)  sessionEl.textContent  = `#${state.sessionId}`;
     if (durationEl) durationEl.textContent = state.duration;
 
-    if (pollCell) {
-      if (state.activePoll) {
-        const percent = Math.round(state.activePoll.yesRatio * 100);
-        pollCell.style.display = 'flex';
-        if (pollQuestionEl) pollQuestionEl.textContent = state.activePoll.question;
-        if (pollFillEl)     pollFillEl.style.width     = `${percent}%`;
-        if (pollRatioEl)    pollRatioEl.textContent    = `${percent}% oui`;
-      } else {
-        pollCell.style.display = 'none';
-      }
-    }
+    if (pollBar) pollBar.el.style.display = state.activePoll ? 'flex' : 'none';
 
     if (state.latestAlert && state.latestAlert.timestamp !== lastAlertTimestamp) {
       lastAlertTimestamp = state.latestAlert.timestamp;
-      if (alertLabelEl)    alertLabelEl.textContent    = ALERT_LABELS[state.latestAlert.type] ?? 'alerte';
-      if (alertUsernameEl) alertUsernameEl.textContent = state.latestAlert.username;
-      if (alertCell) {
-        alertCell.style.opacity = '1';
-        if (alertHideTimer) clearTimeout(alertHideTimer);
-        alertHideTimer = setTimeout(() => { alertCell.style.opacity = '0'; }, ALERT_DISPLAY_DURATION);
-      }
+      alertBanner?.show?.(state.latestAlert);
     }
   });
-
-  return () => {
-    if (alertHideTimer) clearTimeout(alertHideTimer);
-    unsubscribe();
-  };
 }

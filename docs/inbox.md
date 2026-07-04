@@ -17,6 +17,32 @@ obligatoire, comme les couches composites déjà exclues en session 3/6 (intervi
 engagé conservé tel quel (session 4/6 → 5/6 → 6/6), la migration de `jeu` se fait en dehors du
 découpage à 6 sessions, une fois la persistance livrée.
 
+**Migration effectuée (2026-07-05).** Décision owner en cours de route : **unifier** l'alerte de
+`jeu` avec `AlertBanner` standard (bannière centrée, comme `discussion`/`codage`) plutôt que de
+préserver la cellule HUD compacte d'origine — changement d'apparence assumé, pas juste un refactor
+interne. `PollBar` remplace le HTML en dur du vote (styles inline déjà copiés 1:1 de l'ancien CSS,
+voir `components/index.js` §PollBar — apparence quasi-identique attendue).
+
+Contrainte architecturale découverte en implémentant : un `ComponentMount` ne peut se monter qu'à la
+racine de sa couche (`layerEl.appendChild`), jamais à l'intérieur d'un wrapper statique existant
+(même limite que les couches composites déjà exclues en S3, `interview/cams`). Impossible de
+réinsérer `PollBar` dans l'ancien wrapper `.hud-cell` avec son label "Vote chat" sans le sortir de
+son contexte flex — la couche `hud` n'a donc plus qu'un seul enfant enfant (`PollBar`), le label
+"Vote chat" étant retiré (le texte de la question suffit à indiquer qu'un vote est en cours). Le CSS
+`.hud-cell:last-child` (poussait l'ancienne cellule d'alerte à droite) a été généralisé en
+`.hud-bar > *:last-child` pour continuer à pousser le dernier élément — quel qu'il soit — à droite.
+
+`jeu.wire.js` réduit à : session/durée (toujours DOM pur, pas de composant dédié justifié),
+visibilité du `PollBar` (masqué hors vote actif — `$bind` ne sait pas exprimer "masquer si null"),
+et déclenchement de `AlertBanner.show()` (même pattern manuel que `discussion`/`codage` — le
+mécanisme déclaratif `trigger` existe mais n'est encore utilisé nulle part en production, pas le
+moment de le roder ici).
+
+**Vérification visuelle OBS/navigateur non faite** (pas d'outil de screenshot dans cet
+environnement) — risque réel cette fois (changement d'apparence assumé pour l'alerte, ajustements
+de layout HUD pour le vote), pas une simple formalité comme pour la migration JSON des 9 scènes.
+`bun test` 114/114 et `validateSceneConfig` OK ne couvrent pas le rendu visuel.
+
 ---
 
 ## Décision tranchée — migration des 9 scènes existantes vers JSON (owner, 2026-07-04)
