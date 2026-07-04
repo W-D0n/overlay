@@ -404,3 +404,85 @@ entièrement par `applyBindings` (`$bind`/`trigger`).
       d'une scène dans cette session (rechargement manuel de la page requis). `placement-server.js`
       et `tuner-server.js` ont déjà un mécanisme `reload-ws` réutilisable — décision différée : à
       brancher pendant la session 5/6 (UI) si le besoin se confirme, pas anticipé ici.
+
+---
+
+## Session 5/6 — UI de composition (2026-07-05)
+
+### Contexte
+
+Étend `dev/placement-panel.html` (jalon 1 de l'éditeur, "un seul outil construit par jalons
+successifs", voir `docs/inbox.md`) : ajouter/retirer/éditer les `ComponentMount` d'une couche, avec
+un formulaire dédié par type de composant. Les 9 scènes sont désormais des scènes dynamiques (S8,
+migration précédente) — `/update-scene` (session 4/6) accepte déjà n'importe laquelle d'entre elles.
+
+### Périmètre
+
+**Inclus :**
+- Pour chaque couche de la scène sélectionnée : lister ses `ComponentMount`, bouton retrait par
+  composant, formulaire d'édition de ses `options` (par type), sélecteur + bouton d'ajout d'un
+  nouveau composant (les 12 types composables — `DotGridBackground` exclu, singleton du fond de
+  page, jamais monté dans une couche de scène).
+- Bascule littéral/`$bind` par champ (owner, 2026-07-05) : chaque champ a un bouton "valeur fixe" /
+  "lié à l'état" ; le second bascule l'input en champ texte pour le chemin d'état.
+- Sauvegarde via `POST /update-scene` (`scene-data-server.js`, session 4/6) — la configuration
+  complète de la scène est envoyée à chaque action (ajout/retrait/édition), pas de sauvegarde
+  partielle.
+- `dev/component-field-schemas.js` : configuration statique (pas de logique) décrivant, pour
+  chacun des 12 types composables, ses champs éditables (clé, libellé, type d'input, valeur par
+  défaut) — pattern "configuration hors composant" (`CLAUDE.md`).
+
+**Exclu (owner, 2026-07-05, voir `docs/inbox.md`) :**
+- Gestion des couches (ajouter/renommer/réordonner/supprimer une couche entière) — extension future.
+- Placement individuel d'un composant ajouté (`ComponentMount.placement`) — le panneau S7 ne drague
+  que des couches entières ; extension future.
+- Réordonnancement des composants à l'intérieur d'une couche (l'ajout se fait toujours en fin de
+  liste — cohérent avec `mountScene` qui monte dans l'ordre du tableau `components`).
+
+### Acceptance Criteria
+
+| ID | Critère | Vérifiable par |
+|---|---|---|
+| AC-26 | Chaque couche de la scène sélectionnée liste ses `ComponentMount` avec un bouton de retrait | visuel |
+| AC-27 | Retirer un composant met à jour la config locale et déclenche `POST /update-scene` | visuel + review |
+| AC-28 | Un sélecteur propose les 12 types composables (`DotGridBackground` exclu) + bouton "Ajouter" qui insère un `ComponentMount` en fin de couche avec les valeurs par défaut du schéma | visuel |
+| AC-29 | Chaque champ d'un formulaire a une bascule "valeur fixe"/"lié à l'état" ; en mode lié, la valeur sauvegardée est `{ $bind: <chemin saisi> }` | visuel |
+| AC-30 | `dev/component-field-schemas.js` couvre les 12 types composables, un schéma par type reflétant exactement la signature de sa factory (`components/index.js`) | review |
+| AC-31 | Sauvegarder envoie la `SceneConfig` complète (pas seulement la couche modifiée) à `/update-scene` | review |
+
+> Règle : chaque AC est vérifiable de façon autonome. "Fonctionne correctement" n'est pas un AC.
+
+### Comportements
+
+**Cas nominaux**
+1. Sélectionner une scène → `renderScene` (existant, S7) affiche en plus, pour chaque couche, ses
+   composants montés + un formulaire par composant + le sélecteur d'ajout.
+2. Éditer un champ → mise à jour de la config locale (pas de sauvegarde tant que le bouton
+   "Enregistrer" du composant n'est pas cliqué — cohérent avec le pattern existant de
+   `saveLayerPlacement`, pas de sauvegarde au clavier).
+3. Ajouter un composant → nouveau `ComponentMount` avec les valeurs par défaut de son schéma, inséré
+   en fin de `layer.components`, sauvegarde immédiate (pas de brouillon non sauvegardé qui
+   disparaîtrait à un changement de scène).
+
+**Cas d'erreur**
+- `POST /update-scene` échoue (validation, réseau) → message d'erreur affiché, config locale
+  inchangée (pas de désynchronisation avec le fichier sur disque).
+
+**Edge cases**
+- Couche sans composant (`components: []`, ex. `cam-mini` de `codage`) → liste vide + sélecteur
+  d'ajout seul, pas un cas d'erreur.
+- Champ `lines` de `TextList` (tableau, pas un scalaire) → un textarea, une ligne = un élément du
+  tableau ; la bascule `$bind` s'applique au champ entier (déjà le cas dans `fin`/`starting`,
+  `{ lines: { $bind: 'recapLines' } }`).
+
+### Fichiers
+
+| Fichier | Action | Notes |
+|---|---|---|
+| `dev/component-field-schemas.js` | créer | schémas des 12 types composables (AC-30) |
+| `dev/placement-panel.html` | modifier | UI de composition par couche (AC-26 à AC-29, AC-31) |
+
+> Règle de cross-check (avant de déclarer "done") :
+> - Chaque AC → implémenté et vérifiable
+> - Chaque type défini → utilisé par au moins un fichier listé
+> - Chaque fichier listé → existe ou est créé dans cette session

@@ -10,8 +10,13 @@
     en rectangles déplaçables à la souris. Les couches sans `placement` (CSS scopé existant) sont
     affichées mais non déplaçables — hors scope V1 (pas d'insertion de placement, seulement
     déplacement d'un placement existant).
-    Persistance (session 5/5) : bouton "Sauvegarder" -> POST vers dev/placement-server.js
+    Persistance placement (S7) : bouton "Sauvegarder" -> POST vers dev/placement-server.js
     (bun dev/placement-server.js, outil de dev séparé, jamais lancé en live).
+
+    Composition (S8 session 5/6) : ajouter/retirer/éditer les ComponentMount d'une couche, un
+    formulaire par type (dev/component-field-schemas.js) -> POST vers dev/scene-data-server.js
+    (/update-scene, bun dev/scene-data-server.js, S8 session 4/6). Gestion des couches et placement
+    par composant individuel restent hors scope (voir docs/inbox.md).
   -->
   <link rel="stylesheet" href="../tokens.css">
   <style>
@@ -37,7 +42,7 @@
     }
 
     #panel {
-      width: 380px; flex-shrink: 0; padding: 24px; overflow-y: auto;
+      width: 420px; flex-shrink: 0; padding: 24px; overflow-y: auto;
       border-left: var(--border-rule); display: flex; flex-direction: column; gap: 16px;
     }
     #panel h1 { font-family: var(--font-serif); font-size: 22px; color: var(--color-gold); }
@@ -45,10 +50,12 @@
       font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
       letter-spacing: var(--tracking-label); text-transform: uppercase; margin-top: 8px;
     }
-    select {
+    select, input[type="text"], input[type="number"], textarea {
       width: 100%; padding: 6px; background: var(--color-bg-widget); color: var(--color-text-primary);
-      border: var(--border-rule); border-radius: var(--radius-md);
+      border: var(--border-rule); border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 12px;
+      box-sizing: border-box;
     }
+    textarea { min-height: 60px; resize: vertical; }
     .layer-row {
       display: flex; flex-direction: column; gap: 4px; padding: 10px;
       border: var(--border-rule); border-radius: var(--radius-md);
@@ -65,6 +72,22 @@
     .layer-row button:hover { background: rgba(200,185,122,0.12); }
     .layer-row button:disabled { opacity: 0.4; cursor: not-allowed; }
     #status { font-size: 12px; color: var(--color-text-mid); min-height: 16px; }
+
+    /* Composition (S8 session 5/6) */
+    .components-section { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+    .component-block {
+      display: flex; flex-direction: column; gap: 6px; padding: 8px;
+      border: 1px dashed var(--color-text-mid); border-radius: var(--radius-md);
+    }
+    .component-head { display: flex; justify-content: space-between; align-items: center; }
+    .component-type { color: var(--color-gold); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .field-row { display: flex; align-items: center; gap: 6px; }
+    .field-row label { flex: 0 0 auto; font-size: 11px; color: var(--color-text-mid); min-width: 90px; }
+    .field-row input, .field-row select, .field-row textarea { flex: 1; }
+    .bind-toggle { flex: 0 0 auto; padding: 4px 6px; font-size: 10px; }
+    .add-component-row { display: flex; gap: 6px; margin-top: 4px; }
+    .add-component-row select { flex: 1; }
+    .add-component-row button { flex: 0 0 auto; }
   </style>
 </head>
 <body>
@@ -85,8 +108,10 @@
   <script type="module">
     import { SCENE_CONFIGS, loadDynamicScenes } from '../scenes/registry.js';
     import { OBS_SCENE_MAP } from '../relay/obs-scene-map.js';
+    import { COMPONENT_FIELD_SCHEMAS, COMPOSABLE_COMPONENT_NAMES } from './component-field-schemas.js';
 
     const PLACEMENT_SERVER_URL = 'http://localhost:4459/save-placement';
+    const SCENE_DATA_SERVER_URL = 'http://localhost:4460/update-scene';
 
     // Les 9 scènes historiques sont désormais des scènes dynamiques (JSON, S8 migration) —
     // SCENE_CONFIGS est vide tant que ce chargement n'a pas résolu (review S8 session 4/6).
@@ -107,7 +132,9 @@
     /** @type {Document | null} */
     let indexDoc = null;
     let currentSceneId = Object.keys(SCENE_CONFIGS)[0];
-    /** État local des placements édités (copie mutable, pas SCENE_CONFIGS directement). */
+    /** Copie de travail mutable de la scène courante (placement ET composition) — jamais SCENE_CONFIGS directement. */
+    let liveConfig = null;
+    /** État local des placements édités (sous-ensemble de liveConfig, pour le drag). */
     let livePlacements = {};
     /** Valeurs d'origine (au chargement de la scène), pour le bouton "Réinitialiser". */
     let originalPlacements = {};
@@ -143,7 +170,11 @@
     document.getElementById('reset-all-btn').addEventListener('click', resetAllPlacements);
 
     function renderScene() {
-      const config = SCENE_CONFIGS[currentSceneId];
+      // Copie de travail unique : placement ET composition mutent liveConfig, jamais SCENE_CONFIGS
+      // directement (S8 session 5/6 — évite qu'une sauvegarde de composition écrase un placement
+      // fraîchement glissé-déposé avec une valeur périmée).
+      liveConfig = structuredClone(SCENE_CONFIGS[currentSceneId]);
+      const config = liveConfig;
       const template = indexDoc?.querySelector(`template[data-scene="${currentSceneId}"]`);
 
       surface.innerHTML = '';
@@ -277,6 +308,8 @@
           row.appendChild(btnRow);
         }
 
+        row.appendChild(renderComponentsSection(layer));
+
         layerList.appendChild(row);
       });
     }
@@ -302,12 +335,180 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sceneId: currentSceneId, layerName, placement: livePlacements[layerName] }),
         });
-        statusEl.textContent = response.ok
-          ? `Sauvegardé : ${currentSceneId}.scene.json — ${layerName}`
-          : `Échec (${response.status})`;
+        if (response.ok) {
+          // Synchronise liveConfig avec la valeur sauvegardée — évite qu'une sauvegarde de
+          // composition ultérieure (POST /update-scene, config complète) n'écrase ce placement
+          // avec la valeur périmée du chargement de la scène (S8 session 5/6, review).
+          const layer = liveConfig.layers.find((l) => l.name === layerName);
+          if (layer) layer.placement = { ...livePlacements[layerName] };
+          statusEl.textContent = `Sauvegardé : ${currentSceneId}.scene.json — ${layerName}`;
+        } else {
+          statusEl.textContent = `Échec (${response.status})`;
+        }
       } catch {
         statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/placement-server.js"';
       }
+    }
+
+    // ─── Composition (S8 session 5/6) ────────────────────────────────────────
+
+    /** @param {unknown} value @returns {value is { $bind: string }} */
+    function isBoundValue(value) {
+      return typeof value === 'object' && value !== null && typeof value.$bind === 'string';
+    }
+
+    async function saveSceneConfig(label) {
+      statusEl.textContent = 'Sauvegarde en cours...';
+      try {
+        const response = await fetch(SCENE_DATA_SERVER_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneId: currentSceneId, sceneConfig: liveConfig }),
+        });
+        statusEl.textContent = response.ok
+          ? `Sauvegardé : ${label}`
+          : `Échec (${response.status})`;
+      } catch {
+        statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/scene-data-server.js"';
+      }
+    }
+
+    /** Construit le formulaire d'un ComponentMount — se reconstruit lui-même sur bascule $bind. */
+    function buildComponentBlock(layer, mountIndex) {
+      const mount = layer.components[mountIndex];
+      const block = document.createElement('div');
+      block.className = 'component-block';
+
+      const head = document.createElement('div');
+      head.className = 'component-head';
+      const title = document.createElement('span');
+      title.className = 'component-type';
+      title.textContent = mount.component;
+      head.appendChild(title);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = 'Retirer';
+      removeBtn.addEventListener('click', () => {
+        layer.components.splice(mountIndex, 1);
+        saveSceneConfig(`retrait ${mount.component} (${layer.name})`);
+        renderLayerList(liveConfig);
+      });
+      head.appendChild(removeBtn);
+      block.appendChild(head);
+
+      const schema = COMPONENT_FIELD_SCHEMAS[mount.component] ?? [];
+      schema.forEach((field) => {
+        const row = document.createElement('div');
+        row.className = 'field-row';
+
+        const labelEl = document.createElement('label');
+        labelEl.textContent = field.label;
+        row.appendChild(labelEl);
+
+        const currentValue = mount.options[field.key] ?? field.default;
+        const bound = isBoundValue(currentValue);
+
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'bind-toggle';
+        toggle.textContent = bound ? 'lié' : 'fixe';
+        toggle.title = "Basculer valeur fixe / liée à l'état";
+        toggle.addEventListener('click', () => {
+          mount.options[field.key] = isBoundValue(mount.options[field.key])
+            ? field.default
+            : { $bind: '' };
+          const fresh = buildComponentBlock(layer, mountIndex);
+          block.replaceWith(fresh);
+        });
+        row.appendChild(toggle);
+
+        if (bound) {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.placeholder = "chemin d'état (ex: subjectLine)";
+          input.value = /** @type {{$bind: string}} */ (currentValue).$bind ?? '';
+          input.addEventListener('input', () => { mount.options[field.key] = { $bind: input.value }; });
+          row.appendChild(input);
+        } else if (field.type === 'select') {
+          const select = document.createElement('select');
+          field.choices.forEach((choice) => {
+            const opt = document.createElement('option');
+            opt.value = choice;
+            opt.textContent = choice;
+            select.appendChild(opt);
+          });
+          select.value = String(currentValue);
+          select.addEventListener('change', () => { mount.options[field.key] = select.value; });
+          row.appendChild(select);
+        } else if (field.type === 'textarea') {
+          const textarea = document.createElement('textarea');
+          textarea.value = Array.isArray(currentValue) ? currentValue.join('\n') : '';
+          textarea.addEventListener('input', () => { mount.options[field.key] = textarea.value.split('\n'); });
+          row.appendChild(textarea);
+        } else if (field.type === 'number') {
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.step = 'any';
+          input.value = String(currentValue);
+          input.addEventListener('input', () => { mount.options[field.key] = Number(input.value); });
+          row.appendChild(input);
+        } else {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = String(currentValue ?? '');
+          input.addEventListener('input', () => { mount.options[field.key] = input.value; });
+          row.appendChild(input);
+        }
+
+        block.appendChild(row);
+      });
+
+      if (schema.length > 0) {
+        const saveBtn = document.createElement('button');
+        saveBtn.textContent = 'Enregistrer';
+        saveBtn.addEventListener('click', () => saveSceneConfig(`${mount.component} (${layer.name})`));
+        block.appendChild(saveBtn);
+      }
+
+      return block;
+    }
+
+    function renderComponentsSection(layer) {
+      const section = document.createElement('div');
+      section.className = 'components-section';
+
+      layer.components.forEach((_mount, index) => {
+        section.appendChild(buildComponentBlock(layer, index));
+      });
+
+      const addRow = document.createElement('div');
+      addRow.className = 'add-component-row';
+
+      const select = document.createElement('select');
+      COMPOSABLE_COMPONENT_NAMES.forEach((name) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+      });
+      addRow.appendChild(select);
+
+      const addBtn = document.createElement('button');
+      addBtn.textContent = 'Ajouter';
+      addBtn.addEventListener('click', () => {
+        const componentName = select.value;
+        const schema = COMPONENT_FIELD_SCHEMAS[componentName] ?? [];
+        /** @type {Record<string, unknown>} */
+        const options = {};
+        schema.forEach((field) => { options[field.key] = field.default; });
+        layer.components.push({ component: componentName, options });
+        saveSceneConfig(`ajout ${componentName} (${layer.name})`);
+        renderLayerList(liveConfig);
+      });
+      addRow.appendChild(addBtn);
+
+      section.appendChild(addRow);
+      return section;
     }
 
     await loadIndexHtml();

@@ -62,6 +62,20 @@ donnée, même chemin de rendu qu'avant), mais pas confirmé visuellement.
 
 ---
 
+## Gestion des couches — hors scope de la session 5/6 (owner, 2026-07-05)
+
+Session 5/6 couvre uniquement la composition à l'intérieur des couches existantes (ajouter/retirer/
+éditer un `ComponentMount`). "Gestion des couches" (ajouter/renommer/réordonner/supprimer une couche
+entière, listée dans le Jalon 2 ci-dessous) reste une extension future non cadrée, à planifier
+séparément quand le besoin redevient concret.
+
+Drag & drop par composant individuel (`ComponentMount.placement`, S8) également hors scope de la
+session 5/6 — le panneau S7 ne fait glisser que des couches entières (`layer.placement`). Un
+composant ajouté via la session 5/6 n'a pas de position éditable dans ce panneau ; extension future
+tracée ici, pas anticipée.
+
+---
+
 ## Système multi-animations de fond (confirmé par l'owner, 2026-07-04)
 
 L'owner compte avoir **plusieurs animations de fond** à terme (DotGrid + au moins une autre) — pas
