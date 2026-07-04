@@ -25,9 +25,15 @@ export const sceneConfig = {
       placement: { x: 40, y: 40, width: 1060, height: 800 },
     },
     {
-      // Crédit source (titre + auteur + plateforme)
+      // Crédit source (titre + auteur + plateforme) (S8 : label+divider en composants, valeurs
+      // dynamiques toujours via react.wire.js)
       name: 'source-credit',
-      components: [],
+      components: [
+        { component: 'TextLabel', options: { text: 'Source', className: 'react-credit-label', tag: 'span' } },
+        { component: 'Divider', options: { className: 'react-credit-v' } },
+        { component: 'TextLabel', options: { text: '—', className: 'react-credit-title', tag: 'span' } },
+        { component: 'TextLabel', options: { text: '', className: 'react-credit-platform', tag: 'span' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
       placement: { x: 40, y: 858, width: 1060, height: 76 },
     },
@@ -46,7 +52,8 @@ export const sceneConfig = {
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
-      // HUD bas : durée
+      // HUD bas : durée — contient un wrapper imbriqué (.react-hud-pair, label+valeur groupés),
+      // pas trivialement aplatissable avec des composants leaf-only. Hors scope migration S8.
       name: 'hud',
       components: [],
       visibility: { full: true, minimal: false, hidden: false },

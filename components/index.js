@@ -460,19 +460,28 @@ export function AlertBanner({ displayDuration = 5000 } = {}) {
  * Rectangle bordé — placeholder visuel générique (caméra, capture, zone d'accueil OBS).
  * Statique (pas de `update`) : aucun cas d'usage lié aux données aujourd'hui.
  *
- * @param {{ borderRadius?: string, borderColor?: string, background?: string }} [options]
+ * @param {{ borderRadius?: string, borderColor?: string, background?: string, className?: string }} [options]
  * @returns {{ el: HTMLDivElement }}
+ *
+ * `className` (S8, migration) : si fourni, le style (dimensions fixes, marges) vient à 100% d'une
+ * classe CSS existante — utile quand la boîte n'occupe pas 100%/100% de son placement (ex. une
+ * cam mini de taille fixe dans une colonne flex). `borderRadius`/`borderColor`/`background` sont
+ * ignorés dans ce cas.
  */
-export function Box({ borderRadius = 'var(--radius-md)', borderColor = 'var(--border-panel)', background = 'var(--color-bg-panel)' } = {}) {
+export function Box({ borderRadius = 'var(--radius-md)', borderColor = 'var(--border-panel)', background = 'var(--color-bg-panel)', className } = {}) {
   const el = document.createElement('div');
-  el.style.cssText = `
-    width: 100%;
-    height: 100%;
-    border-radius: ${borderRadius};
-    border: ${borderColor};
-    background: ${background};
-    box-sizing: border-box;
-  `;
+  if (className !== undefined) {
+    el.className = className;
+  } else {
+    el.style.cssText = `
+      width: 100%;
+      height: 100%;
+      border-radius: ${borderRadius};
+      border: ${borderColor};
+      background: ${background};
+      box-sizing: border-box;
+    `;
+  }
   return { el };
 }
 
@@ -485,13 +494,15 @@ export function Box({ borderRadius = 'var(--radius-md)', borderColor = 'var(--bo
  * @param {{ orientation?: 'horizontal' | 'vertical', thickness?: string, color?: string, className?: string }} [options]
  * @returns {{ el: HTMLDivElement }}
  *
- * `className` (S8, migration) : si fourni, le style vient à 100% d'une classe CSS existante de la
- * scène (marges, dimensions exactes déjà en place) — `orientation`/`thickness`/`color` sont ignorés
- * dans ce cas. Sans `className`, comportement générique par défaut (nouvelle scène sans CSS dédié).
+ * `className` (S8, migration) : si fourni (même vide `''`), le style vient à 100% du CSS existant
+ * de la scène (marges, dimensions déjà en place, y compris un sélecteur descendant type
+ * `.parent div` qui ne dépend d'aucune classe sur l'élément lui-même) — `orientation`/`thickness`/
+ * `color` sont ignorés dans ce cas. `className` absent (`undefined`) = comportement générique par
+ * défaut (nouvelle scène sans CSS dédié).
  */
 export function Divider({ orientation = 'horizontal', thickness = '1px', color = 'var(--color-rule)', className } = {}) {
   const el = document.createElement('div');
-  if (className) {
+  if (className !== undefined) {
     el.className = className;
   } else {
     const isHorizontal = orientation === 'horizontal';
@@ -510,13 +521,15 @@ export function Divider({ orientation = 'horizontal', thickness = '1px', color =
  * @param {{ text?: string, font?: 'serif' | 'mono', size?: string, color?: string, weight?: string, className?: string, tag?: string }} [options]
  * @returns {{ el: HTMLElement, update: (opts: { text?: string }) => void }}
  *
- * `className` (S8, migration) : si fourni, le style (police, taille, couleur, marges) vient à 100%
- * d'une classe CSS existante de la scène — `font`/`size`/`color`/`weight` sont ignorés dans ce cas.
+ * `className` (S8, migration) : si fourni (même vide `''`), le style (police, taille, couleur,
+ * marges) vient à 100% du CSS existant de la scène — `font`/`size`/`color`/`weight` sont ignorés
+ * dans ce cas. Une chaîne vide est utile quand le CSS d'origine cible l'élément via un sélecteur
+ * descendant (ex. `.creation-name-block h1`), sans classe sur l'élément lui-même.
  * `tag` (défaut `'div'`) permet `'h1'`/`'span'` si la sémantique du CSS d'origine en dépend.
  */
 export function TextLabel({ text = '', font = 'serif', size = '16px', color = 'var(--color-text-primary)', weight = '400', className, tag = 'div' } = {}) {
   const el = document.createElement(tag);
-  if (className) {
+  if (className !== undefined) {
     el.className = className;
   } else {
     el.style.cssText = `

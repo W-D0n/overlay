@@ -18,7 +18,11 @@ export const sceneConfig = {
       visibility: { full: true, minimal: true, hidden: false },
     },
     {
-      // Nom + message d'attente + sujet du jour
+      // Nom + message d'attente + sujet du jour. Reste en HTML statique (S8) : la couche `links`
+      // est imbriquée à l'intérieur (contrainte de centrage flex), et les composants s'ajoutent
+      // toujours en fin de conteneur (appendChild) — componentiser tag/name/rule ici les ferait
+      // apparaître APRÈS les liens au lieu d'avant. Pas de solution propre sans un mécanisme
+      // d'ordre d'insertion explicite (hors scope, aucun besoin concret ne le justifie).
       name: 'message',
       components: [],
       visibility: { full: true, minimal: true, hidden: false },

@@ -18,21 +18,26 @@ export const sceneConfig = {
       visibility: { full: true, minimal: true, hidden: false },
     },
     {
-      // Cam gauche (D0n) + cam droite (invité) — placeholders visuels
+      // Cam gauche (D0n) + cam droite (invité) — placeholders visuels. Couche composite (3 enfants
+      // indépendamment positionnés en CSS) — hors scope migration S8, voir docs/specs/scene-definition-v2.md.
       name: 'cams',
       components: [],
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
-      // Fiches nom D0n + invité
+      // Fiches nom D0n + invité — couche composite (2 cartes), même exclusion que `cams`.
       name: 'fiches',
       components: [],
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
-      // Sujet de l'interview
+      // Sujet de l'interview (S8 : label+divider en composants, texte dynamique via interview.wire.js)
       name: 'subject',
-      components: [],
+      components: [
+        { component: 'TextLabel', options: { text: 'Sujet', className: 'int-subject-label', tag: 'span' } },
+        { component: 'Divider', options: { className: 'int-subject-v' } },
+        { component: 'TextLabel', options: { text: '—', className: 'int-subject-text subject-text', tag: 'span' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
       placement: { x: 40, y: 1000, width: 1520, height: 60 },
     },

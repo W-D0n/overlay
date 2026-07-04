@@ -35,9 +35,13 @@ export const sceneConfig = {
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
-      // Prochain stream
+      // Prochain stream (S8 : label en composant, valeurs dynamiques via fin.wire.js)
       name: 'next-stream',
-      components: [],
+      components: [
+        { component: 'TextLabel', options: { text: 'Prochain stream', className: 'fin-label', tag: 'span' } },
+        { component: 'TextLabel', options: { text: 'À venir', className: 'fin-next-when' } },
+        { component: 'TextLabel', options: { text: '', className: 'fin-next-topic' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
     },
     {

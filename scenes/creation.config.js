@@ -28,15 +28,24 @@ export const sceneConfig = {
       placement: { x: 40, y: 40, width: 1360, height: 992 },
     },
     {
-      // Cam mini + nom
+      // Cam mini + nom (S8 : composants, h1 sans classe propre — stylé via sélecteur descendant
+      // `.creation-name-block h1`, d'où className: '' pour TextLabel)
       name: 'cam-mini',
-      components: [],
+      components: [
+        { component: 'TextLabel', options: { text: 'D0n', className: '', tag: 'h1' } },
+        { component: 'Box', options: { className: 'creation-cam-mini' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
-      // Outil actif (nom, détail, app)
+      // Outil actif (nom, détail, app) (S8 : label en composant, valeurs dynamiques via creation.wire.js)
       name: 'tool',
-      components: [],
+      components: [
+        { component: 'TextLabel', options: { text: 'Outil actif', className: 'creation-label', tag: 'span' } },
+        { component: 'TextLabel', options: { text: '—', className: 'creation-tool-name' } },
+        { component: 'TextLabel', options: { text: '', className: 'creation-tool-detail' } },
+        { component: 'TextLabel', options: { text: '', className: 'creation-tool-app' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
