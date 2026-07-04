@@ -84,8 +84,15 @@
 
   <script type="module">
     import { SCENE_CONFIGS } from '../scenes/registry.js';
+    import { OBS_SCENE_MAP } from '../relay/obs-scene-map.js';
 
     const PLACEMENT_SERVER_URL = 'http://localhost:4459/save-placement';
+
+    /** Nom(s) de scène OBS pointant vers chaque mode overlay — affichage seulement. */
+    const OBS_NAMES_BY_SCENE = Object.entries(OBS_SCENE_MAP).reduce((acc, [obsName, sceneId]) => {
+      (acc[sceneId] ??= []).push(obsName);
+      return acc;
+    }, /** @type {Record<string, string[]>} */ ({}));
 
     const preview = document.getElementById('preview');
     const surface = document.getElementById('preview-surface');
@@ -120,7 +127,8 @@
     Object.keys(SCENE_CONFIGS).forEach((id) => {
       const opt = document.createElement('option');
       opt.value = id;
-      opt.textContent = id;
+      const obsNames = OBS_NAMES_BY_SCENE[id];
+      opt.textContent = obsNames ? `${obsNames.join(', ')} (${id})` : id;
       sceneSelect.appendChild(opt);
     });
     sceneSelect.value = currentSceneId;
