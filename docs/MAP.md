@@ -68,7 +68,16 @@ appeler `loadDynamicScenes()` et son mécanisme d'écriture réécrit en JSON pu
 `dev/placement-server.js`, remplace la réécriture par regex sur source JS). `protocol.test.js` bascule
 sur l'import JSON natif Bun. `bun test` : 114/114. **Vérification visuelle OBS/navigateur des 9 scènes
 toujours à faire par l'owner** (pas d'outil de screenshot dans cet environnement). Migration `jeu` vers
-`AlertBanner`/`PollBar` actée mais différée après S8 (owner, voir `docs/inbox.md`). | 🔄 en cours (4/6 + migration 9 scènes faits, reste sessions 5-6) |
+`AlertBanner`/`PollBar` actée mais différée après S8 (owner, voir `docs/inbox.md`). Session 5/6
+**terminée** (2026-07-05, UI de composition) : `dev/placement-panel.html` étendu — chaque couche liste
+ses `ComponentMount` avec formulaire dédié par type (`dev/component-field-schemas.js`, 12 types
+composables, `DotGridBackground` exclu), bascule valeur fixe/`$bind` par champ, ajout/retrait
+sauvegardent immédiatement (`POST /update-scene`), édition de champ attend le bouton "Enregistrer".
+`liveConfig` devient la copie de travail unique (placement + composition) pour éviter qu'une
+sauvegarde de composition n'écrase un placement fraîchement glissé-déposé. Gestion des couches et
+placement par composant individuel restent hors scope (décision owner, `docs/inbox.md`). Vérifié
+bout en bout (flux ajout-composant simulé contre un vrai `scene-data-server`, persistance confirmée
+sur disque). `bun test` : 114/114. | 🔄 en cours (4/6, migration 9 scènes, 5/6 faits, reste session 6/6) |
 | Épopée | Éditeur complet au-delà de S6/S8 (bibliothèque de transitions, export/import config), skill recherche graphique | ⬜ hors scope |
 
 ## Détail S1 (livré)
