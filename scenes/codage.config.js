@@ -31,9 +31,15 @@ export const sceneConfig = {
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
-      // Contexte IDE : fichier actif, branche git, stack
+      // Contexte IDE : fichier actif, branche git, stack (S8 : label en composant, valeurs dynamiques
+      // toujours gérées par codage.wire.js — querySelector par className, transparent au wire).
       name: 'ide-context',
-      components: [],
+      components: [
+        { component: 'TextLabel', options: { text: 'Fichier actif', className: 'cod-label', tag: 'span' } },
+        { component: 'TextLabel', options: { text: '—', className: 'file-name' } },
+        { component: 'TextLabel', options: { text: '', className: 'git-branch' } },
+        { component: 'TextLabel', options: { text: '', className: 'stack-info' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
     },
     {

@@ -482,15 +482,23 @@ export function Box({ borderRadius = 'var(--radius-md)', borderColor = 'var(--bo
  * Ligne fine — séparateur horizontal ou vertical.
  * Statique (pas de `update`).
  *
- * @param {{ orientation?: 'horizontal' | 'vertical', thickness?: string, color?: string }} [options]
+ * @param {{ orientation?: 'horizontal' | 'vertical', thickness?: string, color?: string, className?: string }} [options]
  * @returns {{ el: HTMLDivElement }}
+ *
+ * `className` (S8, migration) : si fourni, le style vient à 100% d'une classe CSS existante de la
+ * scène (marges, dimensions exactes déjà en place) — `orientation`/`thickness`/`color` sont ignorés
+ * dans ce cas. Sans `className`, comportement générique par défaut (nouvelle scène sans CSS dédié).
  */
-export function Divider({ orientation = 'horizontal', thickness = '1px', color = 'var(--color-rule)' } = {}) {
+export function Divider({ orientation = 'horizontal', thickness = '1px', color = 'var(--color-rule)', className } = {}) {
   const el = document.createElement('div');
-  const isHorizontal = orientation === 'horizontal';
-  el.style.cssText = isHorizontal
-    ? `width: 100%; height: ${thickness}; background: ${color};`
-    : `width: ${thickness}; height: 100%; background: ${color};`;
+  if (className) {
+    el.className = className;
+  } else {
+    const isHorizontal = orientation === 'horizontal';
+    el.style.cssText = isHorizontal
+      ? `width: 100%; height: ${thickness}; background: ${color};`
+      : `width: ${thickness}; height: 100%; background: ${color};`;
+  }
   return { el };
 }
 
@@ -499,17 +507,25 @@ export function Divider({ orientation = 'horizontal', thickness = '1px', color =
 /**
  * Texte stylé générique — titres, labels, valeurs.
  *
- * @param {{ text?: string, font?: 'serif' | 'mono', size?: string, color?: string, weight?: string }} [options]
- * @returns {{ el: HTMLDivElement, update: (opts: { text?: string }) => void }}
+ * @param {{ text?: string, font?: 'serif' | 'mono', size?: string, color?: string, weight?: string, className?: string, tag?: string }} [options]
+ * @returns {{ el: HTMLElement, update: (opts: { text?: string }) => void }}
+ *
+ * `className` (S8, migration) : si fourni, le style (police, taille, couleur, marges) vient à 100%
+ * d'une classe CSS existante de la scène — `font`/`size`/`color`/`weight` sont ignorés dans ce cas.
+ * `tag` (défaut `'div'`) permet `'h1'`/`'span'` si la sémantique du CSS d'origine en dépend.
  */
-export function TextLabel({ text = '', font = 'serif', size = '16px', color = 'var(--color-text-primary)', weight = '400' } = {}) {
-  const el = document.createElement('div');
-  el.style.cssText = `
-    font-family: var(--font-${font});
-    font-size: ${size};
-    color: ${color};
-    font-weight: ${weight};
-  `;
+export function TextLabel({ text = '', font = 'serif', size = '16px', color = 'var(--color-text-primary)', weight = '400', className, tag = 'div' } = {}) {
+  const el = document.createElement(tag);
+  if (className) {
+    el.className = className;
+  } else {
+    el.style.cssText = `
+      font-family: var(--font-${font});
+      font-size: ${size};
+      color: ${color};
+      font-weight: ${weight};
+    `;
+  }
   el.textContent = text;
   return {
     el,

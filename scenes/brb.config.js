@@ -19,9 +19,19 @@ export const sceneConfig = {
       visibility: { full: true, minimal: true, hidden: false },
     },
     {
-      // Bloc gauche : message de pause + activité + musique
+      // Bloc gauche : message de pause + activité + musique (S8 : composants, dynamique géré par brb.wire.js)
       name: 'message',
-      components: [],
+      components: [
+        { component: 'TextLabel', options: { text: '— Pause —', className: 'brb-tag' } },
+        { component: 'TextLabel', options: { text: 'D0n', className: 'brb-name' } },
+        { component: 'Divider', options: { className: 'brb-rule-gold' } },
+        { component: 'TextLabel', options: { text: 'Retour dans quelques minutes.', className: 'brb-message' } },
+        { component: 'TextLabel', options: { text: 'On était en train de travailler', className: 'brb-message' } },
+        { component: 'TextLabel', options: { text: "sur l'atelier.", className: 'brb-activity' } },
+        { component: 'Divider', options: { className: 'brb-divider' } },
+        { component: 'TextLabel', options: { text: 'En ce moment', className: 'brb-song-label' } },
+        { component: 'TextLabel', options: { text: '—', className: 'brb-song' } },
+      ],
       visibility: { full: true, minimal: true, hidden: false },
       placement: { x: 80, y: 80, width: 1020, height: 880 },
     },
@@ -43,9 +53,14 @@ export const sceneConfig = {
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
-      // Bande basse : prochain stream
+      // Bande basse : prochain stream (S8 : composants, dynamique géré par brb.wire.js)
       name: 'next-stream',
-      components: [],
+      components: [
+        { component: 'TextLabel', options: { text: 'Prochain stream', className: 'brb-next-label', tag: 'span' } },
+        { component: 'TextLabel', options: { text: 'À venir', className: 'next-info', tag: 'span' } },
+        { component: 'TextLabel', options: { text: '', className: 'next-topic', tag: 'span' } },
+        { component: 'TextLabel', options: { text: 'twitch.tv/d0natelll0', className: 'brb-footer-link', tag: 'span' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
     },
   ],

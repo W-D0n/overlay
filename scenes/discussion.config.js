@@ -25,8 +25,15 @@ export const sceneConfig = {
       placement: { x: 40, y: 40, width: 1080, height: 960 },
     },
     {
+      // S8 : contenu statique en composants (className = CSS existant, marges/police préservées).
+      // subject-text reste géré par discussion.wire.js (fallback 'En attente' non exprimable en $bind pur).
       name: 'subject',
-      components: [],
+      components: [
+        { component: 'TextLabel', options: { text: 'D0n', className: 'disc-name', tag: 'h1' } },
+        { component: 'Divider', options: { className: 'disc-rule-gold' } },
+        { component: 'TextLabel', options: { text: 'Sujet du moment', className: 'disc-label', tag: 'span' } },
+        { component: 'TextLabel', options: { text: 'En attente', className: 'subject-text' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
@@ -44,8 +51,13 @@ export const sceneConfig = {
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
+      // S8 : idem, last-follow-name reste géré par discussion.wire.js (conditionnel sur type follow).
       name: 'last-follow',
-      components: [],
+      components: [
+        { component: 'TextLabel', options: { text: 'Dernier follow', className: 'disc-label', tag: 'span' } },
+        { component: 'TextLabel', options: { text: '—', className: 'last-follow-name' } },
+        { component: 'TextLabel', options: { text: 'twitch.tv/d0natelll0', className: 'disc-footer' } },
+      ],
       visibility: { full: true, minimal: false, hidden: false },
     },
     {
