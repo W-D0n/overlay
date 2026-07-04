@@ -5,6 +5,8 @@ updated: 2026-07-04
 status: draft
 ---
 
+<!-- Session 4/6 (persistance) ajoutée le 2026-07-04 — voir §Session 4/6 en fin de document. -->
+
 # Spec : scene-definition-v2 (S8 — moteur de scène dynamique, 6 sessions)
 
 ## Contexte
@@ -269,6 +271,136 @@ export function resolveBoundOptions(options, state) {
 - [ ] LAC-02 — Le mécanisme `trigger` (déclencheurs impératifs) n'est prouvé que sur le cas
       `AlertBanner.show()`. D'autres comportements impératifs complexes (ex : le minuteur
       d'affichage HUD de `jeu`, actuellement géré à la main dans `jeu.wire.js` avec
-      `setTimeout`/`clearTimeout`) ne sont pas couverts par cette spec — à traiter au cas par cas
-      pendant la migration (session 3/6), potentiellement via un composant dédié plutôt que
-      d'étendre le mécanisme `trigger` générique.
+      `setTimeout`/`clearTimeout`) ne sont pas couverts par cette spec — migration tracée dans
+      `docs/inbox.md`, décidée **après** la session 4/6 (owner, 2026-07-04), pas pendant.
+
+---
+
+## Session 4/6 — Persistance (2026-07-04)
+
+### Contexte
+
+Créer/modifier/supprimer une scène = écrire/lire une donnée, pas éditer du code (voir §Contexte
+principal). Aujourd'hui `scenes/registry.js` importe chaque scène en dur (9 `import` statiques) —
+ajouter une scène demande d'éditer ce fichier. Décision owner (2026-07-04, 3 options présentées) :
+**format JSON dynamique** pour les scènes créées par l'éditeur, chargées au runtime via `fetch`,
+en complément (pas en remplacement) des 9 scènes existantes qui restent des modules JS statiques
+inchangés — aucune raison de les migrer, elles ne passent pas par l'éditeur avant la session 5/6.
+
+Le `wire.js` optionnel (déjà livré, voir `scene-runtime.js` §Binding déclaratif) rend ceci possible
+sans aucune extension : une scène JSON n'a jamais de `*.wire.js`, elle est montée et pilotée
+entièrement par `applyBindings` (`$bind`/`trigger`).
+
+### Périmètre
+
+**Inclus :**
+- `scenes/registry.js` : nouvelle fonction `loadDynamicScenes()` — charge `scenes/data/manifest.json`
+  (liste d'ids), fetch chaque `scenes/data/<id>.scene.json`, fusionne dans `SCENE_CONFIGS` (aucun
+  wire associé, cohérent avec le mécanisme existant). Manifeste absent/vide → aucune scène
+  dynamique, pas d'erreur (dégradation identique au reste du projet, AD-1).
+- `scene-runtime.js` : `init()` devient async, `await loadDynamicScenes()` avant le montage initial —
+  seul changement de flux ; le montage lui-même (`mountScene`) est inchangé, une scène dynamique
+  suit exactement le même chemin qu'une scène statique.
+- `dev/scene-data-server.js` (dev-only, jamais en live, même avertissement que `placement-server.js`) :
+  3 routes qui écrivent `scenes/data/*.scene.json` + `manifest.json`.
+- `dev/scene-data-format.js` : logique pure de manipulation du manifeste (ajout/retrait d'un id),
+  testée — même séparation logique/effets que `scene-placement-format.js` (S7).
+- `scenes/data/manifest.json` : committé, `[]` initial.
+
+**Exclu (sessions suivantes) :**
+- UI de composition/édition (session 5/6) — cette session ne livre que la couche de données,
+  aucun panneau ne l'utilise encore. Vérifiable uniquement via appels HTTP directs (`curl`/script) +
+  `bun test`, pas visuellement (rien à voir tant que l'UI n'existe pas).
+- UI de création/suppression de scène avec confirmation (session 6/6).
+- Migration des 9 scènes existantes vers le format JSON (non demandée, non nécessaire — elles ne
+  passent pas par l'éditeur avant S5/S6, aucune valeur à les migrer maintenant, zero preemptive code).
+- Verrouillage concurrent (deux sauvegardes simultanées) — même risque accepté que
+  `placement-server.js`/`tuner-server.js` (outil de dev local, un seul utilisateur).
+
+### Acceptance Criteria
+
+| ID | Critère | Vérifiable par |
+|---|---|---|
+| AC-15 | `loadDynamicScenes()` fusionne chaque scène du manifeste dans `SCENE_CONFIGS`, indexée par son `id` | test |
+| AC-16 | `loadDynamicScenes()` face à un manifeste absent (404) ou vide (`[]`) : résout sans erreur, `SCENE_CONFIGS` inchangé | test |
+| AC-17 | `scene-runtime.js` attend `loadDynamicScenes()` avant de monter la scène initiale (`store.currentScene`) — une scène dynamique est montable dès le premier rendu | review |
+| AC-18 | `POST /create-scene` rejette (400) une `sceneConfig` qui échoue `validateSceneConfig`, erreurs renvoyées telles quelles | test |
+| AC-19 | `POST /create-scene` rejette (409) un `id` déjà présent dans `manifest.json` OU dans la liste des 9 ids statiques (`discussion`, `brb`, `codage`, `jeu`, `interview`, `react`, `creation`, `fin`, `starting`) | test |
+| AC-20 | `POST /create-scene` valide écrit `scenes/data/<id>.scene.json` (JSON formaté) et ajoute `id` à `manifest.json` | test |
+| AC-21 | `POST /update-scene` rejette (404) un `id` absent de `manifest.json` — impossible de modifier une scène statique ou inexistante par cette route | test |
+| AC-22 | `POST /update-scene` valide réutilise la même validation qu'AC-18 avant d'écraser le fichier | test |
+| AC-23 | `POST /delete-scene` rejette (404) un `id` absent de `manifest.json` | test |
+| AC-24 | `POST /delete-scene` valide supprime `scenes/data/<id>.scene.json` et retire `id` de `manifest.json` | test |
+| AC-25 | `addSceneToManifest(manifest, id)` / `removeSceneFromManifest(manifest, id)` : logique pure, pas de doublon à l'ajout, retrait d'un id absent = no-op (jamais de throw) | test |
+
+### Format de données
+
+```js
+// scenes/data/manifest.json — liste des ids de scènes créées par l'éditeur
+["ma-scene-perso"]
+
+// scenes/data/ma-scene-perso.scene.json — SceneConfig sérialisé tel quel (déjà 100% JSON-compatible,
+// $bind/trigger sont des objets littéraux, aucune fonction à sérialiser)
+{
+  "id": "ma-scene-perso",
+  "dotgridMode": "discussion",
+  "transition": { "type": "crossfade", "duration": 400, "easing": "easeInOut" },
+  "layers": [
+    {
+      "name": "goldbar",
+      "visibility": { "full": true, "minimal": true, "hidden": true },
+      "components": [{ "component": "GoldBar", "options": {} }]
+    }
+  ]
+}
+```
+
+### Comportements
+
+**Cas nominaux**
+1. Au chargement de la page : `scene-runtime.js` appelle `await loadDynamicScenes()` avant tout
+   montage. `SCENE_CONFIGS` contient alors les 9 scènes statiques + toute scène du manifeste.
+2. Créer une scène : POST `/create-scene` avec une `SceneConfig` complète → validée → écrite →
+   visible au prochain rechargement de la page (pas de hot-reload dans cette session, cohérent avec
+   `placement-server.js`/`tuner-server.js` qui rechargent déjà la page via leur WS `reload-ws` —
+   réutilisable telle quelle si besoin, pas reconstruite ici).
+3. Modifier/supprimer : mêmes garanties (validation, existence dans le manifeste), symétriques.
+
+**Cas d'erreur**
+- `sceneConfig` invalide → 400, `errors` de `validateSceneConfig` renvoyés tels quels (même pattern
+  que `placement-server.js`).
+- `id` déjà pris (création) ou absent (modification/suppression) → 409/404, aucune écriture.
+- Écriture disque échoue (permissions, disque plein) → 500, message d'erreur renvoyé, log serveur —
+  même traitement que `placement-server.js` (`catch` → `console.error` + réponse 500).
+
+**Edge cases**
+- Supprimer une scène actuellement active dans OBS/l'overlay live : le serveur de données n'a aucune
+  visibilité sur l'état live (process séparé). Un `scene.set` ultérieur vers l'id supprimé retombe
+  sur le chemin déjà existant `mountScene` → "scène inconnue" (`console.warn`, scène courante
+  inchangée) — pas un nouveau cas à construire.
+- Manifeste corrompu (JSON invalide) : `loadDynamicScenes()` catch l'erreur de parsing, log un
+  avertissement, traite comme un manifeste vide plutôt que de bloquer le montage de toute la page
+  (une scène dynamique cassée ne doit jamais empêcher les 9 scènes statiques de fonctionner).
+
+### Fichiers
+
+| Fichier | Action | Notes |
+|---|---|---|
+| `scenes/registry.js` | modifier | + `loadDynamicScenes()` (AC-15, AC-16) |
+| `scene-runtime.js` | modifier | `init()` async, `await loadDynamicScenes()` (AC-17) |
+| `scenes/data/manifest.json` | créer | `[]` initial, committé |
+| `dev/scene-data-format.js` | créer | `addSceneToManifest`/`removeSceneFromManifest`, pur (AC-25) |
+| `dev/scene-data-format.test.js` | créer | tests AC-25 |
+| `dev/scene-data-server.js` | créer | 3 routes dev-only (AC-18 à AC-24) |
+
+> Règle de cross-check (avant de déclarer "done") :
+> - Chaque AC → implémenté et vérifiable
+> - Chaque type défini → utilisé par au moins un fichier listé
+> - Chaque fichier listé → existe ou est créé dans cette session
+
+### Lacunes identifiées (session 4/6)
+
+- [ ] LAC-03 — Pas de hot-reload automatique de l'overlay après création/modification/suppression
+      d'une scène dans cette session (rechargement manuel de la page requis). `placement-server.js`
+      et `tuner-server.js` ont déjà un mécanisme `reload-ws` réutilisable — décision différée : à
+      brancher pendant la session 5/6 (UI) si le besoin se confirme, pas anticipé ici.

@@ -4,6 +4,51 @@ Capture d'idées et questions ouvertes. Trier via `/inbox-triage`.
 
 ---
 
+## Migration `jeu` vers composants (`AlertBanner`/`PollBar`) — après S8 session 4/6 (2026-07-04)
+
+`jeu.wire.js` reste la seule scène avec un HUD entièrement en DOM brut : cellule d'alerte avec son
+propre `setTimeout`/`clearTimeout` dupliqué à la main (au lieu d'utiliser `AlertBanner`, qui gère
+déjà son minuteur en interne, voir `components/index.js` §AlertBanner), et cellule de vote en HTML
+statique (au lieu de `PollBar`, S8). Tant que cette migration n'est pas faite, `jeu` ne peut pas être
+recréée/modifiée depuis le futur éditeur (session 5/6) — elle reste une scène "legacy" à wire.js
+obligatoire, comme les couches composites déjà exclues en session 3/6 (interview/cams, codage/cam-mini).
+
+**Décision owner (2026-07-04) :** migrer `jeu` **après** la session 4/6 (persistance) — ordre S8 déjà
+engagé conservé tel quel (session 4/6 → 5/6 → 6/6), la migration de `jeu` se fait en dehors du
+découpage à 6 sessions, une fois la persistance livrée.
+
+---
+
+## Décision tranchée — migration des 9 scènes existantes vers JSON (owner, 2026-07-04)
+
+**Option B retenue** (vs. A "deux mécanismes d'écriture permanents", vs. report à S5/6). Réévaluation
+du coût avant décision : les 9 `scenes/*.config.js` sont déjà des littéraux d'objet purs (vérifié —
+aucun import, aucune interpolation, aucune valeur calculée dans les 9 fichiers), donc mécaniquement
+convertibles en JSON sans changement de logique. Le runtime lit `SCENE_CONFIGS[id]` identiquement,
+que la donnée vienne d'un import statique ou du merge dynamique (`loadDynamicScenes`, S8 session 4/6,
+durci par la review de cette session) — même chemin de code déjà testé, risque de régression visuelle
+bien plus faible que redouté initialement dans ce document.
+
+**Ce qui NE bouge PAS avec cette migration** :
+- `*.wire.js` reste du JS statique importé tel quel (concerne uniquement le format `SceneConfig`).
+- Les `<template data-scene="X">` dans `index.html` restent en place (orthogonal au format de la config).
+
+**Décision associée — aucune protection contre suppression/écrasement (owner, 2026-07-04) :**
+une fois migrées, les 9 scènes (dont `brb`, filet de secours codé en dur dans `scene-runtime.js` —
+`repli sur 'brb'` si la scène demandée est indisponible) sont traitées à égalité avec toute scène
+créée par l'éditeur : `/update-scene`/`/delete-scene` peuvent les modifier/supprimer sans garde
+particulière. Risque accepté explicitement — un seul opérateur local, `scenes/data/*.scene.json`
+committé en git comme les `.config.js` actuels, donc une suppression accidentelle reste récupérable
+via l'historique git, pas une perte définitive.
+
+**Reste à faire** (pas implémenté dans cette conversation, migration = travail concret à planifier) :
+convertir les 9 `scenes/*.config.js` en `scenes/data/*.scene.json`, retirer leurs imports statiques de
+`scenes/registry.js` (`SCENE_CONFIGS`/`STATIC_SCENE_IDS` redevient vide), les ajouter à
+`scenes/data/manifest.json`, revalider visuellement les 9 scènes (formalité, pas un vrai risque de
+régression vu l'analyse ci-dessus).
+
+---
+
 ## Système multi-animations de fond (confirmé par l'owner, 2026-07-04)
 
 L'owner compte avoir **plusieurs animations de fond** à terme (DotGrid + au moins une autre) — pas

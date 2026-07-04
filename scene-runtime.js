@@ -18,7 +18,7 @@ import { resolveTransition, isLayerVisible, resolveDotgridMode, toCssEasing } fr
 import { resolvePlacementStyle } from './placement-resolve.js';
 import { resolveBoundValue, resolveBoundOptions, hasBoundOptions } from './scene-definition-resolve.js';
 import { COMPONENT_REGISTRY } from './component-registry.js';
-import { SCENE_CONFIGS, SCENE_WIRES } from './scenes/registry.js';
+import { SCENE_CONFIGS, SCENE_WIRES, loadDynamicScenes } from './scenes/registry.js';
 
 // ─── État du runtime ──────────────────────────────────────────────────────────
 
@@ -274,10 +274,15 @@ function applyBindings(state) {
 // ─── Montage initial ──────────────────────────────────────────────────────────
 
 /**
- * Initialise le runtime au chargement de la page.
- * @returns {void}
+ * Initialise le runtime au chargement de la page. Les listeners (scène/visibilité/binding) sont
+ * enregistrés AVANT tout `await` réseau (S8 session 4/6, review) : le relais WS démarre sa propre
+ * connexion indépendamment (`store.js`), un message peut donc arriver pendant `loadDynamicScenes()`
+ * — s'il arrive avant que les listeners existent, il serait perdu silencieusement. Le montage
+ * initial est protégé par `if (!current)` : si un `overlay:scene-change` a déjà monté une scène
+ * pendant l'attente, on ne remonte pas par-dessus.
+ * @returns {Promise<void>}
  */
-function init() {
+async function init() {
   bgLayer = /** @type {HTMLElement} */ (document.getElementById('bg-layer'));
   sceneRoot = /** @type {HTMLElement} */ (document.getElementById('scene-root'));
 
@@ -287,6 +292,15 @@ function init() {
   bgLayer.appendChild(grid.el);
 
   currentLevel = store.visibilityLevel;
+
+  document.addEventListener('overlay:scene-change', (e) => handleSceneChange(/** @type {CustomEvent} */ (e).detail));
+  document.addEventListener('overlay:visibility-change', (e) => applyVisibility(/** @type {CustomEvent} */ (e).detail.level));
+  // overlay:morph NON câblé (AD-7 / AC-36)
+  onStateChange(applyBindings); // binding déclaratif (S8) — indépendant des *.wire.js
+
+  await loadDynamicScenes();
+
+  if (current) return; // déjà monté par un overlay:scene-change reçu pendant l'attente ci-dessus
 
   let mounted = mountScene(store.currentScene);
   if (!mounted && store.currentScene !== 'brb') {
@@ -304,12 +318,6 @@ function init() {
     current.root.style.opacity = '1';
   }
   applyGlobalVisibility(currentLevel);
-
-  document.addEventListener('overlay:scene-change', (e) => handleSceneChange(/** @type {CustomEvent} */ (e).detail));
-  document.addEventListener('overlay:visibility-change', (e) => applyVisibility(/** @type {CustomEvent} */ (e).detail.level));
-  // overlay:morph NON câblé (AD-7 / AC-36)
-
-  onStateChange(applyBindings); // binding déclaratif (S8) — indépendant des *.wire.js
 }
 
-init();
+await init();

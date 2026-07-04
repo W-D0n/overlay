@@ -50,7 +50,17 @@ ajoutés à Box/Divider/TextLabel pour réutiliser le CSS existant tel quel (mar
 descendants). Couches non converties (documentées comme exclusions dans chaque config) :
 composites à enfants indépendants (interview/cams+fiches), wrappers imbriqués non aplatissables
 (codage/cam-mini, react/hud), contrainte d'ordre DOM (starting/message). `bun test` + `bun build`
-verts sur tous les fichiers touchés — **vérification visuelle en attente** (owner). | 🔄 en cours (3/6 fait, reste 4-6) |
+verts sur tous les fichiers touchés — **vérification visuelle en attente** (owner). Session 4/6
+**terminée** (persistance) : `scenes/registry.js` (`loadDynamicScenes()`, `STATIC_SCENE_IDS`),
+`scene-runtime.js` (`init()` async, listeners enregistrés avant l'await réseau — fix review),
+`dev/scene-data-server.js` (3 routes CRUD dev-only, verrou manifeste en mémoire), `dev/scene-data-format.js`
+(logique pure manifeste, testée), `scenes/data/manifest.json` (`[]` initial). Review multi-angles
+(8 findings, 6 correctness dont un crash total sur manifeste malformé et une race WS sur l'init async,
+2 conventions/reuse) — tous corrigés et reverifiés (`bun test` 115 verts, tests HTTP manuels bout en
+bout). Décision owner (2026-07-04) : les 9 scènes existantes migreront à terme vers ce même format
+JSON (option B, coût réévalué faible — configs déjà des littéraux purs), aucune protection contre
+suppression via les routes génériques (risque accepté, git = filet de sécurité) — voir `docs/inbox.md`.
+Migration `jeu` vers `AlertBanner`/`PollBar` actée mais différée après S8 (owner, voir `docs/inbox.md`). | 🔄 en cours (4/6 fait, reste 5-6 + migration 9 scènes) |
 | Épopée | Éditeur complet au-delà de S6/S8 (bibliothèque de transitions, export/import config), skill recherche graphique | ⬜ hors scope |
 
 ## Détail S1 (livré)
