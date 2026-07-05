@@ -304,6 +304,7 @@
 
     /** Supprimer une couche entière — jamais `goldbar` (invariant V4, AC-36). */
     function removeLayer(layerName) {
+      if (!window.confirm(`Supprimer la couche "${layerName}" et tous ses composants ? Sauvegardé immédiatement, pas d'annulation dans le panneau (récupérable via git).`)) return;
       liveConfig.layers = liveConfig.layers.filter((l) => l.name !== layerName);
       saveSceneConfig(`suppression couche ${layerName}`);
       renderLayerList(liveConfig);
@@ -543,6 +544,7 @@
       const removeBtn = document.createElement('button');
       removeBtn.textContent = 'Retirer';
       removeBtn.addEventListener('click', () => {
+        if (!window.confirm(`Retirer ce composant "${mount.component}" de la couche "${layer.name}" ? Sauvegardé immédiatement.`)) return;
         layer.components.splice(mountIndex, 1);
         saveSceneConfig(`retrait ${mount.component} (${layer.name})`);
         renderLayerList(liveConfig);

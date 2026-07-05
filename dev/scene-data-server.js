@@ -14,13 +14,15 @@
  *   POST /delete-scene  — `{ sceneId }`, archive le fichier (`scenes/data/archived/<id>.scene.json`,
  *                         S8 session 6/6) + retire l'id du manifeste. Rejette un id absent du
  *                         manifeste. Restauration manuelle (pas d'UI, voir docs/inbox.md).
+ *   WS   /reload-ws     — diffuse `reload` à chaque sauvegarde réussie (create/update/delete), même
+ *                         mécanisme que `tuner-server.js`/`placement-server.js`. `index.html?livereload=1`
+ *                         s'y connecte automatiquement (LAC-03 résolu, 2026-07-05).
  *
  * Logique de manifeste testée séparément (AD-1) : voir `scene-data-format.js`.
  * Toutes les opérations qui lisent-puis-écrivent le manifeste passent par `withManifestLock` —
  * ce process est le seul écrivain de `manifest.json`, la sérialisation en mémoire suffit (pas de
  * verrou fichier) à éliminer la race lecture-modification-écriture entre requêtes concurrentes
  * (review S8 session 4/6).
- * Hot-reload différé (LAC-03, voir docs/specs/scene-definition-v2.md §Session 4/6).
  *
  * Lancement : `bun dev/scene-data-server.js`
  */
@@ -100,6 +102,13 @@ function jsonOk() {
   return new Response('ok', { headers: CORS_HEADERS });
 }
 
+/** @type {Set<import('bun').ServerWebSocket<unknown>>} */
+const reloadClients = new Set();
+
+function broadcastReload() {
+  reloadClients.forEach((client) => client.send('reload'));
+}
+
 /**
  * POST /create-scene — `{ sceneConfig }`.
  * @param {Request} req
@@ -124,6 +133,7 @@ async function handleCreateScene(req) {
     await writeManifest(addSceneToManifest(manifest, sceneConfig.id));
 
     console.info(`[scene-data-server] scène créée — ${sceneConfig.id}`);
+    broadcastReload();
     return jsonOk();
   });
 }
@@ -151,6 +161,7 @@ async function handleUpdateScene(req) {
     await Bun.write(`${DATA_DIR}/${sceneId}.scene.json`, `${JSON.stringify(sceneConfig, null, 2)}\n`);
 
     console.info(`[scene-data-server] scène mise à jour — ${sceneId}`);
+    broadcastReload();
     return jsonOk();
   });
 }
@@ -178,6 +189,7 @@ async function handleDeleteScene(req) {
     await writeManifest(removeSceneFromManifest(manifest, sceneId));
 
     console.info(`[scene-data-server] scène supprimée — ${sceneId}`);
+    broadcastReload();
     return jsonOk();
   });
 }
@@ -191,10 +203,16 @@ const ROUTES = {
 
 Bun.serve({
   port: PORT,
-  async fetch(req) {
+  async fetch(req, server) {
     const url = new URL(req.url);
 
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
+
+    if (url.pathname === '/reload-ws') {
+      const upgraded = server.upgrade(req);
+      return upgraded ? undefined : new Response('upgrade failed', { status: 500 });
+    }
+
     if (req.method !== 'POST') return jsonError('not found', 404);
 
     const handler = ROUTES[url.pathname];
@@ -206,6 +224,11 @@ Bun.serve({
       console.error(`[scene-data-server] échec sur ${url.pathname} :`, err);
       return jsonError(String(err), 500);
     }
+  },
+  websocket: {
+    open(ws) { reloadClients.add(ws); },
+    close(ws) { reloadClients.delete(ws); },
+    message() {},
   },
 });
 
