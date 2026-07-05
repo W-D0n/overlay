@@ -32,8 +32,17 @@
     ET placement-server.js (drag & drop) — un déplacement de couche est donc aussi annulable via la
     section Historique, pas seulement les changements de composition.
 
-    Renommage, réordonnancement des couches et placement par composant individuel restent hors scope
-    (voir docs/inbox.md).
+    Gestion des couches (2026-07-05) : renommer (input inline, invariants V6/goldbar respectés),
+    réordonner (boutons ↑/↓ + glisser-déposer via poignée dédiée) — modifie l'empilement visuel des
+    couches qui se chevauchent. Réutilise POST /update-scene, pas de nouvelle route.
+
+    Placement individuel par composant (2026-07-05) : la preview monte désormais réellement les
+    composants de chaque couche (COMPONENT_REGISTRY, synthèse de couche manquante comme
+    scene-runtime.js) au lieu de ne cloner que le template statique — une scène/couche entièrement
+    dynamique s'affiche enfin. Bouton "Positionner" assigne un `ComponentMount.placement` (rectangle
+    générique, pas de redimensionnement — même limite que le placement de couche, S7 V1) ; devient
+    alors déplaçable (poignée verte, distincte de l'or pour les couches). Auto-sauvegarde au
+    relâchement, comme le reste du panneau.
   -->
   <link rel="stylesheet" href="../tokens.css">
   <style>
@@ -57,6 +66,11 @@
       background: rgba(10,10,12,0.85); color: var(--color-gold);
       font-family: var(--font-mono); font-size: 11px; pointer-events: none; white-space: nowrap;
     }
+    /* Placement individuel par composant (2026-07-05) — outline vert pour distinguer d'un coup
+       d'œil d'un placement de COUCHE (outline or, .placement-handle seul). */
+    .component-handle { outline-color: #7BC8A4; z-index: 5; }
+    .component-handle.dragging { outline-color: #fff; }
+    .component-handle-label { color: #7BC8A4; }
 
     #panel {
       width: 440px; flex-shrink: 0; padding: 0; overflow-y: auto;
@@ -259,6 +273,12 @@
     import { DEFAULT_TRANSITION } from '../protocol.js';
     import { COMPONENT_FIELD_SCHEMAS, COMPOSABLE_COMPONENT_NAMES } from './component-field-schemas.js';
     import { DESIGN_TOKENS, tokenLabel } from './design-tokens.js';
+    // Montage réel des composants dans la preview (2026-07-05) — component-registry.js et
+    // scene-definition-resolve.js sont sûrs à importer ici : aucun des deux n'importe store.js
+    // (contrairement à scenes/registry.js, déjà chargé plus haut sans souci car c'est justement
+    // scenes/registry.js qui expose loadDynamicScenes, pas un import direct des wire.js).
+    import { COMPONENT_REGISTRY } from '../component-registry.js';
+    import { resolveBoundOptions } from '../scene-definition-resolve.js';
 
     const PLACEMENT_SERVER_URL = 'http://localhost:4459/save-placement';
     const SCENE_DATA_SERVER_URL = 'http://localhost:4460/update-scene';
@@ -311,6 +331,8 @@
     let livePlacements = {};
     /** Valeurs d'origine (au chargement de la scène), pour le bouton "Réinitialiser". */
     let originalPlacements = {};
+    /** État local des placements de composants édités, clé `${layerName}::${index}` (2026-07-05). */
+    let liveComponentPlacements = {};
 
     function scalePreview() {
       const scale = Math.min((preview.clientWidth - 40) / 1920, (preview.clientHeight - 40) / 1080);
@@ -435,7 +457,7 @@
       liveConfig.layers.push({ name, components: [], visibility: { full: true, minimal: false, hidden: false } });
       input.value = '';
       saveSceneConfig(`ajout couche ${name}`);
-      renderLayerList(liveConfig);
+      renderScene(); // pas juste renderLayerList : la nouvelle couche doit apparaître dans la preview
     }
 
     /**
@@ -446,7 +468,7 @@
     function removeLayer(layerName) {
       liveConfig.layers = liveConfig.layers.filter((l) => l.name !== layerName);
       saveSceneConfig(`suppression couche ${layerName}`);
-      renderLayerList(liveConfig);
+      renderScene(); // la couche retirée doit disparaître de la preview, pas juste du panneau latéral
     }
 
     /**
@@ -467,7 +489,11 @@
       const layer = liveConfig.layers.find((l) => l.name === oldName);
       layer.name = trimmed;
       saveSceneConfig(`renommage couche ${oldName} → ${trimmed}`);
-      renderLayerList(liveConfig);
+      // renderScene (pas renderLayerList) : une couche renommée ne matche plus le [data-layer]
+      // du template statique existant (si la couche vient d'une scène historique) — le montage
+      // resynthétise une couche vide sous le nouveau nom, ce qui doit être visible immédiatement,
+      // pas silencieux.
+      renderScene();
     }
 
     /**
@@ -482,7 +508,7 @@
       const layers = liveConfig.layers;
       [layers[index], layers[target]] = [layers[target], layers[index]];
       saveSceneConfig('réordonnancement des couches');
-      renderLayerList(liveConfig);
+      renderScene(); // l'ordre de montage change l'empilement visuel — doit se refléter dans la preview
     }
 
     function renderScene() {
@@ -502,10 +528,54 @@
 
       livePlacements = {};
       originalPlacements = {};
+      liveComponentPlacements = {};
       config.layers.forEach((layer) => {
-        if (!layer.placement) return;
-        livePlacements[layer.name] = { ...layer.placement };
-        originalPlacements[layer.name] = { ...layer.placement };
+        if (layer.placement) {
+          livePlacements[layer.name] = { ...layer.placement };
+          originalPlacements[layer.name] = { ...layer.placement };
+        }
+      });
+
+      // Montage réel des composants (2026-07-05) — jusqu'ici la preview ne clonait que le template
+      // statique : une couche entièrement dynamique (ex. `cam` → Box) ou une scène créée par
+      // l'éditeur (aucun template dans index.html) ne montrait littéralement rien. Même logique de
+      // synthèse de couche que scene-runtime.js, en plus léger (pas de wire, pas de transitions —
+      // ce n'est qu'une preview statique).
+      config.layers.forEach((layer) => {
+        let layerEl = wrapper.querySelector(`[data-layer="${layer.name}"]`);
+        if (!layerEl) {
+          layerEl = document.createElement('div');
+          layerEl.dataset.layer = layer.name;
+          wrapper.appendChild(layerEl);
+        }
+
+        layer.components.forEach((mount, index) => {
+          const factory = COMPONENT_REGISTRY[mount.component];
+          if (!factory) {
+            console.warn(`[placement-panel] composant inconnu — ${mount.component}`);
+            return;
+          }
+          /** @type {import('../types.js').ComponentInstance} */
+          let instance;
+          try {
+            // État vide : un champ lié ($bind) s'affiche donc vide/par défaut dans cette preview
+            // statique (pas de store.js ici — importer scenes/registry.js suffisait pour
+            // loadDynamicScenes, mais store.js lui-même reste évité, voir le commentaire d'import
+            // plus haut sur le bug de connexion WS parasite).
+            instance = /** @type {*} */ (factory)(resolveBoundOptions(mount.options ?? {}, {}));
+          } catch (err) {
+            console.warn(`[placement-panel] échec du montage — ${mount.component}`, err);
+            return;
+          }
+          layerEl.appendChild(instance.el);
+
+          if (mount.placement) {
+            const key = `${layer.name}::${index}`;
+            liveComponentPlacements[key] = { ...mount.placement };
+            applyPlacementStyle(instance.el, mount.placement);
+            makeComponentDraggable(instance.el, layer.name, index);
+          }
+        });
       });
 
       config.layers.forEach((layer) => {
@@ -701,6 +771,65 @@
       });
     }
 
+    /**
+     * Rend un composant individuel déplaçable (2026-07-05) — seulement s'il a déjà un `placement`
+     * (même règle que les couches, S7 V1 : pas d'insertion via le drag, voir bouton "Positionner"
+     * pour en assigner un). Sauvegarde automatique au relâchement — pas de bouton "Sauvegarder"
+     * séparé, cohérent avec le reste du panneau (composition, couches) depuis l'historique.
+     * @param {HTMLElement} el
+     * @param {string} layerName
+     * @param {number} index
+     */
+    function makeComponentDraggable(el, layerName, index) {
+      const key = `${layerName}::${index}`;
+      el.classList.add('placement-handle', 'component-handle');
+
+      const label = document.createElement('span');
+      label.className = 'placement-handle-label component-handle-label';
+      const mount = liveConfig.layers.find((l) => l.name === layerName)?.components[index];
+      label.textContent = mount?.component ?? '?';
+      el.appendChild(label);
+
+      let dragging = false;
+      let startMouseX = 0, startMouseY = 0, startX = 0, startY = 0;
+
+      el.addEventListener('mousedown', (e) => {
+        dragging = true;
+        el.classList.add('dragging');
+        const scale = Number(surface.dataset.scale) || 1;
+        startMouseX = e.clientX / scale;
+        startMouseY = e.clientY / scale;
+        startX = liveComponentPlacements[key].x;
+        startY = liveComponentPlacements[key].y;
+        e.preventDefault();
+        e.stopPropagation(); // ne pas aussi déclencher le drag de la couche parente
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        const scale = Number(surface.dataset.scale) || 1;
+        const mouseX = e.clientX / scale;
+        const mouseY = e.clientY / scale;
+        const newX = Math.round(startX + (mouseX - startMouseX));
+        const newY = Math.round(startY + (mouseY - startMouseY));
+        liveComponentPlacements[key] = { ...liveComponentPlacements[key], x: newX, y: newY };
+        applyPlacementStyle(el, liveComponentPlacements[key]);
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!dragging) return;
+        dragging = false;
+        el.classList.remove('dragging');
+
+        const layer = liveConfig.layers.find((l) => l.name === layerName);
+        const droppedMount = layer?.components[index];
+        if (droppedMount) {
+          droppedMount.placement = { ...liveComponentPlacements[key] };
+          saveSceneConfig(`déplacement ${droppedMount.component} (${layerName})`);
+        }
+      });
+    }
+
     function updateLayerRow(layerName) {
       const coordsEl = document.getElementById(`coords-${layerName}`);
       if (coordsEl) {
@@ -730,7 +859,7 @@
           liveConfig.layers.splice(index, 0, moved);
           draggedLayerIndex = null;
           saveSceneConfig('réordonnancement des couches (glisser-déposer)');
-          renderLayerList(liveConfig);
+          renderScene(); // l'ordre de montage change l'empilement visuel — doit se refléter dans la preview
         });
 
         const head = document.createElement('div');
@@ -920,6 +1049,30 @@
       title.textContent = mount.component;
       head.appendChild(title);
 
+      // Placement individuel (2026-07-05) : sans placement, un composant suit le flux DOM normal
+      // (pas déplaçable dans la preview) — "Positionner" lui assigne un rectangle de départ
+      // générique (redimensionnement non supporté, même limite que le placement de couche, S7 V1).
+      const placementBtn = document.createElement('button');
+      placementBtn.className = 'btn btn-ghost btn-small';
+      if (mount.placement) {
+        placementBtn.textContent = 'Retirer le placement';
+        placementBtn.title = 'Repasse ce composant en flux DOM naturel (plus déplaçable individuellement)';
+        placementBtn.addEventListener('click', () => {
+          delete mount.placement;
+          saveSceneConfig(`retrait placement ${mount.component} (${layer.name})`);
+          renderScene();
+        });
+      } else {
+        placementBtn.textContent = 'Positionner';
+        placementBtn.title = 'Assigne un placement individuel — devient déplaçable dans la preview';
+        placementBtn.addEventListener('click', () => {
+          mount.placement = { x: 100, y: 100, width: 300, height: 100 };
+          saveSceneConfig(`positionnement ${mount.component} (${layer.name})`);
+          renderScene();
+        });
+      }
+      head.appendChild(placementBtn);
+
       const removeBtn = document.createElement('button');
       removeBtn.className = 'btn btn-danger btn-small';
       removeBtn.textContent = 'Retirer';
@@ -927,7 +1080,7 @@
       removeBtn.addEventListener('click', () => {
         layer.components.splice(mountIndex, 1);
         saveSceneConfig(`retrait ${mount.component} (${layer.name})`);
-        renderLayerList(liveConfig);
+        renderScene(); // le composant retiré doit disparaître de la preview
       });
       head.appendChild(removeBtn);
       block.appendChild(head);
@@ -1081,7 +1234,7 @@
         schema.forEach((field) => { options[field.key] = field.default; });
         layer.components.push({ component: componentName, options });
         saveSceneConfig(`ajout ${componentName} (${layer.name})`);
-        renderLayerList(liveConfig);
+        renderScene(); // le composant ajouté doit apparaître dans la preview
       });
       addRow.appendChild(addBtn);
 
