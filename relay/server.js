@@ -5,10 +5,13 @@
  * Trois rôles :
  *   1. Client OBS WebSocket v5 — traduit `CurrentProgramSceneChanged` en `scene.set`.
  *   2. Serveur pour l'overlay — WS (diffusion) + HTTP `POST /emit` (injection externe authentifiée).
- *   3. Émetteur de requêtes OBS WS v5 (S6, tranche ciblée) — `POST /refresh-source` envoie
- *      `PressInputPropertiesButton` (rafraîchit le cache de la Browser Source overlay, même action
- *      que le bouton "Actualiser le cache" dans OBS), pour automatiser le rafraîchissement après
- *      une sauvegarde depuis `dev/dotgrid-tuner.html`.
+ *   3. Émetteur de requêtes OBS WS v5 — `POST /refresh-source` envoie `PressInputPropertiesButton`
+ *      (rafraîchit le cache de la Browser Source overlay), pour automatiser le rafraîchissement
+ *      après une sauvegarde depuis `dev/dotgrid-tuner.html`. Étendu (S6 session 1, 2026-07-06,
+ *      voir docs/specs/obs-scene-control.md) : `GET /obs/list-scenes`, `POST /obs/create-scene`,
+ *      `POST /obs/set-current-scene` — contrôle de scènes OBS depuis le panneau. Routes typées une
+ *      par action (jamais de passthrough générique d'un `requestType` arbitraire — surface
+ *      d'attaque non justifiée, voir la spec §Contexte).
  *
  * Logique pure extraite et testée séparément (AD-1) :
  *   - `obs-scene-map.js`  → correspondance nom-scène-OBS → SceneId
@@ -241,6 +244,47 @@ Bun.serve({
       })
         .then(() => withCors(new Response('ok')))
         .catch((err) => withCors(new Response(String(err), { status: 502 })));
+    }
+
+    if (url.pathname === '/obs/list-scenes' && req.method === 'GET') {
+      const auth = req.headers.get('authorization');
+      if (auth !== `Bearer ${RELAY_SECRET}`) return withCors(new Response('unauthorized', { status: 401 }));
+
+      return sendObsRequest('GetSceneList')
+        .then((responseData) => withCors(new Response(JSON.stringify(responseData), { headers: { 'Content-Type': 'application/json' } })))
+        .catch((err) => withCors(new Response(String(err), { status: 502 })));
+    }
+
+    if (url.pathname === '/obs/create-scene' && req.method === 'POST') {
+      const auth = req.headers.get('authorization');
+      if (auth !== `Bearer ${RELAY_SECRET}`) return withCors(new Response('unauthorized', { status: 401 }));
+
+      return req.json()
+        .then((body) => {
+          const sceneName = /** @type {*} */ (body)?.sceneName;
+          if (typeof sceneName !== 'string' || !sceneName) return withCors(new Response('sceneName manquant', { status: 400 }));
+
+          return sendObsRequest('CreateScene', { sceneName })
+            .then(() => withCors(new Response('ok')))
+            .catch((err) => withCors(new Response(String(err), { status: 502 })));
+        })
+        .catch(() => withCors(new Response('invalid json', { status: 400 })));
+    }
+
+    if (url.pathname === '/obs/set-current-scene' && req.method === 'POST') {
+      const auth = req.headers.get('authorization');
+      if (auth !== `Bearer ${RELAY_SECRET}`) return withCors(new Response('unauthorized', { status: 401 }));
+
+      return req.json()
+        .then((body) => {
+          const sceneName = /** @type {*} */ (body)?.sceneName;
+          if (typeof sceneName !== 'string' || !sceneName) return withCors(new Response('sceneName manquant', { status: 400 }));
+
+          return sendObsRequest('SetCurrentProgramScene', { sceneName })
+            .then(() => withCors(new Response('ok')))
+            .catch((err) => withCors(new Response(String(err), { status: 502 })));
+        })
+        .catch(() => withCors(new Response('invalid json', { status: 400 })));
     }
 
     if (url.pathname === '/') return new Response('relay ok');

@@ -64,10 +64,10 @@ et déclenchement de `AlertBanner.show()` (même pattern manuel que `discussion`
 mécanisme déclaratif `trigger` existe mais n'est encore utilisé nulle part en production, pas le
 moment de le roder ici).
 
-**Vérification visuelle OBS/navigateur non faite** (pas d'outil de screenshot dans cet
-environnement) — risque réel cette fois (changement d'apparence assumé pour l'alerte, ajustements
-de layout HUD pour le vote), pas une simple formalité comme pour la migration JSON des 9 scènes.
-`bun test` 114/114 et `validateSceneConfig` OK ne couvrent pas le rendu visuel.
+**Vérification visuelle faite (2026-07-06, Playwright)** : scène `jeu` déclenchée en conditions
+réelles via `/emit` sur le relais (`scene.set`, `poll.update`, `alert.*`). `AlertBanner` (bannière
+centrée, auto-hide 5000ms) et `PollBar` (question + barre de progression) s'affichent correctement,
+conformes à l'apparence attendue. RAS.
 
 ---
 
