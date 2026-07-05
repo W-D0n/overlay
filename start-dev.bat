@@ -1,12 +1,14 @@
 @echo off
 REM start-dev.bat — double-clic pour une session de réglage (DotGrid + placement).
 REM NE JAMAIS utiliser ce script pendant un live — lance des serveurs de dev qui écrivent
-REM sur disque (tuner-server.js, placement-server.js). Pour streamer, utiliser start-stream.bat.
+REM sur disque (tuner-server.js, placement-server.js, scene-data-server.js). Pour streamer,
+REM utiliser start-stream.bat.
 REM
-REM Lance : serveur statique + relais OBS (données live + rafraîchissement auto du cache OBS)
-REM         + serveur d'écriture DotGrid + serveur d'écriture placement
-REM         + serveur de données de scènes (création/suppression/composition, S8 sessions 4-6).
-REM Ouvre : un onglet de preview auto-reload + les deux panneaux de réglage.
+REM Un seul terminal : dev/start-dev.js gère les 5 serveurs (statique, relais OBS, tuner DotGrid,
+REM placement, données de scènes) comme des process enfants d'un unique process Bun, tués
+REM proprement à la fermeture (Ctrl+C). Remplace l'ancienne version à 5 fenêtres détachées,
+REM source récurrente de process orphelins tournant pendant des heures (voir docs/inbox.md).
+REM Ouvre aussi : un onglet de preview auto-reload + les deux panneaux de réglage.
 
 cd /d "%~dp0"
 
@@ -18,14 +20,4 @@ if not exist ".env" (
   exit /b 1
 )
 
-start "Overlay DEV - Serveur statique (5500)" cmd /k bunx serve -l 5500 .
-start "Overlay DEV - Relais OBS" cmd /k bun relay\server.js
-start "Overlay DEV - Tuner DotGrid" cmd /k bun dev\tuner-server.js
-start "Overlay DEV - Tuner Placement" cmd /k bun dev\placement-server.js
-start "Overlay DEV - Données de scènes" cmd /k bun dev\scene-data-server.js
-
-timeout /t 2 /nobreak >nul
-
-start "" "http://localhost:5500/?livereload=1"
-start "" "http://localhost:5500/dev/dotgrid-tuner.html"
-start "" "http://localhost:5500/dev/placement-panel.html"
+bun dev\start-dev.js
