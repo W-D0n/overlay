@@ -155,8 +155,13 @@
     }
     .layer-row:last-child { margin-bottom: 0; }
     .layer-row .row-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .layer-row .layer-name-group { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .layer-row .layer-name-group { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
     .layer-row .layer-name { color: var(--color-gold); font-size: 13px; }
+    .layer-name-input {
+      color: var(--color-gold); font-size: 13px; background: transparent; border: 0.5px solid transparent;
+      padding: 2px 4px; width: auto; min-width: 0; flex: 1;
+    }
+    .layer-name-input:hover, .layer-name-input:focus { border-color: var(--color-rule); background: var(--color-bg-widget); }
     .layer-row .layer-coords { font-size: 11px; color: var(--color-text-mid); font-variant-numeric: tabular-nums; }
     .layer-tag {
       font-size: 9px; padding: 1px 6px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.06em;
@@ -167,6 +172,14 @@
     .layer-row.unmigrated { opacity: 0.85; } /* le tag suffit à signaler l'état, plus besoin d'assombrir tout le bloc */
     .layer-placement-actions { display: flex; gap: 8px; }
     .layer-placement-actions .btn { flex: 1; }
+
+    /* Gestion des couches — glisser-déposer + réordonnancement (2026-07-05) */
+    .drag-handle { cursor: grab; color: var(--color-text-mid); flex-shrink: 0; user-select: none; }
+    .drag-handle:active { cursor: grabbing; }
+    .layer-row.dragging-row { opacity: 0.4; }
+    .layer-row.drag-over-row { border-color: var(--color-gold); }
+    .layer-order-actions { display: flex; gap: 4px; flex-shrink: 0; }
+    .layer-order-actions .btn { padding: 5px 8px; }
 
     /* Composition (S8 session 5/6) */
     .components-section {
@@ -436,6 +449,42 @@
       renderLayerList(liveConfig);
     }
 
+    /**
+     * Renommer une couche — jamais `goldbar` (invariant V4, désactivé côté UI). Rejette un nom vide
+     * ou déjà pris par une autre couche (invariant V6, "noms de couches uniques").
+     * @param {string} oldName
+     * @param {string} newName
+     */
+    function renameLayer(oldName, newName) {
+      const trimmed = newName.trim();
+      if (trimmed === oldName) return; // no-op, rien à sauvegarder
+      if (!trimmed) { statusEl.textContent = 'Nom de couche vide'; renderLayerList(liveConfig); return; }
+      if (liveConfig.layers.some((l) => l.name === trimmed)) {
+        statusEl.textContent = `Nom de couche déjà pris : ${trimmed}`;
+        renderLayerList(liveConfig); // revient à l'ancien nom affiché
+        return;
+      }
+      const layer = liveConfig.layers.find((l) => l.name === oldName);
+      layer.name = trimmed;
+      saveSceneConfig(`renommage couche ${oldName} → ${trimmed}`);
+      renderLayerList(liveConfig);
+    }
+
+    /**
+     * Déplacer une couche d'un cran (boutons ↑/↓) — change l'ordre de montage donc l'empilement
+     * visuel des couches qui se chevauchent.
+     * @param {number} index
+     * @param {1|-1} direction
+     */
+    function moveLayer(index, direction) {
+      const target = index + direction;
+      if (target < 0 || target >= liveConfig.layers.length) return;
+      const layers = liveConfig.layers;
+      [layers[index], layers[target]] = [layers[target], layers[index]];
+      saveSceneConfig('réordonnancement des couches');
+      renderLayerList(liveConfig);
+    }
+
     function renderScene() {
       // Copie de travail unique : placement ET composition mutent liveConfig, jamais SCENE_CONFIGS
       // directement (S8 session 5/6 — évite qu'une sauvegarde de composition écrase un placement
@@ -660,21 +709,67 @@
       }
     }
 
+    /** Index en cours de glisser-déposer (gestion des couches, 2026-07-05) — null hors drag. */
+    let draggedLayerIndex = null;
+
     function renderLayerList(config) {
       layerList.innerHTML = '';
-      config.layers.forEach((layer) => {
+      config.layers.forEach((layer, index) => {
         const row = document.createElement('div');
         row.className = 'layer-row' + (layer.placement ? '' : ' unmigrated');
+
+        // Glisser-déposer pour réordonner — poignée dédiée (pas toute la ligne) pour ne pas gêner
+        // les clics/saisies dans les champs de la ligne (owner, 2026-07-05).
+        row.addEventListener('dragover', (e) => { e.preventDefault(); row.classList.add('drag-over-row'); });
+        row.addEventListener('dragleave', () => row.classList.remove('drag-over-row'));
+        row.addEventListener('drop', (e) => {
+          e.preventDefault();
+          row.classList.remove('drag-over-row');
+          if (draggedLayerIndex === null || draggedLayerIndex === index) return;
+          const [moved] = liveConfig.layers.splice(draggedLayerIndex, 1);
+          liveConfig.layers.splice(index, 0, moved);
+          draggedLayerIndex = null;
+          saveSceneConfig('réordonnancement des couches (glisser-déposer)');
+          renderLayerList(liveConfig);
+        });
 
         const head = document.createElement('div');
         head.className = 'row-head';
 
         const nameGroup = document.createElement('div');
         nameGroup.className = 'layer-name-group';
-        const name = document.createElement('span');
-        name.className = 'layer-name';
-        name.textContent = layer.name;
-        nameGroup.appendChild(name);
+
+        const handle = document.createElement('span');
+        handle.className = 'drag-handle';
+        handle.textContent = '⠿';
+        handle.title = 'Glisser pour réordonner';
+        handle.draggable = true;
+        handle.addEventListener('dragstart', (e) => {
+          draggedLayerIndex = index;
+          row.classList.add('dragging-row');
+          e.dataTransfer?.setData('text/plain', layer.name); // requis par Firefox pour autoriser le drag
+        });
+        handle.addEventListener('dragend', () => {
+          row.classList.remove('dragging-row');
+          draggedLayerIndex = null;
+        });
+        nameGroup.appendChild(handle);
+
+        // Renommage (2026-07-05) — jamais goldbar, invariant V4 (exactement une couche "goldbar").
+        if (layer.name === 'goldbar') {
+          const name = document.createElement('span');
+          name.className = 'layer-name';
+          name.textContent = layer.name;
+          name.title = 'La couche goldbar ne peut pas être renommée';
+          nameGroup.appendChild(name);
+        } else {
+          const nameInput = document.createElement('input');
+          nameInput.type = 'text';
+          nameInput.className = 'layer-name-input';
+          nameInput.value = layer.name;
+          nameInput.addEventListener('change', () => renameLayer(layer.name, nameInput.value));
+          nameGroup.appendChild(nameInput);
+        }
 
         const tag = document.createElement('span');
         tag.className = 'layer-tag ' + (layer.placement ? 'draggable' : 'fixed');
@@ -684,6 +779,25 @@
           : 'Position fixée par le CSS de la scène — non déplaçable (couche composite ou jamais migrée, voir docs/inbox.md)';
         nameGroup.appendChild(tag);
         head.appendChild(nameGroup);
+
+        const actions = document.createElement('div');
+        actions.className = 'layer-order-actions';
+
+        const upBtn = document.createElement('button');
+        upBtn.className = 'btn btn-ghost btn-small';
+        upBtn.textContent = '↑';
+        upBtn.title = 'Monter cette couche';
+        upBtn.disabled = index === 0;
+        upBtn.addEventListener('click', () => moveLayer(index, -1));
+        actions.appendChild(upBtn);
+
+        const downBtn = document.createElement('button');
+        downBtn.className = 'btn btn-ghost btn-small';
+        downBtn.textContent = '↓';
+        downBtn.title = 'Descendre cette couche';
+        downBtn.disabled = index === config.layers.length - 1;
+        downBtn.addEventListener('click', () => moveLayer(index, 1));
+        actions.appendChild(downBtn);
 
         // Retrait de couche entière (S8 session 6/6) — jamais goldbar, invariant V4 (AC-36).
         const removeLayerBtn = document.createElement('button');
@@ -696,8 +810,9 @@
         } else {
           removeLayerBtn.addEventListener('click', () => removeLayer(layer.name));
         }
-        head.appendChild(removeLayerBtn);
+        actions.appendChild(removeLayerBtn);
 
+        head.appendChild(actions);
         row.appendChild(head);
 
         if (layer.placement) {
