@@ -8,7 +8,10 @@
  *
  * Routes :
  *   POST /save-placement — `{ sceneId, layerName, placement }`, réécrit uniquement la valeur
- *                           `placement` de la couche ciblée (déjà migrée, pas d'insertion).
+ *                           `placement` de la couche ciblée (déjà migrée, pas d'insertion). Ajoute
+ *                           aussi une entrée à l'historique partagé (`scene-history-store.js`,
+ *                           2026-07-05) — comble le trou "un déplacement de couche n'est pas
+ *                           annulable", voir docs/specs/scene-history-protocol.md.
  *   WS   /reload-ws       — diffuse `reload` à chaque sauvegarde réussie (voir dev/tuner-server.js
  *                            pour le même mécanisme côté DotGrid ; `index.html?livereload=1` s'y
  *                            connecte automatiquement).
@@ -17,6 +20,7 @@
  * Lancement : `bun dev/placement-server.js`
  */
 import { applyPlacementToLayer } from './scene-placement-format.js';
+import { appendSceneHistory } from './scene-history-store.js';
 
 const PORT = Number(process.env.PLACEMENT_PORT ?? 4459);
 const DATA_DIR = `${import.meta.dir}/../scenes/data`;
@@ -68,6 +72,7 @@ Bun.serve({
         const current = await Bun.file(targetFile).json();
         const updated = applyPlacementToLayer(current, layerName, placement);
         await Bun.write(targetFile, `${JSON.stringify(updated, null, 2)}\n`);
+        await appendSceneHistory(sceneId, updated);
 
         console.info(`[placement-server] scenes/data/${sceneId}.scene.json — couche "${layerName}" mise à jour`);
         broadcastReload();

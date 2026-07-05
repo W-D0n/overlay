@@ -36,12 +36,14 @@ import { validateSceneConfig } from '../protocol.js';
 // une vraie connexion WebSocket au relais — ce process (Bun, sans navigateur) n'a pas de `document`
 // et plantait sur chaque scene.set reçu. Voir scenes/reserved-scene-ids.js pour le détail.
 import { STATIC_SCENE_IDS } from '../scenes/reserved-scene-ids.js';
-import { addSceneToManifest, removeSceneFromManifest, pushHistoryEntry } from './scene-data-format.js';
+import { addSceneToManifest, removeSceneFromManifest } from './scene-data-format.js';
+// Partagé avec placement-server.js (drag & drop) — comble le trou "placement non annulable"
+// (owner, 2026-07-05, voir docs/specs/scene-history-protocol.md).
+import { readSceneHistory, appendSceneHistory, writeSceneHistory } from './scene-history-store.js';
 
 const PORT = Number(process.env.SCENE_DATA_PORT ?? 4460);
 const DATA_DIR = `${import.meta.dir}/../scenes/data`;
 const ARCHIVE_DIR = `${DATA_DIR}/archived`;
-const HISTORY_DIR = `${DATA_DIR}/.history`;
 const MANIFEST_FILE = `${DATA_DIR}/manifest.json`;
 
 /** Évite l'accès à un fichier arbitraire via un `sceneId` malicieux (path traversal). */
@@ -115,28 +117,6 @@ function broadcastReload() {
 }
 
 /**
- * @param {string} sceneId
- * @returns {Promise<{ timestamp: number, sceneConfig: import('../types.js').SceneConfig }[]>}
- */
-async function readHistory(sceneId) {
-  const file = Bun.file(`${HISTORY_DIR}/${sceneId}.json`);
-  if (!(await file.exists())) return [];
-  return await file.json();
-}
-
-/**
- * Ajoute une entrée à l'historique d'une scène (fenêtre glissante, voir `pushHistoryEntry`).
- * @param {string} sceneId
- * @param {import('../types.js').SceneConfig} sceneConfig
- * @returns {Promise<void>}
- */
-async function appendHistory(sceneId, sceneConfig) {
-  const history = await readHistory(sceneId);
-  const updated = pushHistoryEntry(history, { timestamp: Date.now(), sceneConfig });
-  await Bun.write(`${HISTORY_DIR}/${sceneId}.json`, `${JSON.stringify(updated, null, 2)}\n`);
-}
-
-/**
  * POST /create-scene — `{ sceneConfig }`.
  * @param {Request} req
  * @returns {Promise<Response>}
@@ -160,7 +140,8 @@ async function handleCreateScene(req) {
     await writeManifest(addSceneToManifest(manifest, sceneConfig.id));
     // Nouvelle scène = historique repart de zéro (id réutilisé après suppression traité comme une
     // scène entièrement nouvelle, pas une continuation — voir docs/specs/scene-history-protocol.md).
-    await Bun.write(`${HISTORY_DIR}/${sceneConfig.id}.json`, `${JSON.stringify([{ timestamp: Date.now(), sceneConfig }], null, 2)}\n`);
+    // Écriture directe (pas appendSceneHistory, qui lirait/prolongerait un historique préexistant).
+    await writeSceneHistory(sceneConfig.id, [{ timestamp: Date.now(), sceneConfig }]);
 
     console.info(`[scene-data-server] scène créée — ${sceneConfig.id}`);
     broadcastReload();
@@ -189,7 +170,7 @@ async function handleUpdateScene(req) {
     if (!manifest.includes(sceneId)) return jsonError(`scène dynamique inconnue : ${sceneId}`, 404);
 
     await Bun.write(`${DATA_DIR}/${sceneId}.scene.json`, `${JSON.stringify(sceneConfig, null, 2)}\n`);
-    await appendHistory(sceneId, sceneConfig);
+    await appendSceneHistory(sceneId, sceneConfig);
 
     console.info(`[scene-data-server] scène mise à jour — ${sceneId}`);
     broadcastReload();
@@ -206,7 +187,7 @@ async function handleGetSceneHistory(req) {
   const sceneId = new URL(req.url).searchParams.get('sceneId');
   if (typeof sceneId !== 'string' || !sceneId) return jsonError('sceneId manquant', 400);
 
-  const history = await readHistory(sceneId);
+  const history = await readSceneHistory(sceneId);
   return new Response(JSON.stringify(history), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
 }
 
@@ -227,7 +208,7 @@ async function handleRestoreScene(req) {
     return jsonError('sceneId ou timestamp manquant', 400);
   }
 
-  const history = await readHistory(sceneId);
+  const history = await readSceneHistory(sceneId);
   const target = history.find((h) => h.timestamp === timestamp);
   if (!target) return jsonError(`version introuvable : ${sceneId} @ ${timestamp}`, 404);
 

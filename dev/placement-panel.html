@@ -27,9 +27,10 @@
     plus de bouton "Enregistrer" par composant — chaque modification de champ sauvegarde au `change`
     (perte de focus/validation, pas à chaque frappe). Plus de confirmation navigateur sur retrait de
     couche/composant — l'historique (section dédiée, "Restaurer" par version horodatée) remplace la
-    confirmation comme filet de sécurité pour ces actions courantes et réversibles. Limite connue :
-    l'historique ne couvre QUE les sauvegardes via scene-data-server.js (composition, création,
-    suppression) — pas les sauvegardes de placement (drag & drop, serveur séparé placement-server.js).
+    confirmation comme filet de sécurité pour ces actions courantes et réversibles. L'historique est
+    partagé (dev/scene-history-store.js) entre scene-data-server.js (composition/création/suppression)
+    ET placement-server.js (drag & drop) — un déplacement de couche est donc aussi annulable via la
+    section Historique, pas seulement les changements de composition.
 
     Renommage, réordonnancement des couches et placement par composant individuel restent hors scope
     (voir docs/inbox.md).

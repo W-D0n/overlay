@@ -5,6 +5,9 @@ updated: 2026-07-05
 status: draft
 ---
 
+<!-- Extension 2026-07-05 : historique partagé avec placement-server.js (drag & drop), voir
+     §Inclus et AC-12/AC-13 en fin de document. -->
+
 # Spec : scene-history-protocol
 
 ## Contexte
@@ -43,6 +46,11 @@ par des commandes git.
     "Restaurer" par entrée.
   - `broadcastReload()` (déjà câblé, session précédente) continue de déclencher le rechargement de
     l'overlay après restauration comme après toute autre sauvegarde.
+- **Extension (owner, 2026-07-05)** : `dev/scene-history-store.js` extrait la lecture/écriture de
+  l'historique (déjà utilisées par `scene-data-server.js`) dans un module partagé, importé aussi par
+  `dev/placement-server.js` — un déplacement de couche (drag & drop) ajoute désormais une entrée
+  d'historique au même titre qu'une modification de composition. Comble le trou initialement
+  documenté ("l'historique ne couvre que scene-data-server.js").
 
 **Exclu :**
 - Diff visuel entre deux versions (afficher *quoi* a changé) — la liste montre seulement date/heure,
@@ -71,6 +79,8 @@ par des commandes git.
 | AC-09 | Le panneau n'affiche plus aucun bouton "Enregistrer" — chaque champ sauvegarde au `change` | visuel |
 | AC-10 | Retirer une couche/un composant ne demande plus de confirmation — sauvegarde immédiate + entrée d'historique | visuel |
 | AC-11 | La section "Historique" liste les versions d'une scène avec date/heure lisible, bouton "Restaurer" par entrée qui recharge l'overlay (broadcastReload) | visuel |
+| AC-12 | `dev/placement-server.js` `/save-placement` réussi ajoute une entrée à l'historique de la scène (même fichier, même fenêtre glissante que `scene-data-server.js`) | test |
+| AC-13 | Une entrée d'historique créée par `/save-placement` est listée par `GET /scene-history` au même titre qu'une entrée créée par `/update-scene` — un seul historique par scène, pas deux séparés | test |
 
 > Règle : chaque AC est vérifiable de façon autonome. "Fonctionne correctement" n'est pas un AC.
 
@@ -114,7 +124,9 @@ par des commandes git.
 |---|---|---|
 | `dev/scene-data-format.js` | modifier | `pushHistoryEntry` (AC-01, AC-02) |
 | `dev/scene-data-format.test.js` | modifier | tests AC-01, AC-02 |
-| `dev/scene-data-server.js` | modifier | historique sur create/update, routes `/scene-history`, `/restore-scene` (AC-03 à AC-08) |
+| `dev/scene-history-store.js` | créer | lecture/écriture disque de l'historique, partagé (AC-12, AC-13) |
+| `dev/scene-data-server.js` | modifier | historique sur create/update via scene-history-store.js, routes `/scene-history`, `/restore-scene` (AC-03 à AC-08) |
+| `dev/placement-server.js` | modifier | ajoute une entrée d'historique après chaque `/save-placement` réussi (AC-12) |
 | `dev/placement-panel.html` | modifier | retrait boutons/confirmations, section Historique (AC-09 à AC-11) |
 
 > Règle de cross-check (avant de déclarer "done") :
