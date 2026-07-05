@@ -4,6 +4,32 @@ Capture d'idées et questions ouvertes. Trier via `/inbox-triage`.
 
 ---
 
+## Résolu — process orphelins des scripts de lancement (2026-07-05)
+
+Deux bugs distincts causaient des serveurs de dev/stream qui restaient vivants pendant des heures
+après avoir "fermé" `start-dev.bat`/`start-stream.bat` :
+
+1. **`start "titre" cmd /k ...` ouvre des fenêtres détachées**, aucune liée au process du `.bat` —
+   fermer sa fenêtre ne tuait rien. `start-dev.bat` réécrit en `dev/start-dev.js` : un seul process
+   Bun qui lance les 5 serveurs comme de vrais enfants (Job Object Windows), tués proprement à la
+   fermeture (Ctrl+C), sortie préfixée par serveur dans un seul terminal.
+2. **`bunx serve` relance son vrai process de travail comme petit-fils détaché** — échappe même au
+   Job Object du point 1, orphelin garanti à chaque lancement. Remplacé par `dev/static-server.js`
+   (`Bun.serve` natif, zéro dépendance) dans `start-dev.bat` **et** `start-stream.bat` (qui garde
+   ses 2 fenêtres séparées, logs relais visibles en live — comportement voulu, pas touché).
+
+Effet de bord découvert en creusant le bug n°2 dans un contexte différent (S8 session 4/6) :
+`dev/scene-data-server.js` importait `STATIC_SCENE_IDS` depuis `scenes/registry.js`, qui importe en
+cascade les 9 `*.wire.js` → `store.js` → `connectWebSocket()` au chargement du module, sans garde
+navigateur. Un serveur Bun sans navigateur se retrouvait donc connecté au relais comme un faux
+client overlay, plantant sur `document.dispatchEvent` à chaque `scene.set` reçu. Corrigé en extrayant
+`STATIC_SCENE_IDS` dans `scenes/reserved-scene-ids.js`, un module sans aucun import.
+
+~15 process node/bun orphelins accumulés (certains depuis plusieurs heures, avant et pendant cette
+session) nettoyés manuellement en confirmant le diagnostic.
+
+---
+
 ## Migration `jeu` vers composants (`AlertBanner`/`PollBar`) — après S8 session 4/6 (2026-07-04)
 
 `jeu.wire.js` reste la seule scène avec un HUD entièrement en DOM brut : cellule d'alerte avec son
