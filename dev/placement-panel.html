@@ -18,11 +18,20 @@
     (/update-scene, bun dev/scene-data-server.js, S8 session 4/6).
 
     Création/suppression de scène + gestion minimale des couches (S8 session 6/6) : création
-    (id + couche goldbar minimale) -> POST /create-scene ; suppression (confirmation navigateur)
-    -> POST /delete-scene, qui ARCHIVE le fichier (scenes/data/archived/, pas de suppression
-    définitive) plutôt que de le supprimer. Ajouter/supprimer une couche entière (bouton désactivé
-    sur goldbar, invariant V4) réutilise POST /update-scene, pas de nouvelle route. Renommage,
-    réordonnancement des couches et placement par composant individuel restent hors scope
+    (id + couche goldbar minimale) -> POST /create-scene ; suppression de SCÈNE (confirmation
+    navigateur conservée, action rare/lourde) -> POST /delete-scene, qui ARCHIVE le fichier
+    (scenes/data/archived/) plutôt que de le supprimer. Ajouter/supprimer une couche entière
+    (bouton désactivé sur goldbar, invariant V4) réutilise POST /update-scene, pas de nouvelle route.
+
+    Sauvegarde automatique + historique (2026-07-05, voir docs/specs/scene-history-protocol.md) :
+    plus de bouton "Enregistrer" par composant — chaque modification de champ sauvegarde au `change`
+    (perte de focus/validation, pas à chaque frappe). Plus de confirmation navigateur sur retrait de
+    couche/composant — l'historique (section dédiée, "Restaurer" par version horodatée) remplace la
+    confirmation comme filet de sécurité pour ces actions courantes et réversibles. Limite connue :
+    l'historique ne couvre QUE les sauvegardes via scene-data-server.js (composition, création,
+    suppression) — pas les sauvegardes de placement (drag & drop, serveur séparé placement-server.js).
+
+    Renommage, réordonnancement des couches et placement par composant individuel restent hors scope
     (voir docs/inbox.md).
   -->
   <link rel="stylesheet" href="../tokens.css">
@@ -111,6 +120,16 @@
     #delete-scene-btn, .remove-layer-btn { border-color: #C85A5A; color: #E08A8A; }
     #delete-scene-btn:hover, .remove-layer-btn:hover { background: rgba(200,90,90,0.12); }
     .remove-layer-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* Historique (2026-07-05) */
+    #history-list { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
+    .history-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      padding: 6px 8px; border: var(--border-rule); border-radius: var(--radius-md); font-size: 11px;
+    }
+    .history-row.origin { border-color: var(--color-gold); }
+    .history-row button { flex-shrink: 0; }
+    .history-empty { font-size: 11px; color: var(--color-text-mid); font-style: italic; }
   </style>
 </head>
 <body>
@@ -123,6 +142,8 @@
       <select id="scene-select"></select>
     </label>
     <button id="delete-scene-btn">Supprimer cette scène</button>
+    <h2>Historique</h2>
+    <div id="history-list"></div>
     <h2>Nouvelle scène</h2>
     <div class="create-scene-row">
       <input type="text" id="new-scene-id" placeholder="id-nouvelle-scene">
@@ -148,6 +169,8 @@
     const SCENE_DATA_SERVER_URL = 'http://localhost:4460/update-scene';
     const SCENE_DATA_CREATE_URL = 'http://localhost:4460/create-scene';
     const SCENE_DATA_DELETE_URL = 'http://localhost:4460/delete-scene';
+    const SCENE_HISTORY_URL = 'http://localhost:4460/scene-history';
+    const SCENE_RESTORE_URL = 'http://localhost:4460/restore-scene';
     /** Même motif que scene-data-server.js — validation côté client avant l'appel réseau (AC-32). */
     const VALID_SCENE_ID = /^[a-z][a-z0-9-]*$/;
 
@@ -166,6 +189,7 @@
     const sceneSelect = document.getElementById('scene-select');
     const layerList = document.getElementById('layer-list');
     const statusEl = document.getElementById('status');
+    const historyList = document.getElementById('history-list');
 
     /** @type {Document | null} */
     let indexDoc = null;
@@ -282,7 +306,7 @@
         const deletedId = currentSceneId;
         refreshSceneOptions(null);
         if (currentSceneId) renderScene();
-        else { surface.innerHTML = ''; layerList.innerHTML = ''; }
+        else { surface.innerHTML = ''; layerList.innerHTML = ''; historyList.innerHTML = ''; }
         statusEl.textContent = `Scène archivée : ${deletedId}`;
       } catch {
         statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/scene-data-server.js"';
@@ -302,9 +326,12 @@
       renderLayerList(liveConfig);
     }
 
-    /** Supprimer une couche entière — jamais `goldbar` (invariant V4, AC-36). */
+    /**
+     * Supprimer une couche entière — jamais `goldbar` (invariant V4, AC-36). Pas de confirmation :
+     * l'historique (section dédiée) est le filet de sécurité pour cette action, pas une confirmation
+     * ponctuelle (2026-07-05, voir docs/specs/scene-history-protocol.md).
+     */
     function removeLayer(layerName) {
-      if (!window.confirm(`Supprimer la couche "${layerName}" et tous ses composants ? Sauvegardé immédiatement, pas d'annulation dans le panneau (récupérable via git).`)) return;
       liveConfig.layers = liveConfig.layers.filter((l) => l.name !== layerName);
       saveSceneConfig(`suppression couche ${layerName}`);
       renderLayerList(liveConfig);
@@ -341,7 +368,72 @@
       });
 
       renderLayerList(config);
+      refreshHistory();
       statusEl.textContent = '';
+    }
+
+    // ─── Historique (2026-07-05) ──────────────────────────────────────────────
+
+    /** Recharge et affiche l'historique de la scène courante. */
+    async function refreshHistory() {
+      if (!currentSceneId) { historyList.innerHTML = ''; return; }
+      try {
+        const res = await fetch(`${SCENE_HISTORY_URL}?sceneId=${encodeURIComponent(currentSceneId)}`);
+        renderHistory(res.ok ? await res.json() : []);
+      } catch {
+        historyList.innerHTML = '<div class="history-empty">Serveur de données de scènes injoignable</div>';
+      }
+    }
+
+    /** @param {{ timestamp: number, sceneConfig: * }[]} history */
+    function renderHistory(history) {
+      historyList.innerHTML = '';
+      if (history.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'history-empty';
+        empty.textContent = 'Aucun historique pour cette scène';
+        historyList.appendChild(empty);
+        return;
+      }
+
+      const originTimestamp = history[0].timestamp;
+      [...history].reverse().forEach((entry) => {
+        const row = document.createElement('div');
+        row.className = 'history-row' + (entry.timestamp === originTimestamp ? ' origin' : '');
+
+        const label = document.createElement('span');
+        const isOrigin = entry.timestamp === originTimestamp;
+        label.textContent = new Date(entry.timestamp).toLocaleString('fr-FR') + (isOrigin ? ' (origine)' : '');
+        row.appendChild(label);
+
+        const restoreBtn = document.createElement('button');
+        restoreBtn.textContent = 'Restaurer';
+        restoreBtn.addEventListener('click', () => restoreVersion(entry.timestamp));
+        row.appendChild(restoreBtn);
+
+        historyList.appendChild(row);
+      });
+    }
+
+    /** @param {number} timestamp */
+    async function restoreVersion(timestamp) {
+      statusEl.textContent = 'Restauration en cours...';
+      try {
+        const response = await fetch(SCENE_RESTORE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneId: currentSceneId, timestamp }),
+        });
+        if (!response.ok) {
+          statusEl.textContent = `Échec (${response.status}) : ${await response.text()}`;
+          return;
+        }
+        await loadDynamicScenes(); // recharge SCENE_CONFIGS[currentSceneId] avec la version restaurée
+        renderScene();
+        statusEl.textContent = 'Version restaurée';
+      } catch {
+        statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/scene-data-server.js"';
+      }
     }
 
     function applyPlacementStyle(el, placement) {
@@ -523,6 +615,7 @@
         statusEl.textContent = response.ok
           ? `Sauvegardé : ${label}`
           : `Échec (${response.status})`;
+        if (response.ok) refreshHistory(); // chaque sauvegarde ajoute une entrée (scene-data-server.js)
       } catch {
         statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/scene-data-server.js"';
       }
@@ -543,8 +636,8 @@
 
       const removeBtn = document.createElement('button');
       removeBtn.textContent = 'Retirer';
+      // Pas de confirmation : l'historique est le filet de sécurité (2026-07-05).
       removeBtn.addEventListener('click', () => {
-        if (!window.confirm(`Retirer ce composant "${mount.component}" de la couche "${layer.name}" ? Sauvegardé immédiatement.`)) return;
         layer.components.splice(mountIndex, 1);
         saveSceneConfig(`retrait ${mount.component} (${layer.name})`);
         renderLayerList(liveConfig);
@@ -564,6 +657,10 @@
         const currentValue = mount.options[field.key] ?? field.default;
         const bound = isBoundValue(currentValue);
 
+        // Sauvegarde automatique (perte de focus/validation pour les champs, immédiate pour la
+        // bascule $bind) — plus de bouton "Enregistrer" (2026-07-05, scene-history-protocol.md).
+        const save = () => saveSceneConfig(`${mount.component} (${layer.name})`);
+
         const toggle = document.createElement('button');
         toggle.type = 'button';
         toggle.className = 'bind-toggle';
@@ -575,6 +672,7 @@
             : { $bind: '' };
           const fresh = buildComponentBlock(layer, mountIndex);
           block.replaceWith(fresh);
+          save();
         });
         row.appendChild(toggle);
 
@@ -583,7 +681,7 @@
           input.type = 'text';
           input.placeholder = "chemin d'état (ex: subjectLine)";
           input.value = /** @type {{$bind: string}} */ (currentValue).$bind ?? '';
-          input.addEventListener('input', () => { mount.options[field.key] = { $bind: input.value }; });
+          input.addEventListener('change', () => { mount.options[field.key] = { $bind: input.value }; save(); });
           row.appendChild(input);
         } else if (field.type === 'select') {
           const select = document.createElement('select');
@@ -594,37 +692,30 @@
             select.appendChild(opt);
           });
           select.value = String(currentValue);
-          select.addEventListener('change', () => { mount.options[field.key] = select.value; });
+          select.addEventListener('change', () => { mount.options[field.key] = select.value; save(); });
           row.appendChild(select);
         } else if (field.type === 'textarea') {
           const textarea = document.createElement('textarea');
           textarea.value = Array.isArray(currentValue) ? currentValue.join('\n') : '';
-          textarea.addEventListener('input', () => { mount.options[field.key] = textarea.value.split('\n'); });
+          textarea.addEventListener('change', () => { mount.options[field.key] = textarea.value.split('\n'); save(); });
           row.appendChild(textarea);
         } else if (field.type === 'number') {
           const input = document.createElement('input');
           input.type = 'number';
           input.step = 'any';
           input.value = String(currentValue);
-          input.addEventListener('input', () => { mount.options[field.key] = Number(input.value); });
+          input.addEventListener('change', () => { mount.options[field.key] = Number(input.value); save(); });
           row.appendChild(input);
         } else {
           const input = document.createElement('input');
           input.type = 'text';
           input.value = String(currentValue ?? '');
-          input.addEventListener('input', () => { mount.options[field.key] = input.value; });
+          input.addEventListener('change', () => { mount.options[field.key] = input.value; save(); });
           row.appendChild(input);
         }
 
         block.appendChild(row);
       });
-
-      if (schema.length > 0) {
-        const saveBtn = document.createElement('button');
-        saveBtn.textContent = 'Enregistrer';
-        saveBtn.addEventListener('click', () => saveSceneConfig(`${mount.component} (${layer.name})`));
-        block.appendChild(saveBtn);
-      }
 
       return block;
     }

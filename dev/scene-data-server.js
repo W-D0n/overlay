@@ -17,8 +17,12 @@
  *   WS   /reload-ws     — diffuse `reload` à chaque sauvegarde réussie (create/update/delete), même
  *                         mécanisme que `tuner-server.js`/`placement-server.js`. `index.html?livereload=1`
  *                         s'y connecte automatiquement (LAC-03 résolu, 2026-07-05).
+ *   GET  /scene-history?sceneId=X — liste des versions passées d'une scène (`[]` si aucune).
+ *   POST /restore-scene — `{ sceneId, timestamp }`, réécrit la scène active avec le contenu de
+ *                         cette version. La restauration elle-même devient une nouvelle entrée
+ *                         d'historique (pas de cas spécial). Voir docs/specs/scene-history-protocol.md.
  *
- * Logique de manifeste testée séparément (AD-1) : voir `scene-data-format.js`.
+ * Logique de manifeste/historique testée séparément (AD-1) : voir `scene-data-format.js`.
  * Toutes les opérations qui lisent-puis-écrivent le manifeste passent par `withManifestLock` —
  * ce process est le seul écrivain de `manifest.json`, la sérialisation en mémoire suffit (pas de
  * verrou fichier) à éliminer la race lecture-modification-écriture entre requêtes concurrentes
@@ -32,11 +36,12 @@ import { validateSceneConfig } from '../protocol.js';
 // une vraie connexion WebSocket au relais — ce process (Bun, sans navigateur) n'a pas de `document`
 // et plantait sur chaque scene.set reçu. Voir scenes/reserved-scene-ids.js pour le détail.
 import { STATIC_SCENE_IDS } from '../scenes/reserved-scene-ids.js';
-import { addSceneToManifest, removeSceneFromManifest } from './scene-data-format.js';
+import { addSceneToManifest, removeSceneFromManifest, pushHistoryEntry } from './scene-data-format.js';
 
 const PORT = Number(process.env.SCENE_DATA_PORT ?? 4460);
 const DATA_DIR = `${import.meta.dir}/../scenes/data`;
 const ARCHIVE_DIR = `${DATA_DIR}/archived`;
+const HISTORY_DIR = `${DATA_DIR}/.history`;
 const MANIFEST_FILE = `${DATA_DIR}/manifest.json`;
 
 /** Évite l'accès à un fichier arbitraire via un `sceneId` malicieux (path traversal). */
@@ -110,6 +115,28 @@ function broadcastReload() {
 }
 
 /**
+ * @param {string} sceneId
+ * @returns {Promise<{ timestamp: number, sceneConfig: import('../types.js').SceneConfig }[]>}
+ */
+async function readHistory(sceneId) {
+  const file = Bun.file(`${HISTORY_DIR}/${sceneId}.json`);
+  if (!(await file.exists())) return [];
+  return await file.json();
+}
+
+/**
+ * Ajoute une entrée à l'historique d'une scène (fenêtre glissante, voir `pushHistoryEntry`).
+ * @param {string} sceneId
+ * @param {import('../types.js').SceneConfig} sceneConfig
+ * @returns {Promise<void>}
+ */
+async function appendHistory(sceneId, sceneConfig) {
+  const history = await readHistory(sceneId);
+  const updated = pushHistoryEntry(history, { timestamp: Date.now(), sceneConfig });
+  await Bun.write(`${HISTORY_DIR}/${sceneId}.json`, `${JSON.stringify(updated, null, 2)}\n`);
+}
+
+/**
  * POST /create-scene — `{ sceneConfig }`.
  * @param {Request} req
  * @returns {Promise<Response>}
@@ -131,6 +158,9 @@ async function handleCreateScene(req) {
 
     await Bun.write(`${DATA_DIR}/${sceneConfig.id}.scene.json`, `${JSON.stringify(sceneConfig, null, 2)}\n`);
     await writeManifest(addSceneToManifest(manifest, sceneConfig.id));
+    // Nouvelle scène = historique repart de zéro (id réutilisé après suppression traité comme une
+    // scène entièrement nouvelle, pas une continuation — voir docs/specs/scene-history-protocol.md).
+    await Bun.write(`${HISTORY_DIR}/${sceneConfig.id}.json`, `${JSON.stringify([{ timestamp: Date.now(), sceneConfig }], null, 2)}\n`);
 
     console.info(`[scene-data-server] scène créée — ${sceneConfig.id}`);
     broadcastReload();
@@ -159,11 +189,55 @@ async function handleUpdateScene(req) {
     if (!manifest.includes(sceneId)) return jsonError(`scène dynamique inconnue : ${sceneId}`, 404);
 
     await Bun.write(`${DATA_DIR}/${sceneId}.scene.json`, `${JSON.stringify(sceneConfig, null, 2)}\n`);
+    await appendHistory(sceneId, sceneConfig);
 
     console.info(`[scene-data-server] scène mise à jour — ${sceneId}`);
     broadcastReload();
     return jsonOk();
   });
+}
+
+/**
+ * GET /scene-history?sceneId=X — liste des versions passées d'une scène.
+ * @param {Request} req
+ * @returns {Promise<Response>}
+ */
+async function handleGetSceneHistory(req) {
+  const sceneId = new URL(req.url).searchParams.get('sceneId');
+  if (typeof sceneId !== 'string' || !sceneId) return jsonError('sceneId manquant', 400);
+
+  const history = await readHistory(sceneId);
+  return new Response(JSON.stringify(history), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+}
+
+/**
+ * POST /restore-scene — `{ sceneId, timestamp }`. Réécrit la scène active avec le contenu de la
+ * version demandée, puis enregistre cette restauration comme une nouvelle entrée d'historique
+ * (pas de cas spécial — une restauration est une sauvegarde comme une autre).
+ * @param {Request} req
+ * @returns {Promise<Response>}
+ */
+async function handleRestoreScene(req) {
+  const body = await req.json();
+  const sceneId = /** @type {*} */ (body).sceneId;
+  const timestamp = /** @type {*} */ (body).timestamp;
+  if (typeof sceneId !== 'string' || typeof timestamp !== 'number') {
+    return jsonError('sceneId ou timestamp manquant', 400);
+  }
+
+  const history = await readHistory(sceneId);
+  const target = history.find((h) => h.timestamp === timestamp);
+  if (!target) return jsonError(`version introuvable : ${sceneId} @ ${timestamp}`, 404);
+
+  const validation = validateSceneConfig(target.sceneConfig);
+  if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
+
+  await Bun.write(`${DATA_DIR}/${sceneId}.scene.json`, `${JSON.stringify(target.sceneConfig, null, 2)}\n`);
+  await appendHistory(sceneId, target.sceneConfig);
+
+  console.info(`[scene-data-server] scène restaurée — ${sceneId} @ ${timestamp}`);
+  broadcastReload();
+  return jsonOk();
 }
 
 /**
@@ -195,10 +269,16 @@ async function handleDeleteScene(req) {
 }
 
 /** @type {Record<string, (req: Request) => Promise<Response>>} */
-const ROUTES = {
+const POST_ROUTES = {
   '/create-scene': handleCreateScene,
   '/update-scene': handleUpdateScene,
   '/delete-scene': handleDeleteScene,
+  '/restore-scene': handleRestoreScene,
+};
+
+/** @type {Record<string, (req: Request) => Promise<Response>>} */
+const GET_ROUTES = {
+  '/scene-history': handleGetSceneHistory,
 };
 
 Bun.serve({
@@ -213,9 +293,7 @@ Bun.serve({
       return upgraded ? undefined : new Response('upgrade failed', { status: 500 });
     }
 
-    if (req.method !== 'POST') return jsonError('not found', 404);
-
-    const handler = ROUTES[url.pathname];
+    const handler = req.method === 'GET' ? GET_ROUTES[url.pathname] : req.method === 'POST' ? POST_ROUTES[url.pathname] : undefined;
     if (!handler) return jsonError('not found', 404);
 
     try {
