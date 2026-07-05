@@ -1,32 +1,29 @@
 // @ts-check
 /**
- * dev/placement-server.js — Serveur d'écriture pour placement-panel.html (S7, dev-only).
+ * dev/placement-server.js — Proxy HTTP pour placement-panel.html (S7, dev-only).
  *
- * NE JAMAIS lancer pendant le live — écrit sur disque dans `scenes/data/*.scene.json` (migration
- * S8 : toutes les scènes, historiques comme créées par l'éditeur, vivent au même endroit), séparé
- * du relais de production (`relay/server.js`). Même pattern que `dev/scene-data-server.js` (S8).
+ * NE JAMAIS lancer pendant le live — relaie vers `scene-data-server.js`, séparé du relais de
+ * production (`relay/server.js`).
+ *
+ * Ce process n'écrit plus AUCUN fichier lui-même depuis le 2026-07-06 (voir
+ * docs/specs/scene-history-protocol.md §Concurrence d'accès). Avant, il lisait/modifiait/écrivait
+ * `scenes/data/<id>.scene.json` directement, sans aucune sérialisation : un test de charge (10
+ * requêtes `/save-placement` concurrentes) a corrompu une lecture en plein milieu d'une écriture
+ * d'un autre appel (`SyntaxError: Unexpected end of JSON input`), avec un risque de perte
+ * silencieuse de placement en cas de course moins visible. `scene-data-server.js` est l'unique
+ * écrivain de ce fichier (et de son historique) — ce process relaie simplement la requête.
  *
  * Routes :
- *   POST /save-placement — `{ sceneId, layerName, placement }`, réécrit uniquement la valeur
- *                           `placement` de la couche ciblée (déjà migrée, pas d'insertion). Ajoute
- *                           aussi une entrée à l'historique partagé (`scene-history-store.js`,
- *                           2026-07-05) — comble le trou "un déplacement de couche n'est pas
- *                           annulable", voir docs/specs/scene-history-protocol.md.
+ *   POST /save-placement — `{ sceneId, layerName, placement }`, relayé tel quel vers
+ *                           `POST http://localhost:<SCENE_DATA_PORT>/save-placement`.
  *   WS   /reload-ws       — diffuse `reload` à chaque sauvegarde réussie (voir dev/tuner-server.js
  *                            pour le même mécanisme côté DotGrid ; `index.html?livereload=1` s'y
  *                            connecte automatiquement).
- * Logique de remplacement testée séparément (AD-1) : voir `scene-placement-format.js`.
  *
- * Lancement : `bun dev/placement-server.js`
+ * Lancement : `bun dev/placement-server.js` (nécessite `bun dev/scene-data-server.js` démarré).
  */
-import { applyPlacementToLayer } from './scene-placement-format.js';
-import { appendSceneHistory } from './scene-history-store.js';
-
 const PORT = Number(process.env.PLACEMENT_PORT ?? 4459);
-const DATA_DIR = `${import.meta.dir}/../scenes/data`;
-
-/** Évite l'accès à un fichier arbitraire via un `sceneId` malicieux (path traversal). */
-const VALID_SCENE_ID = /^[a-z][a-z0-9-]*$/;
+const SCENE_DATA_PORT = Number(process.env.SCENE_DATA_PORT ?? 4460);
 
 /** CORS permissif — outil de dev local uniquement, jamais exposé. */
 const CORS_HEADERS = {
@@ -57,29 +54,26 @@ Bun.serve({
     }
 
     if (url.pathname === '/save-placement' && req.method === 'POST') {
+      const body = await req.text();
       try {
-        const body = await req.json();
-        const { sceneId, layerName, placement } = body;
-
-        if (typeof sceneId !== 'string' || !VALID_SCENE_ID.test(sceneId)) {
-          return new Response('sceneId invalide', { status: 400, headers: CORS_HEADERS });
-        }
-        if (typeof layerName !== 'string' || !layerName) {
-          return new Response('layerName invalide', { status: 400, headers: CORS_HEADERS });
-        }
-
-        const targetFile = `${DATA_DIR}/${sceneId}.scene.json`;
-        const current = await Bun.file(targetFile).json();
-        const updated = applyPlacementToLayer(current, layerName, placement);
-        await Bun.write(targetFile, `${JSON.stringify(updated, null, 2)}\n`);
-        await appendSceneHistory(sceneId, updated);
-
-        console.info(`[placement-server] scenes/data/${sceneId}.scene.json — couche "${layerName}" mise à jour`);
-        broadcastReload();
-        return new Response('ok', { headers: CORS_HEADERS });
+        const res = await fetch(`http://localhost:${SCENE_DATA_PORT}/save-placement`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body,
+        });
+        const text = await res.text();
+        if (res.ok) broadcastReload();
+        else console.error(`[placement-server] scene-data-server a refusé la sauvegarde (${res.status}) : ${text}`);
+        return new Response(text, {
+          status: res.status,
+          headers: { ...CORS_HEADERS, 'Content-Type': res.headers.get('Content-Type') ?? 'text/plain' },
+        });
       } catch (err) {
-        console.error('[placement-server] échec de la sauvegarde :', err);
-        return new Response(String(err), { status: 500, headers: CORS_HEADERS });
+        console.error('[placement-server] scene-data-server injoignable :', err);
+        return new Response('scene-data-server injoignable — lancer "bun dev/scene-data-server.js"', {
+          status: 502,
+          headers: CORS_HEADERS,
+        });
       }
     }
 
@@ -92,5 +86,5 @@ Bun.serve({
   },
 });
 
-console.info(`[placement-server] écoute sur http://localhost:${PORT} — écrit dans scenes/data/*.scene.json`);
+console.info(`[placement-server] écoute sur http://localhost:${PORT} — relaie vers scene-data-server.js (port ${SCENE_DATA_PORT})`);
 console.info('[placement-server] outil de DEV uniquement — ne pas lancer pendant le live');

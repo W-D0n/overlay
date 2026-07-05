@@ -1004,6 +1004,7 @@
           const layer = liveConfig.layers.find((l) => l.name === layerName);
           if (layer) layer.placement = { ...livePlacements[layerName] };
           statusEl.textContent = `Sauvegardé : ${currentSceneId}.scene.json — ${layerName}`;
+          refreshHistory(); // /save-placement ajoute une entrée d'historique (scene-data-server.js)
         } else {
           statusEl.textContent = `Échec (${response.status})`;
         }

@@ -6,7 +6,11 @@
  * (`components/DotGridAnimated.js`), séparé du relais de production (`relay/server.js`).
  *
  * Routes :
- *   POST /save     — reçoit les paramètres courants du tuner, réécrit le fichier source.
+ *   POST /save     — reçoit les paramètres courants du tuner, réécrit le fichier source. Sérialisé
+ *                      via `withSaveLock` (dev/keyed-lock.js, 2026-07-06, voir
+ *                      docs/specs/scene-history-protocol.md §Concurrence d'accès) — sans ça, deux
+ *                      sauvegardes rapprochées (double-clic, curseur glissé vite) peuvent
+ *                      interléaver leur lecture-modification-écriture du même fichier source.
  *   WS   /reload-ws — diffuse un message `reload` à chaque sauvegarde réussie ; un onglet de
  *                      preview (ex. index.html) connecté peut s'auto-rafraîchir dessus (voir
  *                      docs/obs-setup.md pour le snippet console à coller dans l'onglet de test).
@@ -15,9 +19,12 @@
  * Lancement : `bun dev/tuner-server.js`
  */
 import { applyDotGridParamsToSource } from './dotgrid-params-format.js';
+import { createKeyedLock } from './keyed-lock.js';
 
 const PORT = Number(process.env.TUNER_PORT ?? 4458);
 const TARGET_FILE = `${import.meta.dir}/../components/DotGridAnimated.js`;
+const withSaveLock = createKeyedLock();
+const SAVE_LOCK_KEY = 'dotgrid-source';
 
 /** CORS permissif — outil de dev local uniquement, jamais exposé. */
 const CORS_HEADERS = {
@@ -50,9 +57,11 @@ Bun.serve({
     if (url.pathname === '/save' && req.method === 'POST') {
       try {
         const body = await req.json();
-        const current = await Bun.file(TARGET_FILE).text();
-        const updated = applyDotGridParamsToSource(current, body);
-        await Bun.write(TARGET_FILE, updated);
+        await withSaveLock(SAVE_LOCK_KEY, async () => {
+          const current = await Bun.file(TARGET_FILE).text();
+          const updated = applyDotGridParamsToSource(current, body);
+          await Bun.write(TARGET_FILE, updated);
+        });
         console.info('[tuner-server] components/DotGridAnimated.js mis à jour');
         broadcastReload();
         return new Response('ok', { headers: CORS_HEADERS });

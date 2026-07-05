@@ -18,6 +18,14 @@
  *                         mécanisme que `tuner-server.js`/`placement-server.js`. `index.html?livereload=1`
  *                         s'y connecte automatiquement (LAC-03 résolu, 2026-07-05).
  *   GET  /scene-history?sceneId=X — liste des versions passées d'une scène (`[]` si aucune).
+ *   POST /save-placement — `{ sceneId, layerName, placement }`, réécrit uniquement la valeur
+ *                         `placement` de la couche ciblée + ajoute une entrée d'historique, les deux
+ *                         dans la même opération sérialisée. Seule route qui permet à
+ *                         `placement-server.js` (process séparé, drag & drop) de faire évoluer une
+ *                         scène — ce process reste l'unique écrivain de `scenes/data/*.scene.json`
+ *                         ET de son historique (2026-07-06, voir
+ *                         docs/specs/scene-history-protocol.md §Concurrence d'accès — élimine la
+ *                         race entre deux process Bun distincts écrivant le même fichier).
  *   POST /restore-scene — `{ sceneId, timestamp }`, réécrit la scène active avec le contenu de
  *                         cette version. N'ajoute PAS d'entrée d'historique (révisé 2026-07-05,
  *                         évite les doublons en cherchant la bonne version). Voir
@@ -29,10 +37,12 @@
  *                         continue sa propre histoire, ce n'est pas une nouvelle scène.
  *
  * Logique de manifeste/historique testée séparément (AD-1) : voir `scene-data-format.js`.
- * Toutes les opérations qui lisent-puis-écrivent le manifeste passent par `withManifestLock` —
- * ce process est le seul écrivain de `manifest.json`, la sérialisation en mémoire suffit (pas de
- * verrou fichier) à éliminer la race lecture-modification-écriture entre requêtes concurrentes
- * (review S8 session 4/6).
+ * Toutes les opérations qui touchent `manifest.json` ET/OU un fichier `scenes/data/<id>.scene.json`
+ * passent par `withSceneDataLock` (dev/keyed-lock.js, clé unique `SCENE_DATA_LOCK_KEY`) — ce process
+ * est le seul écrivain de ces fichiers, la sérialisation en mémoire suffit (pas de verrou fichier) à
+ * éliminer toute race lecture-modification-écriture entre requêtes concurrentes, y compris entre
+ * deux routes différentes qui toucheraient la même scène (review S8 session 4/6, étendu 2026-07-06
+ * à `/restore-scene` et `/save-placement`, qui n'étaient pas couverts).
  *
  * Lancement : `bun dev/scene-data-server.js`
  */
@@ -43,9 +53,9 @@ import { validateSceneConfig } from '../protocol.js';
 // et plantait sur chaque scene.set reçu. Voir scenes/reserved-scene-ids.js pour le détail.
 import { STATIC_SCENE_IDS } from '../scenes/reserved-scene-ids.js';
 import { addSceneToManifest, removeSceneFromManifest } from './scene-data-format.js';
-// Partagé avec placement-server.js (drag & drop) — comble le trou "placement non annulable"
-// (owner, 2026-07-05, voir docs/specs/scene-history-protocol.md).
 import { readSceneHistory, appendSceneHistory, writeSceneHistory } from './scene-history-store.js';
+import { applyPlacementToLayer } from './scene-placement-format.js';
+import { createKeyedLock } from './keyed-lock.js';
 
 const PORT = Number(process.env.SCENE_DATA_PORT ?? 4460);
 const DATA_DIR = `${import.meta.dir}/../scenes/data`;
@@ -75,12 +85,14 @@ async function writeManifest(manifest) {
 }
 
 /**
- * Sérialise toute lecture-modification-écriture de `manifest.json` sur une chaîne de promesses en
- * mémoire — ce process est le seul écrivain, donc suffisant pour éliminer la race entre deux
- * requêtes concurrentes (chacune lisant le manifeste avant que l'autre n'ait écrit sa mise à jour).
- * @type {Promise<unknown>}
+ * Sérialise toute opération touchant `manifest.json` et/ou `scenes/data/<id>.scene.json` sur une
+ * chaîne de promesses en mémoire (dev/keyed-lock.js) — ce process est le seul écrivain de ces
+ * fichiers, donc suffisant pour éliminer la race entre deux requêtes concurrentes. Clé unique
+ * (pas une clé par scène) : simplicité délibérée pour un outil de dev mono-utilisateur — le
+ * débit n'est jamais un problème ici, contrairement à la correction.
  */
-let manifestLock = Promise.resolve();
+const withSceneDataLock = createKeyedLock();
+const SCENE_DATA_LOCK_KEY = 'scene-data';
 
 /**
  * @template T
@@ -88,9 +100,7 @@ let manifestLock = Promise.resolve();
  * @returns {Promise<T>}
  */
 function withManifestLock(fn) {
-  const result = manifestLock.then(() => readManifest()).then(fn);
-  manifestLock = result.catch(() => {}); // une requête en échec ne bloque pas la suivante
-  return result;
+  return withSceneDataLock(SCENE_DATA_LOCK_KEY, () => readManifest().then(fn));
 }
 
 /** @param {unknown} body @returns {body is { sceneConfig: * }} */
@@ -198,11 +208,46 @@ async function handleGetSceneHistory(req) {
 }
 
 /**
+ * POST /save-placement — `{ sceneId, layerName, placement }`. Voir
+ * docs/specs/scene-history-protocol.md §Concurrence d'accès — seule route qui permet à un autre
+ * process (`placement-server.js`, drag & drop) de faire évoluer une scène. Lecture, application du
+ * placement et écriture (fichier de scène + historique) dans une seule opération sérialisée : un
+ * read-modify-write non protégé ici causait une perte silencieuse de placement sous requêtes
+ * concurrentes (trouvé en vérification visuelle, 2026-07-06).
+ * @param {Request} req
+ * @returns {Promise<Response>}
+ */
+async function handleSavePlacement(req) {
+  const body = await req.json();
+  const sceneId = /** @type {*} */ (body).sceneId;
+  const layerName = /** @type {*} */ (body).layerName;
+  const placement = /** @type {*} */ (body).placement;
+
+  if (typeof sceneId !== 'string' || !VALID_SCENE_ID.test(sceneId)) return jsonError('sceneId invalide', 400);
+  if (typeof layerName !== 'string' || !layerName) return jsonError('layerName invalide', 400);
+
+  return withSceneDataLock(SCENE_DATA_LOCK_KEY, async () => {
+    const targetFile = `${DATA_DIR}/${sceneId}.scene.json`;
+    const current = await Bun.file(targetFile).json();
+    const updated = applyPlacementToLayer(current, layerName, placement);
+    await Bun.write(targetFile, `${JSON.stringify(updated, null, 2)}\n`);
+    await appendSceneHistory(sceneId, updated);
+
+    console.info(`[scene-data-server] scenes/data/${sceneId}.scene.json — couche "${layerName}" mise à jour`);
+    broadcastReload();
+    return jsonOk();
+  });
+}
+
+/**
  * POST /restore-scene — `{ sceneId, timestamp }`. Réécrit la scène active avec le contenu de la
  * version demandée. N'ajoute PAS d'entrée d'historique pour la restauration elle-même (owner,
  * 2026-07-05, révise la décision initiale de la spec) : restaurer plusieurs fois de suite en
  * cherchant la bonne version ne doit pas polluer la liste de doublons pile au moment où on essaie
  * d'y voir clair. L'historique ne grossit que sur une modification réelle (`/update-scene`).
+ * Sérialisé via `withSceneDataLock` (2026-07-06) — sans ça, une restauration concurrente d'une
+ * autre écriture sur la même scène pouvait écraser l'une des deux versions sans que rien ne le
+ * signale (trouvé en revue d'architecture, pas encore observé en usage réel).
  * @param {Request} req
  * @returns {Promise<Response>}
  */
@@ -214,18 +259,20 @@ async function handleRestoreScene(req) {
     return jsonError('sceneId ou timestamp manquant', 400);
   }
 
-  const history = await readSceneHistory(sceneId);
-  const target = history.find((h) => h.timestamp === timestamp);
-  if (!target) return jsonError(`version introuvable : ${sceneId} @ ${timestamp}`, 404);
+  return withSceneDataLock(SCENE_DATA_LOCK_KEY, async () => {
+    const history = await readSceneHistory(sceneId);
+    const target = history.find((h) => h.timestamp === timestamp);
+    if (!target) return jsonError(`version introuvable : ${sceneId} @ ${timestamp}`, 404);
 
-  const validation = validateSceneConfig(target.sceneConfig);
-  if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
+    const validation = validateSceneConfig(target.sceneConfig);
+    if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
 
-  await Bun.write(`${DATA_DIR}/${sceneId}.scene.json`, `${JSON.stringify(target.sceneConfig, null, 2)}\n`);
+    await Bun.write(`${DATA_DIR}/${sceneId}.scene.json`, `${JSON.stringify(target.sceneConfig, null, 2)}\n`);
 
-  console.info(`[scene-data-server] scène restaurée — ${sceneId} @ ${timestamp}`);
-  broadcastReload();
-  return jsonOk();
+    console.info(`[scene-data-server] scène restaurée — ${sceneId} @ ${timestamp}`);
+    broadcastReload();
+    return jsonOk();
+  });
 }
 
 /**
@@ -310,6 +357,7 @@ const POST_ROUTES = {
   '/delete-scene': handleDeleteScene,
   '/restore-scene': handleRestoreScene,
   '/restore-archived-scene': handleRestoreArchivedScene,
+  '/save-placement': handleSavePlacement,
 };
 
 /** @type {Record<string, (req: Request) => Promise<Response>>} */
