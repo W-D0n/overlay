@@ -220,6 +220,13 @@
       </div>
     </details>
 
+    <details class="panel-section archives-section">
+      <summary class="section-title">Archives <span id="archived-count" class="badge"></span></summary>
+      <div class="section-body">
+        <div id="archived-list"></div>
+      </div>
+    </details>
+
     <section class="panel-section">
       <div class="section-title-row">
         <span class="section-title" style="margin-bottom: 0;">Couches</span>
@@ -246,6 +253,8 @@
     const SCENE_DATA_DELETE_URL = 'http://localhost:4460/delete-scene';
     const SCENE_HISTORY_URL = 'http://localhost:4460/scene-history';
     const SCENE_RESTORE_URL = 'http://localhost:4460/restore-scene';
+    const ARCHIVED_SCENES_URL = 'http://localhost:4460/archived-scenes';
+    const RESTORE_ARCHIVED_URL = 'http://localhost:4460/restore-archived-scene';
     /** Même motif que scene-data-server.js — validation côté client avant l'appel réseau (AC-32). */
     const VALID_SCENE_ID = /^[a-z][a-z0-9-]*$/;
 
@@ -265,6 +274,8 @@
     const layerList = document.getElementById('layer-list');
     const statusEl = document.getElementById('status');
     const historyList = document.getElementById('history-list');
+    const archivedList = document.getElementById('archived-list');
+    const archivedCount = document.getElementById('archived-count');
 
     // Colore #status automatiquement selon son contenu — aucun appelant n'a besoin de changer
     // (tous les call sites existants font juste `statusEl.textContent = ...`, feedback peu clair
@@ -394,6 +405,7 @@
         refreshSceneOptions(null);
         if (currentSceneId) renderScene();
         else { surface.innerHTML = ''; layerList.innerHTML = ''; historyList.innerHTML = ''; }
+        refreshArchivedScenes();
         statusEl.textContent = `Scène archivée : ${deletedId}`;
       } catch {
         statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/scene-data-server.js"';
@@ -519,6 +531,72 @@
         await loadDynamicScenes(); // recharge SCENE_CONFIGS[currentSceneId] avec la version restaurée
         renderScene();
         statusEl.textContent = 'Version restaurée';
+      } catch {
+        statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/scene-data-server.js"';
+      }
+    }
+
+    // ─── Archives (2026-07-05) ────────────────────────────────────────────────
+
+    /** Recharge et affiche la liste des scènes supprimées (archivées) — indépendant de la scène courante. */
+    async function refreshArchivedScenes() {
+      try {
+        const res = await fetch(ARCHIVED_SCENES_URL);
+        renderArchivedScenes(res.ok ? await res.json() : []);
+      } catch {
+        archivedList.innerHTML = '<div class="history-empty">Serveur de données de scènes injoignable</div>';
+        archivedCount.textContent = '';
+      }
+    }
+
+    /** @param {string[]} ids */
+    function renderArchivedScenes(ids) {
+      archivedList.innerHTML = '';
+      archivedCount.textContent = ids.length > 0 ? String(ids.length) : '';
+      if (ids.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'history-empty';
+        empty.textContent = 'Aucune scène archivée';
+        archivedList.appendChild(empty);
+        return;
+      }
+
+      ids.forEach((id) => {
+        const row = document.createElement('div');
+        row.className = 'history-row';
+
+        const label = document.createElement('span');
+        label.textContent = id;
+        row.appendChild(label);
+
+        const restoreBtn = document.createElement('button');
+        restoreBtn.className = 'btn btn-small';
+        restoreBtn.textContent = 'Restaurer';
+        restoreBtn.addEventListener('click', () => restoreArchivedScene(id));
+        row.appendChild(restoreBtn);
+
+        archivedList.appendChild(row);
+      });
+    }
+
+    /** @param {string} sceneId */
+    async function restoreArchivedScene(sceneId) {
+      statusEl.textContent = 'Restauration en cours...';
+      try {
+        const response = await fetch(RESTORE_ARCHIVED_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneId }),
+        });
+        if (!response.ok) {
+          statusEl.textContent = `Échec (${response.status}) : ${await response.text()}`;
+          return;
+        }
+        await loadDynamicScenes(); // fusionne la scène restaurée dans SCENE_CONFIGS
+        refreshSceneOptions(sceneId);
+        renderScene();
+        refreshArchivedScenes();
+        statusEl.textContent = `Scène restaurée : ${sceneId}`;
       } catch {
         statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/scene-data-server.js"';
       }
@@ -898,6 +976,7 @@
 
     await loadIndexHtml();
     renderScene();
+    refreshArchivedScenes();
     scalePreview();
   </script>
 </body>

@@ -13,14 +13,20 @@
  *                         correspond pas à `sceneId` (review S8 session 4/6).
  *   POST /delete-scene  — `{ sceneId }`, archive le fichier (`scenes/data/archived/<id>.scene.json`,
  *                         S8 session 6/6) + retire l'id du manifeste. Rejette un id absent du
- *                         manifeste. Restauration manuelle (pas d'UI, voir docs/inbox.md).
+ *                         manifeste.
  *   WS   /reload-ws     — diffuse `reload` à chaque sauvegarde réussie (create/update/delete), même
  *                         mécanisme que `tuner-server.js`/`placement-server.js`. `index.html?livereload=1`
  *                         s'y connecte automatiquement (LAC-03 résolu, 2026-07-05).
  *   GET  /scene-history?sceneId=X — liste des versions passées d'une scène (`[]` si aucune).
  *   POST /restore-scene — `{ sceneId, timestamp }`, réécrit la scène active avec le contenu de
- *                         cette version. La restauration elle-même devient une nouvelle entrée
- *                         d'historique (pas de cas spécial). Voir docs/specs/scene-history-protocol.md.
+ *                         cette version. N'ajoute PAS d'entrée d'historique (révisé 2026-07-05,
+ *                         évite les doublons en cherchant la bonne version). Voir
+ *                         docs/specs/scene-history-protocol.md.
+ *   GET  /archived-scenes — liste des ids de scènes supprimées (archivées), 2026-07-05.
+ *   POST /restore-archived-scene — `{ sceneId }`, remet une scène archivée en scène active. Rejette
+ *                         si l'id est déjà pris par une scène active (409) ou si l'archive n'existe
+ *                         pas (404). N'ajoute pas d'entrée d'historique — la scène restaurée
+ *                         continue sa propre histoire, ce n'est pas une nouvelle scène.
  *
  * Logique de manifeste/historique testée séparément (AD-1) : voir `scene-data-format.js`.
  * Toutes les opérations qui lisent-puis-écrivent le manifeste passent par `withManifestLock` —
@@ -250,17 +256,66 @@ async function handleDeleteScene(req) {
   });
 }
 
+/**
+ * GET /archived-scenes — liste les ids des scènes supprimées (archivées, `scenes/data/archived/`).
+ * @returns {Promise<Response>}
+ */
+async function handleGetArchivedScenes() {
+  const glob = new Bun.Glob('*.scene.json');
+  /** @type {string[]} */
+  const ids = [];
+  for await (const file of glob.scan({ cwd: ARCHIVE_DIR })) {
+    ids.push(file.replace(/\.scene\.json$/, ''));
+  }
+  return new Response(JSON.stringify(ids), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+}
+
+/**
+ * POST /restore-archived-scene — `{ sceneId }`. Remet une scène archivée en scène active : déplace
+ * `scenes/data/archived/<id>.scene.json` vers `scenes/data/<id>.scene.json` + rajoute l'id au
+ * manifeste. Rejette si une scène active porte déjà cet id (409) ou si aucune archive ne correspond
+ * (404). L'historique existant (s'il y en a un) n'est PAS touché — la scène restaurée continue sa
+ * propre histoire, ce n'est pas une nouvelle scène.
+ * @param {Request} req
+ * @returns {Promise<Response>}
+ */
+async function handleRestoreArchivedScene(req) {
+  const body = await req.json();
+  const sceneId = /** @type {*} */ (body).sceneId;
+  if (typeof sceneId !== 'string') return jsonError('sceneId manquant', 400);
+
+  const archivedPath = `${ARCHIVE_DIR}/${sceneId}.scene.json`;
+  if (!(await Bun.file(archivedPath).exists())) return jsonError(`aucune archive pour : ${sceneId}`, 404);
+
+  return withManifestLock(async (manifest) => {
+    if (STATIC_SCENE_IDS.includes(sceneId) || manifest.includes(sceneId)) {
+      return jsonError(`id déjà pris par une scène active : ${sceneId}`, 409);
+    }
+
+    const activePath = `${DATA_DIR}/${sceneId}.scene.json`;
+    await Bun.write(activePath, await Bun.file(archivedPath).text());
+    await Bun.file(archivedPath).delete();
+    await writeManifest(addSceneToManifest(manifest, sceneId));
+
+    console.info(`[scene-data-server] scène restaurée depuis les archives — ${sceneId}`);
+    broadcastReload();
+    return jsonOk();
+  });
+}
+
 /** @type {Record<string, (req: Request) => Promise<Response>>} */
 const POST_ROUTES = {
   '/create-scene': handleCreateScene,
   '/update-scene': handleUpdateScene,
   '/delete-scene': handleDeleteScene,
   '/restore-scene': handleRestoreScene,
+  '/restore-archived-scene': handleRestoreArchivedScene,
 };
 
 /** @type {Record<string, (req: Request) => Promise<Response>>} */
 const GET_ROUTES = {
   '/scene-history': handleGetSceneHistory,
+  '/archived-scenes': handleGetArchivedScenes,
 };
 
 Bun.serve({
