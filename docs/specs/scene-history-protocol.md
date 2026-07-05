@@ -29,8 +29,10 @@ par des commandes git.
 - `dev/scene-data-server.js` : chaque sauvegarde réussie (`/create-scene`, `/update-scene`) ajoute
   une entrée d'historique. Nouvelles routes : `GET /scene-history?sceneId=X` (liste des versions),
   `POST /restore-scene` (`{ sceneId, timestamp }`, réécrit la scène active avec le contenu de cette
-  version, puis ajoute **cette restauration elle-même** comme une nouvelle entrée d'historique — pas
-  de cas spécial, la restauration est une sauvegarde comme une autre).
+  version). **Révisé (owner, 2026-07-05)** : la restauration N'ajoute PAS d'entrée d'historique —
+  restaurer plusieurs fois de suite en cherchant la bonne version ne doit pas polluer la liste de
+  doublons pile au moment où on essaie d'y voir clair. Décision initiale ("pas de cas spécial")
+  abandonnée après retour d'usage réel.
 - `dev/placement-panel.html` :
   - Retrait de tous les boutons "Enregistrer" — chaque modification de champ sauvegarde au `change`
     (perte de focus / validation), pas à chaque frappe (`input` reste pour le retour visuel
@@ -64,7 +66,7 @@ par des commandes git.
 | AC-04 | `/update-scene` réussi ajoute une entrée d'historique après écriture de la scène active | test |
 | AC-05 | `GET /scene-history?sceneId=X` retourne le tableau de versions pour une scène existante, `[]` pour une scène sans historique (jamais 404/erreur) | test |
 | AC-06 | `POST /restore-scene` réécrit la scène active avec le contenu de la version demandée (par `timestamp`), valide avec `validateSceneConfig` avant d'écrire | test |
-| AC-07 | `POST /restore-scene` ajoute la restauration elle-même comme nouvelle entrée d'historique (pas de cas spécial) | test |
+| AC-07 | `POST /restore-scene` n'ajoute PAS d'entrée d'historique (révisé 2026-07-05) — l'historique de la scène est inchangé après une restauration | test |
 | AC-08 | `POST /restore-scene` avec un `timestamp` introuvable dans l'historique de la scène → 404, aucune écriture | test |
 | AC-09 | Le panneau n'affiche plus aucun bouton "Enregistrer" — chaque champ sauvegarde au `change` | visuel |
 | AC-10 | Retirer une couche/un composant ne demande plus de confirmation — sauvegarde immédiate + entrée d'historique | visuel |
@@ -89,7 +91,7 @@ par des commandes git.
 2. Modifier un champ, ajouter/retirer un composant/une couche → sauvegarde immédiate, nouvelle
    entrée d'historique poussée (fenêtre glissante au-delà de l'origine + 100).
 3. Ouvrir la section Historique d'une scène → liste des versions, cliquer "Restaurer" sur une
-   entrée → la scène active devient cette version, une nouvelle entrée d'historique l'enregistre,
+   entrée → la scène active devient cette version (l'historique n'est PAS modifié, révisé 2026-07-05),
    l'overlay se recharge automatiquement (déjà câblé).
 
 ### Cas d'erreur

@@ -212,8 +212,10 @@ async function handleGetSceneHistory(req) {
 
 /**
  * POST /restore-scene — `{ sceneId, timestamp }`. Réécrit la scène active avec le contenu de la
- * version demandée, puis enregistre cette restauration comme une nouvelle entrée d'historique
- * (pas de cas spécial — une restauration est une sauvegarde comme une autre).
+ * version demandée. N'ajoute PAS d'entrée d'historique pour la restauration elle-même (owner,
+ * 2026-07-05, révise la décision initiale de la spec) : restaurer plusieurs fois de suite en
+ * cherchant la bonne version ne doit pas polluer la liste de doublons pile au moment où on essaie
+ * d'y voir clair. L'historique ne grossit que sur une modification réelle (`/update-scene`).
  * @param {Request} req
  * @returns {Promise<Response>}
  */
@@ -233,7 +235,6 @@ async function handleRestoreScene(req) {
   if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
 
   await Bun.write(`${DATA_DIR}/${sceneId}.scene.json`, `${JSON.stringify(target.sceneConfig, null, 2)}\n`);
-  await appendHistory(sceneId, target.sceneConfig);
 
   console.info(`[scene-data-server] scène restaurée — ${sceneId} @ ${timestamp}`);
   broadcastReload();

@@ -12,12 +12,17 @@
  *   - 'number'   : input numérique
  *   - 'select'   : liste déroulante (`choices`)
  *   - 'textarea' : une ligne par élément d'un tableau de chaînes (ex : `TextList.lines`)
+ *   - 'token'    : liste déroulante des tokens `tokens.css` de la catégorie `tokenCategory`
+ *                  (`dev/design-tokens.js`) + option "Personnalisé..." en secours (owner,
+ *                  2026-07-05 — `var(--...)` en texte libre jugé "peu friendly", implique de
+ *                  connaître les noms de variables par cœur).
  *
  * @typedef {Object} FieldSchema
  * @property {string} key - Clé dans `ComponentMount.options`
  * @property {string} label - Libellé affiché
- * @property {'text'|'number'|'select'|'textarea'} type
+ * @property {'text'|'number'|'select'|'textarea'|'token'} type
  * @property {string[]} [choices] - Valeurs possibles si `type === 'select'`
+ * @property {'color'|'border'|'radius'} [tokenCategory] - Catégorie si `type === 'token'`
  * @property {unknown} default - Valeur par défaut à l'ajout du composant
  */
 
@@ -30,7 +35,7 @@ export const COMPONENT_FIELD_SCHEMAS = {
   StatBlock: [
     { key: 'label', label: 'Libellé', type: 'text', default: 'LABEL' },
     { key: 'value', label: 'Valeur', type: 'text', default: '—' },
-    { key: 'valueColor', label: 'Couleur de la valeur', type: 'text', default: '#F2F0EC' },
+    { key: 'valueColor', label: 'Couleur de la valeur', type: 'token', tokenCategory: 'color', default: 'var(--color-text-primary)' },
     { key: 'minWidth', label: 'Largeur minimale', type: 'text', default: 'auto' },
   ],
   ChatFeed: [
@@ -42,22 +47,22 @@ export const COMPONENT_FIELD_SCHEMAS = {
     { key: 'displayDuration', label: "Durée d'affichage (ms)", type: 'number', default: 5000 },
   ],
   Box: [
-    { key: 'borderRadius', label: 'Rayon de bordure', type: 'text', default: 'var(--radius-md)' },
-    { key: 'borderColor', label: 'Bordure', type: 'text', default: 'var(--border-panel)' },
-    { key: 'background', label: 'Fond', type: 'text', default: 'var(--color-bg-panel)' },
+    { key: 'borderRadius', label: 'Rayon de bordure', type: 'token', tokenCategory: 'radius', default: 'var(--radius-md)' },
+    { key: 'borderColor', label: 'Bordure', type: 'token', tokenCategory: 'border', default: 'var(--border-panel)' },
+    { key: 'background', label: 'Fond', type: 'token', tokenCategory: 'color', default: 'var(--color-bg-panel)' },
     { key: 'className', label: 'Classe CSS (optionnel)', type: 'text', default: '' },
   ],
   Divider: [
     { key: 'orientation', label: 'Orientation', type: 'select', choices: ['horizontal', 'vertical'], default: 'horizontal' },
     { key: 'thickness', label: 'Épaisseur', type: 'text', default: '1px' },
-    { key: 'color', label: 'Couleur', type: 'text', default: 'var(--color-rule)' },
+    { key: 'color', label: 'Couleur', type: 'token', tokenCategory: 'color', default: 'var(--color-rule)' },
     { key: 'className', label: 'Classe CSS (optionnel)', type: 'text', default: '' },
   ],
   TextLabel: [
     { key: 'text', label: 'Texte', type: 'text', default: '' },
     { key: 'font', label: 'Police', type: 'select', choices: ['serif', 'mono'], default: 'serif' },
     { key: 'size', label: 'Taille', type: 'text', default: '16px' },
-    { key: 'color', label: 'Couleur', type: 'text', default: 'var(--color-text-primary)' },
+    { key: 'color', label: 'Couleur', type: 'token', tokenCategory: 'color', default: 'var(--color-text-primary)' },
     { key: 'weight', label: 'Graisse', type: 'text', default: '400' },
     { key: 'className', label: 'Classe CSS (optionnel)', type: 'text', default: '' },
     { key: 'tag', label: 'Balise HTML', type: 'text', default: 'div' },
@@ -72,7 +77,7 @@ export const COMPONENT_FIELD_SCHEMAS = {
   ],
   Badge: [
     { key: 'text', label: 'Texte', type: 'text', default: '' },
-    { key: 'color', label: 'Couleur de fond', type: 'text', default: 'var(--color-gold)' },
+    { key: 'color', label: 'Couleur de fond', type: 'token', tokenCategory: 'color', default: 'var(--color-gold)' },
   ],
   Image: [
     { key: 'src', label: 'Chemin asset local', type: 'text', default: '' },

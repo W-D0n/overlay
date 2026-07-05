@@ -237,6 +237,7 @@
     import { OBS_SCENE_MAP } from '../relay/obs-scene-map.js';
     import { DEFAULT_TRANSITION } from '../protocol.js';
     import { COMPONENT_FIELD_SCHEMAS, COMPOSABLE_COMPONENT_NAMES } from './component-field-schemas.js';
+    import { DESIGN_TOKENS, tokenLabel } from './design-tokens.js';
 
     const PLACEMENT_SERVER_URL = 'http://localhost:4459/save-placement';
     const SCENE_DATA_SERVER_URL = 'http://localhost:4460/update-scene';
@@ -786,6 +787,49 @@
           select.value = String(currentValue);
           select.addEventListener('change', () => { mount.options[field.key] = select.value; save(); });
           row.appendChild(select);
+        } else if (field.type === 'token') {
+          // Menu déroulant des tokens tokens.css connus + "Personnalisé..." en secours — évite de
+          // devoir taper var(--...) de mémoire (owner, 2026-07-05).
+          const tokens = DESIGN_TOKENS[field.tokenCategory] ?? [];
+          const isKnownToken = tokens.includes(String(currentValue));
+
+          const wrapper = document.createElement('div');
+          wrapper.style.cssText = 'flex:1; display:flex; flex-direction:column; gap:4px;';
+
+          const select = document.createElement('select');
+          tokens.forEach((token) => {
+            const opt = document.createElement('option');
+            opt.value = token;
+            opt.textContent = tokenLabel(token);
+            select.appendChild(opt);
+          });
+          const customOpt = document.createElement('option');
+          customOpt.value = '__custom__';
+          customOpt.textContent = 'Personnalisé...';
+          select.appendChild(customOpt);
+          select.value = isKnownToken ? String(currentValue) : '__custom__';
+
+          const customInput = document.createElement('input');
+          customInput.type = 'text';
+          customInput.placeholder = 'valeur CSS personnalisée';
+          customInput.value = isKnownToken ? '' : String(currentValue ?? '');
+          customInput.style.display = isKnownToken ? 'none' : 'block';
+
+          select.addEventListener('change', () => {
+            if (select.value === '__custom__') {
+              customInput.style.display = 'block';
+              customInput.focus();
+            } else {
+              customInput.style.display = 'none';
+              mount.options[field.key] = select.value;
+              save();
+            }
+          });
+          customInput.addEventListener('change', () => { mount.options[field.key] = customInput.value; save(); });
+
+          wrapper.appendChild(select);
+          wrapper.appendChild(customInput);
+          row.appendChild(wrapper);
         } else if (field.type === 'textarea') {
           const textarea = document.createElement('textarea');
           textarea.value = Array.isArray(currentValue) ? currentValue.join('\n') : '';
