@@ -58,39 +58,120 @@
     }
 
     #panel {
-      width: 420px; flex-shrink: 0; padding: 24px; overflow-y: auto;
-      border-left: var(--border-rule); display: flex; flex-direction: column; gap: 16px;
+      width: 440px; flex-shrink: 0; padding: 0; overflow-y: auto;
+      border-left: var(--border-rule); display: flex; flex-direction: column;
+      background: var(--color-bg);
     }
-    #panel h1 { font-family: var(--font-serif); font-size: 22px; color: var(--color-gold); }
-    #panel h2 {
+
+    /* ─── Boutons (base commune, tout le panneau) ────────────────────────────── */
+    .btn {
+      padding: 7px 10px; background: var(--color-bg-widget); color: var(--color-gold);
+      border: 0.5px solid var(--color-gold); border-radius: var(--radius-md); cursor: pointer;
+      font-family: var(--font-mono); font-size: 12px; white-space: nowrap;
+    }
+    .btn:hover { background: rgba(200,185,122,0.12); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+    .btn-danger { border-color: #C85A5A; color: #E08A8A; }
+    .btn-danger:hover { background: rgba(200,90,90,0.12); }
+    .btn-ghost { background: transparent; border-color: var(--color-rule); color: var(--color-text-mid); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.04); border-color: var(--color-text-mid); }
+    .btn-small { font-size: 11px; padding: 5px 8px; }
+    .btn-block { width: 100%; }
+
+    /* ─── Structure générale : header sticky + statut + sections ────────────── */
+    .panel-header {
+      position: sticky; top: 0; z-index: 2; background: var(--color-bg);
+      padding: 18px 20px 10px; border-bottom: var(--border-rule);
+    }
+    .panel-header h1 { font-family: var(--font-serif); font-size: 20px; color: var(--color-gold); }
+
+    #status {
+      position: sticky; top: 54px; z-index: 2; margin: 0; padding: 8px 20px;
+      font-size: 12px; min-height: 16px; border-bottom: var(--border-rule);
+      background: var(--color-bg-widget); color: var(--color-text-mid);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+    #status:empty { padding: 0; min-height: 0; border-bottom: none; }
+    #status.status-success { background: rgba(120, 180, 120, 0.12); color: #9FCB9F; }
+    #status.status-error   { background: rgba(200, 90, 90, 0.14); color: #E08A8A; }
+    #status.status-pending { background: rgba(200, 185, 122, 0.10); color: var(--color-gold); }
+
+    .panel-section { padding: 16px 20px; border-bottom: var(--border-rule); }
+    .panel-section .section-title-row {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+    }
+    .section-title, summary.section-title {
       font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-top: 8px;
+      letter-spacing: var(--tracking-label); text-transform: uppercase; display: block; margin-bottom: 10px;
+      cursor: default;
     }
+    details.panel-section { padding: 0; }
+    details.panel-section > summary.section-title {
+      padding: 16px 20px; margin-bottom: 0; cursor: pointer; list-style: none;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    details.panel-section > summary.section-title::-webkit-details-marker { display: none; }
+    details.panel-section > summary.section-title::after { content: '▾'; font-size: 10px; }
+    details.panel-section[open] > summary.section-title::after { content: '▴'; }
+    details.panel-section > .section-body { padding: 0 20px 16px; }
+    .badge {
+      font-size: 10px; padding: 1px 7px; border-radius: 999px; color: var(--color-text-mid);
+      border: 0.5px solid var(--color-rule); font-variant-numeric: tabular-nums;
+    }
+
     select, input[type="text"], input[type="number"], textarea {
-      width: 100%; padding: 6px; background: var(--color-bg-widget); color: var(--color-text-primary);
+      width: 100%; padding: 7px; background: var(--color-bg-widget); color: var(--color-text-primary);
       border: var(--border-rule); border-radius: var(--radius-md); font-family: var(--font-mono); font-size: 12px;
       box-sizing: border-box;
     }
     textarea { min-height: 60px; resize: vertical; }
+
+    /* ─── Scène ───────────────────────────────────────────────────────────────── */
+    .scene-toolbar { display: flex; gap: 8px; margin-top: 10px; }
+    .scene-toolbar .btn { flex: 1; }
+    .inline-create { margin-top: 10px; }
+    .inline-create > summary { font-size: 11px; color: var(--color-text-mid); cursor: pointer; list-style: none; }
+    .inline-create > summary::-webkit-details-marker { display: none; }
+    .inline-create > summary::before { content: '+ '; }
+    .create-scene-row, .add-layer-row { display: flex; gap: 6px; margin-top: 8px; }
+    .create-scene-row input, .add-layer-row input { flex: 1; }
+
+    /* ─── Historique ──────────────────────────────────────────────────────────── */
+    #history-list { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow-y: auto; }
+    .history-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      padding: 6px 8px; border: var(--border-rule); border-radius: var(--radius-md); font-size: 11px;
+    }
+    .history-row.origin { border-color: var(--color-gold); }
+    .history-row button { flex-shrink: 0; }
+    .history-empty { font-size: 11px; color: var(--color-text-mid); font-style: italic; }
+
+    /* ─── Couches ─────────────────────────────────────────────────────────────── */
     .layer-row {
-      display: flex; flex-direction: column; gap: 4px; padding: 10px;
-      border: var(--border-rule); border-radius: var(--radius-md);
+      display: flex; flex-direction: column; gap: 8px; padding: 12px;
+      border: var(--border-rule); border-radius: var(--radius-md); margin-bottom: 10px;
+      background: rgba(255,255,255,0.015);
     }
-    .layer-row .row-head { display: flex; justify-content: space-between; align-items: center; }
+    .layer-row:last-child { margin-bottom: 0; }
+    .layer-row .row-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .layer-row .layer-name-group { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .layer-row .layer-name { color: var(--color-gold); font-size: 13px; }
-    .layer-row .layer-coords { font-size: 12px; color: var(--color-text-mid); font-variant-numeric: tabular-nums; }
-    .layer-row.unmigrated { opacity: 0.5; }
-    .layer-row button {
-      padding: 6px; background: var(--color-bg-widget); color: var(--color-gold);
-      border: 0.5px solid var(--color-gold); border-radius: var(--radius-md); cursor: pointer;
-      font-family: var(--font-mono); font-size: 12px;
+    .layer-row .layer-coords { font-size: 11px; color: var(--color-text-mid); font-variant-numeric: tabular-nums; }
+    .layer-tag {
+      font-size: 9px; padding: 1px 6px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.06em;
+      flex-shrink: 0;
     }
-    .layer-row button:hover { background: rgba(200,185,122,0.12); }
-    .layer-row button:disabled { opacity: 0.4; cursor: not-allowed; }
-    #status { font-size: 12px; color: var(--color-text-mid); min-height: 16px; }
+    .layer-tag.draggable { color: var(--color-gold); border: 0.5px solid var(--color-gold); }
+    .layer-tag.fixed { color: var(--color-text-mid); border: 0.5px solid var(--color-rule); }
+    .layer-row.unmigrated { opacity: 0.85; } /* le tag suffit à signaler l'état, plus besoin d'assombrir tout le bloc */
+    .layer-placement-actions { display: flex; gap: 8px; }
+    .layer-placement-actions .btn { flex: 1; }
 
     /* Composition (S8 session 5/6) */
-    .components-section { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+    .components-section {
+      display: flex; flex-direction: column; gap: 8px; margin-top: 4px;
+      padding-top: 8px; border-top: 0.5px dashed var(--color-rule);
+    }
     .component-block {
       display: flex; flex-direction: column; gap: 6px; padding: 8px;
       border: 1px dashed var(--color-text-mid); border-radius: var(--radius-md);
@@ -104,59 +185,51 @@
     .add-component-row { display: flex; gap: 6px; margin-top: 4px; }
     .add-component-row select { flex: 1; }
     .add-component-row button { flex: 0 0 auto; }
-
-    /* Création/suppression de scène + couches (S8 session 6/6) */
-    #panel > button, .create-scene-row button, .add-layer-row button, .remove-layer-btn {
-      padding: 6px; background: var(--color-bg-widget); color: var(--color-gold);
-      border: 0.5px solid var(--color-gold); border-radius: var(--radius-md); cursor: pointer;
-      font-family: var(--font-mono); font-size: 12px;
-    }
-    #panel > button:hover, .create-scene-row button:hover, .add-layer-row button:hover, .remove-layer-btn:hover {
-      background: rgba(200,185,122,0.12);
-    }
-    .create-scene-row, .add-layer-row { display: flex; gap: 6px; }
-    .create-scene-row input, .add-layer-row input { flex: 1; }
-    .create-scene-row button, .add-layer-row button { flex: 0 0 auto; }
-    #delete-scene-btn, .remove-layer-btn { border-color: #C85A5A; color: #E08A8A; }
-    #delete-scene-btn:hover, .remove-layer-btn:hover { background: rgba(200,90,90,0.12); }
-    .remove-layer-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-    /* Historique (2026-07-05) */
-    #history-list { display: flex; flex-direction: column; gap: 4px; max-height: 200px; overflow-y: auto; }
-    .history-row {
-      display: flex; justify-content: space-between; align-items: center; gap: 8px;
-      padding: 6px 8px; border: var(--border-rule); border-radius: var(--radius-md); font-size: 11px;
-    }
-    .history-row.origin { border-color: var(--color-gold); }
-    .history-row button { flex-shrink: 0; }
-    .history-empty { font-size: 11px; color: var(--color-text-mid); font-style: italic; }
   </style>
 </head>
 <body>
   <div id="preview"><div id="preview-surface"></div></div>
 
   <div id="panel">
-    <h1>Placement Panel</h1>
-    <label>
-      Scène
-      <select id="scene-select"></select>
-    </label>
-    <button id="delete-scene-btn">Supprimer cette scène</button>
-    <h2>Historique</h2>
-    <div id="history-list"></div>
-    <h2>Nouvelle scène</h2>
-    <div class="create-scene-row">
-      <input type="text" id="new-scene-id" placeholder="id-nouvelle-scene">
-      <button id="create-scene-btn">Créer</button>
+    <div class="panel-header">
+      <h1>Placement Panel</h1>
     </div>
-    <button id="reset-all-btn">Réinitialiser toutes les couches</button>
+
     <div id="status"></div>
-    <h2>Couches</h2>
-    <div class="add-layer-row">
-      <input type="text" id="new-layer-name" placeholder="nom-de-couche">
-      <button id="add-layer-btn">Ajouter une couche</button>
-    </div>
-    <div id="layer-list"></div>
+
+    <section class="panel-section">
+      <span class="section-title">Scène</span>
+      <select id="scene-select"></select>
+      <div class="scene-toolbar">
+        <button id="delete-scene-btn" class="btn btn-danger">Supprimer cette scène</button>
+      </div>
+      <details class="inline-create">
+        <summary>Nouvelle scène</summary>
+        <div class="create-scene-row">
+          <input type="text" id="new-scene-id" placeholder="id-nouvelle-scene">
+          <button id="create-scene-btn" class="btn">Créer</button>
+        </div>
+      </details>
+    </section>
+
+    <details class="panel-section history-section">
+      <summary class="section-title">Historique</summary>
+      <div class="section-body">
+        <div id="history-list"></div>
+      </div>
+    </details>
+
+    <section class="panel-section">
+      <div class="section-title-row">
+        <span class="section-title" style="margin-bottom: 0;">Couches</span>
+        <button id="reset-all-btn" class="btn btn-ghost btn-small">Réinitialiser placements</button>
+      </div>
+      <div class="add-layer-row">
+        <input type="text" id="new-layer-name" placeholder="nom-de-couche">
+        <button id="add-layer-btn" class="btn">+ couche</button>
+      </div>
+      <div id="layer-list" style="margin-top: 12px;"></div>
+    </section>
   </div>
 
   <script type="module">
@@ -190,6 +263,18 @@
     const layerList = document.getElementById('layer-list');
     const statusEl = document.getElementById('status');
     const historyList = document.getElementById('history-list');
+
+    // Colore #status automatiquement selon son contenu — aucun appelant n'a besoin de changer
+    // (tous les call sites existants font juste `statusEl.textContent = ...`, feedback peu clair
+    // signalé par l'owner 2026-07-05, corrigé sans toucher à chaque site d'appel).
+    new MutationObserver(() => {
+      const text = statusEl.textContent ?? '';
+      statusEl.classList.remove('status-success', 'status-error', 'status-pending');
+      if (!text) return;
+      if (/Échec|injoignable|invalide|déjà pris|vide|introuvable/.test(text)) statusEl.classList.add('status-error');
+      else if (/en cours\.\.\.$/.test(text)) statusEl.classList.add('status-pending');
+      else statusEl.classList.add('status-success');
+    }).observe(statusEl, { childList: true, characterData: true, subtree: true });
 
     /** @type {Document | null} */
     let indexDoc = null;
@@ -407,6 +492,7 @@
         row.appendChild(label);
 
         const restoreBtn = document.createElement('button');
+        restoreBtn.className = 'btn btn-small';
         restoreBtn.textContent = 'Restaurer';
         restoreBtn.addEventListener('click', () => restoreVersion(entry.timestamp));
         row.appendChild(restoreBtn);
@@ -502,28 +588,26 @@
 
         const head = document.createElement('div');
         head.className = 'row-head';
+
+        const nameGroup = document.createElement('div');
+        nameGroup.className = 'layer-name-group';
         const name = document.createElement('span');
         name.className = 'layer-name';
         name.textContent = layer.name;
-        head.appendChild(name);
+        nameGroup.appendChild(name);
 
-        if (layer.placement) {
-          const coords = document.createElement('span');
-          coords.className = 'layer-coords';
-          coords.id = `coords-${layer.name}`;
-          const p = livePlacements[layer.name];
-          coords.textContent = `x:${p.x} y:${p.y}` + (p.width !== undefined ? ` w:${p.width} h:${p.height}` : '');
-          head.appendChild(coords);
-        } else {
-          const tag = document.createElement('span');
-          tag.className = 'layer-coords';
-          tag.textContent = 'CSS (non migrée)';
-          head.appendChild(tag);
-        }
+        const tag = document.createElement('span');
+        tag.className = 'layer-tag ' + (layer.placement ? 'draggable' : 'fixed');
+        tag.textContent = layer.placement ? 'déplaçable' : 'CSS fixe';
+        tag.title = layer.placement
+          ? 'Position/taille modifiables par glisser-déposer'
+          : 'Position fixée par le CSS de la scène — non déplaçable (couche composite ou jamais migrée, voir docs/inbox.md)';
+        nameGroup.appendChild(tag);
+        head.appendChild(nameGroup);
 
         // Retrait de couche entière (S8 session 6/6) — jamais goldbar, invariant V4 (AC-36).
         const removeLayerBtn = document.createElement('button');
-        removeLayerBtn.className = 'remove-layer-btn';
+        removeLayerBtn.className = 'btn btn-danger btn-small';
         removeLayerBtn.textContent = '✕';
         removeLayerBtn.title = 'Supprimer cette couche';
         if (layer.name === 'goldbar') {
@@ -537,18 +621,25 @@
         row.appendChild(head);
 
         if (layer.placement) {
+          const coords = document.createElement('span');
+          coords.className = 'layer-coords';
+          coords.id = `coords-${layer.name}`;
+          const p = livePlacements[layer.name];
+          coords.textContent = `x:${p.x} y:${p.y}` + (p.width !== undefined ? ` w:${p.width} h:${p.height}` : '');
+          row.appendChild(coords);
+
           const btnRow = document.createElement('div');
-          btnRow.style.cssText = 'display:flex;gap:8px;';
+          btnRow.className = 'layer-placement-actions';
 
           const saveBtn = document.createElement('button');
+          saveBtn.className = 'btn';
           saveBtn.textContent = 'Sauvegarder';
-          saveBtn.style.flex = '1';
           saveBtn.addEventListener('click', () => saveLayerPlacement(layer.name));
           btnRow.appendChild(saveBtn);
 
           const resetBtn = document.createElement('button');
+          resetBtn.className = 'btn btn-ghost';
           resetBtn.textContent = 'Réinitialiser';
-          resetBtn.style.flex = '1';
           resetBtn.addEventListener('click', () => resetLayerPlacement(layer.name));
           btnRow.appendChild(resetBtn);
 
@@ -635,6 +726,7 @@
       head.appendChild(title);
 
       const removeBtn = document.createElement('button');
+      removeBtn.className = 'btn btn-danger btn-small';
       removeBtn.textContent = 'Retirer';
       // Pas de confirmation : l'historique est le filet de sécurité (2026-07-05).
       removeBtn.addEventListener('click', () => {
@@ -741,6 +833,7 @@
       addRow.appendChild(select);
 
       const addBtn = document.createElement('button');
+      addBtn.className = 'btn';
       addBtn.textContent = 'Ajouter';
       addBtn.addEventListener('click', () => {
         const componentName = select.value;
