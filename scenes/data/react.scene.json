@@ -1,6 +1,6 @@
 {
   "id": "react",
-  "dotgridMode": "react",
+  "background": { "component": "DotGridBackground", "options": { "mode": "react" } },
   "transition": { "type": "crossfade", "duration": 400, "easing": "easeInOut" },
   "layers": [
     {

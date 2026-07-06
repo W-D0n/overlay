@@ -15,6 +15,16 @@ import {
   Box, Divider, TextLabel, TextList, PollBar, Badge, Image,
 } from './components/index.js';
 import { DotGridAnimated } from './components/DotGridAnimated.js';
+import { RainBackground } from './components/RainBackground.js';
+import { MatrixGridBackground } from './components/MatrixGridBackground.js';
+import { BubbleBackground } from './components/BubbleBackground.js';
+import { FirefliesBackground } from './components/FirefliesBackground.js';
+import { FloatingSymbolsBackground } from './components/FloatingSymbolsBackground.js';
+import { GeometricPatternBackground } from './components/GeometricPatternBackground.js';
+import { ColorDropsBackground } from './components/ColorDropsBackground.js';
+import { StarsParallaxBackground } from './components/StarsParallaxBackground.js';
+import { OrbitingShapesBackground } from './components/OrbitingShapesBackground.js';
+import { ShapeMorphBackground } from './components/ShapeMorphBackground.js';
 
 /**
  * Les factories ont des signatures hétérogènes ; le registry expose la vue unifiée
@@ -25,4 +35,14 @@ export const COMPONENT_REGISTRY = /** @type {*} */ ({
   GoldBar, StatBlock, ChatFeed, PomodoroBar, AlertBanner,
   Box, Divider, TextLabel, TextList, PollBar, Badge, Image,
   DotGridBackground: DotGridAnimated,
+  RainBackground,
+  MatrixGridBackground,
+  BubbleBackground,
+  FirefliesBackground,
+  FloatingSymbolsBackground,
+  GeometricPatternBackground,
+  ColorDropsBackground,
+  StarsParallaxBackground,
+  OrbitingShapesBackground,
+  ShapeMorphBackground,
 });

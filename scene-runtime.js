@@ -1,10 +1,13 @@
 // @ts-check
 /**
- * scene-runtime.js — Orchestrateur DOM de l'overlay (S3).
+ * scene-runtime.js — Orchestrateur DOM de l'overlay (S3, fond polymorphe Track B).
  *
  * Page unique : monte les scènes par couches (`data-layer`), applique le niveau de
- * visibilité, exécute les transitions (`cut` / `crossfade`). Le DotGrid est une couche
- * de fond permanente (`#bg-layer`) : une seule instance qui survit aux changements.
+ * visibilité, exécute les transitions (`cut` / `crossfade` / `slide` / `wipe` / `morph`).
+ * `#bg-layer` héberge un effet de fond polymorphe (`SceneConfig.background`, un
+ * `ComponentMount` comme un autre) — un seul actif à la fois, l'instance survit aux
+ * changements de scène tant que le composant ne change pas (AD-B2, voir
+ * docs/specs/background-effects-library.md).
  *
  * Consomme `overlay:scene-change` et `overlay:visibility-change` (produits par store.js).
  * Ne câble PAS `overlay:morph` (séquencé couche 3 — AD-7 / AC-36).
@@ -14,7 +17,7 @@
 
 import { store, onStateChange } from './store.js';
 import { validateSceneConfig } from './protocol.js';
-import { resolveTransition, isLayerVisible, resolveDotgridMode, toCssEasing } from './scene-resolve.js';
+import { resolveTransition, isLayerVisible, toCssEasing } from './scene-resolve.js';
 import { resolvePlacementStyle } from './placement-resolve.js';
 import { resolveBoundValue, resolveBoundOptions, hasBoundOptions } from './scene-definition-resolve.js';
 import { COMPONENT_REGISTRY } from './component-registry.js';
@@ -22,12 +25,12 @@ import { SCENE_CONFIGS, SCENE_WIRES, loadDynamicScenes } from './scenes/registry
 
 // ─── État du runtime ──────────────────────────────────────────────────────────
 
-/** @type {import('./types.js').ComponentInstance} */ let grid;
+/** @type {import('./types.js').ComponentInstance | null} */ let currentBackground = null;
+/** @type {import('./types.js').ComponentMount | null} */ let currentBackgroundMount = null;
 /** @type {HTMLElement} */ let bgLayer;
 /** @type {HTMLElement} */ let sceneRoot;
 /** @type {import('./types.js').MountedScene | null} */ let current = null;
 /** @type {import('./types.js').VisibilityLevel} */ let currentLevel = 'full';
-/** @type {import('./types.js').DotGridMode} */ let currentDotgridMode = null;
 /** Transition crossfade en cours, finalisable instantanément (garde double-fire). @type {(() => void) | null} */
 let finalizePending = null;
 
@@ -140,13 +143,13 @@ function applyLayerVisibility(mounted, level) {
 }
 
 /**
- * Applique l'état global lié au niveau : fond DotGrid + transparence du body.
- * `#bg-layer` visible ⟺ niveau ≠ hidden ET mode DotGrid courant ≠ null (AD-7).
+ * Applique l'état global lié au niveau : effet de fond + transparence du body.
+ * `#bg-layer` visible ⟺ niveau ≠ hidden ET un effet de fond est monté (AD-7).
  * @param {import('./types.js').VisibilityLevel} level
  * @returns {void}
  */
 function applyGlobalVisibility(level) {
-  bgLayer.style.display = level !== 'hidden' && currentDotgridMode !== null ? '' : 'none';
+  bgLayer.style.display = level !== 'hidden' && currentBackground !== null ? '' : 'none';
   document.body.style.background = level === 'hidden' ? 'transparent' : '';
 }
 
@@ -161,17 +164,42 @@ function applyVisibility(level) {
   applyGlobalVisibility(level);
 }
 
-// ─── Mode DotGrid ───────────────────────────────────────────────────────────────
+// ─── Effet de fond (#bg-layer, polymorphe — Track B) ─────────────────────────────
 
 /**
- * Résout le mode DotGrid d'une scène, l'applique (jamais `setMode(null)` — AC-22),
- * et reporte l'état global de visibilité du fond.
- * @param {import('./types.js').DotGridMode} mode
+ * Monte/met à jour/démonte l'effet de fond courant (AD-B2, `docs/specs/background-effects-library.md`).
+ * Même `component` qu'avant → `update()` sur l'instance existante, jamais de recréation (AC-02).
+ * `component` différent (ou `null`) → démonte l'ancien, monte le nouveau si présent (AC-03/AC-04).
+ * @param {import('./types.js').ComponentMount | null} mount
  * @returns {void}
  */
-function applyDotgridMode(mode) {
-  currentDotgridMode = mode;
-  if (mode !== null) /** @type {*} */ (grid).setMode(mode);
+function applyBackground(mount) {
+  const nextComponent = mount?.component ?? null;
+  const prevComponent = currentBackgroundMount?.component ?? null;
+
+  if (nextComponent !== null && nextComponent === prevComponent && currentBackground) {
+    currentBackground.update?.(mount.options ?? {});
+    currentBackgroundMount = mount;
+    applyGlobalVisibility(currentLevel);
+    return;
+  }
+
+  currentBackground?.destroy?.();
+  currentBackground?.el.remove(); // le composant ne se retire pas lui-même (contrat des couches de
+  // scène, où c'est le conteneur parent démonté qui l'entraîne — #bg-layer, lui, est permanent)
+  currentBackground = null;
+  currentBackgroundMount = null;
+
+  if (nextComponent !== null) {
+    const factory = COMPONENT_REGISTRY[nextComponent];
+    if (!factory) {
+      console.warn(`[overlay] background : composant inconnu — ${nextComponent}`);
+    } else {
+      currentBackground = factory(mount.options ?? {});
+      currentBackgroundMount = mount;
+      bgLayer.appendChild(currentBackground.el);
+    }
+  }
   applyGlobalVisibility(currentLevel);
 }
 
@@ -208,6 +236,141 @@ function crossfade(previous, next, resolved) {
   finalizePending = finish;
 }
 
+/** Axe de translation `slide` selon la direction — gauche/droite = X, haut/bas = Y. */
+const SLIDE_AXIS = { left: 'X', right: 'X', up: 'Y', down: 'Y' };
+/** Position de départ de l'entrante `slide` selon la direction (sens du glissement). */
+const SLIDE_ENTER_FROM = { right: '100%', left: '-100%', up: '-100%', down: '100%' };
+/** Position d'arrivée de la sortante `slide` — toujours opposée à l'entrante. */
+const SLIDE_EXIT_TO = { right: '-100%', left: '100%', up: '100%', down: '-100%' };
+
+/**
+ * Slide entre l'ancienne et la nouvelle scène (translateX/Y), puis démonte l'ancienne.
+ * Même filet `transitionend`/timeout que `crossfade` (AC-06).
+ * @param {import('./types.js').MountedScene} previous
+ * @param {import('./types.js').MountedScene} next
+ * @param {import('./types.js').SceneTransition} resolved
+ * @returns {void}
+ */
+function slide(previous, next, resolved) {
+  const direction = resolved.direction ?? 'right';
+  const axis = SLIDE_AXIS[direction];
+
+  next.root.style.transform = `translate${axis}(${SLIDE_ENTER_FROM[direction]})`;
+  void next.root.offsetHeight; // reflow : garantit l'état initial avant la transition
+  const css = `transform ${resolved.duration}ms ${toCssEasing(resolved.easing)}`;
+  next.root.style.transition = css;
+  previous.root.style.transition = css;
+  next.root.style.transform = `translate${axis}(0)`;
+  previous.root.style.transform = `translate${axis}(${SLIDE_EXIT_TO[direction]})`;
+
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    next.root.removeEventListener('transitionend', finish);
+    next.root.style.transform = '';
+    next.root.style.transition = '';
+    previous.destroy();
+    if (finalizePending === finish) finalizePending = null;
+  };
+  next.root.addEventListener('transitionend', finish, { once: true });
+  const timer = setTimeout(finish, resolved.duration + 100);
+  finalizePending = finish;
+}
+
+/** `clip-path: inset(...)` de l'entrante `wipe` pour un pourcentage restant à révéler. */
+const WIPE_INSET = {
+  right: (/** @type {number} */ pct) => `0 ${pct}% 0 0`,
+  left: (/** @type {number} */ pct) => `0 0 0 ${pct}%`,
+  down: (/** @type {number} */ pct) => `${pct}% 0 0 0`,
+  up: (/** @type {number} */ pct) => `0 0 ${pct}% 0`,
+};
+
+/**
+ * Wipe : révélation de la scène entrante via `clip-path` animé, sortante statique dessous.
+ * Même filet `transitionend`/timeout que `crossfade` (AC-06).
+ * @param {import('./types.js').MountedScene} previous
+ * @param {import('./types.js').MountedScene} next
+ * @param {import('./types.js').SceneTransition} resolved
+ * @returns {void}
+ */
+function wipe(previous, next, resolved) {
+  const direction = resolved.direction ?? 'right';
+  const color = resolved.color ?? 'var(--color-gold)';
+  const inset = WIPE_INSET[direction];
+
+  next.root.style.opacity = '1';
+  next.root.style.clipPath = inset ? `inset(${inset(100)})` : '';
+  next.root.style.boxShadow = `0 0 0 2px ${color}`;
+  void next.root.offsetHeight; // reflow : garantit l'état initial avant la transition
+  next.root.style.transition = `clip-path ${resolved.duration}ms ${toCssEasing(resolved.easing)}`;
+  next.root.style.clipPath = inset ? `inset(${inset(0)})` : '';
+
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    next.root.removeEventListener('transitionend', finish);
+    next.root.style.clipPath = '';
+    next.root.style.transition = '';
+    next.root.style.boxShadow = '';
+    previous.destroy();
+    if (finalizePending === finish) finalizePending = null;
+  };
+  next.root.addEventListener('transitionend', finish, { once: true });
+  const timer = setTimeout(finish, resolved.duration + 100);
+  finalizePending = finish;
+}
+
+/**
+ * Fond pour la transition `morph` (Track A, généralisé Track B — AD-B3). Même `component` des
+ * deux côtés ET `morphTo` disponible sur l'instance → interpolation via `morphTo` (ex.
+ * `DotGridBackground` depuis A3). Sinon (composant différent, absent des deux côtés, ou sans
+ * `morphTo`) → un seul côté présent : fondu d'opacité générique de `#bg-layer` (composant-agnostique,
+ * ne nécessite aucune connaissance des paramètres internes de l'effet, LAC-01 généralisé) ; les
+ * deux côtés identiques en présence (présents des deux côtés mais composant différent, ou absents
+ * des deux côtés) → dégrade en swap instantané (AC-06, rien à animer côté fond).
+ * @param {import('./types.js').ComponentMount | null} previousMount
+ * @param {import('./types.js').ComponentMount | null} enteringMount
+ * @param {import('./types.js').SceneTransition} resolved
+ * @returns {void}
+ */
+function morphBackground(previousMount, enteringMount, resolved) {
+  const sameComponent = previousMount !== null && enteringMount !== null
+    && previousMount.component === enteringMount.component;
+
+  if (sameComponent && typeof currentBackground?.morphTo === 'function') {
+    currentBackground.morphTo(enteringMount.options ?? {}, resolved.duration, resolved.easing);
+    currentBackgroundMount = enteringMount;
+    applyGlobalVisibility(currentLevel);
+    return;
+  }
+
+  if (Boolean(previousMount) === Boolean(enteringMount)) {
+    applyBackground(enteringMount); // même présence des deux côtés (différent ou absent) → rien à animer
+    return;
+  }
+
+  const css = `opacity ${resolved.duration}ms ${toCssEasing(resolved.easing)}`;
+  if (enteringMount !== null) {
+    applyBackground(enteringMount);
+    bgLayer.style.opacity = '0';
+    void bgLayer.offsetHeight; // reflow : garantit l'état initial avant la transition
+    bgLayer.style.transition = css;
+    bgLayer.style.opacity = '1';
+  } else {
+    bgLayer.style.transition = css;
+    bgLayer.style.opacity = '0';
+  }
+  setTimeout(() => {
+    bgLayer.style.transition = '';
+    bgLayer.style.opacity = '';
+    if (enteringMount === null) applyBackground(null); // démonte réellement une fois le fondu terminé
+  }, resolved.duration + 100);
+}
+
 /**
  * Traite un changement de scène (`overlay:scene-change`).
  * @param {{ scene?: string, transition?: unknown }} detail
@@ -231,17 +394,29 @@ function handleSceneChange(detail) {
   if (!next) return; // config invalide → l'ancienne scène reste
 
   applyLayerVisibility(next, currentLevel); // le niveau courant est ré-appliqué (AC-34)
-  applyDotgridMode(resolveDotgridMode(entering.dotgridMode));
 
+  const previousMount = currentBackgroundMount;
+  const enteringMount = entering.background ?? null;
   const previous = current;
   current = next;
 
   if (resolved.type === 'cut' || !previous) {
+    applyBackground(enteringMount);
     next.root.style.opacity = '1';
     if (previous) previous.destroy();
     return;
   }
-  crossfade(previous, next, resolved);
+
+  if (resolved.type === 'morph') {
+    morphBackground(previousMount, enteringMount, resolved);
+    crossfade(previous, next, resolved); // morph ne change QUE le fond — contenu en crossfade standard
+    return;
+  }
+
+  applyBackground(enteringMount);
+  if (resolved.type === 'slide') return slide(previous, next, resolved);
+  if (resolved.type === 'wipe') return wipe(previous, next, resolved);
+  crossfade(previous, next, resolved); // 'crossfade'
 }
 
 // ─── Binding déclaratif (S8) ────────────────────────────────────────────────────
@@ -286,11 +461,6 @@ async function init() {
   bgLayer = /** @type {HTMLElement} */ (document.getElementById('bg-layer'));
   sceneRoot = /** @type {HTMLElement} */ (document.getElementById('scene-root'));
 
-  // DotGrid rejoint le modèle de composant standard (S8) — monté via le registry, toujours une
-  // seule instance permanente dans #bg-layer (pas de système multi-animations).
-  grid = COMPONENT_REGISTRY.DotGridBackground({});
-  bgLayer.appendChild(grid.el);
-
   currentLevel = store.visibilityLevel;
 
   document.addEventListener('overlay:scene-change', (e) => handleSceneChange(/** @type {CustomEvent} */ (e).detail));
@@ -311,7 +481,7 @@ async function init() {
   current = mounted;
 
   const config = current ? SCENE_CONFIGS[current.id] : null;
-  applyDotgridMode(config ? resolveDotgridMode(config.dotgridMode) : null);
+  applyBackground(config?.background ?? null);
 
   if (current) {
     applyLayerVisibility(current, currentLevel);

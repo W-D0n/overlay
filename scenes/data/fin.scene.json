@@ -1,6 +1,6 @@
 {
   "id": "fin",
-  "dotgridMode": "fin",
+  "background": { "component": "DotGridBackground", "options": { "mode": "fin" } },
   "transition": { "type": "crossfade", "duration": 500, "easing": "easeInOut" },
   "layers": [
     {

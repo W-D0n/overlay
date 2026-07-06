@@ -1,6 +1,6 @@
 {
   "id": "brb",
-  "dotgridMode": "brb",
+  "background": { "component": "DotGridBackground", "options": { "mode": "brb" } },
   "transition": {
     "type": "crossfade",
     "duration": 600,

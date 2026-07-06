@@ -34,12 +34,70 @@ export const MODE_PARAMS = {
  */
 export const GRID_MODES = /** @type {GridMode[]} */ (Object.keys(MODE_PARAMS));
 
+/** Mode de dernier recours si `options.mode` est absent/invalide (Track B — encapsulé ici, plus de
+ * champ dédié `dotgridMode` ni de `resolveDotgridMode` externe, voir AD-B4). */
+const DEFAULT_MODE = 'brb';
+
+/**
+ * Valide/replie un mode ambiant : chaîne ∈ `GRID_MODES` → elle-même, sinon → `DEFAULT_MODE`.
+ * @param {unknown} mode
+ * @returns {GridMode}
+ */
+function resolveMode(mode) {
+  return typeof mode === 'string' && mode in MODE_PARAMS ? /** @type {GridMode} */ (mode) : DEFAULT_MODE;
+}
+
+/** @param {number} a @param {number} b @param {number} t */
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+/**
+ * Fonctions d'easing pour l'interpolation numérique de `morphTo` — équivalent JS des jetons
+ * `TransitionEasing` (scene-resolve.js `toCssEasing` fait le même mapping côté CSS).
+ * @type {Record<string, (t: number) => number>}
+ */
+const EASING_FN = {
+  linear: (t) => t,
+  easeIn: (t) => t * t,
+  easeOut: (t) => t * (2 - t),
+  easeInOut: (t) => (t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2),
+};
+
+/**
+ * Applique un easing à une progression brute [0,1]. Jeton hors domaine → `easeInOut`
+ * (repli, cohérent avec `toCssEasing`).
+ * @param {unknown} easing
+ * @param {number} t - Progression brute, sera clampée à [0,1]
+ * @returns {number}
+ */
+export function easeProgress(easing, t) {
+  const fn = typeof easing === 'string' && easing in EASING_FN ? EASING_FN[/** @type {keyof typeof EASING_FN} */ (easing)] : EASING_FN.easeInOut;
+  return fn(Math.min(1, Math.max(0, t)));
+}
+
+/**
+ * Interpole les 4 paramètres Simplex entre deux modes à une progression déjà "easée" [0,1].
+ * Pure — testable indépendamment du canvas/rAF (AD-1), consommée par `morphTo` en boucle de rendu.
+ * @param {{freqX:number,freqY:number,freqT:number,amplitude:number}} from
+ * @param {{freqX:number,freqY:number,freqT:number,amplitude:number}} to
+ * @param {number} progress
+ * @returns {{freqX:number,freqY:number,freqT:number,amplitude:number}}
+ */
+export function lerpModeParams(from, to, progress) {
+  return {
+    freqX: lerp(from.freqX, to.freqX, progress),
+    freqY: lerp(from.freqY, to.freqY, progress),
+    freqT: lerp(from.freqT, to.freqT, progress),
+    amplitude: lerp(from.amplitude, to.amplitude, progress),
+  };
+}
+
 /**
  * Fond grille de points animé — direction artistique Atelier.
  *
  * Couche 1 : oscillation sinusoïdale par point (init aléatoire au chargement).
  * Couche 2 : bruit Simplex 2D ambiant, paramétré par mode scène.
- * Couches 3-4 : stubs — implémentation prévue en Sessions 2+.
+ * Couche 3 : morphisme des paramètres Simplex entre deux modes (`morphTo`, Track A / transition
+ * `morph` de `scene-runtime.js`). Couche 4 : stub — implémentation prévue en Sessions 2+.
  *
  * @param {{
  *   mode?: GridMode,
@@ -50,9 +108,10 @@ export const GRID_MODES = /** @type {GridMode[]} */ (Object.keys(MODE_PARAMS));
  * }} [options]
  * @returns {{
  *   el: HTMLCanvasElement,
- *   setMode: (mode: GridMode) => void,
+ *   setMode: (mode: unknown) => void,
+ *   update: (options: unknown) => void,
  *   trigger: (eventType: string) => void,
- *   morphTo: (options: object) => Promise<void>,
+ *   morphTo: (options: { mode: GridMode, duration?: number, easing?: unknown }) => Promise<void>,
  *   destroy: () => void,
  * }}
  */
@@ -63,7 +122,15 @@ export function DotGridAnimated(options = {}) {
   const baseOpacity = options.baseOpacity ?? 0.26;
 
   /** @type {GridMode} */
-  let currentMode = options.mode ?? 'brb';
+  let currentMode = resolveMode(options.mode);
+
+  /**
+   * Morph en cours (Couche 3, S9/Track A) — interpole `MODE_PARAMS` de `fromParams` vers
+   * `toParams` sur `duration` ms, lu par `tick()` à la place de `MODE_PARAMS[currentMode]`.
+   * `null` = pas de morph en cours (comportement Couche 2 inchangé).
+   * @type {{ fromParams: {freqX:number,freqY:number,freqT:number,amplitude:number}, toParams: {freqX:number,freqY:number,freqT:number,amplitude:number}, toMode: GridMode, duration: number, easing: unknown, startTime: number, resolve: () => void } | null}
+   */
+  let morphState = null;
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = [
@@ -152,7 +219,18 @@ export function DotGridAnimated(options = {}) {
     ctx.clearRect(0, 0, cssW, cssH);
 
     const t    = timestamp * 0.001;  // secondes
-    const mode = MODE_PARAMS[currentMode];
+    let mode = MODE_PARAMS[currentMode];
+    if (morphState !== null) {
+      const raw = morphState.duration > 0 ? (timestamp - morphState.startTime) / morphState.duration : 1;
+      const eased = easeProgress(morphState.easing, raw);
+      mode = lerpModeParams(morphState.fromParams, morphState.toParams, eased);
+      if (raw >= 1) {
+        currentMode = morphState.toMode;
+        const resolve = morphState.resolve;
+        morphState = null;
+        resolve();
+      }
+    }
     const [r, g, b] = baseColor;
 
     for (let i = 0; i < pointCount; i++) {
@@ -189,11 +267,27 @@ export function DotGridAnimated(options = {}) {
     el: canvas,
 
     /**
-     * Changer le mode ambiant (swap instantané des paramètres Simplex).
-     * @param {GridMode} mode
+     * Changer le mode ambiant (swap instantané des paramètres Simplex). Mode invalide/absent →
+     * repli interne sur `DEFAULT_MODE` (AD-B4, `docs/specs/background-effects-library.md`) —
+     * jamais un no-op silencieux : l'appelant générique (`scene-runtime.js`) ne valide plus lui-même.
+     * @param {unknown} mode
      */
     setMode(mode) {
-      if (mode in MODE_PARAMS) currentMode = mode;
+      // Un morph en cours n'a plus de sens si le mode est écrasé abruptement — on résout sa
+      // promesse (pas d'appelant qui reste bloqué en attente) plutôt que de la laisser pendre.
+      if (morphState !== null) { morphState.resolve(); morphState = null; }
+      currentMode = resolveMode(mode);
+    },
+
+    /**
+     * Rafraîchit le composant avec de nouvelles options (contrat `ComponentInstance.update` générique
+     * — Track B, `scene-runtime.js` l'appelle quand le composant de fond reste le même entre deux
+     * scènes mais que ses options changent).
+     * @param {unknown} newOptions
+     */
+    update(newOptions) {
+      const mode = /** @type {{mode?: unknown} | null | undefined} */ (newOptions)?.mode;
+      this.setMode(mode);
     },
 
     /**
@@ -203,11 +297,24 @@ export function DotGridAnimated(options = {}) {
     trigger(_eventType) {},
 
     /**
-     * Stub — Couche 3 (morphisme de forme), implémentation en Session 2+.
-     * @param {object} _options
+     * Interpole les paramètres Simplex du mode courant vers `options.mode` sur `options.duration`
+     * ms (Track A / transition `morph`, `scene-runtime.js`). No-op si `mode` est invalide ou déjà
+     * le mode courant (rien à interpoler).
+     * @param {{ mode: GridMode, duration?: number, easing?: unknown }} options
      * @returns {Promise<void>}
      */
-    async morphTo(_options) {},
+    morphTo(options) {
+      const targetMode = options?.mode;
+      if (typeof targetMode !== 'string' || !(targetMode in MODE_PARAMS) || targetMode === currentMode) {
+        return Promise.resolve();
+      }
+      const duration = typeof options.duration === 'number' && options.duration >= 0 ? options.duration : 400;
+      const fromParams = { ...MODE_PARAMS[currentMode] };
+      const toParams = MODE_PARAMS[targetMode];
+      return new Promise((resolve) => {
+        morphState = { fromParams, toParams, toMode: targetMode, duration, easing: options.easing, startTime: performance.now(), resolve };
+      });
+    },
 
     destroy() {
       cancelAnimationFrame(rafId);

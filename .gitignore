@@ -16,3 +16,6 @@ obs-config.local.js
 Thumbs.db
 .vscode/
 .idea/
+
+# Artefacts de vérification visuelle (Playwright MCP)
+.playwright-mcp/

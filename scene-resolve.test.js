@@ -7,9 +7,8 @@
  */
 
 import { test, expect } from 'bun:test';
-import { resolveTransition, isLayerVisible, resolveDotgridMode, toCssEasing } from './scene-resolve.js';
-import { DEFAULT_TRANSITION, DEFAULT_DOTGRID_MODE } from './protocol.js';
-import { GRID_MODES } from './components/DotGridAnimated.js';
+import { resolveTransition, isLayerVisible, toCssEasing } from './scene-resolve.js';
+import { DEFAULT_TRANSITION } from './protocol.js';
 
 // ─── resolveTransition (AC-15→18) ────────────────────────────────────────────
 
@@ -54,7 +53,7 @@ test('T06 [AC-16] override partiel : seul le champ fourni écrase, le reste vien
 });
 
 test('T07 [AC-17] override.type invalide → ignoré, repli sur sceneDefault', () => {
-  const r = resolveTransition({ type: 'wipe' }, { type: 'cut', duration: 700, easing: 'easeOut' });
+  const r = resolveTransition({ type: 'zoom' }, { type: 'cut', duration: 700, easing: 'easeOut' });
   expect(r.type).toBe('cut');
 });
 
@@ -86,6 +85,50 @@ test('T13 [AC-15] ne mute pas DEFAULT_TRANSITION et retourne un nouvel objet', (
   expect(DEFAULT_TRANSITION).toEqual(before);
 });
 
+test('T13b [AC-01] les 5 valeurs de TransitionType sont acceptées', () => {
+  for (const type of ['crossfade', 'cut', 'slide', 'wipe', 'morph']) {
+    expect(resolveTransition({ type }, undefined).type).toBe(type);
+  }
+});
+
+test('T13c [AC-01] type hors des 5 valeurs → rejeté, repli sur défaut', () => {
+  expect(resolveTransition({ type: 'zoom' }, undefined).type).toBe(DEFAULT_TRANSITION.type);
+});
+
+// ─── direction / color (AC-07, AC-08) ─────────────────────────────────────────
+
+test('T13d [AC-07] slide/wipe sans direction → repli sur "right"', () => {
+  expect(resolveTransition({ type: 'slide' }, undefined).direction).toBe('right');
+  expect(resolveTransition({ type: 'wipe' }, undefined).direction).toBe('right');
+});
+
+test('T13e [AC-07] direction hors des 4 valeurs valides → repli sur "right"', () => {
+  expect(resolveTransition({ type: 'slide', direction: 'diagonal' }, undefined).direction).toBe('right');
+});
+
+test('T13f [AC-07] direction valide propagée telle quelle', () => {
+  for (const direction of ['left', 'right', 'up', 'down']) {
+    expect(resolveTransition({ type: 'slide', direction }, undefined).direction).toBe(direction);
+  }
+});
+
+test('T13g [AC-07] crossfade/cut n\'imposent pas de direction', () => {
+  expect(resolveTransition({ type: 'crossfade' }, undefined).direction).toBeUndefined();
+  expect(resolveTransition({ type: 'cut' }, undefined).direction).toBeUndefined();
+});
+
+test('T13h [AC-08] wipe sans color → repli sur var(--color-gold)', () => {
+  expect(resolveTransition({ type: 'wipe' }, undefined).color).toBe('var(--color-gold)');
+});
+
+test('T13i [AC-08] wipe avec color invalide (non-chaîne) → repli', () => {
+  expect(resolveTransition({ type: 'wipe', color: 42 }, undefined).color).toBe('var(--color-gold)');
+});
+
+test('T13j [AC-08] wipe avec color valide propagée telle quelle', () => {
+  expect(resolveTransition({ type: 'wipe', color: '#ff0000' }, undefined).color).toBe('#ff0000');
+});
+
 // ─── toCssEasing (AC-37) ──────────────────────────────────────────────────────
 
 test('T14 [AC-37] chaque TransitionEasing → timing-function CSS correspondante', () => {
@@ -99,28 +142,6 @@ test('T15 [AC-37] valeur hors domaine → ease-in-out (repli)', () => {
   for (const bad of ['bounce', '', 'ease-in', 42, null, undefined, {}]) {
     expect(toCssEasing(bad)).toBe('ease-in-out');
   }
-});
-
-// ─── resolveDotgridMode (AC-25→27) ────────────────────────────────────────────
-
-test('T16 [AC-25] null → null (scène sans DotGrid)', () => {
-  expect(resolveDotgridMode(null)).toBeNull();
-});
-
-test('T17 [AC-26] chaque mode de GRID_MODES → ce mode', () => {
-  for (const mode of GRID_MODES) {
-    expect(resolveDotgridMode(mode)).toBe(mode);
-  }
-});
-
-test('T18 [AC-27] valeur invalide non-null → DEFAULT_DOTGRID_MODE', () => {
-  for (const bad of ['jeu', 'nope', '', 42, {}]) {
-    expect(resolveDotgridMode(bad)).toBe(DEFAULT_DOTGRID_MODE);
-  }
-});
-
-test('T19 [AC-27] undefined (non-null) → DEFAULT_DOTGRID_MODE', () => {
-  expect(resolveDotgridMode(undefined)).toBe(DEFAULT_DOTGRID_MODE);
 });
 
 // ─── isLayerVisible (AC-29) ───────────────────────────────────────────────────

@@ -165,6 +165,9 @@ Aucun code cette session — spec à valider avant A2 (implémentation `slide`/`
 
 ## Lacunes identifiées
 
-- [ ] LAC-01 — Comportement exact de `morph` quand un seul côté (entrant/sortant) a un
-      `dotgridMode` non-null : à préciser en session A3 (candidat : traiter comme un fade
-      d'opacité du fond en parallèle du morph des paramètres, plutôt qu'un cas d'erreur).
+- [x] LAC-01 — Tranchée en session A3 (2026-07-07) : quand un seul côté (entrant/sortant) a un
+      `dotgridMode` non-null, il n'y a rien à interpoler côté "sans fond" — traité comme un fondu
+      d'**opacité** du fond (`#bg-layer`), pas un morph de paramètres. Sortant seul → le fond
+      s'estompe puis se masque (mode conservé jusqu'à la fin du fondu). Entrant seul → le fond se
+      monte au mode entrant (instantané, `setMode`) puis fait un fondu d'opacité 0→1. Implémenté
+      dans `morphDotgrid()` (`scene-runtime.js`).

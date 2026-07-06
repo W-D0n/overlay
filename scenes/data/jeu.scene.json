@@ -1,6 +1,6 @@
 {
   "id": "jeu",
-  "dotgridMode": null,
+  "background": null,
   "transition": { "type": "crossfade", "duration": 400, "easing": "easeInOut" },
   "layers": [
     {

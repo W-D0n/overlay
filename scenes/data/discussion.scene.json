@@ -1,6 +1,6 @@
 {
   "id": "discussion",
-  "dotgridMode": "discussion",
+  "background": { "component": "DotGridBackground", "options": { "mode": "discussion" } },
   "transition": {
     "type": "crossfade",
     "duration": 400,

@@ -240,6 +240,16 @@
       </details>
     </section>
 
+    <section class="panel-section">
+      <span class="section-title">Transition</span>
+      <div id="transition-fields"></div>
+    </section>
+
+    <section class="panel-section">
+      <span class="section-title">Fond</span>
+      <div id="background-fields"></div>
+    </section>
+
     <details class="panel-section history-section">
       <summary class="section-title">Historique</summary>
       <div class="section-body">
@@ -294,7 +304,7 @@
     import { SCENE_CONFIGS, loadDynamicScenes } from '../scenes/registry.js';
     import { OBS_SCENE_MAP } from '../relay/obs-scene-map.js';
     import { DEFAULT_TRANSITION } from '../protocol.js';
-    import { COMPONENT_FIELD_SCHEMAS, COMPOSABLE_COMPONENT_NAMES } from './component-field-schemas.js';
+    import { COMPONENT_FIELD_SCHEMAS, COMPOSABLE_COMPONENT_NAMES, BACKGROUND_FIELD_SCHEMAS, BACKGROUND_COMPONENT_NAMES } from './component-field-schemas.js';
     import { DESIGN_TOKENS, tokenLabel } from './design-tokens.js';
     // Montage réel des composants dans la preview (2026-07-05) — component-registry.js et
     // scene-definition-resolve.js sont sûrs à importer ici : aucun des deux n'importe store.js
@@ -342,6 +352,8 @@
     const surface = document.getElementById('preview-surface');
     const sceneSelect = document.getElementById('scene-select');
     const layerList = document.getElementById('layer-list');
+    const transitionFieldsEl = document.getElementById('transition-fields');
+    const backgroundFieldsEl = document.getElementById('background-fields');
     const statusEl = document.getElementById('status');
     const historyList = document.getElementById('history-list');
     const archivedList = document.getElementById('archived-list');
@@ -426,7 +438,7 @@
       /** @type {import('../types.js').SceneConfig} */
       const sceneConfig = {
         id,
-        dotgridMode: null,
+        background: null,
         transition: DEFAULT_TRANSITION,
         layers: [
           {
@@ -626,8 +638,225 @@
       });
 
       renderLayerList(config);
+      renderTransitionSection(config);
+      renderBackgroundSection(config);
       refreshHistory();
       statusEl.textContent = '';
+    }
+
+    // ─── Transition (Track A session 4) ──────────────────────────────────────
+
+    const TRANSITION_TYPES_UI = ['crossfade', 'cut', 'slide', 'wipe', 'morph'];
+    const TRANSITION_EASINGS_UI = ['easeInOut', 'easeIn', 'easeOut', 'linear'];
+    const TRANSITION_DIRECTIONS_UI = ['left', 'right', 'up', 'down'];
+
+    /**
+     * Édite `liveConfig.transition` — auto-sauvegarde comme le reste du panneau. `direction`
+     * n'apparaît que pour slide/wipe, `color` seulement pour wipe (docs/specs/scene-transition-library.md).
+     * @param {import('../types.js').SceneConfig} config
+     */
+    function renderTransitionSection(config) {
+      transitionFieldsEl.innerHTML = '';
+      const t = config.transition;
+
+      const typeRow = document.createElement('div');
+      typeRow.className = 'field-row';
+      const typeLabel = document.createElement('label');
+      typeLabel.textContent = 'Type';
+      typeRow.appendChild(typeLabel);
+      const typeSelect = document.createElement('select');
+      TRANSITION_TYPES_UI.forEach((type) => {
+        const opt = document.createElement('option');
+        opt.value = type;
+        opt.textContent = type;
+        typeSelect.appendChild(opt);
+      });
+      typeSelect.value = t.type;
+      typeSelect.addEventListener('change', () => {
+        t.type = typeSelect.value;
+        saveSceneConfig('transition : type');
+        renderTransitionSection(config); // direction/color apparaissent/disparaissent selon le type
+      });
+      typeRow.appendChild(typeSelect);
+      transitionFieldsEl.appendChild(typeRow);
+
+      const durationRow = document.createElement('div');
+      durationRow.className = 'field-row';
+      const durationLabel = document.createElement('label');
+      durationLabel.textContent = 'Durée (ms)';
+      durationRow.appendChild(durationLabel);
+      const durationInput = document.createElement('input');
+      durationInput.type = 'number';
+      durationInput.min = '0';
+      durationInput.value = String(t.duration);
+      durationInput.addEventListener('change', () => {
+        t.duration = Number(durationInput.value);
+        saveSceneConfig('transition : durée');
+      });
+      durationRow.appendChild(durationInput);
+      transitionFieldsEl.appendChild(durationRow);
+
+      const easingRow = document.createElement('div');
+      easingRow.className = 'field-row';
+      const easingLabel = document.createElement('label');
+      easingLabel.textContent = 'Easing';
+      easingRow.appendChild(easingLabel);
+      const easingSelect = document.createElement('select');
+      TRANSITION_EASINGS_UI.forEach((easing) => {
+        const opt = document.createElement('option');
+        opt.value = easing;
+        opt.textContent = easing;
+        easingSelect.appendChild(opt);
+      });
+      easingSelect.value = t.easing;
+      easingSelect.addEventListener('change', () => {
+        t.easing = easingSelect.value;
+        saveSceneConfig('transition : easing');
+      });
+      easingRow.appendChild(easingSelect);
+      transitionFieldsEl.appendChild(easingRow);
+
+      if (t.type === 'slide' || t.type === 'wipe') {
+        const directionRow = document.createElement('div');
+        directionRow.className = 'field-row';
+        const directionLabel = document.createElement('label');
+        directionLabel.textContent = 'Direction';
+        directionRow.appendChild(directionLabel);
+        const directionSelect = document.createElement('select');
+        TRANSITION_DIRECTIONS_UI.forEach((direction) => {
+          const opt = document.createElement('option');
+          opt.value = direction;
+          opt.textContent = direction;
+          directionSelect.appendChild(opt);
+        });
+        directionSelect.value = t.direction ?? 'right';
+        directionSelect.addEventListener('change', () => {
+          t.direction = directionSelect.value;
+          saveSceneConfig('transition : direction');
+        });
+        directionRow.appendChild(directionSelect);
+        transitionFieldsEl.appendChild(directionRow);
+      }
+
+      if (t.type === 'wipe') {
+        const colorRow = document.createElement('div');
+        colorRow.className = 'field-row';
+        const colorLabel = document.createElement('label');
+        colorLabel.textContent = 'Couleur';
+        colorRow.appendChild(colorLabel);
+
+        // Même motif que le champ de type 'token' de buildComponentBlock (menu déroulant des
+        // tokens connus + "Personnalisé...") — pas d'extraction en helper partagé pour un seul
+        // usage supplémentaire (rule of three, CLAUDE.md).
+        const tokens = DESIGN_TOKENS.color;
+        const currentColor = t.color ?? 'var(--color-gold)';
+        const isKnownToken = tokens.includes(currentColor);
+
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'flex:1; display:flex; flex-direction:column; gap:4px;';
+
+        const colorSelect = document.createElement('select');
+        tokens.forEach((token) => {
+          const opt = document.createElement('option');
+          opt.value = token;
+          opt.textContent = tokenLabel(token);
+          colorSelect.appendChild(opt);
+        });
+        const customOpt = document.createElement('option');
+        customOpt.value = '__custom__';
+        customOpt.textContent = 'Personnalisé...';
+        colorSelect.appendChild(customOpt);
+        colorSelect.value = isKnownToken ? currentColor : '__custom__';
+
+        const customInput = document.createElement('input');
+        customInput.type = 'text';
+        customInput.placeholder = 'valeur CSS personnalisée';
+        customInput.value = isKnownToken ? '' : currentColor;
+        customInput.style.display = isKnownToken ? 'none' : 'block';
+
+        colorSelect.addEventListener('change', () => {
+          if (colorSelect.value === '__custom__') {
+            customInput.style.display = 'block';
+            customInput.focus();
+          } else {
+            customInput.style.display = 'none';
+            t.color = colorSelect.value;
+            saveSceneConfig('transition : couleur');
+          }
+        });
+        customInput.addEventListener('change', () => { t.color = customInput.value; saveSceneConfig('transition : couleur'); });
+
+        wrapper.appendChild(colorSelect);
+        wrapper.appendChild(customInput);
+        colorRow.appendChild(wrapper);
+        transitionFieldsEl.appendChild(colorRow);
+      }
+    }
+
+    // ─── Fond (Track B, session B7) ────────────────────────────────────────────
+
+    /**
+     * Édite `liveConfig.background` (`ComponentMount | null`) — un effet de fond parmi les 10
+     * (9 + aucun), auto-sauvegarde comme Transition. Les champs d'options changent selon le
+     * composant choisi (`BACKGROUND_FIELD_SCHEMAS`, docs/specs/background-effects-library.md).
+     * @param {import('../types.js').SceneConfig} config
+     */
+    function renderBackgroundSection(config) {
+      backgroundFieldsEl.innerHTML = '';
+      const NONE = '__none__';
+
+      const componentRow = document.createElement('div');
+      componentRow.className = 'field-row';
+      const componentLabel = document.createElement('label');
+      componentLabel.textContent = 'Effet';
+      componentRow.appendChild(componentLabel);
+
+      const componentSelect = document.createElement('select');
+      const noneOpt = document.createElement('option');
+      noneOpt.value = NONE;
+      noneOpt.textContent = '(aucun)';
+      componentSelect.appendChild(noneOpt);
+      BACKGROUND_COMPONENT_NAMES.forEach((name) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        componentSelect.appendChild(opt);
+      });
+      componentSelect.value = config.background?.component ?? NONE;
+      componentSelect.addEventListener('change', () => {
+        if (componentSelect.value === NONE) {
+          config.background = null;
+        } else {
+          const schema = BACKGROUND_FIELD_SCHEMAS[componentSelect.value] ?? [];
+          /** @type {Record<string, unknown>} */
+          const options = {};
+          schema.forEach((field) => { options[field.key] = field.default; });
+          config.background = { component: componentSelect.value, options };
+        }
+        saveSceneConfig('fond : effet');
+        renderBackgroundSection(config); // les champs d'options changent selon le composant choisi
+      });
+      componentRow.appendChild(componentSelect);
+      backgroundFieldsEl.appendChild(componentRow);
+
+      if (!config.background) return;
+
+      const mount = config.background;
+      const schema = BACKGROUND_FIELD_SCHEMAS[mount.component] ?? [];
+      schema.forEach((field) => {
+        const row = document.createElement('div');
+        row.className = 'field-row';
+        const labelEl = document.createElement('label');
+        labelEl.textContent = field.label;
+        row.appendChild(labelEl);
+
+        const currentValue = mount.options[field.key] ?? field.default;
+        row.appendChild(buildFieldInput(field, currentValue, (value) => {
+          mount.options[field.key] = value;
+          saveSceneConfig(`fond : ${field.label}`);
+        }));
+        backgroundFieldsEl.appendChild(row);
+      });
     }
 
     // ─── Historique (2026-07-05) ──────────────────────────────────────────────
@@ -1285,6 +1514,92 @@
       }
     }
 
+    /**
+     * Construit l'élément d'entrée adapté à `field.type` (select/token/textarea/number/text) —
+     * factorisé du bloc composant de couche (S8) et de la section Fond (Track B B7) pour éviter de
+     * dupliquer les 5 branches de type à deux endroits.
+     * @param {import('./component-field-schemas.js').FieldSchema} field
+     * @param {unknown} currentValue
+     * @param {(value: unknown) => void} onChange
+     * @returns {HTMLElement}
+     */
+    function buildFieldInput(field, currentValue, onChange) {
+      if (field.type === 'select') {
+        const select = document.createElement('select');
+        field.choices.forEach((choice) => {
+          const opt = document.createElement('option');
+          opt.value = choice;
+          opt.textContent = choice;
+          select.appendChild(opt);
+        });
+        select.value = String(currentValue);
+        select.addEventListener('change', () => onChange(select.value));
+        return select;
+      }
+      if (field.type === 'token') {
+        // Menu déroulant des tokens tokens.css connus + "Personnalisé..." en secours — évite de
+        // devoir taper var(--...) de mémoire (owner, 2026-07-05).
+        const tokens = DESIGN_TOKENS[field.tokenCategory] ?? [];
+        const isKnownToken = tokens.includes(String(currentValue));
+
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'flex:1; display:flex; flex-direction:column; gap:4px;';
+
+        const select = document.createElement('select');
+        tokens.forEach((token) => {
+          const opt = document.createElement('option');
+          opt.value = token;
+          opt.textContent = tokenLabel(token);
+          select.appendChild(opt);
+        });
+        const customOpt = document.createElement('option');
+        customOpt.value = '__custom__';
+        customOpt.textContent = 'Personnalisé...';
+        select.appendChild(customOpt);
+        select.value = isKnownToken ? String(currentValue) : '__custom__';
+
+        const customInput = document.createElement('input');
+        customInput.type = 'text';
+        customInput.placeholder = 'valeur CSS personnalisée';
+        customInput.value = isKnownToken ? '' : String(currentValue ?? '');
+        customInput.style.display = isKnownToken ? 'none' : 'block';
+
+        select.addEventListener('change', () => {
+          if (select.value === '__custom__') {
+            customInput.style.display = 'block';
+            customInput.focus();
+          } else {
+            customInput.style.display = 'none';
+            onChange(select.value);
+          }
+        });
+        customInput.addEventListener('change', () => onChange(customInput.value));
+
+        wrapper.appendChild(select);
+        wrapper.appendChild(customInput);
+        return wrapper;
+      }
+      if (field.type === 'textarea') {
+        const textarea = document.createElement('textarea');
+        textarea.value = Array.isArray(currentValue) ? currentValue.join('\n') : '';
+        textarea.addEventListener('change', () => onChange(textarea.value.split('\n')));
+        return textarea;
+      }
+      if (field.type === 'number') {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.step = 'any';
+        input.value = String(currentValue);
+        input.addEventListener('change', () => onChange(Number(input.value)));
+        return input;
+      }
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = String(currentValue ?? '');
+      input.addEventListener('change', () => onChange(input.value));
+      return input;
+    }
+
     /** Construit le formulaire d'un ComponentMount — se reconstruit lui-même sur bascule $bind. */
     function buildComponentBlock(layer, mountIndex) {
       const mount = layer.components[mountIndex];
@@ -1372,78 +1687,8 @@
           input.value = /** @type {{$bind: string}} */ (currentValue).$bind ?? '';
           input.addEventListener('change', () => { mount.options[field.key] = { $bind: input.value }; save(); });
           row.appendChild(input);
-        } else if (field.type === 'select') {
-          const select = document.createElement('select');
-          field.choices.forEach((choice) => {
-            const opt = document.createElement('option');
-            opt.value = choice;
-            opt.textContent = choice;
-            select.appendChild(opt);
-          });
-          select.value = String(currentValue);
-          select.addEventListener('change', () => { mount.options[field.key] = select.value; save(); });
-          row.appendChild(select);
-        } else if (field.type === 'token') {
-          // Menu déroulant des tokens tokens.css connus + "Personnalisé..." en secours — évite de
-          // devoir taper var(--...) de mémoire (owner, 2026-07-05).
-          const tokens = DESIGN_TOKENS[field.tokenCategory] ?? [];
-          const isKnownToken = tokens.includes(String(currentValue));
-
-          const wrapper = document.createElement('div');
-          wrapper.style.cssText = 'flex:1; display:flex; flex-direction:column; gap:4px;';
-
-          const select = document.createElement('select');
-          tokens.forEach((token) => {
-            const opt = document.createElement('option');
-            opt.value = token;
-            opt.textContent = tokenLabel(token);
-            select.appendChild(opt);
-          });
-          const customOpt = document.createElement('option');
-          customOpt.value = '__custom__';
-          customOpt.textContent = 'Personnalisé...';
-          select.appendChild(customOpt);
-          select.value = isKnownToken ? String(currentValue) : '__custom__';
-
-          const customInput = document.createElement('input');
-          customInput.type = 'text';
-          customInput.placeholder = 'valeur CSS personnalisée';
-          customInput.value = isKnownToken ? '' : String(currentValue ?? '');
-          customInput.style.display = isKnownToken ? 'none' : 'block';
-
-          select.addEventListener('change', () => {
-            if (select.value === '__custom__') {
-              customInput.style.display = 'block';
-              customInput.focus();
-            } else {
-              customInput.style.display = 'none';
-              mount.options[field.key] = select.value;
-              save();
-            }
-          });
-          customInput.addEventListener('change', () => { mount.options[field.key] = customInput.value; save(); });
-
-          wrapper.appendChild(select);
-          wrapper.appendChild(customInput);
-          row.appendChild(wrapper);
-        } else if (field.type === 'textarea') {
-          const textarea = document.createElement('textarea');
-          textarea.value = Array.isArray(currentValue) ? currentValue.join('\n') : '';
-          textarea.addEventListener('change', () => { mount.options[field.key] = textarea.value.split('\n'); save(); });
-          row.appendChild(textarea);
-        } else if (field.type === 'number') {
-          const input = document.createElement('input');
-          input.type = 'number';
-          input.step = 'any';
-          input.value = String(currentValue);
-          input.addEventListener('change', () => { mount.options[field.key] = Number(input.value); save(); });
-          row.appendChild(input);
         } else {
-          const input = document.createElement('input');
-          input.type = 'text';
-          input.value = String(currentValue ?? '');
-          input.addEventListener('change', () => { mount.options[field.key] = input.value; save(); });
-          row.appendChild(input);
+          row.appendChild(buildFieldInput(field, currentValue, (value) => { mount.options[field.key] = value; save(); }));
         }
 
         block.appendChild(row);

@@ -1,6 +1,6 @@
 {
   "id": "starting",
-  "dotgridMode": "starting",
+  "background": { "component": "DotGridBackground", "options": { "mode": "starting" } },
   "transition": { "type": "crossfade", "duration": 500, "easing": "easeInOut" },
   "layers": [
     {

@@ -17,26 +17,26 @@
 /** Transition de repli — utilisée quand la résolution échoue ou est incomplète. */
 export const DEFAULT_TRANSITION = { type: 'crossfade', duration: 400, easing: 'easeInOut' };
 
-/** Mode DotGrid de dernier recours si le mode ambiant d'une scène est invalide. */
-export const DEFAULT_DOTGRID_MODE = 'brb';
-
 // ─── Domaines de valeurs valides ────────────────────────────────────────────
 
 const VISIBILITY_LEVELS = ['full', 'minimal', 'hidden'];
-const TRANSITION_TYPES = ['crossfade', 'cut'];
+const TRANSITION_TYPES = ['crossfade', 'cut', 'slide', 'wipe', 'morph'];
 const COMPONENT_NAMES = [
   'GoldBar', 'StatBlock', 'ChatFeed', 'PomodoroBar', 'AlertBanner',
   'Box', 'Divider', 'TextLabel', 'TextList', 'PollBar', 'Badge', 'Image', 'DotGridBackground',
+  'RainBackground', 'MatrixGridBackground', 'BubbleBackground', 'FirefliesBackground',
+  'FloatingSymbolsBackground', 'GeometricPatternBackground',
+  'ColorDropsBackground', 'StarsParallaxBackground', 'OrbitingShapesBackground',
+  'ShapeMorphBackground',
 ];
 
 /**
- * `SceneId` et `DotGridMode` sont des chaînes ouvertes depuis S8 (voir types.js) — la liste réelle
- * des scènes/modes valides vit dans `scenes/registry.js`/`GRID_MODES`, pas ici (`protocol.js` reste
- * découplé des modules de scène, AD-1). `validateSceneConfig`/`reduceMessage` ne valident donc plus
- * qu'une structure (chaîne non-vide) ; l'existence réelle est vérifiée en aval :
- * - `scene-runtime.js` `mountScene()` : avertit et n'affiche rien si l'id est inconnu du registry.
- * - `scene-resolve.js` `resolveDotgridMode()` : replie sur `DEFAULT_DOTGRID_MODE` si le mode est
- *   absent de `GRID_MODES`.
+ * `SceneId` est une chaîne ouverte depuis S8 (voir types.js) — la liste réelle des scènes valides
+ * vit dans `scenes/registry.js`, pas ici (`protocol.js` reste découplé des modules de scène, AD-1).
+ * `validateSceneConfig`/`reduceMessage` ne valident donc qu'une structure (chaîne non-vide) ;
+ * l'existence réelle est vérifiée en aval par `scene-runtime.js` `mountScene()` (avertit et
+ * n'affiche rien si l'id est inconnu du registry). Un `background` (Track B, `ComponentMount`)
+ * réplie sur son mode par défaut en interne au composant lui-même (ex. `DotGridBackground`), pas ici.
  * @param {unknown} value
  * @returns {value is string}
  */
@@ -290,10 +290,12 @@ export function validateSceneConfig(config) {
   // V1 — id est une chaîne non-vide (S8 : SceneId ouvert, existence vérifiée par scene-runtime.js)
   if (!isNonEmptyString(config.id)) errors.push(`id invalide : ${String(config.id)}`);
 
-  // V2 — dotgridMode est null ou une chaîne non-vide (S8 : DotGridMode ouvert, existence vérifiée
-  // par resolveDotgridMode via GRID_MODES)
-  if (config.dotgridMode !== null && !isNonEmptyString(config.dotgridMode)) {
-    errors.push(`dotgridMode invalide : ${String(config.dotgridMode)}`);
+  // V2 — background est null ou un ComponentMount valide (Track B : #bg-layer polymorphe,
+  // remplace dotgridMode — même validation que V8 pour un ComponentMount de couche)
+  if (config.background !== null
+      && (typeof config.background !== 'object' || config.background === null
+          || !COMPONENT_NAMES.includes(config.background.component))) {
+    errors.push(`background invalide : ${String(config.background)}`);
   }
 
   // V3 — transition valide

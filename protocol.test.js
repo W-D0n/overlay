@@ -7,7 +7,7 @@
  */
 
 import { test, expect } from 'bun:test';
-import { reduceMessage, validateSceneConfig, DEFAULT_TRANSITION, DEFAULT_DOTGRID_MODE } from './protocol.js';
+import { reduceMessage, validateSceneConfig, DEFAULT_TRANSITION } from './protocol.js';
 import discussionConfig from './scenes/data/discussion.scene.json';
 import brbConfig from './scenes/data/brb.scene.json';
 import codageConfig from './scenes/data/codage.scene.json';
@@ -33,7 +33,7 @@ function buildState(overrides = {}) {
 function validConfig() {
   return {
     id: 'discussion',
-    dotgridMode: 'discussion',
+    background: { component: 'DotGridBackground', options: { mode: 'discussion' } },
     transition: { type: 'crossfade', duration: 400, easing: 'easeInOut' },
     layers: [
       { name: 'goldbar', components: [{ component: 'GoldBar', options: {} }], visibility: { full: true, minimal: true, hidden: false } },
@@ -125,10 +125,10 @@ test('T12 scene.set transition non-objet → override ignoré, scène changée, 
 });
 
 test('T13 [AC-20] scene.set transition.type inconnu → override ignoré, scène changée, warning', () => {
-  const r = reduceMessage(buildState({ currentScene: 'brb' }), { type: 'scene.set', data: { scene: 'codage', transition: { type: 'wipe', duration: 500 } } }, CTX);
+  const r = reduceMessage(buildState({ currentScene: 'brb' }), { type: 'scene.set', data: { scene: 'codage', transition: { type: 'zoom', duration: 500 } } }, CTX);
   expect(r.patch).toEqual({ currentScene: 'codage' });
   expect('transition' in r.events[0].detail).toBe(false);
-  expect(r.warnings).toEqual(['[overlay] scene.set : type de transition inconnu — wipe']);
+  expect(r.warnings).toEqual(['[overlay] scene.set : type de transition inconnu — zoom']);
 });
 
 test('T14 scene.set sans data → warning data manquant', () => {
@@ -183,7 +183,6 @@ test('T19 [AC-38] ReduceResult inclut toujours les 4 champs', () => {
 
 test('T20 [AC-31] constantes de repli exportées avec les bonnes valeurs', () => {
   expect(DEFAULT_TRANSITION).toEqual({ type: 'crossfade', duration: 400, easing: 'easeInOut' });
-  expect(DEFAULT_DOTGRID_MODE).toBe('brb');
 });
 
 // ─── reduceMessage — types existants migrés ─────────────────────────────────
@@ -268,21 +267,21 @@ test('T31 [AC-29] V1 — id invalide (chaîne vide) ; toute chaîne non-vide est
   expect(validateSceneConfig(open).errors).not.toContain('id invalide : nouvelle-scene-jamais-vue');
 });
 
-test('T32 [AC-29] V2 — dotgridMode invalide (non-string) ; toute chaîne non-vide est acceptée (S8, DotGridMode ouvert)', () => {
-  const c = validConfig(); c.dotgridMode = /** @type {*} */ (42);
-  expect(validateSceneConfig(c).errors).toContain('dotgridMode invalide : 42');
+test('T32 [Track B AC-01] V2 — background invalide (composant inconnu ou non-objet)', () => {
+  const c = validConfig(); c.background = /** @type {*} */ (42);
+  expect(validateSceneConfig(c).errors).toContain('background invalide : 42');
 
-  const open = validConfig(); open.dotgridMode = /** @type {*} */ ('un-mode-jamais-vu');
-  expect(validateSceneConfig(open).errors).not.toContain('dotgridMode invalide : un-mode-jamais-vu');
+  const unknown = validConfig(); unknown.background = /** @type {*} */ ({ component: 'NeVersJamais', options: {} });
+  expect(validateSceneConfig(unknown).errors).toContain(`background invalide : ${String(unknown.background)}`);
 });
 
-test('T33 [AC-29] V2 — dotgridMode null accepté (scène sans DotGrid)', () => {
-  const c = validConfig(); c.dotgridMode = null;
-  expect(validateSceneConfig(c).errors).not.toContain('dotgridMode invalide : null');
+test('T33 [Track B AC-01] V2 — background null accepté (scène sans effet de fond)', () => {
+  const c = validConfig(); c.background = null;
+  expect(validateSceneConfig(c).errors).not.toContain('background invalide : null');
 });
 
 test('T34 [AC-29] V3 — transition invalide', () => {
-  const c = validConfig(); c.transition = /** @type {*} */ ({ type: 'wipe', duration: 400 });
+  const c = validConfig(); c.transition = /** @type {*} */ ({ type: 'zoom', duration: 400 });
   expect(validateSceneConfig(c).errors).toContain('transition invalide');
 });
 

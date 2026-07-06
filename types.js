@@ -114,7 +114,15 @@
  * Type de transition entre deux scènes.
  * - crossfade : fondu croisé en opacité (comportement par défaut)
  * - cut       : changement instantané (duration et easing ignorés)
- * @typedef {'crossfade'|'cut'} TransitionType
+ * - slide     : glissement (entrante depuis `direction`, sortante vers l'opposé)
+ * - wipe      : révélation par `clip-path` animé dans le sens de `direction`
+ * - morph     : fond DotGrid interpolé entre modes (contenu en crossfade standard)
+ * @typedef {'crossfade'|'cut'|'slide'|'wipe'|'morph'} TransitionType
+ */
+
+/**
+ * Sens d'une transition `slide`/`wipe`.
+ * @typedef {'left'|'right'|'up'|'down'} TransitionDirection
  */
 
 /**
@@ -126,7 +134,7 @@
  * Noms des composants JS montables dans une couche.
  * Résolu via registry dans le runtime S3. Étendu en S8 (bibliothèque de primitifs génériques +
  * DotGridBackground) — voir docs/specs/scene-definition-v2.md.
- * @typedef {'GoldBar'|'StatBlock'|'ChatFeed'|'PomodoroBar'|'AlertBanner'|'Box'|'Divider'|'TextLabel'|'TextList'|'PollBar'|'Badge'|'Image'|'DotGridBackground'} ComponentName
+ * @typedef {'GoldBar'|'StatBlock'|'ChatFeed'|'PomodoroBar'|'AlertBanner'|'Box'|'Divider'|'TextLabel'|'TextList'|'PollBar'|'Badge'|'Image'|'DotGridBackground'|'RainBackground'|'MatrixGridBackground'|'BubbleBackground'|'FirefliesBackground'|'FloatingSymbolsBackground'|'GeometricPatternBackground'|'ColorDropsBackground'|'StarsParallaxBackground'|'OrbitingShapesBackground'|'ShapeMorphBackground'} ComponentName
  */
 
 /**
@@ -199,6 +207,9 @@
  * @property {TransitionType} type
  * @property {number} duration - Durée en ms (ignoré si type === 'cut')
  * @property {TransitionEasing} easing - (ignoré si type === 'cut')
+ * @property {TransitionDirection} [direction] - Sens (slide/wipe uniquement), défaut 'right'
+ * @property {string} [color] - Couleur du bord de balayage (wipe uniquement), référence token CSS
+ *   (ex. `var(--color-gold)`), défaut `var(--color-gold)`
  */
 
 /**
@@ -206,7 +217,9 @@
  * Format que le runtime S3 lit, et que l'éditeur de scènes écrira.
  * @typedef {Object} SceneConfig
  * @property {SceneId} id
- * @property {DotGridMode} dotgridMode - null si la scène n'utilise pas DotGrid
+ * @property {ComponentMount | null} background - Effet de fond monté dans #bg-layer (Track B,
+ *   remplace `dotgridMode` — DotGridBackground est un effet parmi d'autres, plus un champ dédié).
+ *   null si la scène n'utilise aucun effet de fond.
  * @property {SceneTransition} transition
  * @property {LayerConfig[]} layers
  */
@@ -272,6 +285,10 @@
  * @property {HTMLElement} el                       - Élément racine, inséré dans l'élément de couche
  * @property {(data: unknown) => void} [update]     - Rafraîchit le composant
  * @property {(alert: unknown) => void} [show]      - Affiche une alerte (AlertBanner)
+ * @property {(options: unknown, duration: number, easing: TransitionEasing) => void} [morphTo] -
+ *   Interpole visuellement vers de nouvelles options plutôt qu'un saut instantané (Track B, effets
+ *   de fond). Optionnel : un composant sans `morphTo` dégrade en crossfade du contenu (AD-B3,
+ *   `docs/specs/background-effects-library.md`). Implémenté par `DotGridBackground` depuis A3.
  * @property {() => void} [destroy]                 - Libère les ressources (observers, timers)
  */
 

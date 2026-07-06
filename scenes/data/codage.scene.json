@@ -1,6 +1,6 @@
 {
   "id": "codage",
-  "dotgridMode": "codage",
+  "background": { "component": "DotGridBackground", "options": { "mode": "codage" } },
   "transition": { "type": "crossfade", "duration": 300, "easing": "easeInOut" },
   "layers": [
     {

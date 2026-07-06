@@ -1,6 +1,6 @@
 {
   "id": "interview",
-  "dotgridMode": "interview",
+  "background": { "component": "DotGridBackground", "options": { "mode": "interview" } },
   "transition": { "type": "crossfade", "duration": 400, "easing": "easeInOut" },
   "layers": [
     {

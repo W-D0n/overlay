@@ -7,14 +7,16 @@
  *
  * - `resolveTransition` : résout une transition en cascade (override > scène > défaut).
  * - `isLayerVisible`    : décide si une couche est visible à un niveau donné.
- * - `resolveDotgridMode`: valide/replie le mode ambiant DotGrid d'une scène.
  * - `toCssEasing`       : mappe un jeton TransitionEasing vers une timing-function CSS.
+ *
+ * `resolveDotgridMode` retiré (Track B, `docs/specs/background-effects-library.md` AC-08) : le
+ * mode ambiant est désormais une simple `option` de `ComponentMount` (`background`), validée par
+ * le composant lui-même (`DotGridBackground`), plus par un champ dédié `dotgridMode`.
  *
  * Voir docs/specs/scene-runtime-engine.md §Helpers purs.
  */
 
-import { DEFAULT_TRANSITION, DEFAULT_DOTGRID_MODE } from './protocol.js';
-import { GRID_MODES } from './components/DotGridAnimated.js';
+import { DEFAULT_TRANSITION } from './protocol.js';
 
 /**
  * Jetons TransitionEasing → timing-functions CSS. Les jetons camelCase (S2) ne sont
@@ -24,8 +26,17 @@ import { GRID_MODES } from './components/DotGridAnimated.js';
  */
 const CSS_EASING = { easeInOut: 'ease-in-out', easeIn: 'ease-in', easeOut: 'ease-out', linear: 'linear' };
 
-/** Types de transition valides — les 2 seules valeurs de TransitionType. */
-const TRANSITION_TYPES = ['crossfade', 'cut'];
+/** Types de transition valides — les 5 valeurs de TransitionType. */
+const TRANSITION_TYPES = ['crossfade', 'cut', 'slide', 'wipe', 'morph'];
+
+/** Directions valides pour slide/wipe. */
+const TRANSITION_DIRECTIONS = ['left', 'right', 'up', 'down'];
+
+/** Direction de repli (AC-07). */
+const DEFAULT_DIRECTION = 'right';
+
+/** Couleur de repli du bord de balayage wipe (AC-08). */
+const DEFAULT_COLOR = 'var(--color-gold)';
 
 /**
  * @param {unknown} type
@@ -52,6 +63,22 @@ function isValidEasing(easing) {
 }
 
 /**
+ * @param {unknown} direction
+ * @returns {boolean}
+ */
+function isValidDirection(direction) {
+  return typeof direction === 'string' && TRANSITION_DIRECTIONS.includes(direction);
+}
+
+/**
+ * @param {unknown} color
+ * @returns {boolean}
+ */
+function isValidColor(color) {
+  return typeof color === 'string' && color.length > 0;
+}
+
+/**
  * Applique les champs VALIDES de `source` sur `target` (mutation locale du brouillon).
  * Un champ invalide ou absent laisse la valeur de priorité inférieure déjà posée.
  * @param {import('./types.js').SceneTransition} target
@@ -64,6 +91,8 @@ function applyValidFields(target, source) {
   if (isValidType(candidate.type)) target.type = /** @type {import('./types.js').TransitionType} */ (candidate.type);
   if (isValidDuration(candidate.duration)) target.duration = /** @type {number} */ (candidate.duration);
   if (isValidEasing(candidate.easing)) target.easing = /** @type {import('./types.js').TransitionEasing} */ (candidate.easing);
+  if (isValidDirection(candidate.direction)) target.direction = /** @type {import('./types.js').TransitionDirection} */ (candidate.direction);
+  if (isValidColor(candidate.color)) target.color = /** @type {string} */ (candidate.color);
 }
 
 /**
@@ -79,6 +108,12 @@ export function resolveTransition(override, sceneDefault) {
   const resolved = { ...DEFAULT_TRANSITION };
   applyValidFields(resolved, sceneDefault);
   applyValidFields(resolved, override);
+  if ((resolved.type === 'slide' || resolved.type === 'wipe') && !isValidDirection(resolved.direction)) {
+    resolved.direction = DEFAULT_DIRECTION;
+  }
+  if (resolved.type === 'wipe' && !isValidColor(resolved.color)) {
+    resolved.color = DEFAULT_COLOR;
+  }
   return resolved;
 }
 
@@ -93,22 +128,6 @@ export function resolveTransition(override, sceneDefault) {
  */
 export function isLayerVisible(visibility, level) {
   return visibility[level] === true;
-}
-
-/**
- * Valide/replie le mode ambiant DotGrid d'une scène :
- * `null` → `null` (scène sans DotGrid) ; mode ∈ `GRID_MODES` → ce mode ;
- * sinon → `DEFAULT_DOTGRID_MODE` (`'brb'`, AD-3).
- *
- * @param {unknown} dotgridMode
- * @returns {import('./types.js').DotGridMode}
- */
-export function resolveDotgridMode(dotgridMode) {
-  if (dotgridMode === null) return null;
-  if (typeof dotgridMode === 'string' && GRID_MODES.includes(/** @type {*} */ (dotgridMode))) {
-    return /** @type {import('./types.js').DotGridMode} */ (dotgridMode);
-  }
-  return DEFAULT_DOTGRID_MODE;
 }
 
 /**
