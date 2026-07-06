@@ -42,9 +42,7 @@ Payloads des requêtes OBS WS v5 vérifiés contre le protocole officiel
 - Gestion des scene items : lister, ajouter une source existante à une scène, positionner
   (`SetSceneItemTransform`), masquer/afficher (`SetSceneItemEnabled`) — **session 2, livrée**.
 - UI panneau : nouvelle section dans `dev/placement-panel.html` consommant ces routes — **session 3, livrée**.
-- Vérification end-to-end contre une vraie instance OBS — session 4, **bloquant** : `OBS_WS_URL`
-  pointe une IP LAN (`ws://192.168.1.12:4455`, `.env`) injoignable depuis cet environnement ;
-  vérification déléguée à l'owner ou nécessite un accès réseau à cette IP.
+- Vérification end-to-end contre une vraie instance OBS — **session 4, livrée** (2026-07-06).
 
 **Exclu (hors périmètre de ce chantier, pas juste différé) :**
 - `CreateInput` (créer une nouvelle source, ex. Browser Source) — le besoin exprimé est de piloter
@@ -104,8 +102,29 @@ création de scène OBS ("Interview" créée et sélectionnable), ajout de sourc
 positionnement (`positionX:100, positionY:50` confirmé dans la requête OBS reçue), bascule de
 visibilité (`sceneItemEnabled:false` confirmé) — tous les appels réseau attendus, tous corrects.
 Une limite du **mock** (pas du code livré) : il ne suit pas l'état "scène active" après
-`SetCurrentProgramScene` (toujours `scenes[0]`) — sans conséquence, seule la fidélité de la requête
-envoyée était vérifiable sans une vraie instance OBS (voir LAC-01).
+`SetCurrentProgramScene` (toujours `scenes[0]`) — corrigé et confirmé contre la vraie instance OBS
+en session 4.
+
+## Acceptance Criteria — Session 4 (vérification end-to-end, vraie instance OBS)
+
+`OBS_WS_URL` (`ws://192.168.1.12:4455`) pointe en réalité cette même machine (confirmé via
+`ipconfig` — hypothèse initiale d'IP LAN injoignable erronée, corrigée). OBS ouvert par l'owner,
+vérification faite le 2026-07-06 sur une scène de test dédiée (`_test-s6`, jamais les 9 scènes
+réelles — accord explicite owner sur cette portée) :
+
+| ID | Critère | Résultat |
+|---|---|---|
+| AC-18 | `GET /obs/list-scenes` retourne les 9 scènes réelles + la scène active courante | ✅ confirmé (`Just Chatting` détectée comme active) |
+| AC-19 | `GET /obs/list-scene-items` retourne la structure `sceneItemTransform` complète (tous les champs documentés en §Contexte) | ✅ confirmé sur `Just Chatting` (source `Overlay Atelier`) |
+| AC-20 | `POST /obs/create-scene` crée une scène réelle dans OBS | ✅ confirmé (`_test-s6` créée) |
+| AC-21 | `POST /obs/create-scene-item` ajoute une source existante à une scène sans affecter la scène d'origine | ✅ confirmé (`Overlay Atelier` référencée dans `_test-s6`, scène d'origine intacte) |
+| AC-22 | `POST /obs/set-scene-item-transform` modifie réellement la position (relu via `list-scene-items` après écriture) | ✅ confirmé (`positionX:100, positionY:50` relus identiques) |
+| AC-23 | `POST /obs/set-scene-item-enabled` modifie réellement la visibilité (relue après écriture) | ✅ confirmé (`sceneItemEnabled:false` relu) |
+| AC-24 | `POST /obs/set-current-scene` bascule réellement le programme OBS actif (relu via `list-scenes`) | ✅ confirmé (bascule vers `_test-s6` puis restauration vers `Just Chatting`, les deux relues) |
+
+État OBS restauré à l'identique après vérification (scène active remise sur `Just Chatting`) — seule
+trace : la scène `_test-s6` elle-même, laissée en place (suppression = `RemoveScene`, hors périmètre
+de cette spec, action destructive non cadrée) ; à supprimer manuellement par l'owner depuis OBS.
 
 ## Types JSDoc
 
@@ -197,6 +216,9 @@ impliqué, juste un passthrough typé vers `sendObsRequest`, déjà non typé JS
 
 ## Lacunes identifiées
 
-- [ ] LAC-01 — Session 4 (vérification end-to-end) bloquée : `OBS_WS_URL` pointe une IP LAN
-      injoignable depuis cet environnement. Owner à vérifier manuellement en local, ou fournir un
-      accès réseau à cette IP.
+- [x] LAC-01 — Résolue (2026-07-06). Hypothèse initiale erronée : `OBS_WS_URL` supposé injoignable
+      depuis cet environnement (IP LAN distante). En réalité `192.168.1.12` est l'adresse de la
+      machine locale elle-même — la connexion échouait juste parce qu'OBS n'était pas ouvert. Une
+      fois OBS lancé, session 4 vérifiée sans aucun accès réseau supplémentaire.
+- [ ] LAC-02 — Scène de test `_test-s6` laissée dans OBS après la session 4 (suppression =
+      `RemoveScene`, hors périmètre de cette spec). À supprimer manuellement par l'owner.
