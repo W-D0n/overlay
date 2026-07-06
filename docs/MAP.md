@@ -89,7 +89,7 @@ composant individuel restent hors scope. Vérifié bout en bout (création → a
 suppression simulés contre un vrai `scene-data-server`, fichier confirmé déplacé vers `archived/`
 avec contenu intact). `bun test` : 114/114. **S8 complet (6/6).** | ✅ fait |
 | Épopée | Éditeur complet au-delà de S6/S8 (export/import config, skill recherche graphique) | ⬜ hors scope |
-| Track A | Bibliothèque de transitions de scène (`slide`/`wipe`/`morph`, ce dernier implémentant enfin `morphTo()`) — besoin concret exprimé par l'owner (2026-07-06), sorti de l'épopée. 4 sessions atomiques, spec `docs/specs/scene-transition-library.md`. Session A1 (spec) **terminée** (2026-07-06). | 🔶 en cours (1/4) |
+| Track A | Bibliothèque de transitions de scène (`slide`/`wipe`/`morph`, ce dernier implémentant enfin `morphTo()`) — besoin concret exprimé par l'owner (2026-07-06), sorti de l'épopée. `direction` (slide/wipe) et `color` (wipe) configurables dès la v1 (owner, tuning demandé dès le départ). 4 sessions atomiques, spec `docs/specs/scene-transition-library.md`. Session A1 (spec) **terminée** (2026-07-06). | 🔶 en cours (1/4) |
 | Track B | Animation de fond à formes qui morphent (pizza/étoile ninja/casque shredder/carapace/masque Batman), remplace DotGrid sur les scènes qui l'utilisent, déclenchement manuel v1 — besoin concret exprimé (2026-07-06), pas encore cadré. | ⬜ à venir |
 
 ## Détail S1 (livré)
