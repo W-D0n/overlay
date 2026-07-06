@@ -254,6 +254,29 @@
       </div>
     </details>
 
+    <details class="panel-section obs-section" open>
+      <summary class="section-title">OBS</summary>
+      <div class="section-body">
+        <div id="obs-status" class="history-empty"></div>
+        <select id="obs-scene-select"></select>
+        <div class="scene-toolbar">
+          <button id="obs-activate-btn" class="btn btn-small">Activer</button>
+        </div>
+        <details class="inline-create">
+          <summary>Nouvelle scène OBS</summary>
+          <div class="create-scene-row">
+            <input type="text" id="obs-new-scene-name" placeholder="Nom de la scène OBS">
+            <button id="obs-create-scene-btn" class="btn">Créer</button>
+          </div>
+        </details>
+        <div id="obs-scene-items" style="margin-top: 12px;"></div>
+        <div class="add-layer-row">
+          <input type="text" id="obs-new-source-name" placeholder="nom-source-existante">
+          <button id="obs-add-source-btn" class="btn">+ source</button>
+        </div>
+      </div>
+    </details>
+
     <section class="panel-section">
       <div class="section-title-row">
         <span class="section-title" style="margin-bottom: 0;">Couches</span>
@@ -288,6 +311,20 @@
     const SCENE_RESTORE_URL = 'http://localhost:4460/restore-scene';
     const ARCHIVED_SCENES_URL = 'http://localhost:4460/archived-scenes';
     const RESTORE_ARCHIVED_URL = 'http://localhost:4460/restore-archived-scene';
+    // Contrôle OBS (S6, 2026-07-06, voir docs/specs/obs-scene-control.md) — routes exposées par
+    // relay/server.js, pas scene-data-server.js/placement-server.js (relais = seul process tournant
+    // pendant le live, propriétaire unique de la connexion OBS WS v5).
+    const OBS_LIST_SCENES_URL = 'http://localhost:4456/obs/list-scenes';
+    const OBS_CREATE_SCENE_URL = 'http://localhost:4456/obs/create-scene';
+    const OBS_SET_CURRENT_SCENE_URL = 'http://localhost:4456/obs/set-current-scene';
+    const OBS_LIST_SCENE_ITEMS_URL = 'http://localhost:4456/obs/list-scene-items';
+    const OBS_CREATE_SCENE_ITEM_URL = 'http://localhost:4456/obs/create-scene-item';
+    const OBS_SET_SCENE_ITEM_TRANSFORM_URL = 'http://localhost:4456/obs/set-scene-item-transform';
+    const OBS_SET_SCENE_ITEM_ENABLED_URL = 'http://localhost:4456/obs/set-scene-item-enabled';
+    // Même pattern que dev/dotgrid-tuner.html : le secret vit dans obs-config.local.js (gitignoré),
+    // jamais en dur ici. Absent en dev pur (pas d'OBS ouvert) → section OBS best-effort, n'échoue
+    // jamais bruyamment (voir refreshObsScenes).
+    const { RELAY_TOKEN } = await import('../obs-config.local.js').catch(() => import('../obs-config.example.js'));
     /** Même motif que scene-data-server.js — validation côté client avant l'appel réseau (AC-32). */
     const VALID_SCENE_ID = /^[a-z][a-z0-9-]*$/;
 
@@ -309,6 +346,9 @@
     const historyList = document.getElementById('history-list');
     const archivedList = document.getElementById('archived-list');
     const archivedCount = document.getElementById('archived-count');
+    const obsStatusEl = document.getElementById('obs-status');
+    const obsSceneSelect = document.getElementById('obs-scene-select');
+    const obsSceneItemsEl = document.getElementById('obs-scene-items');
 
     // Colore #status automatiquement selon son contenu — aucun appelant n'a besoin de changer
     // (tous les call sites existants font juste `statusEl.textContent = ...`, feedback peu clair
@@ -720,6 +760,214 @@
         statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/scene-data-server.js"';
       }
     }
+
+    // ─── Contrôle OBS (S6 session 3, 2026-07-06) ───────────────────────────────
+    // Best-effort partout : le relais peut ne pas tourner en dev pur (pas d'OBS ouvert), ou
+    // RELAY_TOKEN peut être absent (obs-config.local.js non créé) — jamais un échec bruyant,
+    // même contrat que refreshObsSource() dans dev/dotgrid-tuner.html.
+
+    /** @returns {{ Authorization: string }} */
+    function obsAuthHeaders() {
+      return { Authorization: `Bearer ${RELAY_TOKEN}` };
+    }
+
+    /** Recharge la liste des scènes OBS + les scene items de la scène sélectionnée. */
+    async function refreshObsScenes() {
+      if (!RELAY_TOKEN) {
+        obsStatusEl.textContent = 'Token OBS non configuré (obs-config.local.js manquant)';
+        return;
+      }
+      try {
+        const res = await fetch(OBS_LIST_SCENES_URL, { headers: obsAuthHeaders() });
+        if (!res.ok) {
+          obsStatusEl.textContent = `Relais OBS indisponible (${res.status})`;
+          obsSceneSelect.innerHTML = '';
+          obsSceneItemsEl.innerHTML = '';
+          return;
+        }
+        const { scenes, currentProgramSceneName } = await res.json();
+        obsStatusEl.textContent = '';
+        renderObsScenes(scenes ?? [], currentProgramSceneName);
+        if (obsSceneSelect.value) await refreshObsSceneItems(obsSceneSelect.value);
+      } catch {
+        obsStatusEl.textContent = 'Relais injoignable — lancer "bun relay/server.js"';
+        obsSceneSelect.innerHTML = '';
+        obsSceneItemsEl.innerHTML = '';
+      }
+    }
+
+    /**
+     * @param {{ sceneName: string }[]} scenes
+     * @param {string} [currentProgramSceneName]
+     */
+    function renderObsScenes(scenes, currentProgramSceneName) {
+      const previousValue = obsSceneSelect.value;
+      obsSceneSelect.innerHTML = '';
+      scenes.forEach(({ sceneName }) => {
+        const option = document.createElement('option');
+        option.value = sceneName;
+        option.textContent = sceneName === currentProgramSceneName ? `${sceneName} (active)` : sceneName;
+        obsSceneSelect.appendChild(option);
+      });
+      const stillExists = scenes.some((s) => s.sceneName === previousValue);
+      obsSceneSelect.value = stillExists ? previousValue : (currentProgramSceneName ?? scenes[0]?.sceneName ?? '');
+    }
+
+    async function activateObsScene() {
+      const sceneName = obsSceneSelect.value;
+      if (!sceneName) return;
+      try {
+        const res = await fetch(OBS_SET_CURRENT_SCENE_URL, {
+          method: 'POST',
+          headers: { ...obsAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneName }),
+        });
+        obsStatusEl.textContent = res.ok ? `Scène OBS activée : ${sceneName}` : `Échec (${res.status})`;
+        if (res.ok) refreshObsScenes();
+      } catch {
+        obsStatusEl.textContent = 'Relais injoignable';
+      }
+    }
+
+    async function createObsScene() {
+      const input = document.getElementById('obs-new-scene-name');
+      const sceneName = input.value.trim();
+      if (!sceneName) return;
+      try {
+        const res = await fetch(OBS_CREATE_SCENE_URL, {
+          method: 'POST',
+          headers: { ...obsAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneName }),
+        });
+        obsStatusEl.textContent = res.ok ? `Scène OBS créée : ${sceneName}` : `Échec (${res.status}) : ${await res.text()}`;
+        if (res.ok) { input.value = ''; await refreshObsScenes(); obsSceneSelect.value = sceneName; }
+      } catch {
+        obsStatusEl.textContent = 'Relais injoignable';
+      }
+    }
+
+    /** @param {string} sceneName */
+    async function refreshObsSceneItems(sceneName) {
+      try {
+        const res = await fetch(`${OBS_LIST_SCENE_ITEMS_URL}?sceneName=${encodeURIComponent(sceneName)}`, { headers: obsAuthHeaders() });
+        if (!res.ok) { obsSceneItemsEl.innerHTML = ''; return; }
+        const { sceneItems } = await res.json();
+        renderObsSceneItems(sceneName, sceneItems ?? []);
+      } catch {
+        obsSceneItemsEl.innerHTML = '';
+      }
+    }
+
+    /**
+     * @param {string} sceneName
+     * @param {{ sceneItemId: number, sourceName: string, sceneItemEnabled?: boolean }[]} items
+     */
+    function renderObsSceneItems(sceneName, items) {
+      obsSceneItemsEl.innerHTML = '';
+      if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'history-empty';
+        empty.textContent = 'Aucune source dans cette scène';
+        obsSceneItemsEl.appendChild(empty);
+        return;
+      }
+
+      items.forEach((item) => {
+        const row = document.createElement('div');
+        row.className = 'history-row';
+
+        const label = document.createElement('span');
+        label.textContent = item.sourceName;
+        row.appendChild(label);
+
+        const posX = document.createElement('input');
+        posX.type = 'number';
+        posX.placeholder = 'x';
+        posX.style.width = '60px';
+        const posY = document.createElement('input');
+        posY.type = 'number';
+        posY.placeholder = 'y';
+        posY.style.width = '60px';
+        row.appendChild(posX);
+        row.appendChild(posY);
+
+        const applyBtn = document.createElement('button');
+        applyBtn.className = 'btn btn-small';
+        applyBtn.textContent = 'Positionner';
+        applyBtn.addEventListener('click', () => setObsSceneItemPosition(sceneName, item.sceneItemId, posX.value, posY.value));
+        row.appendChild(applyBtn);
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.className = 'btn btn-small';
+        toggleBtn.textContent = item.sceneItemEnabled === false ? 'Afficher' : 'Masquer';
+        toggleBtn.addEventListener('click', () => toggleObsSceneItemEnabled(sceneName, item.sceneItemId, item.sceneItemEnabled === false));
+        row.appendChild(toggleBtn);
+
+        obsSceneItemsEl.appendChild(row);
+      });
+    }
+
+    /**
+     * @param {string} sceneName
+     * @param {number} sceneItemId
+     * @param {string} x
+     * @param {string} y
+     */
+    async function setObsSceneItemPosition(sceneName, sceneItemId, x, y) {
+      if (x === '' || y === '') return;
+      try {
+        const res = await fetch(OBS_SET_SCENE_ITEM_TRANSFORM_URL, {
+          method: 'POST',
+          headers: { ...obsAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneName, sceneItemId, sceneItemTransform: { positionX: Number(x), positionY: Number(y) } }),
+        });
+        obsStatusEl.textContent = res.ok ? 'Source positionnée' : `Échec (${res.status})`;
+      } catch {
+        obsStatusEl.textContent = 'Relais injoignable';
+      }
+    }
+
+    /**
+     * @param {string} sceneName
+     * @param {number} sceneItemId
+     * @param {boolean} nextEnabled
+     */
+    async function toggleObsSceneItemEnabled(sceneName, sceneItemId, nextEnabled) {
+      try {
+        const res = await fetch(OBS_SET_SCENE_ITEM_ENABLED_URL, {
+          method: 'POST',
+          headers: { ...obsAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneName, sceneItemId, sceneItemEnabled: nextEnabled }),
+        });
+        if (res.ok) refreshObsSceneItems(sceneName);
+        else obsStatusEl.textContent = `Échec (${res.status})`;
+      } catch {
+        obsStatusEl.textContent = 'Relais injoignable';
+      }
+    }
+
+    async function createObsSceneItem() {
+      const sceneName = obsSceneSelect.value;
+      const input = document.getElementById('obs-new-source-name');
+      const sourceName = input.value.trim();
+      if (!sceneName || !sourceName) return;
+      try {
+        const res = await fetch(OBS_CREATE_SCENE_ITEM_URL, {
+          method: 'POST',
+          headers: { ...obsAuthHeaders(), 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sceneName, sourceName }),
+        });
+        if (res.ok) { input.value = ''; await refreshObsSceneItems(sceneName); }
+        else obsStatusEl.textContent = `Échec (${res.status}) : ${await res.text()}`;
+      } catch {
+        obsStatusEl.textContent = 'Relais injoignable';
+      }
+    }
+
+    document.getElementById('obs-activate-btn').addEventListener('click', activateObsScene);
+    document.getElementById('obs-create-scene-btn').addEventListener('click', createObsScene);
+    document.getElementById('obs-add-source-btn').addEventListener('click', createObsSceneItem);
+    obsSceneSelect.addEventListener('change', () => refreshObsSceneItems(obsSceneSelect.value));
 
     function applyPlacementStyle(el, placement) {
       el.style.position = 'absolute';
@@ -1246,6 +1494,7 @@
     await loadIndexHtml();
     renderScene();
     refreshArchivedScenes();
+    refreshObsScenes();
     scalePreview();
   </script>
 </body>

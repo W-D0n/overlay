@@ -41,7 +41,7 @@ Payloads des requêtes OBS WS v5 vérifiés contre le protocole officiel
 - Gestion de scènes OBS : lister, créer, activer (**session 1, livrée**).
 - Gestion des scene items : lister, ajouter une source existante à une scène, positionner
   (`SetSceneItemTransform`), masquer/afficher (`SetSceneItemEnabled`) — **session 2, livrée**.
-- UI panneau : nouvelle section dans `dev/placement-panel.html` consommant ces routes — session 3.
+- UI panneau : nouvelle section dans `dev/placement-panel.html` consommant ces routes — **session 3, livrée**.
 - Vérification end-to-end contre une vraie instance OBS — session 4, **bloquant** : `OBS_WS_URL`
   pointe une IP LAN (`ws://192.168.1.12:4455`, `.env`) injoignable depuis cet environnement ;
   vérification déléguée à l'owner ou nécessite un accès réseau à cette IP.
@@ -85,6 +85,27 @@ Payloads des requêtes OBS WS v5 vérifiés contre le protocole officiel
 > ci-dessus + tous les cas d'erreur (401, 400, 502) confirmés passants le 2026-07-06.
 
 > Règle : chaque AC est vérifiable de façon autonome. "Fonctionne correctement" n'est pas un AC.
+
+## Acceptance Criteria — Session 3 (UI panneau)
+
+| ID | Critère | Vérifiable par |
+|---|---|---|
+| AC-11 | Nouvelle section "OBS" dans `dev/placement-panel.html` : liste les scènes OBS, marque la scène active (`(active)`), permet d'en activer une | visuel |
+| AC-12 | Création d'une scène OBS depuis le panneau (nom + bouton "Créer"), la liste se recharge et inclut la nouvelle scène | visuel |
+| AC-13 | Sélectionner une scène OBS liste ses sources (scene items) avec leur nom | visuel |
+| AC-14 | Chaque source affiche des champs x/y + bouton "Positionner" qui appelle `set-scene-item-transform` | visuel |
+| AC-15 | Chaque source affiche un bouton Masquer/Afficher qui appelle `set-scene-item-enabled` et recharge la liste | visuel |
+| AC-16 | Ajouter une source existante à la scène sélectionnée (nom + bouton "+ source") | visuel |
+| AC-17 | Section OBS jamais bloquante : `RELAY_TOKEN` absent, relais injoignable, ou route en échec → message explicite dans `#obs-status`, jamais une exception JS qui casse le reste du panneau | visuel |
+
+Vérifié le 2026-07-06 via Playwright contre un relais réel (`relay/server.js`) branché sur le faux
+serveur OBS WS v5 (même mock que sessions 1/2, étendu pour scene items) : activation de scène,
+création de scène OBS ("Interview" créée et sélectionnable), ajout de source ("GoldBar Overlay"),
+positionnement (`positionX:100, positionY:50` confirmé dans la requête OBS reçue), bascule de
+visibilité (`sceneItemEnabled:false` confirmé) — tous les appels réseau attendus, tous corrects.
+Une limite du **mock** (pas du code livré) : il ne suit pas l'état "scène active" après
+`SetCurrentProgramScene` (toujours `scenes[0]`) — sans conséquence, seule la fidélité de la requête
+envoyée était vérifiable sans une vraie instance OBS (voir LAC-01).
 
 ## Types JSDoc
 
@@ -167,6 +188,7 @@ impliqué, juste un passthrough typé vers `sendObsRequest`, déjà non typé JS
 | Fichier | Action | Notes |
 |---|---|---|
 | `relay/server.js` | modifier | 3 routes scènes (`/obs/list-scenes`, `/obs/create-scene`, `/obs/set-current-scene`, AC-01 à AC-05) + 4 routes scene items (`/obs/list-scene-items`, `/obs/create-scene-item`, `/obs/set-scene-item-transform`, `/obs/set-scene-item-enabled`, AC-06 à AC-10), toutes réutilisent `sendObsRequest` |
+| `dev/placement-panel.html` | modifier | section "OBS" (accordéon) : scènes + scene items, réutilise `RELAY_TOKEN` (`obs-config.local.js`, même pattern que `dev/dotgrid-tuner.html`) (AC-11 à AC-17) |
 
 > Règle de cross-check (avant de déclarer "done") :
 > - Chaque AC → implémenté et vérifiable
