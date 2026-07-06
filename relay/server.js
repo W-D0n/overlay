@@ -7,10 +7,12 @@
  *   2. Serveur pour l'overlay — WS (diffusion) + HTTP `POST /emit` (injection externe authentifiée).
  *   3. Émetteur de requêtes OBS WS v5 — `POST /refresh-source` envoie `PressInputPropertiesButton`
  *      (rafraîchit le cache de la Browser Source overlay), pour automatiser le rafraîchissement
- *      après une sauvegarde depuis `dev/dotgrid-tuner.html`. Étendu (S6 session 1, 2026-07-06,
- *      voir docs/specs/obs-scene-control.md) : `GET /obs/list-scenes`, `POST /obs/create-scene`,
- *      `POST /obs/set-current-scene` — contrôle de scènes OBS depuis le panneau. Routes typées une
- *      par action (jamais de passthrough générique d'un `requestType` arbitraire — surface
+ *      après une sauvegarde depuis `dev/dotgrid-tuner.html`. Étendu (S6, voir
+ *      docs/specs/obs-scene-control.md) : session 1 (2026-07-06) — `GET /obs/list-scenes`,
+ *      `POST /obs/create-scene`, `POST /obs/set-current-scene` (scènes). Session 2 (2026-07-06) —
+ *      `GET /obs/list-scene-items`, `POST /obs/create-scene-item`, `POST /obs/set-scene-item-transform`,
+ *      `POST /obs/set-scene-item-enabled` (scene items : positionnement, visibilité). Routes typées
+ *      une par action (jamais de passthrough générique d'un `requestType` arbitraire — surface
  *      d'attaque non justifiée, voir la spec §Contexte).
  *
  * Logique pure extraite et testée séparément (AD-1) :
@@ -281,6 +283,76 @@ Bun.serve({
           if (typeof sceneName !== 'string' || !sceneName) return withCors(new Response('sceneName manquant', { status: 400 }));
 
           return sendObsRequest('SetCurrentProgramScene', { sceneName })
+            .then(() => withCors(new Response('ok')))
+            .catch((err) => withCors(new Response(String(err), { status: 502 })));
+        })
+        .catch(() => withCors(new Response('invalid json', { status: 400 })));
+    }
+
+    if (url.pathname === '/obs/list-scene-items' && req.method === 'GET') {
+      const auth = req.headers.get('authorization');
+      if (auth !== `Bearer ${RELAY_SECRET}`) return withCors(new Response('unauthorized', { status: 401 }));
+
+      const sceneName = url.searchParams.get('sceneName');
+      if (!sceneName) return withCors(new Response('sceneName manquant', { status: 400 }));
+
+      return sendObsRequest('GetSceneItemList', { sceneName })
+        .then((responseData) => withCors(new Response(JSON.stringify(responseData), { headers: { 'Content-Type': 'application/json' } })))
+        .catch((err) => withCors(new Response(String(err), { status: 502 })));
+    }
+
+    if (url.pathname === '/obs/create-scene-item' && req.method === 'POST') {
+      const auth = req.headers.get('authorization');
+      if (auth !== `Bearer ${RELAY_SECRET}`) return withCors(new Response('unauthorized', { status: 401 }));
+
+      return req.json()
+        .then((body) => {
+          const sceneName = /** @type {*} */ (body)?.sceneName;
+          const sourceName = /** @type {*} */ (body)?.sourceName;
+          if (typeof sceneName !== 'string' || !sceneName) return withCors(new Response('sceneName manquant', { status: 400 }));
+          if (typeof sourceName !== 'string' || !sourceName) return withCors(new Response('sourceName manquant', { status: 400 }));
+
+          return sendObsRequest('CreateSceneItem', { sceneName, sourceName })
+            .then((responseData) => withCors(new Response(JSON.stringify(responseData), { headers: { 'Content-Type': 'application/json' } })))
+            .catch((err) => withCors(new Response(String(err), { status: 502 })));
+        })
+        .catch(() => withCors(new Response('invalid json', { status: 400 })));
+    }
+
+    if (url.pathname === '/obs/set-scene-item-transform' && req.method === 'POST') {
+      const auth = req.headers.get('authorization');
+      if (auth !== `Bearer ${RELAY_SECRET}`) return withCors(new Response('unauthorized', { status: 401 }));
+
+      return req.json()
+        .then((body) => {
+          const sceneName = /** @type {*} */ (body)?.sceneName;
+          const sceneItemId = /** @type {*} */ (body)?.sceneItemId;
+          const sceneItemTransform = /** @type {*} */ (body)?.sceneItemTransform;
+          if (typeof sceneName !== 'string' || !sceneName) return withCors(new Response('sceneName manquant', { status: 400 }));
+          if (typeof sceneItemId !== 'number') return withCors(new Response('sceneItemId manquant', { status: 400 }));
+          if (typeof sceneItemTransform !== 'object' || sceneItemTransform === null) return withCors(new Response('sceneItemTransform manquant', { status: 400 }));
+
+          return sendObsRequest('SetSceneItemTransform', { sceneName, sceneItemId, sceneItemTransform })
+            .then(() => withCors(new Response('ok')))
+            .catch((err) => withCors(new Response(String(err), { status: 502 })));
+        })
+        .catch(() => withCors(new Response('invalid json', { status: 400 })));
+    }
+
+    if (url.pathname === '/obs/set-scene-item-enabled' && req.method === 'POST') {
+      const auth = req.headers.get('authorization');
+      if (auth !== `Bearer ${RELAY_SECRET}`) return withCors(new Response('unauthorized', { status: 401 }));
+
+      return req.json()
+        .then((body) => {
+          const sceneName = /** @type {*} */ (body)?.sceneName;
+          const sceneItemId = /** @type {*} */ (body)?.sceneItemId;
+          const sceneItemEnabled = /** @type {*} */ (body)?.sceneItemEnabled;
+          if (typeof sceneName !== 'string' || !sceneName) return withCors(new Response('sceneName manquant', { status: 400 }));
+          if (typeof sceneItemId !== 'number') return withCors(new Response('sceneItemId manquant', { status: 400 }));
+          if (typeof sceneItemEnabled !== 'boolean') return withCors(new Response('sceneItemEnabled manquant', { status: 400 }));
+
+          return sendObsRequest('SetSceneItemEnabled', { sceneName, sceneItemId, sceneItemEnabled })
             .then(() => withCors(new Response('ok')))
             .catch((err) => withCors(new Response(String(err), { status: 502 })));
         })
