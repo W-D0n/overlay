@@ -284,26 +284,17 @@ l'owner avant d'écrire le premier `CreateScene`.
 
 ---
 
-## Skill local — recherche graphique d'overlay
+## Skill local — recherche graphique d'overlay (livré, 2026-07-10)
 
-**À créer :** un skill **attaché à ce projet** (`.claude/` du projet, pas global) qui cadre les
-sessions de recherche graphique / design d'overlay, pour que leurs outputs soient cohérents et ne
-cassent ni le travail actuel ni les sessions futures.
-
-Contraintes/règles que le skill doit imposer (à affiner) :
-
-- **Output = config, pas image.** Toute proposition de composant est livrée dans le **format de
-  config figé** (`anchor` + `offset`, couche, mode DotGrid associé), chargeable immédiatement et
-  modifiable ensuite dans l'éditeur — jamais une maquette opaque à reconstruire.
-- **Respecter le format de config gelé** (à documenter dans la spec avant les sessions design).
-- **Respecter `tokens.css`** comme source de vérité design — pas de couleur/typo/espacement hors token.
-- **Respecter le recentrage C** : l'overlay = fond animé + widgets data-driven dans UNE source ;
-  ne pas proposer de composition qui suppose plusieurs Browser Sources ou du compositing OBS.
-- **Respecter zero-build / zero-dépendance.**
-- **Ne pas inventer de widget hors du pattern composant** `{ el, update?, destroy? }`.
-
-**Prérequis :** le schéma de config doit être figé et documenté AVANT d'écrire ce skill, sinon il
-n'a pas de format à imposer.
+Créé : `.claude/skills/overlay-design-research/SKILL.md`. Le prérequis (format de config figé et
+documenté) était déjà rempli entre-temps par `scene-definition-v2.md`/`scene-placement-protocol.md`/
+`background-effects-library.md` — le skill référence le format `ComponentMount`/`Placement` réel
+(pixels absolus, plus `anchor`/`offset` — terminologie obsolète de cette note, corrigée dans le
+skill) plutôt que l'esquisse initiale ci-dessous. Les 5 contraintes (output=config, format figé,
+`tokens.css`, recentrage C, zero-build) sont toutes reprises, plus deux ajouts : pointer vers
+`docs/guides/creer-un-composant.md`/`utiliser-le-panneau.md` plutôt que dupliquer leur contenu, et
+un déroulé de session en 5 étapes (comprendre le besoin → regarder l'existant → extraire la
+technique d'une inspiration externe → livrer en config → signaler les écarts explicitement).
 
 ---
 
