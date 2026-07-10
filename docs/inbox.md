@@ -180,11 +180,15 @@ pas une réécriture.
   `height` CSS explicite sur le calque migré (`index.html`, scopé par sélecteur `[data-layer="X"]`).
   Vérifié pixel-exact par mesure Playwright avant/après sur les 9 couches + capture visuelle sur 4
   scènes.
-  **Différé, hors scope** (comportement flex non trivial à figer sans régression) :
-  `next-stream`(brb, `next-info` en `flex:1` + `next-topic` poussé par `margin-left:auto`) et
-  `source-credit`(react, `react-credit-title` en `text-overflow:ellipsis` nécessitant une largeur
-  fixe). Gardent leur CSS flex actuel — pas de couche cassée, juste pas encore éditables composant
-  par composant dans le panneau.
+  **Décision assumée, pas dette** : `next-stream`(brb) et `source-credit`(react) restent en flex
+  CSS — analysé le 2026-07-10 (owner sollicité sur le compromis largeur fixe + ellipsis, refusé à
+  raison). `next-stream` a deux champs adjacents dynamiques (`next-info`=`nextStream` en `flex:1`,
+  `next-topic`=`nextStreamTopic`, sans marge auto — correction d'une lecture CSS erronée de la
+  première passe) qui forment une phrase continue ; `source-credit` a `react-credit-title` en
+  `text-overflow:ellipsis`. Dans les deux cas, le texte dynamique doit rester collé à ses voisins
+  fixes — rien à repositionner indépendamment, donc le placement par composant n'apporterait aucun
+  bénéfice et introduirait une régression visuelle (espace vide ou troncature superflue) à chaque
+  changement de texte live. Le flex adaptatif est le bon design ici, pas une limitation à lever.
 - **Repositionnement dynamique en cours de scène** (ex. une alerte qui glisse à l'écran via un
   événement) — `placement` actuel s'applique une seule fois au montage. Une version dynamique
   écouterait des changements d'état et réappliquerait le style à chaud.
