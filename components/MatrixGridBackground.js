@@ -48,11 +48,14 @@ export function MatrixGridBackground(options = {}) {
     animations = [];
     for (const [plane, flip] of planes) {
       plane.innerHTML = '';
+      // `filter:drop-shadow` retiré (LAC MatrixGrid, 2026-07-10) : coûteux à recalculer chaque
+      // frame sur un plan 3D animé en continu (WAA) — cause de saccades/flicker constatée par
+      // l'owner en vraie Browser Source OBS (CEF/OSR peine sur filter+transform 3D combinés).
+      // `will-change` hint la promotion en calque compositeur pour l'animation `transform` seule.
       const grid = document.createElement('div');
       grid.style.cssText = [
-        'position:absolute', 'inset:0', `color:${color}`,
+        'position:absolute', 'inset:0', 'will-change:transform', `color:${color}`,
         `background-image:repeating-linear-gradient(to left, currentColor, currentColor 3px, transparent 3px, transparent ${gridSize}px),repeating-linear-gradient(to bottom, currentColor, currentColor 3px, transparent 3px, transparent ${gridSize}px)`,
-        'filter:drop-shadow(0 0 4px currentColor)',
       ].join(';');
       plane.appendChild(grid);
       const duration = Math.max(200, 3000 / speed);
