@@ -2,6 +2,55 @@
 
 > Décisions structurantes, par session. Mis à jour en clôture (`/done`).
 
+## 2026-07-10 — Durcissement post-Track A/B : LAC-02/03, flicker MatrixGrid, orphelins start-stream, audit perf
+
+**Ce qui a été fait :**
+- LAC-02/03 (`background-effects-library.md`) tranchées avec l'owner : LAC-03 (positions
+  `StarsParallaxBackground` non-déterministes) acceptée telle quelle. LAC-02 implémentée :
+  `DotGridAnimated.js` gagne `colorMode: 'flat'|'noise'`, teinte par point modulée par bruit Simplex
+  (`hueShiftRgb`/`buildHueShiftLUT`, `components/color-utils.js`), exposée en config et panneau dev.
+- Bug rapporté par l'owner (flicker `MatrixGridBackground` en vraie Browser Source OBS) : root cause
+  `filter:drop-shadow` recalculé chaque frame sur un plan 3D animé en continu — coûteux pour le
+  rendu offscreen CEF d'OBS. Retiré, `will-change:transform` ajouté à la place.
+- Bug rapporté (start-stream.bat s'ouvre et se referme immédiatement) : deux `bun.exe` orphelins
+  occupaient déjà les ports 5500/4456, les deux enfants crashaient instantanément (`EADDRINUSE`),
+  le parent n'avait plus rien à faire et se terminait silencieusement. Test empirique (kill brutal du
+  parent) a confirmé que le Job Object Windows nettoie bien les enfants même sur un kill non-gracieux
+  — pas un bug systémique, des orphelins de test accumulés. `dev/port-check.js` ajouté : préflight
+  qui détecte un port déjà occupé AVANT de spawn, message clair unique au lieu de 2 stack traces Bun
+  brutes ; `start-stream.bat`/`start-dev.bat` gagnent un `pause`-on-error pour ne plus jamais
+  refermer la fenêtre avant que l'erreur soit lisible.
+- Audit d'optimisation demandé par l'owner (motivation explicite : CPU partagé avec OBS/encodage/jeu
+  en contexte stream, pas une hypothèse) sur les 11 effets de fond + DotGrid : `ColorDropsBackground.js`
+  recréait un `CanvasGradient` par goutte à chaque frame (jusqu'à 1440 allocations/s) — remplacé par
+  un gradient précalculé par couleur de palette (coordonnées locales + `ctx.translate`), rebuild
+  uniquement si `colors`/`length` changent. `FloatingSymbolsBackground.js` : chaîne `ctx.font`
+  précalculée au spawn au lieu d'un template literal par frame. Les 7 autres effets : RAS.
+- `/code-review medium` sur l'ensemble du diff a trouvé 2 bugs introduits par ces optimisations :
+  (1) `colorLUT` indexé sans clamp — `simplex2` peut légèrement dépasser [-1,1] (normalisation
+  empirique), un dépassement aurait planté `tick()` (destructuring d'`undefined`) et gelé tout le
+  rendu DotGrid en plein live ; corrigé (`degToLUTIndex`, testé). (2) le fallback numérique de
+  `ColorDropsBackground` avait disparu au profit d'un `gradients[0]` qui pouvait lui-même être
+  indéfini (`colors: []`) ; restauré.
+
+**Pourquoi :**
+- L'owner a explicitement corrigé mon cadrage initial : une optimisation CPU n'est pas une hypothèse
+  à confirmer avant d'agir quand le contexte (stream + OBS + encodage + jeu) rend la ressource déjà
+  sous tension — contrairement à "zero preemptive code" qui s'applique à des symboles sans appelant
+  concret, pas à des optimisations sur du code déjà utilisé.
+- Root cause first à chaque signalement (flicker, fenêtre qui se referme) plutôt qu'un correctif de
+  façade — dans les deux cas, un test empirique a été fait avant de conclure (kill brutal du parent
+  pour le Job Object, simulation d'un double-lancement pour le message d'erreur).
+
+**Impact :**
+- `bun test` : 159/159 verts (5 tests ajoutés cette session : `hueShiftRgb` ×3, `buildHueShiftLUT`,
+  `degToLUTIndex` ×2).
+- Nouveaux modules réutilisables : `dev/port-check.js` (préflight ports, réutilisé par
+  `start-stream.js`/`start-dev.js`), `hueShiftRgb`/`buildHueShiftLUT` (`components/color-utils.js`).
+- Leçon méthodologique retenue : toute optimisation ajoutée en cours de session doit repasser par
+  `/code-review` avant clôture — les deux bugs trouvés n'existaient pas avant l'optimisation, ils ont
+  été introduits PAR elle.
+
 ## 2026-06-07 — S2 : protocole de scène + logique pure
 
 **Ce qui a été fait :**

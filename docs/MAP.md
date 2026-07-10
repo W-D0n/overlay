@@ -4,7 +4,7 @@
 
 ## Focus actuel
 
-**S1→S4 livrées, pipeline de lancement stream opérationnel et validé de bout en bout (2026-07-03).**
+**S1→S8, Track A (transitions) et Track B (effets de fond) livrées — 150 tests verts (2026-07-07).**
 
 - **Moteur page-unique** (S3, spec `docs/specs/scene-runtime-engine.md`, 41 AC) + **migration complète**
   (S3b) : `index.html` porte les **9 scènes** overlay (`discussion`, `codage`, `brb`, `jeu`,
@@ -89,8 +89,8 @@ composant individuel restent hors scope. Vérifié bout en bout (création → a
 suppression simulés contre un vrai `scene-data-server`, fichier confirmé déplacé vers `archived/`
 avec contenu intact). `bun test` : 114/114. **S8 complet (6/6).** | ✅ fait |
 | Épopée | Éditeur complet au-delà de S6/S8 (export/import config, skill recherche graphique) | ⬜ hors scope |
-| Track A | Bibliothèque de transitions de scène (`slide`/`wipe`/`morph`, ce dernier implémentant enfin `morphTo()`) — besoin concret exprimé par l'owner (2026-07-06), sorti de l'épopée. `direction` (slide/wipe) et `color` (wipe) configurables dès la v1 (owner, tuning demandé dès le départ). 4 sessions atomiques, spec `docs/specs/scene-transition-library.md`. Session A1 (spec) **terminée** (2026-07-06). | 🔶 en cours (1/4) |
-| Track B | Animation de fond à formes qui morphent (pizza/étoile ninja/casque shredder/carapace/masque Batman), remplace DotGrid sur les scènes qui l'utilisent, déclenchement manuel v1 — besoin concret exprimé (2026-07-06), pas encore cadré. | ⬜ à venir |
+| Track A | Bibliothèque de transitions de scène (`slide`/`wipe`/`morph`) — besoin concret exprimé par l'owner (2026-07-06), sorti de l'épopée. `direction` (slide/wipe) et `color` (wipe) configurables dès la v1. 4 sessions atomiques, spec `docs/specs/scene-transition-library.md`. A1 (spec, 2026-07-06), A2 (`slide`/`wipe`), A3 (`morph` via `DotGridAnimated.morphTo()`, interpolation Simplex entre modes, dégradation en fondu d'opacité si un seul côté a un fond — LAC-01 tranchée) et A4 (UI panneau) **livrées** (2026-07-07, commit `deacfa5`). | ✅ fait (4/4) |
+| Track B | Bibliothèque de 11 effets de fond indépendants (élargie depuis le cycle de formes original suite à recherche CodePen, 2026-07-07) — remplacent `DotGridBackground` sur `#bg-layer`, devenu polymorphe (`SceneConfig.background: ComponentMount`). 8 sessions atomiques, spec `docs/specs/background-effects-library.md`. B1 (spec) → B2 (fondation polymorphe, migration `DotGridBackground` sans régression) → B3-B7 (Rain, MatrixGrid, Bubble+éclatement, Fireflies, FloatingSymbols, GeometricPattern, ColorDrops, StarsParallax, OrbitingShapes — chacun avec sa section de fine-tuning dans `dev/placement-panel.html`) → B8 (`ShapeMorphBackground`, cycle pizza/étoile ninja/casque/carapace/masque Batman par interpolation radiale) **toutes livrées** (2026-07-07, commit `deacfa5`). LAC-01 (renommage panneau) tranchée : conservé tel quel. **Ouvert** : LAC-02 (variabilité couleur DotGrid par bruit, optionnelle, jamais confirmée) et LAC-03 (positions procédurales `StarsParallaxBackground`, à confirmer acceptable) — voir spec. | ✅ fait (8/8), 2 lacunes mineures ouvertes |
 
 ## Détail S1 (livré)
 
