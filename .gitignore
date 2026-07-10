@@ -19,3 +19,6 @@ Thumbs.db
 
 # Artefacts de vérification visuelle (Playwright MCP)
 .playwright-mcp/
+
+# Historique de sauvegardes de l'éditeur (dev/scene-history-store.js) — généré, pas versionné
+scenes/data/.history/
