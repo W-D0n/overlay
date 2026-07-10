@@ -45,3 +45,19 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 - Le **format de config de scène** — spécifié dans `docs/specs/scene-config-protocol.md`
 
 Modifier l'une de ces surfaces impacte plusieurs scènes : vérifier en aval avant d'éditer.
+
+---
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues sur `W-D0n/overlay`, via `gh` CLI. Voir `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Labels canoniques par défaut (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). Voir `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — un `CONTEXT.md` + `docs/adr/` à la racine, créés à la demande par `/domain-modeling`. Voir `docs/agents/domain.md`.
