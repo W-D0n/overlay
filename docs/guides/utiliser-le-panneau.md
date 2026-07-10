@@ -11,9 +11,9 @@
 bun dev/start-dev.js
 ```
 (ou double-clic sur `start-dev.bat`). **Jamais pendant un live** — ces serveurs écrivent sur disque.
-Ouvre automatiquement 3 onglets : preview auto-reload, `dotgrid-tuner.html`, `placement-panel.html`.
+Ouvre automatiquement 3 onglets : preview auto-reload, `dotgrid-tuner.html`, `overlay-setting.html`.
 
-## `dev/placement-panel.html` — l'outil principal
+## `dev/overlay-setting.html` — l'outil principal
 
 C'est l'éditeur visuel de l'overlay. Une scène à la fois (menu déroulant en haut), le rendu réel
 est affiché dans le panneau de gauche.
@@ -66,7 +66,7 @@ Sliders live sur les paramètres Simplex par mode (`freqX`/`freqY`/`freqT`/`ampl
 `components/DotGridAnimated.js` (mêmes constantes `MODE_PARAMS` que documentées dans le fichier).
 Bouton "Copier" en secours si le serveur d'écriture (`dev/tuner-server.js`) n'est pas lancé.
 
-`colorMode: 'noise'` (variabilité de couleur par bruit) se règle depuis `placement-panel.html`
+`colorMode: 'noise'` (variabilité de couleur par bruit) se règle depuis `overlay-setting.html`
 §Fond → `DotGridBackground`, pas depuis le tuner (qui ne couvre que les 4 params Simplex + 2 globaux
 historiques).
 

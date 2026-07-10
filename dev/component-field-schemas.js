@@ -5,7 +5,7 @@ import { GRID_MODES } from '../components/DotGridAnimated.js';
  * dev/component-field-schemas.js — Schémas de champs éditables par type de composant (S8 session 5/6,
  * étendu Track B session B7 pour les effets de fond).
  *
- * Configuration statique pilotant le formulaire de `placement-panel.html` — aucune logique ici
+ * Configuration statique pilotant le formulaire de `overlay-setting.html` — aucune logique ici
  * (pattern "configuration hors composant", CLAUDE.md). Un schéma par type composable, reflétant
  * exactement la signature de sa factory (`components/index.js`). `DotGridBackground` est exclu de
  * `COMPONENT_FIELD_SCHEMAS` : singleton du fond de page, jamais monté dans une couche de scène (voir
@@ -94,7 +94,7 @@ export const COMPONENT_FIELD_SCHEMAS = {
 export const COMPOSABLE_COMPONENT_NAMES = Object.keys(COMPONENT_FIELD_SCHEMAS);
 
 /**
- * Schémas des effets de fond (Track B, section Fond de `placement-panel.html`) — même format que
+ * Schémas des effets de fond (Track B, section Fond de `overlay-setting.html`) — même format que
  * `COMPONENT_FIELD_SCHEMAS`, reflète exactement les options de chaque `components/*Background.js`
  * (JSDoc en tête de chaque fichier, ne pas deviner). `colors` (ColorDropsBackground) réutilise le
  * type `textarea` (une couleur par ligne) — même motif que `TextList.lines`, pas un type nouveau.

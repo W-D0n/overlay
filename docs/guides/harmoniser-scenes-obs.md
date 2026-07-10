@@ -25,7 +25,7 @@ faut mettre à jour le mapping.
 ## Comment corriger — méthode recommandée (panneau, aucun code)
 
 1. Lancer `bun dev/start-dev.js` (jamais pendant un live).
-2. Dans `dev/placement-panel.html`, section **OBS** → sous-section **"Renommer les scènes OBS"**.
+2. Dans `dev/overlay-setting.html`, section **OBS** → sous-section **"Renommer les scènes OBS"**.
 3. Chaque ligne correspond à une scène overlay (`discussion`, `codage`, ...) avec un champ texte
    pré-rempli du nom OBS actuellement associé.
 4. Remplace le texte par le nom **exact** de ta scène dans OBS (respecte la casse, les espaces).

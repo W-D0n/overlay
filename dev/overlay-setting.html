@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Dev — Placement Panel</title>
+  <title>Dev — Overlay Setting</title>
   <!--
     OUTIL DE DEV — jamais chargé dans OBS, jamais référencé depuis index.html.
     Charge une SceneConfig (scenes/registry.js) + le template/CSS réel depuis index.html (fetch,
@@ -230,7 +230,7 @@
 
   <div id="panel">
     <div class="panel-header">
-      <h1>Placement Panel</h1>
+      <h1>Overlay Setting</h1>
     </div>
 
     <div id="status"></div>
@@ -625,7 +625,7 @@
         layer.components.forEach((mount, index) => {
           const factory = COMPONENT_REGISTRY[mount.component];
           if (!factory) {
-            console.warn(`[placement-panel] composant inconnu — ${mount.component}`);
+            console.warn(`[overlay-setting] composant inconnu — ${mount.component}`);
             return;
           }
           /** @type {import('../types.js').ComponentInstance} */
@@ -637,7 +637,7 @@
             // plus haut sur le bug de connexion WS parasite).
             instance = /** @type {*} */ (factory)(resolveBoundOptions(mount.options ?? {}, {}));
           } catch (err) {
-            console.warn(`[placement-panel] échec du montage — ${mount.component}`, err);
+            console.warn(`[overlay-setting] échec du montage — ${mount.component}`, err);
             return;
           }
           layerEl.appendChild(instance.el);

@@ -3,12 +3,12 @@
  * relay/obs-scene-map.js — Traduction nom-de-scène-OBS → `SceneId` overlay (logique pure).
  *
  * Aucun effet de bord : ni réseau, ni DOM, ni temps. Importable par `bun test`, `server.js`, ET par
- * `dev/placement-panel.html`/`dev/dotgrid-tuner.html` (chargés tels quels dans le navigateur — pas
+ * `dev/overlay-setting.html`/`dev/dotgrid-tuner.html` (chargés tels quels dans le navigateur — pas
  * de dépendance ici à un import JSON natif, qui exigerait un attribut d'import dédié
  * (`with {type:'json'}`, support récent/fragile selon la version de CEF d'OBS).
  *
  * La donnée (`OBS_SCENE_MAP`) vit dans `obs-scene-map-data.js`, régénérée en entier par
- * `dev/obs-scene-map-server.js` (§OBS "Renommer les scènes OBS", `dev/placement-panel.html`) — ce
+ * `dev/obs-scene-map-server.js` (§OBS "Renommer les scènes OBS", `dev/overlay-setting.html`) — ce
  * fichier-ci (la logique) n'est jamais touché par l'outil d'écriture.
  */
 import { OBS_SCENE_MAP } from './obs-scene-map-data.js';

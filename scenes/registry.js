@@ -52,7 +52,7 @@ export const SCENE_WIRES = {
  * "manifeste corrompu").
  *
  * Chemins ABSOLUS (`/scenes/data/...`) — appelé aussi bien depuis `index.html` (racine) que depuis
- * `dev/placement-panel.html` (sous-dossier) ; un chemin relatif résoudrait différemment selon la
+ * `dev/overlay-setting.html` (sous-dossier) ; un chemin relatif résoudrait différemment selon la
  * page appelante (review S8 session 4/6, migration des 9 scènes).
  *
  * @returns {Promise<void>}

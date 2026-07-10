@@ -90,7 +90,7 @@ setTimeout(() => {
   const urls = [
     'http://localhost:5500/?livereload=1',
     'http://localhost:5500/dev/dotgrid-tuner.html',
-    'http://localhost:5500/dev/placement-panel.html',
+    'http://localhost:5500/dev/overlay-setting.html',
   ];
   for (const url of urls) Bun.spawn(['cmd', '/c', 'start', '""', url]);
 }, 2000);

@@ -63,7 +63,7 @@ Un composant monté dans une scène est déclaré ainsi (`types.js`) :
 Une proposition de nouveau widget dans une scène = un objet de cette forme (ou plusieurs), pas une
 description en prose de "où il devrait être". Si tu ne connais pas encore les coordonnées exactes,
 propose une position raisonnable et indique qu'elle se règle ensuite au pixel près depuis
-`dev/placement-panel.html` (glisser-déposer) — voir `docs/guides/utiliser-le-panneau.md`.
+`dev/overlay-setting.html` (glisser-déposer) — voir `docs/guides/utiliser-le-panneau.md`.
 
 Un effet de fond suit exactement le même `ComponentMount` (`SceneConfig.background`, Track B,
 `#bg-layer` polymorphe) — pas de format séparé pour "widget" vs "fond".
@@ -133,7 +133,7 @@ délibérément laissé de côté pour cette raison (textures externes, jQuery, 
   frame, LUT couleur, `filter` + transform 3D, résolution de couleur token) tirées de bugs réels
   déjà rencontrés sur ce projet.
 - `docs/guides/utiliser-le-panneau.md` — ce qui est déjà éditable sans écrire de code (composition,
-  effets de fond, placement) depuis `dev/placement-panel.html`.
+  effets de fond, placement) depuis `dev/overlay-setting.html`.
 - `tokens.css` — palette, typo, espacements, rayons (à lire avant toute proposition de couleur/style).
 - `docs/specs/scene-definition-v2.md`, `scene-placement-protocol.md`,
   `background-effects-library.md` — les specs qui ont figé les formats ci-dessus, utiles si un

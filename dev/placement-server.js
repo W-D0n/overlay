@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * dev/placement-server.js — Proxy HTTP pour placement-panel.html (S7, dev-only).
+ * dev/placement-server.js — Proxy HTTP pour overlay-setting.html (S7, dev-only).
  *
  * NE JAMAIS lancer pendant le live — relaie vers `scene-data-server.js`, séparé du relais de
  * production (`relay/server.js`).
