@@ -36,27 +36,17 @@
     /* ════════════════ DISCUSSION ════════════════ */
     /* .disc-cam retiré (S8) — remplacé par le composant Box (options par défaut), voir
        scenes/discussion.config.js. Position toujours pilotée par Placement (couche `cam`). */
-    .scene[data-scene="discussion"] .disc-separator {
-      position: absolute; top: 40px; left: 1154px; width: 1px; height: 1000px; background: var(--color-rule);
-    }
-    .scene[data-scene="discussion"] .disc-col-right {
-      position: absolute; top: 40px; left: 1188px; width: 692px; height: 1000px;
-      display: flex; flex-direction: column;
-    }
-    .scene[data-scene="discussion"] .disc-block { flex-shrink: 0; }
     .scene[data-scene="discussion"] .disc-name { font-size: 74px; letter-spacing: -0.5px; line-height: 1; margin-bottom: 18px; }
     .scene[data-scene="discussion"] .disc-rule-gold { margin-bottom: 20px; }
     .scene[data-scene="discussion"] .disc-label { margin-bottom: 10px; }
     .scene[data-scene="discussion"] .subject-text { font-size: 38px; line-height: 1.2; }
     .scene[data-scene="discussion"] [data-layer="subject"] { height: 184px; padding-bottom: 20px; border-bottom: var(--border-rule); }
-    .scene[data-scene="discussion"] [data-layer="stats"] {
-      padding: 20px 0; border-bottom: var(--border-rule); display: flex; gap: 48px; align-items: flex-end;
-    }
+    .scene[data-scene="discussion"] [data-layer="stats"] { padding: 20px 0; border-bottom: var(--border-rule); }
     .scene[data-scene="discussion"] [data-layer="chat"] {
-      flex: 1; min-height: 0; padding-top: 20px; overflow: hidden; display: flex; flex-direction: column;
+      padding-top: 20px; overflow: hidden; display: flex; flex-direction: column;
     }
     .scene[data-scene="discussion"] [data-layer="last-follow"] {
-      padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim); margin-top: auto;
+      padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
     }
     .scene[data-scene="discussion"] .last-follow-name { font-size: 38px; }
 
@@ -308,21 +298,6 @@
   <div id="scene-root"></div>
 
   <!-- ════════════════ Templates de scène (structure + placement, AD-5) ════════════════ -->
-
-  <template data-scene="discussion">
-    <div data-layer="goldbar"></div>
-    <div data-layer="cam" aria-hidden="true"></div>
-    <div class="disc-separator" aria-hidden="true"></div>
-    <div class="disc-col-right">
-      <div data-layer="subject" class="disc-block"></div>
-      <div data-layer="stats" class="disc-block"></div>
-      <div data-layer="chat" class="disc-block">
-        <span class="disc-label label-mono">Chat</span>
-      </div>
-      <div data-layer="last-follow" class="disc-block"></div>
-    </div>
-    <div data-layer="alert"></div>
-  </template>
 
   <template data-scene="brb">
     <div data-layer="goldbar"></div>
