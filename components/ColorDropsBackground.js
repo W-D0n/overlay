@@ -32,6 +32,25 @@ export function ColorDropsBackground(options = {}) {
   let rafId = 0;
   /** @type {[number, number, number][]} */
   let rgbPalette = colors.map(resolveColor);
+  /** @type {CanvasGradient[]} */
+  let gradients = [];
+
+  /**
+   * Un gradient par couleur de palette, en coordonnées LOCALES `(0,-length)` → `(0,0)` — traduit
+   * via `ctx.translate(d.x, d.y)` au dessin (voir `tick`) plutôt que recréé avec les coordonnées
+   * absolues de chaque goutte. `createLinearGradient`/`addColorStop` recréaient un objet canvas par
+   * goutte à CHAQUE frame (jusqu'à `count`×60/s) — coût CPU superflu en contexte stream (OBS +
+   * encodage + jeu se partagent déjà la machine), alors que seules `colors`/`length` en changent le
+   * résultat. À reconstruire uniquement quand l'un des deux change (voir `update`).
+   */
+  function buildGradients() {
+    gradients = rgbPalette.map(([r, g, b]) => {
+      const grad = ctx.createLinearGradient(0, -length, 0, 0);
+      grad.addColorStop(0, `rgba(${r},${g},${b},0)`);
+      grad.addColorStop(1, `rgba(${r},${g},${b},0.35)`);
+      return grad;
+    });
+  }
 
   /** @typedef {{x:number,y:number,vy:number,colorIdx:number,width:number}} Drop */
   /** @type {Drop[]} */
@@ -51,6 +70,8 @@ export function ColorDropsBackground(options = {}) {
   function seed() {
     drops = Array.from({ length: count }, () => spawn(true));
   }
+
+  buildGradients();
 
   function handleResize() {
     const dpr = window.devicePixelRatio || 1;
@@ -73,16 +94,16 @@ export function ColorDropsBackground(options = {}) {
 
     for (let i = 0; i < drops.length; i++) {
       const d = drops[i];
+      ctx.save();
+      ctx.translate(d.x, d.y);
       const [r, g, b] = rgbPalette[d.colorIdx] ?? [200, 185, 122];
-      const grad = ctx.createLinearGradient(d.x, d.y - length, d.x, d.y);
-      grad.addColorStop(0, `rgba(${r},${g},${b},0)`);
-      grad.addColorStop(1, `rgba(${r},${g},${b},0.35)`);
-      ctx.strokeStyle = grad;
+      ctx.strokeStyle = gradients[d.colorIdx] ?? `rgba(${r},${g},${b},0.35)`;
       ctx.lineWidth = d.width;
       ctx.beginPath();
-      ctx.moveTo(d.x, d.y - length);
-      ctx.lineTo(d.x, d.y);
+      ctx.moveTo(0, -length);
+      ctx.lineTo(0, 0);
       ctx.stroke();
+      ctx.restore();
 
       d.y += d.vy;
       if (d.y - length > cssH) drops[i] = spawn(false);
@@ -98,8 +119,10 @@ export function ColorDropsBackground(options = {}) {
     update(newOptions) {
       const o = /** @type {Record<string, unknown>} */ (newOptions ?? {});
       if (typeof o.speed === 'number') speed = o.speed;
-      if (typeof o.length === 'number') length = o.length;
-      if (Array.isArray(o.colors)) { colors = /** @type {string[]} */ (o.colors); rgbPalette = colors.map(resolveColor); }
+      let gradientsStale = false;
+      if (typeof o.length === 'number' && o.length !== length) { length = o.length; gradientsStale = true; }
+      if (Array.isArray(o.colors)) { colors = /** @type {string[]} */ (o.colors); rgbPalette = colors.map(resolveColor); gradientsStale = true; }
+      if (gradientsStale) buildGradients();
       if (typeof o.count === 'number' && Math.round(o.count) !== count) {
         count = Math.max(1, Math.round(o.count));
         seed();

@@ -37,16 +37,18 @@ export function FloatingSymbolsBackground(options = {}) {
   let rafId = 0;
   let rgb = resolveColor(color);
 
-  /** @typedef {{x:number,y:number,size:number,vy:number,rotPhase:number,rotSpeed:number,opacity:number}} Sym */
+  /** @typedef {{x:number,y:number,size:number,font:string,vy:number,rotPhase:number,rotSpeed:number,opacity:number}} Sym */
   /** @type {Sym[]} */
   let symbols = [];
 
   /** @returns {Sym} */
   function spawn(randomY = true) {
+    const size = minSize + Math.random() * (maxSize - minSize);
     return {
       x: Math.random() * cssW,
       y: randomY ? Math.random() * cssH : -maxSize,
-      size: minSize + Math.random() * (maxSize - minSize),
+      size,
+      font: `${size}px sans-serif`, // précalculé une fois — `size` fixe pour la durée de vie du symbole, jamais recalculé par frame (voir tick)
       vy: (0.3 + Math.random() * 0.5) * speed,
       rotPhase: Math.random() * Math.PI * 2,
       rotSpeed: (Math.random() - 0.5) * 0.02,
@@ -83,7 +85,7 @@ export function FloatingSymbolsBackground(options = {}) {
       ctx.save();
       ctx.translate(s.x, s.y);
       ctx.rotate(s.rotPhase);
-      ctx.font = `${s.size}px sans-serif`;
+      ctx.font = s.font;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = `rgba(${r},${g},${b},${s.opacity.toFixed(3)})`;
