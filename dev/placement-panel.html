@@ -284,6 +284,16 @@
           <input type="text" id="obs-new-source-name" placeholder="nom-source-existante">
           <button id="obs-add-source-btn" class="btn">+ source</button>
         </div>
+        <details class="inline-create" style="margin-top: 16px;">
+          <summary>Renommer les scènes OBS</summary>
+          <p style="font-size: 12px; opacity: 0.7; margin: 8px 0;">
+            Fais correspondre le nom EXACT de tes scènes OBS à chaque scène overlay. Enregistrer
+            met à jour <code>relay/obs-scene-map-data.js</code> — relance le relais après coup pour
+            que le changement soit pris en compte (import statique, pas de rechargement à chaud).
+          </p>
+          <div id="obs-scene-map-rows"></div>
+          <button id="obs-scene-map-save-btn" class="btn" style="margin-top: 8px;">Enregistrer les noms</button>
+        </details>
       </div>
     </details>
 
@@ -318,6 +328,7 @@
     const SCENE_DATA_CREATE_URL = 'http://localhost:4460/create-scene';
     const SCENE_DATA_DELETE_URL = 'http://localhost:4460/delete-scene';
     const SCENE_HISTORY_URL = 'http://localhost:4460/scene-history';
+    const OBS_SCENE_MAP_SAVE_URL = 'http://localhost:4461/save-obs-scene-map';
     const SCENE_RESTORE_URL = 'http://localhost:4460/restore-scene';
     const ARCHIVED_SCENES_URL = 'http://localhost:4460/archived-scenes';
     const RESTORE_ARCHIVED_URL = 'http://localhost:4460/restore-archived-scene';
@@ -1042,6 +1053,53 @@
       obsSceneSelect.value = stillExists ? previousValue : (currentProgramSceneName ?? scenes[0]?.sceneName ?? '');
     }
 
+    /**
+     * Rendu de la section "Renommer les scènes OBS" — une ligne par scène overlay (`SCENE_CONFIGS`),
+     * input pré-rempli avec le nom OBS actuel (`OBS_NAMES_BY_SCENE`, premier nom si plusieurs).
+     * Pas de dépendance au relais/OBS (contrairement au reste de la section OBS) — lit
+     * `relay/obs-scene-map-data.js` importé statiquement, fonctionne même OBS fermé.
+     */
+    function renderObsSceneMapRows() {
+      const rowsEl = document.getElementById('obs-scene-map-rows');
+      rowsEl.innerHTML = '';
+      for (const sceneId of Object.keys(SCENE_CONFIGS).sort()) {
+        const row = document.createElement('div');
+        row.className = 'add-layer-row';
+        row.style.marginTop = '4px';
+        const label = document.createElement('span');
+        label.textContent = sceneId;
+        label.style.cssText = 'min-width: 90px; font-size: 12px; opacity: 0.8;';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.dataset.sceneId = sceneId;
+        input.value = OBS_NAMES_BY_SCENE[sceneId]?.[0] ?? '';
+        input.placeholder = 'nom exact de la scène dans OBS';
+        row.append(label, input);
+        rowsEl.appendChild(row);
+      }
+    }
+
+    /** Lit les inputs de la section rename, reconstruit la table complète et la sauvegarde. */
+    async function saveObsSceneMap() {
+      const inputs = document.querySelectorAll('#obs-scene-map-rows input');
+      const entries = Array.from(inputs).map((input) => ({
+        obsName: /** @type {HTMLInputElement} */ (input).value,
+        sceneId: /** @type {HTMLInputElement} */ (input).dataset.sceneId,
+      }));
+      try {
+        const res = await fetch(OBS_SCENE_MAP_SAVE_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entries),
+        });
+        statusEl.textContent = res.ok
+          ? 'Noms de scènes OBS enregistrés — relance "bun relay/server.js" pour les prendre en compte'
+          : `Échec (${res.status})`;
+      } catch {
+        statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/obs-scene-map-server.js"';
+      }
+    }
+
     async function activateObsScene() {
       const sceneName = obsSceneSelect.value;
       if (!sceneName) return;
@@ -1197,6 +1255,7 @@
     document.getElementById('obs-create-scene-btn').addEventListener('click', createObsScene);
     document.getElementById('obs-add-source-btn').addEventListener('click', createObsSceneItem);
     obsSceneSelect.addEventListener('change', () => refreshObsSceneItems(obsSceneSelect.value));
+    document.getElementById('obs-scene-map-save-btn').addEventListener('click', saveObsSceneMap);
 
     function applyPlacementStyle(el, placement) {
       el.style.position = 'absolute';
@@ -1740,6 +1799,7 @@
     renderScene();
     refreshArchivedScenes();
     refreshObsScenes();
+    renderObsSceneMapRows();
     scalePreview();
   </script>
 </body>

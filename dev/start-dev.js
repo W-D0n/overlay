@@ -34,6 +34,7 @@ const SERVERS = [
   { name: 'tuner',      cmd: ['bun', 'dev/tuner-server.js'],       port: Number(process.env.TUNER_PORT ?? 4458) },
   { name: 'placement',  cmd: ['bun', 'dev/placement-server.js'],   port: Number(process.env.PLACEMENT_PORT ?? 4459) },
   { name: 'scene-data', cmd: ['bun', 'dev/scene-data-server.js'],  port: Number(process.env.SCENE_DATA_PORT ?? 4460) },
+  { name: 'obs-scene-map', cmd: ['bun', 'dev/obs-scene-map-server.js'], port: Number(process.env.OBS_SCENE_MAP_PORT ?? 4461) },
 ];
 
 const busy = findBusyPorts(SERVERS);

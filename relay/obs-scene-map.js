@@ -1,27 +1,22 @@
 // @ts-check
 /**
- * relay/obs-scene-map.js — Correspondance nom-de-scène-OBS → `SceneId` overlay (logique pure).
+ * relay/obs-scene-map.js — Traduction nom-de-scène-OBS → `SceneId` overlay (logique pure).
  *
- * Aucun effet de bord : ni réseau, ni DOM, ni temps. Importable par `bun test` et par `server.js`.
- * Noms de scènes OBS réels de D0n (mapping complet, 2026-07-03) — les 8 scènes overlay ont
- * désormais une scène OBS correspondante.
+ * Aucun effet de bord : ni réseau, ni DOM, ni temps. Importable par `bun test`, `server.js`, ET par
+ * `dev/placement-panel.html`/`dev/dotgrid-tuner.html` (chargés tels quels dans le navigateur — pas
+ * de dépendance ici à un import JSON natif, qui exigerait un attribut d'import dédié
+ * (`with {type:'json'}`, support récent/fragile selon la version de CEF d'OBS).
+ *
+ * La donnée (`OBS_SCENE_MAP`) vit dans `obs-scene-map-data.js`, régénérée en entier par
+ * `dev/obs-scene-map-server.js` (§OBS "Renommer les scènes OBS", `dev/placement-panel.html`) — ce
+ * fichier-ci (la logique) n'est jamais touché par l'outil d'écriture.
  */
+import { OBS_SCENE_MAP } from './obs-scene-map-data.js';
+
+export { OBS_SCENE_MAP };
 
 /** @type {import('../types.js').SceneId[]} */
 const VALID_SCENE_IDS = ['discussion', 'codage', 'brb', 'interview', 'react', 'creation', 'fin', 'jeu', 'starting'];
-
-/** @type {Record<string, import('../types.js').SceneId>} */
-export const OBS_SCENE_MAP = {
-  'Just Chatting': 'discussion',
-  'Coding':        'codage',
-  'BRB':           'brb',
-  'Gaming':        'jeu',
-  'Interview':     'interview',
-  'FullScreen':    'react',
-  'Creation':      'creation',
-  'Ending':        'fin',
-  'Starting':      'starting',
-};
 
 /**
  * Traduire un nom de scène OBS en `SceneId` overlay.
