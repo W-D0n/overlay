@@ -2,6 +2,49 @@
 
 > Décisions structurantes, par session. Mis à jour en clôture (`/done`).
 
+## 2026-07-10 — Couche 4 DotGrid : réactions aux alertes stream (3 sessions atomiques)
+
+**Ce qui a été fait :**
+- Investigation avant tout code : la Couche 3 du handoff de juin (morph vers formes bitmap/SDF/IA)
+  s'est révélée obsolète — Track B (`ShapeMorphBackground`, `#bg-layer` polymorphe) résout ce besoin
+  différemment et mieux. Seule la Couche 4 (réactions à des événements discrets) restait un vrai gap
+  (`trigger()` stub vide).
+- Spec (`docs/specs/dotgrid-event-triggers.md`) validée avec l'owner avant code : 4 comportements
+  (`follow`=onde expansive, `sub`=pulsation globale, `raid`=balayage de bande, `bits`=scatter de
+  points) + `ambient` (pioche aléatoire parmi les 4 toutes les 45-90s), câblage impératif (pas le
+  mécanisme déclaratif `trigger` non éprouvé en prod).
+- `DotGridAnimated.trigger(alert)` implémenté : logique pure extraite et testée (`reactionDelta`,
+  `isValidReactionType`, `computeAmbientDelay`) avant l'intégration canvas/rAF — 12 tests.
+- Découverte en implémentant la session 3 (câblage) : `scene-runtime.js` importe déjà `onStateChange`
+  de `store.js` (S8) — pas store-agnostic comme supposé en session 1. Câblage revu : observation
+  directe de `state.latestAlert` dans `scene-runtime.js` (`applyBackgroundReactions`) au lieu
+  d'exporter une fonction appelée depuis les 9 `*.wire.js`, qui aurait créé une dépendance circulaire
+  (`scene-runtime.js → scenes/registry.js → *.wire.js → scene-runtime.js`).
+- Vérifié bout en bout avec un vrai appel `POST /emit` sur un relais de test (`OBS_WS_URL` pointé
+  vers une adresse injoignable pour ne jamais toucher l'OBS réel de l'owner) : alerte → relais → WS
+  → `store.js` → `scene-runtime.js` → `DotGridAnimated.trigger()` → boost d'opacité visible puis
+  redescente stable après la durée de la réaction.
+- `/code-review medium` : aucun bug de sévérité crash (contrairement à la session précédente) — 2
+  races mineures trouvées (fenêtre de quelques dizaines de ms au chargement de page uniquement),
+  documentées en LAC-02 de la spec et acceptées telles quelles (owner, probabilité réelle quasi
+  nulle en usage normal).
+
+**Pourquoi :**
+- Décomposition en 3 sessions atomiques avant tout code (CLAUDE.md §Session discipline) — la
+  feature touchait logique de composant + protocole de câblage + décision d'architecture, pas un
+  simple ajout local.
+- Root cause investigué avant d'écrire une ligne de câblage : la spec initiale (session 1) prévoyait
+  9 fichiers wire à modifier ; l'implémentation réelle (session 3) a trouvé une voie strictement plus
+  simple et sans risque de cycle — la spec a été mise à jour rétroactivement pour refléter la
+  décision réelle plutôt que de la laisser en désaccord avec le code livré.
+
+**Impact :**
+- `bun test` : 167/167 verts.
+- `ComponentInstance.trigger` formalisé (`types.js`) — 3ᵉ méthode optionnelle du contrat après
+  `show`/`morphTo`, même pattern de dégradation silencieuse (`?.()`) si absente.
+- Aucun autre effet de fond (Rain, Bubble, etc.) n'implémente `trigger` — zero preemptive code,
+  s'ajoutera si un besoin concret apparaît, dégrade déjà silencieusement en no-op.
+
 ## 2026-07-10 — Durcissement post-Track A/B : LAC-02/03, flicker MatrixGrid, orphelins start-stream, audit perf
 
 **Ce qui a été fait :**
