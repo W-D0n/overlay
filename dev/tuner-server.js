@@ -20,18 +20,12 @@
  */
 import { applyDotGridParamsToSource } from './dotgrid-params-format.js';
 import { createKeyedLock } from './keyed-lock.js';
+import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
 
 const PORT = Number(process.env.TUNER_PORT ?? 4458);
 const TARGET_FILE = `${import.meta.dir}/../components/DotGridAnimated.js`;
 const withSaveLock = createKeyedLock();
 const SAVE_LOCK_KEY = 'dotgrid-source';
-
-/** CORS permissif — outil de dev local uniquement, jamais exposé. */
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
 
 /** @type {Set<import('bun').ServerWebSocket<unknown>>} */
 const reloadClients = new Set();
@@ -67,11 +61,11 @@ Bun.serve({
         return new Response('ok', { headers: CORS_HEADERS });
       } catch (err) {
         console.error('[tuner-server] échec de la sauvegarde :', err);
-        return new Response(String(err), { status: 500, headers: CORS_HEADERS });
+        return jsonError(String(err), 500);
       }
     }
 
-    return new Response('not found', { status: 404, headers: CORS_HEADERS });
+    return jsonError('not found', 404);
   },
   websocket: {
     open(ws) { reloadClients.add(ws); },

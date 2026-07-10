@@ -3,6 +3,7 @@
  * codage.wire.js — Câblage des composants de la scène Codage (AD-6).
  */
 import { onStateChange } from '../store.js';
+import { createAlertGate } from './alert-gate.js';
 
 /** Libellés courts par type d'alerte pour la bande basse sous la capture. */
 const ALERT_STRIP_LABELS = { follow: '+ follow', sub: '+ sub', raid: 'raid', bits: 'bits' };
@@ -20,7 +21,7 @@ export function wire(mounted) {
   const stackEl  = mounted.root.querySelector('.stack-info');
   const stripEl  = mounted.root.querySelector('.cod-alert-text');
 
-  let lastAlertTimestamp = 0;
+  const isNewAlert = createAlertGate();
   /** @type {ReturnType<typeof setTimeout> | null} */
   let stripTimer = null;
 
@@ -31,8 +32,7 @@ export function wire(mounted) {
     if (branchEl) branchEl.textContent = state.currentBranch || '';
     if (stackEl)  stackEl.textContent  = state.currentActivity || '';
 
-    if (state.latestAlert && state.latestAlert.timestamp !== lastAlertTimestamp) {
-      lastAlertTimestamp = state.latestAlert.timestamp;
+    if (state.latestAlert && isNewAlert(state.latestAlert)) {
       alert.show?.(state.latestAlert);
       if (stripEl) {
         stripEl.textContent = `${ALERT_STRIP_LABELS[state.latestAlert.type] ?? ''} — ${state.latestAlert.username}`;

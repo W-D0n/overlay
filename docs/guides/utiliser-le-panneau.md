@@ -44,8 +44,9 @@ les couches, certaines restent en CSS flex, voir `docs/specs/scene-placement-pro
 
 ### Gérer les couches
 
-"+ couche" pour en ajouter une entièrement vide. Renommage/réordonnancement de couches existantes :
-pas encore possible depuis le panneau (voir `docs/inbox.md` §Gestion des couches).
+"+ couche" pour en ajouter une entièrement vide. Renommage (input inline, couche `goldbar` protégée)
+et réordonnancement (boutons ↑/↓ + glisser-déposer par poignée dédiée) des couches existantes :
+livré (2026-07-05), voir `docs/inbox.md` §Gestion des couches.
 
 ### Créer / supprimer une scène entière
 
@@ -72,9 +73,9 @@ historiques).
 
 ## Ce qui n'est PAS encore éditable depuis un panneau
 
-- Renommage/réordonnancement de couches (voir ci-dessus).
-- Placement fin à l'intérieur d'une couche composite (ex: `interview`/`cams` a 3 éléments
-  indépendants) — la couche entière bouge en bloc.
+- Deux calques restent en CSS flex plutôt qu'en placement par composant, par choix assumé (texte
+  dynamique collé à ses voisins, pas des widgets à repositionner séparément) : `next-stream`(brb) et
+  `source-credit`(react) — voir `docs/inbox.md` §Extensions du système de placement.
 - Comportements de la Couche 4 DotGrid (`follow`/`sub`/`raid`/`bits`/`ambient`,
   `docs/specs/dotgrid-event-triggers.md`) — durées/amplitudes en constantes dans
   `components/DotGridAnimated.js`, pas de formulaire dédié (zero preemptive code, pas de demande

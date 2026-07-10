@@ -13,6 +13,7 @@
  * exprimer "masquer si null" (voir docs/specs/scene-definition-v2.md).
  */
 import { onStateChange } from '../store.js';
+import { createAlertGate } from './alert-gate.js';
 
 /**
  * @param {import('../types.js').MountedScene} mounted
@@ -25,7 +26,7 @@ export function wire(mounted) {
   const [pollBar]     = mounted.componentsByLayer.hud;
   const [alertBanner] = mounted.componentsByLayer.alert;
 
-  let lastAlertTimestamp = 0;
+  const isNewAlert = createAlertGate();
 
   return onStateChange((state) => {
     if (sessionEl)  sessionEl.textContent  = `#${state.sessionId}`;
@@ -33,8 +34,7 @@ export function wire(mounted) {
 
     if (pollBar) pollBar.el.style.display = state.activePoll ? 'flex' : 'none';
 
-    if (state.latestAlert && state.latestAlert.timestamp !== lastAlertTimestamp) {
-      lastAlertTimestamp = state.latestAlert.timestamp;
+    if (state.latestAlert && isNewAlert(state.latestAlert)) {
       alertBanner?.show?.(state.latestAlert);
     }
   });

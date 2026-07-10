@@ -56,6 +56,7 @@ import { addSceneToManifest, removeSceneFromManifest } from './scene-data-format
 import { readSceneHistory, appendSceneHistory, writeSceneHistory } from './scene-history-store.js';
 import { applyPlacementToLayer } from './scene-placement-format.js';
 import { createKeyedLock } from './keyed-lock.js';
+import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
 
 const PORT = Number(process.env.SCENE_DATA_PORT ?? 4460);
 const DATA_DIR = `${import.meta.dir}/../scenes/data`;
@@ -64,13 +65,6 @@ const MANIFEST_FILE = `${DATA_DIR}/manifest.json`;
 
 /** Évite l'accès à un fichier arbitraire via un `sceneId` malicieux (path traversal). */
 const VALID_SCENE_ID = /^[a-z][a-z0-9-]*$/;
-
-/** CORS permissif — outil de dev local uniquement, jamais exposé. */
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
 
 /** @returns {Promise<string[]>} */
 async function readManifest() {
@@ -108,17 +102,6 @@ function hasSceneConfig(body) {
   return typeof body === 'object' && body !== null && typeof (/** @type {*} */ (body).sceneConfig) === 'object';
 }
 
-/**
- * @param {string} message
- * @param {number} status
- * @returns {Response}
- */
-function jsonError(message, status) {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-  });
-}
 
 /** @returns {Response} */
 function jsonOk() {

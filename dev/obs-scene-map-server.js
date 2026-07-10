@@ -15,18 +15,12 @@
  */
 import { buildSceneMap, formatObsSceneMapDataFile } from './obs-scene-map-format.js';
 import { createKeyedLock } from './keyed-lock.js';
+import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
 
 const PORT = Number(process.env.OBS_SCENE_MAP_PORT ?? 4461);
 const TARGET_FILE = `${import.meta.dir}/../relay/obs-scene-map-data.js`;
 const withSaveLock = createKeyedLock();
 const SAVE_LOCK_KEY = 'obs-scene-map';
-
-/** CORS permissif — outil de dev local uniquement, jamais exposé. */
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
 
 Bun.serve({
   port: PORT,
@@ -48,11 +42,11 @@ Bun.serve({
         return new Response('ok', { headers: CORS_HEADERS });
       } catch (err) {
         console.error('[obs-scene-map-server] échec de la sauvegarde :', err);
-        return new Response(String(err), { status: 500, headers: CORS_HEADERS });
+        return jsonError(String(err), 500);
       }
     }
 
-    return new Response('not found', { status: 404, headers: CORS_HEADERS });
+    return jsonError('not found', 404);
   },
 });
 

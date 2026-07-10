@@ -22,15 +22,10 @@
  *
  * Lancement : `bun dev/placement-server.js` (nécessite `bun dev/scene-data-server.js` démarré).
  */
+import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
+
 const PORT = Number(process.env.PLACEMENT_PORT ?? 4459);
 const SCENE_DATA_PORT = Number(process.env.SCENE_DATA_PORT ?? 4460);
-
-/** CORS permissif — outil de dev local uniquement, jamais exposé. */
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
 
 /** @type {Set<import('bun').ServerWebSocket<unknown>>} */
 const reloadClients = new Set();
@@ -70,14 +65,11 @@ Bun.serve({
         });
       } catch (err) {
         console.error('[placement-server] scene-data-server injoignable :', err);
-        return new Response('scene-data-server injoignable — lancer "bun dev/scene-data-server.js"', {
-          status: 502,
-          headers: CORS_HEADERS,
-        });
+        return jsonError('scene-data-server injoignable — lancer "bun dev/scene-data-server.js"', 502);
       }
     }
 
-    return new Response('not found', { status: 404, headers: CORS_HEADERS });
+    return jsonError('not found', 404);
   },
   websocket: {
     open(ws) { reloadClients.add(ws); },
