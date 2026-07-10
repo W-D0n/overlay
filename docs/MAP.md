@@ -195,9 +195,21 @@ avec contenu intact). `bun test` : 114/114. **S8 complet (6/6).** | ✅ fait |
   qui en dépend, pas S5).
 - **94 tests verts** au total.
 
+## Guides (docs/guides/)
+
+Documentation utilisateur, distincte des specs (specs = décisions techniques validées pour une
+session ; guides = comment utiliser/étendre l'outil au quotidien) :
+
+- `utiliser-le-panneau.md` — tweaker/composer une scène depuis `dev/placement-panel.html` sans écrire de code.
+- `creer-un-composant.md` — écrire un nouveau composant/effet de fond from scratch (squelette, checklist de fichiers, leçons de perf).
+- `harmoniser-scenes-obs.md` — faire correspondre tes noms de scènes OBS réels aux scènes overlay (panneau §OBS "Renommer les scènes OBS", `relay/obs-scene-map-data.js`).
+
 ## Reste à faire (hors S1, déjà identifié)
 
-- Couches 3 (morphisme) et 4 (événements stream) du DotGrid → sessions ultérieures, voir `HANDOFF_overlay_dotgrid.md`.
+- ~~Couches 3 et 4 du DotGrid~~ — Couche 3 (morphisme SDF/bitmap) jugée obsolète (remplacée par
+  `ShapeMorphBackground`, Track B), Couche 4 (événements stream) livrée le 2026-07-10 (voir
+  `docs/specs/dotgrid-event-triggers.md`).
 - Intégration Twitch EventSub/chat réelle qui appellerait `/emit` (hors scope S4, voir `docs/specs/relay-bun-s4.md` §Périmètre Exclu).
-- Scènes OBS manquantes pour `interview`/`react`/`creation`/`fin` (créer les scènes côté OBS + étendre `relay/obs-scene-map.js` quand elles existent).
-- Persistance des paramètres `dotgrid-tuner` (demande owner, voir `docs/inbox.md`) — décision d'architecture à trancher avant implémentation.
+- Scènes OBS manquantes pour `interview`/`react`/`creation`/`fin` (créer les scènes côté OBS) —
+  le mapping des noms est désormais éditable sans toucher au code, voir `docs/guides/harmoniser-scenes-obs.md`.
+- ~~Persistance des paramètres `dotgrid-tuner`~~ — résolue en S5 (`dev/tuner-server.js`), voir §Détail S5.
