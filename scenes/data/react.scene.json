@@ -65,21 +65,21 @@
           "component": "TextLabel",
           "options": {
             "text": "Source",
-            "className": "react-credit-label",
+            "className": "react-credit-label label-mono",
             "tag": "span"
           }
         },
         {
           "component": "Divider",
           "options": {
-            "className": "react-credit-v"
+            "className": "react-credit-v rule-v"
           }
         },
         {
           "component": "TextLabel",
           "options": {
             "text": "—",
-            "className": "react-credit-title",
+            "className": "react-credit-title value-serif",
             "tag": "span"
           }
         },
@@ -87,7 +87,7 @@
           "component": "TextLabel",
           "options": {
             "text": "",
-            "className": "react-credit-platform",
+            "className": "react-credit-platform value-mono-gold",
             "tag": "span"
           }
         }

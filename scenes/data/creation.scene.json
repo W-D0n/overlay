@@ -20,7 +20,7 @@
     {
       "name": "cam-mini",
       "components": [
-        { "component": "TextLabel", "options": { "text": "D0n", "className": "", "tag": "h1" }, "placement": { "x": 0, "y": 0 } },
+        { "component": "TextLabel", "options": { "text": "D0n", "className": "heading-serif", "tag": "h1" }, "placement": { "x": 0, "y": 0 } },
         { "component": "Box", "options": { "className": "creation-cam-mini" }, "placement": { "x": 0, "y": 64, "width": 120, "height": 120 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
@@ -28,9 +28,9 @@
     {
       "name": "tool",
       "components": [
-        { "component": "TextLabel", "options": { "text": "Outil actif", "className": "creation-label", "tag": "span" }, "placement": { "x": 0, "y": 215 } },
+        { "component": "TextLabel", "options": { "text": "Outil actif", "className": "creation-label label-mono", "tag": "span" }, "placement": { "x": 0, "y": 215 } },
         { "component": "TextLabel", "options": { "text": "—", "className": "creation-tool-name" }, "placement": { "x": 0, "y": 238 } },
-        { "component": "TextLabel", "options": { "text": "", "className": "creation-tool-detail" }, "placement": { "x": 0, "y": 267 } },
+        { "component": "TextLabel", "options": { "text": "", "className": "creation-tool-detail value-mono-gold" }, "placement": { "x": 0, "y": 267 } },
         { "component": "TextLabel", "options": { "text": "", "className": "creation-tool-app" }, "placement": { "x": 0, "y": 289 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false }

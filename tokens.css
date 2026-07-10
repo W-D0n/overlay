@@ -103,3 +103,48 @@ body {
   background-color: var(--color-bg);
   position: relative;
 }
+
+/* ─── Variantes typographiques partagées ────────────────────────────────────
+   Extraites de ~50 classes scène-spécifiques identiques (review architecture,
+   2026-07-10) — le seul delta réel par scène était la taille et l'espacement,
+   jamais la famille visuelle elle-même. Les classes scène-spécifiques dans
+   index.html ne portent plus que ce delta (taille, marge, flex-shrink). */
+
+/* Famille A — label mono majuscule (~13 occurrences avant extraction) */
+.label-mono {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-mid);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+/* Variante "tag" (brb-tag, starting-tag) : espacement plus large, accent d'ouverture de scène —
+   pas une incohérence, tracking différent (0.3em) assumé dans le CSS d'origine. */
+.label-mono.wide { letter-spacing: 0.3em; }
+
+/* Famille B1 — trait horizontal fin (5 occurrences) */
+.rule-h-gold { width: 100%; height: 0.8px; background: var(--color-gold); flex-shrink: 0; }
+.rule-h      { width: 100%; height: 0.5px; background: var(--color-rule); flex-shrink: 0; }
+
+/* Famille B2 — trait vertical fin, hauteur propre à chaque usage (4 occurrences) */
+.rule-v { width: 1px; background: var(--color-rule); flex-shrink: 0; }
+
+/* Famille C — titre serif gras, taille propre à chaque scène (8 occurrences) */
+.heading-serif { font-family: var(--font-serif); font-weight: 700; color: var(--color-text-primary); }
+
+/* Famille D — texte de valeur serif ; modificateur .gold cohérent avec le
+   pattern .hud-value.gold déjà utilisé (jeu.scene.json) (~11 occurrences) */
+.value-serif { font-family: var(--font-serif); color: var(--color-text-primary); }
+.value-serif.gold { color: var(--color-gold); }
+
+/* Famille E — valeur mono dorée, taille propre à chaque usage (8 occurrences) */
+.value-mono-gold { font-family: var(--font-mono); color: var(--color-gold); }
+
+/* Variante neutre de la famille E (jeu.scene.json .hud-value) : couleur par défaut text-primary,
+   modificateur .gold identique au pattern déjà utilisé par .value-serif.gold. */
+.value-mono { font-family: var(--font-mono); color: var(--color-text-primary); }
+.value-mono.gold { color: var(--color-gold); }
+
+/* Famille F — texte de pied de page fantôme (~7 occurrences) */
+.text-ghost { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost); }

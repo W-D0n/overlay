@@ -1,6 +1,11 @@
 {
   "id": "discussion",
-  "background": { "component": "DotGridBackground", "options": { "mode": "discussion" } },
+  "background": {
+    "component": "DotGridBackground",
+    "options": {
+      "mode": "discussion"
+    }
+  },
   "transition": {
     "type": "crossfade",
     "duration": 400,
@@ -56,34 +61,49 @@
           "component": "TextLabel",
           "options": {
             "text": "D0n",
-            "className": "disc-name",
+            "className": "disc-name heading-serif",
             "tag": "h1"
           },
-          "placement": { "x": 0, "y": 0 }
+          "placement": {
+            "x": 0,
+            "y": 0
+          }
         },
         {
           "component": "Divider",
           "options": {
-            "className": "disc-rule-gold"
+            "className": "disc-rule-gold rule-h-gold"
           },
-          "placement": { "x": 0, "y": 92, "width": 692 }
+          "placement": {
+            "x": 0,
+            "y": 92,
+            "width": 692
+          }
         },
         {
           "component": "TextLabel",
           "options": {
-            "text": "Sujet du moment",
-            "className": "disc-label",
+            "text": "Ceci est un test",
+            "className": "disc-label label-mono",
             "tag": "span"
           },
-          "placement": { "x": 0, "y": 113 }
+          "placement": {
+            "x": 0,
+            "y": 113,
+            "width": 157,
+            "height": 16
+          }
         },
         {
           "component": "TextLabel",
           "options": {
             "text": "En attente",
-            "className": "subject-text"
+            "className": "subject-text value-serif"
           },
-          "placement": { "x": 0, "y": 138 }
+          "placement": {
+            "x": 0,
+            "y": 138
+          }
         }
       ],
       "visibility": {
@@ -134,26 +154,35 @@
           "component": "TextLabel",
           "options": {
             "text": "Dernier follow",
-            "className": "disc-label",
+            "className": "disc-label label-mono",
             "tag": "span"
           },
-          "placement": { "x": 0, "y": 904 }
+          "placement": {
+            "x": 0,
+            "y": 904
+          }
         },
         {
           "component": "TextLabel",
           "options": {
             "text": "—",
-            "className": "last-follow-name"
+            "className": "last-follow-name value-serif"
           },
-          "placement": { "x": 0, "y": 929 }
+          "placement": {
+            "x": 0,
+            "y": 929
+          }
         },
         {
           "component": "TextLabel",
           "options": {
             "text": "twitch.tv/d0natelll0",
-            "className": "disc-footer"
+            "className": "disc-footer text-ghost"
           },
-          "placement": { "x": 0, "y": 985 }
+          "placement": {
+            "x": 0,
+            "y": 985
+          }
         }
       ],
       "visibility": {

@@ -44,21 +44,10 @@
       display: flex; flex-direction: column;
     }
     .scene[data-scene="discussion"] .disc-block { flex-shrink: 0; }
-    .scene[data-scene="discussion"] .disc-name {
-      font-family: var(--font-serif); font-size: 74px; font-weight: 700; color: var(--color-text-primary);
-      letter-spacing: -0.5px; line-height: 1; margin-bottom: 18px;
-    }
-    .scene[data-scene="discussion"] .disc-rule-gold {
-      width: 100%; height: 0.8px; background: var(--color-gold); margin-bottom: 20px;
-    }
-    .scene[data-scene="discussion"] .disc-label {
-      display: block; font-family: var(--font-mono); font-size: var(--text-xs);
-      color: var(--color-text-mid); letter-spacing: var(--tracking-label);
-      text-transform: uppercase; margin-bottom: 10px;
-    }
-    .scene[data-scene="discussion"] .subject-text {
-      font-family: var(--font-serif); font-size: 38px; color: var(--color-text-primary); line-height: 1.2;
-    }
+    .scene[data-scene="discussion"] .disc-name { font-size: 74px; letter-spacing: -0.5px; line-height: 1; margin-bottom: 18px; }
+    .scene[data-scene="discussion"] .disc-rule-gold { margin-bottom: 20px; }
+    .scene[data-scene="discussion"] .disc-label { margin-bottom: 10px; }
+    .scene[data-scene="discussion"] .subject-text { font-size: 38px; line-height: 1.2; }
     .scene[data-scene="discussion"] [data-layer="subject"] { height: 184px; padding-bottom: 20px; border-bottom: var(--border-rule); }
     .scene[data-scene="discussion"] [data-layer="stats"] {
       padding: 20px 0; border-bottom: var(--border-rule); display: flex; gap: 48px; align-items: flex-end;
@@ -69,12 +58,7 @@
     .scene[data-scene="discussion"] [data-layer="last-follow"] {
       padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim); margin-top: auto;
     }
-    .scene[data-scene="discussion"] .last-follow-name {
-      font-family: var(--font-serif); font-size: 38px; color: var(--color-text-primary);
-    }
-    .scene[data-scene="discussion"] .disc-footer {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost);
-    }
+    .scene[data-scene="discussion"] .last-follow-name { font-size: 38px; }
 
     /* ════════════════ BRB ════════════════ */
     /* Position/taille de .brb-block-left pilotées par Placement (scenes/brb.config.js), voir
@@ -82,34 +66,13 @@
     .scene[data-scene="brb"] .brb-block-left {
       display: flex; flex-direction: column;
     }
-    .scene[data-scene="brb"] .brb-tag {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: 0.3em; text-transform: uppercase; margin-bottom: 32px;
-    }
-    .scene[data-scene="brb"] .brb-name {
-      font-family: var(--font-serif); font-size: 120px; font-weight: 700; color: var(--color-text-primary);
-      letter-spacing: -2px; line-height: 0.9; margin-bottom: 24px;
-    }
-    .scene[data-scene="brb"] .brb-rule-gold {
-      width: 100%; height: 0.8px; background: var(--color-gold); margin-bottom: 32px; flex-shrink: 0;
-    }
-    .scene[data-scene="brb"] .brb-message {
-      font-family: var(--font-serif); font-size: 38px; color: var(--color-text-primary);
-      line-height: 1.4; margin-bottom: 8px;
-    }
-    .scene[data-scene="brb"] .brb-activity {
-      font-family: var(--font-serif); font-size: 38px; color: var(--color-gold); line-height: 1.4;
-    }
-    .scene[data-scene="brb"] .brb-divider {
-      width: 100%; height: 0.5px; background: var(--color-rule); flex-shrink: 0;
-    }
-    .scene[data-scene="brb"] .brb-song-label {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 10px;
-    }
-    .scene[data-scene="brb"] .brb-song {
-      font-family: var(--font-mono); font-size: 22px; color: var(--color-gold);
-    }
+    .scene[data-scene="brb"] .brb-tag { margin-bottom: 32px; }
+    .scene[data-scene="brb"] .brb-name { font-size: 120px; letter-spacing: -2px; line-height: 0.9; margin-bottom: 24px; }
+    .scene[data-scene="brb"] .brb-rule-gold { margin-bottom: 32px; }
+    .scene[data-scene="brb"] .brb-message { font-size: 38px; line-height: 1.4; margin-bottom: 8px; }
+    .scene[data-scene="brb"] .brb-activity { font-size: 38px; line-height: 1.4; }
+    .scene[data-scene="brb"] .brb-song-label { margin-bottom: 10px; }
+    .scene[data-scene="brb"] .brb-song { font-size: 22px; }
     .scene[data-scene="brb"] .brb-separator {
       position: absolute; top: 40px; left: 1140px; width: 1px; height: 940px; background: var(--color-rule);
     }
@@ -117,13 +80,8 @@
     .scene[data-scene="brb"] .brb-block-right {
       display: flex; flex-direction: column;
     }
-    .scene[data-scene="brb"] .brb-chat-label {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 16px; flex-shrink: 0;
-    }
-    .scene[data-scene="brb"] .brb-chat-rule {
-      width: 100%; height: 0.5px; background: var(--color-rule); margin-bottom: 16px; flex-shrink: 0;
-    }
+    .scene[data-scene="brb"] .brb-chat-label { margin-bottom: 16px; flex-shrink: 0; }
+    .scene[data-scene="brb"] .brb-chat-rule { margin-bottom: 16px; }
     .scene[data-scene="brb"] [data-layer="chat"] { overflow: hidden; }
     .scene[data-scene="brb"] .brb-stats {
       position: absolute; left: 1174px; bottom: 140px; display: flex; gap: 40px;
@@ -134,19 +92,10 @@
       background: var(--color-bg-widget); border-top: 0.5px solid var(--color-gold-dim);
       display: flex; align-items: center; padding: 0 80px; gap: 48px;
     }
-    .scene[data-scene="brb"] .brb-next-label {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase; flex-shrink: 0;
-    }
-    .scene[data-scene="brb"] .next-info {
-      font-family: var(--font-serif); font-size: 34px; color: var(--color-text-primary); flex: 1;
-    }
-    .scene[data-scene="brb"] .next-topic {
-      font-family: var(--font-serif); font-size: 34px; color: var(--color-gold);
-    }
-    .scene[data-scene="brb"] .brb-footer-link {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost); flex-shrink: 0;
-    }
+    .scene[data-scene="brb"] .brb-next-label { flex-shrink: 0; }
+    .scene[data-scene="brb"] .next-info { font-size: 34px; flex: 1; }
+    .scene[data-scene="brb"] .next-topic { font-size: 34px; }
+    .scene[data-scene="brb"] .brb-footer-link { flex-shrink: 0; }
 
     /* ════════════════ CODAGE ════════════════ */
     /* .cod-capture retiré (S8) — remplacé par le composant Box (options par défaut). */
@@ -159,43 +108,28 @@
     }
     .scene[data-scene="codage"] .cod-block { flex-shrink: 0; }
     .scene[data-scene="codage"] .cod-name-block { padding-bottom: 14px; border-bottom: var(--border-gold); }
-    .scene[data-scene="codage"] .cod-name {
-      font-family: var(--font-serif); font-size: 54px; font-weight: 700; color: var(--color-text-primary);
-      letter-spacing: -0.5px; line-height: 1;
-    }
+    .scene[data-scene="codage"] .cod-name { font-size: 54px; letter-spacing: -0.5px; line-height: 1; }
     .scene[data-scene="codage"] .cod-cam-mini {
       margin-top: 16px; width: 164px; height: 164px;
       border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
     }
     .scene[data-scene="codage"] .cod-section { padding: 18px 0; border-bottom: var(--border-rule); }
     .scene[data-scene="codage"] [data-layer="ide-context"] { height: 124px; }
-    .scene[data-scene="codage"] .cod-label {
-      display: block; font-family: var(--font-mono); font-size: var(--text-xs);
-      color: var(--color-text-mid); letter-spacing: var(--tracking-label);
-      text-transform: uppercase; margin-bottom: 8px;
-    }
+    .scene[data-scene="codage"] .cod-label { margin-bottom: 8px; }
     .scene[data-scene="codage"] .file-name {
       font-family: var(--font-mono); font-size: 26px; color: var(--color-text-primary);
       margin-bottom: 6px; word-break: break-all;
     }
-    .scene[data-scene="codage"] .git-branch {
-      font-family: var(--font-mono); font-size: 20px; color: var(--color-gold); margin-bottom: 4px;
-    }
-    .scene[data-scene="codage"] .stack-info {
-      font-family: var(--font-mono); font-size: 18px; color: var(--color-text-mid);
-    }
+    .scene[data-scene="codage"] .git-branch { font-size: 20px; margin-bottom: 4px; }
+    .scene[data-scene="codage"] .stack-info { font-family: var(--font-mono); font-size: 18px; color: var(--color-text-mid); }
     .scene[data-scene="codage"] [data-layer="stats"] { display: flex; gap: 32px; }
     .scene[data-scene="codage"] .cod-alert-strip {
       position: absolute; bottom: 20px; left: 40px; width: 1360px; height: 20px;
       display: flex; align-items: center;
     }
-    .scene[data-scene="codage"] .cod-alert-text {
-      font-family: var(--font-mono); font-size: var(--text-xs);
-      color: var(--color-text-ghost); letter-spacing: var(--tracking-label);
-    }
+    .scene[data-scene="codage"] .cod-alert-text { letter-spacing: var(--tracking-label); }
     .scene[data-scene="codage"] .cod-footer {
       margin-top: auto; padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost);
     }
 
     /* ════════════════ JEU ════════════════ */
@@ -216,14 +150,7 @@
     .scene[data-scene="jeu"] .hud-bar > *:last-child {
       margin-left: auto;
     }
-    .scene[data-scene="jeu"] .hud-label {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase;
-    }
-    .scene[data-scene="jeu"] .hud-value {
-      font-family: var(--font-mono); font-size: 26px; color: var(--color-text-primary); line-height: 1;
-    }
-    .scene[data-scene="jeu"] .hud-value.gold { color: var(--color-gold); }
+    .scene[data-scene="jeu"] .hud-value { font-size: 26px; line-height: 1; }
     /* .poll-wrap/.poll-question/.poll-track/.poll-fill/.poll-ratio retirés (S8 migration) —
        remplacés par le composant PollBar (styles inline équivalents, voir components/index.js).
        .jeu-alert-cell/.jeu-alert-label/.jeu-alert-username retirés — l'alerte est désormais
@@ -248,30 +175,22 @@
     }
     .scene[data-scene="interview"] .int-fiche-left  { left: 40px;  width: 740px; }
     .scene[data-scene="interview"] .int-fiche-right { left: 820px; width: 740px; }
-    .scene[data-scene="interview"] .int-fiche-name {
-      font-family: var(--font-serif); font-size: 38px; font-weight: 700; color: var(--color-text-primary);
-    }
-    .scene[data-scene="interview"] .int-fiche-v { width:1px; height:40px; background:var(--color-rule); flex-shrink:0; }
-    .scene[data-scene="interview"] .int-fiche-role { font-family: var(--font-mono); font-size: 20px; color: var(--color-gold); }
+    .scene[data-scene="interview"] .int-fiche-name { font-size: 38px; }
+    .scene[data-scene="interview"] .int-fiche-v { height: 40px; }
+    .scene[data-scene="interview"] .int-fiche-role { font-size: 20px; }
     /* Position/taille de .int-subject-bar pilotées par Placement (scenes/interview.config.js). */
     .scene[data-scene="interview"] .int-subject-bar {
       border: var(--border-rule); border-radius: var(--radius-md); background: var(--color-bg-widget);
       display: flex; align-items: center; padding: 0 24px; gap: 24px;
     }
-    .scene[data-scene="interview"] .int-subject-label {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase; flex-shrink: 0;
-    }
-    .scene[data-scene="interview"] .int-subject-v { width:1px; height:28px; background:var(--color-rule); flex-shrink:0; }
-    .scene[data-scene="interview"] .int-subject-text { font-family: var(--font-serif); font-size: 28px; color: var(--color-text-primary); }
+    .scene[data-scene="interview"] .int-subject-label { flex-shrink: 0; }
+    .scene[data-scene="interview"] .int-subject-v { height: 28px; }
+    .scene[data-scene="interview"] .int-subject-text { font-size: 28px; }
     .scene[data-scene="interview"] .int-col-chat {
       position: absolute; top: 40px; left: 1600px; width: 280px; height: 860px;
       display: flex; flex-direction: column; gap: 0; border-left: var(--border-rule); padding-left: 24px;
     }
-    .scene[data-scene="interview"] .int-chat-label {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 12px;
-    }
+    .scene[data-scene="interview"] .int-chat-label { margin-bottom: 12px; }
     .scene[data-scene="interview"] [data-layer="chat"] { flex: 1; min-height: 0; overflow: hidden; }
     .scene[data-scene="interview"] [data-layer="stats"] {
       margin-top: auto; padding-top: 16px; border-top: var(--border-rule); display: flex; flex-direction: column; gap: 12px;
@@ -284,16 +203,13 @@
       border: 0.5px solid var(--color-gold); border-radius: var(--radius-md); background: var(--color-bg-widget);
       display: flex; align-items: center; padding: 0 24px; gap: 20px;
     }
-    .scene[data-scene="react"] .react-credit-label {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase; flex-shrink: 0;
-    }
-    .scene[data-scene="react"] .react-credit-v { width:1px; height:32px; background:var(--color-rule); flex-shrink:0; }
+    .scene[data-scene="react"] .react-credit-label { flex-shrink: 0; }
+    .scene[data-scene="react"] .react-credit-v { height: 32px; }
     .scene[data-scene="react"] .react-credit-title {
-      font-family: var(--font-serif); font-size: 30px; color: var(--color-text-primary); flex: 1;
+      font-size: 30px; flex: 1;
       overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
     }
-    .scene[data-scene="react"] .react-credit-platform { font-family: var(--font-mono); font-size: 20px; color: var(--color-gold); flex-shrink: 0; }
+    .scene[data-scene="react"] .react-credit-platform { font-size: 20px; flex-shrink: 0; }
     .scene[data-scene="react"] .react-sep {
       position: absolute; top: 40px; left: 1134px; width: 1px; height: 980px; background: var(--color-rule);
     }
@@ -301,25 +217,18 @@
       position: absolute; top: 520px; left: 1168px; width: 712px; height: 500px;
       display: flex; flex-direction: column;
     }
-    .scene[data-scene="react"] .react-chat-label {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 12px; flex-shrink: 0;
-    }
+    .scene[data-scene="react"] .react-chat-label { margin-bottom: 12px; flex-shrink: 0; }
     .scene[data-scene="react"] [data-layer="chat"] { flex: 1; overflow: hidden; }
     .scene[data-scene="react"] .react-hud-bottom {
       position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
       background: var(--color-bg-widget); border-top: var(--border-rule);
       display: flex; align-items: center; padding: 0 40px; gap: 40px;
     }
-    .scene[data-scene="react"] .react-hud-name { font-family: var(--font-serif); font-size: 28px; font-weight: 700; color: var(--color-text-primary); }
-    .scene[data-scene="react"] .react-hud-v    { width:1px; height:28px; background:var(--color-rule); }
-    .scene[data-scene="react"] .react-hud-val  { font-family: var(--font-mono); font-size: 22px; color: var(--color-gold); }
-    .scene[data-scene="react"] .react-hud-lbl  {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase;
-    }
+    .scene[data-scene="react"] .react-hud-name { font-size: 28px; }
+    .scene[data-scene="react"] .react-hud-v    { height: 28px; }
+    .scene[data-scene="react"] .react-hud-val  { font-size: 22px; }
     .scene[data-scene="react"] .react-hud-pair { display: flex; flex-direction: column; gap: 2px; }
-    .scene[data-scene="react"] .react-hud-link { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost); margin-left: auto; }
+    .scene[data-scene="react"] .react-hud-link { margin-left: auto; }
 
     /* ════════════════ CREATION (variante A uniquement, voir docs/inbox.md) ════════════════ */
     /* .creation-capture-zone retiré (S8) — remplacé par le composant Box (options par défaut). */
@@ -330,26 +239,19 @@
       position: absolute; top: 40px; left: 1468px; width: 412px; height: 1000px; display: flex; flex-direction: column;
     }
     .scene[data-scene="creation"] .creation-name-block { height: 184px; padding-bottom: 14px; border-bottom: var(--border-gold); flex-shrink: 0; }
-    .scene[data-scene="creation"] .creation-name-block h1 {
-      font-family: var(--font-serif); font-size: 48px; font-weight: 700; color: var(--color-text-primary);
-      letter-spacing: -0.5px; line-height: 1;
-    }
+    .scene[data-scene="creation"] .creation-name-block h1 { font-size: 48px; letter-spacing: -0.5px; line-height: 1; }
     .scene[data-scene="creation"] .creation-cam-mini {
       width: 120px; height: 120px; border-radius: var(--radius-md);
       border: var(--border-panel); background: var(--color-bg-panel); flex-shrink: 0;
     }
     .scene[data-scene="creation"] .creation-section { padding: 16px 0; border-bottom: var(--border-rule); flex-shrink: 0; }
     .scene[data-scene="creation"] [data-layer="tool"] { height: 121px; }
-    .scene[data-scene="creation"] .creation-label {
-      display: block; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 8px;
-    }
+    .scene[data-scene="creation"] .creation-label { margin-bottom: 8px; }
     .scene[data-scene="creation"] .creation-tool-name   { font-family: var(--font-mono); font-size: 22px; color: var(--color-text-primary); margin-bottom: 4px; }
-    .scene[data-scene="creation"] .creation-tool-detail { font-family: var(--font-mono); font-size: 16px; color: var(--color-gold); margin-bottom: 4px; }
+    .scene[data-scene="creation"] .creation-tool-detail { font-size: 16px; margin-bottom: 4px; }
     .scene[data-scene="creation"] .creation-tool-app    { font-family: var(--font-mono); font-size: 14px; color: var(--color-text-mid); }
     .scene[data-scene="creation"] .creation-footer {
       margin-top: auto; padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost);
     }
 
     /* ════════════════ FIN DE STREAM ════════════════ */
@@ -364,27 +266,22 @@
       position: absolute; top: 40px; left: 920px; width: 960px; height: 1000px; display: flex; flex-direction: column;
     }
     .scene[data-scene="fin"] .fin-name-block { padding-bottom: 18px; border-bottom: var(--border-gold); flex-shrink: 0; }
-    .scene[data-scene="fin"] .fin-name-block h1 {
-      font-family: var(--font-serif); font-size: 80px; font-weight: 700; color: var(--color-text-primary);
-      letter-spacing: -1px; line-height: 1;
-    }
+    .scene[data-scene="fin"] .fin-name-block h1 { font-size: 80px; letter-spacing: -1px; line-height: 1; }
     .scene[data-scene="fin"] .fin-section { padding: 22px 0; border-bottom: var(--border-rule); flex-shrink: 0; }
     .scene[data-scene="fin"] [data-layer="next-stream"] { height: 101px; }
     .scene[data-scene="fin"] .fin-label {
-      display: block; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: var(--tracking-label); text-transform: uppercase; margin-bottom: 14px;
+      margin-bottom: 14px;
     }
-    .scene[data-scene="fin"] .fin-recap-line { font-family: var(--font-serif); font-size: 32px; color: var(--color-text-primary); line-height: 1.5; }
+    .scene[data-scene="fin"] .fin-recap-line { font-size: 32px; line-height: 1.5; }
     .scene[data-scene="fin"] .fin-recap-line.dim { color: var(--color-text-mid); }
-    .scene[data-scene="fin"] .fin-next-when  { font-family: var(--font-serif); font-size: 38px; color: var(--color-text-primary); margin-bottom: 6px; }
-    .scene[data-scene="fin"] .fin-next-topic { font-family: var(--font-serif); font-size: 36px; color: var(--color-gold); }
+    .scene[data-scene="fin"] .fin-next-when  { font-size: 38px; margin-bottom: 6px; }
+    .scene[data-scene="fin"] .fin-next-topic { font-size: 36px; }
     .scene[data-scene="fin"] .fin-stats-grid { height: 59px; }
     /* Conteneur .fin-links-list retiré (S8) — display:flex/gap fournis par le composant TextList. */
-    .scene[data-scene="fin"] .fin-link-item  { font-family: var(--font-mono); font-size: 26px; color: var(--color-gold); }
+    .scene[data-scene="fin"] .fin-link-item  { font-size: 26px; }
     .scene[data-scene="fin"] .fin-link-item.dim { color: var(--color-text-mid); }
     .scene[data-scene="fin"] .fin-footer {
       margin-top: auto; padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-ghost);
     }
 
     /* ════════════════ STARTING (écran d'attente pré-live) ════════════════ */
@@ -392,25 +289,14 @@
       position: absolute; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: center; text-align: center; gap: 28px;
     }
-    .scene[data-scene="starting"] .starting-tag {
-      font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid);
-      letter-spacing: 0.3em; text-transform: uppercase;
-    }
-    .scene[data-scene="starting"] .starting-name {
-      font-family: var(--font-serif); font-size: 140px; font-weight: 700; color: var(--color-text-primary);
-      letter-spacing: -2px; line-height: 0.9;
-    }
-    .scene[data-scene="starting"] .starting-rule-gold {
-      width: 320px; height: 0.8px; background: var(--color-gold);
-    }
-    .scene[data-scene="starting"] .starting-subject-text {
-      font-family: var(--font-serif); font-size: 38px; color: var(--color-text-primary); max-width: 1200px;
-    }
+    .scene[data-scene="starting"] .starting-name { font-size: 140px; letter-spacing: -2px; line-height: 0.9; }
+    .scene[data-scene="starting"] .starting-rule-gold { width: 320px; }
+    .scene[data-scene="starting"] .starting-subject-text { font-size: 38px; max-width: 1200px; }
     /* display:flex/gap fournis par le composant TextList lui-même (S8) — seul margin-top reste ici. */
     .scene[data-scene="starting"] .starting-links-list {
       margin-top: 12px;
     }
-    .scene[data-scene="starting"] .starting-link-item { font-family: var(--font-mono); font-size: 24px; color: var(--color-gold); }
+    .scene[data-scene="starting"] .starting-link-item { font-size: 24px; }
     .scene[data-scene="starting"] .starting-link-item.dim { color: var(--color-text-mid); }
   </style>
 </head>
@@ -431,7 +317,7 @@
       <div data-layer="subject" class="disc-block"></div>
       <div data-layer="stats" class="disc-block"></div>
       <div data-layer="chat" class="disc-block">
-        <span class="disc-label">Chat</span>
+        <span class="disc-label label-mono">Chat</span>
       </div>
       <div data-layer="last-follow" class="disc-block"></div>
     </div>
@@ -443,8 +329,8 @@
     <div data-layer="message" class="brb-block-left"></div>
     <div class="brb-separator" aria-hidden="true"></div>
     <div data-layer="chat" class="brb-block-right">
-      <div class="brb-chat-label">Chat</div>
-      <div class="brb-chat-rule"></div>
+      <div class="brb-chat-label label-mono">Chat</div>
+      <div class="brb-chat-rule rule-h"></div>
     </div>
     <div data-layer="stats" class="brb-stats"></div>
     <div data-layer="next-stream" class="brb-next"></div>
@@ -456,16 +342,16 @@
     <div class="cod-separator" aria-hidden="true"></div>
     <div class="cod-col-right">
       <div data-layer="cam-mini" class="cod-block">
-        <div class="cod-name-block"><h1 class="cod-name">D0n</h1></div>
+        <div class="cod-name-block"><h1 class="cod-name heading-serif">D0n</h1></div>
         <div class="cod-cam-mini" aria-hidden="true"></div>
       </div>
       <div data-layer="ide-context" class="cod-block cod-section"></div>
       <div data-layer="pomodoro" class="cod-block cod-section"></div>
       <div data-layer="stats" class="cod-block cod-section"></div>
-      <div class="cod-footer">twitch.tv/d0natelll0</div>
+      <div class="cod-footer text-ghost">twitch.tv/d0natelll0</div>
     </div>
     <div data-layer="alert">
-      <div class="cod-alert-strip"><span class="cod-alert-text"></span></div>
+      <div class="cod-alert-strip"><span class="cod-alert-text text-ghost"></span></div>
     </div>
   </template>
 
@@ -474,12 +360,12 @@
     <div data-layer="cam" aria-hidden="true"></div>
     <div data-layer="hud" class="hud-bar">
       <div class="hud-cell">
-        <span class="hud-label">D0n</span>
-        <span class="hud-value gold jeu-session">—</span>
+        <span class="hud-label label-mono">D0n</span>
+        <span class="hud-value value-mono gold jeu-session">—</span>
       </div>
       <div class="hud-cell">
-        <span class="hud-label">Durée</span>
-        <span class="hud-value jeu-duration">00:00:00</span>
+        <span class="hud-label label-mono">Durée</span>
+        <span class="hud-value value-mono jeu-duration">00:00:00</span>
       </div>
       <!-- Vote chat (PollBar) monté par scenes/data/jeu.scene.json — masqué hors vote actif par
            jeu.wire.js (S8 migration, $bind ne sait pas exprimer "masquer si null"). -->
@@ -498,19 +384,19 @@
     </div>
     <div data-layer="fiches">
       <div class="int-fiche int-fiche-left">
-        <span class="int-fiche-name">D0n</span>
-        <div class="int-fiche-v"></div>
-        <span class="int-fiche-role">Streamer · Développeur</span>
+        <span class="int-fiche-name heading-serif">D0n</span>
+        <div class="int-fiche-v rule-v"></div>
+        <span class="int-fiche-role value-mono-gold">Streamer · Développeur</span>
       </div>
       <div class="int-fiche int-fiche-right">
-        <span class="int-fiche-name fiche-name-guest">Invité</span>
-        <div class="int-fiche-v"></div>
-        <span class="int-fiche-role fiche-role-guest">—</span>
+        <span class="int-fiche-name heading-serif fiche-name-guest">Invité</span>
+        <div class="int-fiche-v rule-v"></div>
+        <span class="int-fiche-role value-mono-gold fiche-role-guest">—</span>
       </div>
     </div>
     <div data-layer="subject" class="int-subject-bar"></div>
     <div class="int-col-chat">
-      <span class="int-chat-label">Chat</span>
+      <span class="int-chat-label label-mono">Chat</span>
       <div data-layer="chat"></div>
       <div data-layer="stats"></div>
     </div>
@@ -523,14 +409,14 @@
     <div class="react-sep" aria-hidden="true"></div>
     <div data-layer="cam" aria-hidden="true"></div>
     <div class="react-col-chat">
-      <span class="react-chat-label">Chat</span>
+      <span class="react-chat-label label-mono">Chat</span>
       <div data-layer="chat"></div>
     </div>
     <div data-layer="hud" class="react-hud-bottom">
-      <span class="react-hud-name">D0n</span>
-      <div class="react-hud-v"></div>
-      <div class="react-hud-pair"><span class="react-hud-lbl">Durée</span><span class="react-hud-val react-hud-duration">00:00</span></div>
-      <span class="react-hud-link">twitch.tv/d0natelll0</span>
+      <span class="react-hud-name heading-serif">D0n</span>
+      <div class="react-hud-v rule-v"></div>
+      <div class="react-hud-pair"><span class="react-hud-lbl label-mono">Durée</span><span class="react-hud-val value-mono-gold react-hud-duration">00:00</span></div>
+      <span class="react-hud-link text-ghost">twitch.tv/d0natelll0</span>
     </div>
   </template>
 
@@ -542,7 +428,7 @@
       <div data-layer="cam-mini" class="creation-name-block"></div>
       <div data-layer="tool" class="creation-section"></div>
       <div data-layer="pomodoro" class="creation-section"></div>
-      <div class="creation-footer">twitch.tv/d0natelll0</div>
+      <div class="creation-footer text-ghost">twitch.tv/d0natelll0</div>
     </div>
   </template>
 
@@ -552,26 +438,26 @@
     <div data-layer="cam" aria-hidden="true"></div>
     <div class="fin-sep" aria-hidden="true"></div>
     <div class="fin-col-right">
-      <div class="fin-name-block"><h1>D0n</h1></div>
+      <div class="fin-name-block"><h1 class="heading-serif">D0n</h1></div>
       <div data-layer="recap" class="fin-section">
-        <span class="fin-label">Session — Récap</span>
+        <span class="fin-label label-mono">Session — Récap</span>
       </div>
       <div data-layer="next-stream" class="fin-section"></div>
       <div data-layer="stats" class="fin-section fin-stats-grid"></div>
       <div data-layer="links" class="fin-section">
-        <span class="fin-label">Liens</span>
+        <span class="fin-label label-mono">Liens</span>
       </div>
-      <div class="fin-footer">Mozaïk · À bientôt</div>
+      <div class="fin-footer text-ghost">Mozaïk · À bientôt</div>
     </div>
   </template>
 
   <template data-scene="starting">
     <div data-layer="goldbar"></div>
     <div data-layer="message" class="starting-center">
-      <span class="starting-tag">— Démarrage imminent —</span>
-      <h1 class="starting-name">D0n</h1>
-      <div class="starting-rule-gold"></div>
-      <div class="starting-subject-text">Au programme aujourd'hui — surprise.</div>
+      <span class="starting-tag label-mono wide">— Démarrage imminent —</span>
+      <h1 class="starting-name heading-serif">D0n</h1>
+      <div class="starting-rule-gold rule-h-gold"></div>
+      <div class="starting-subject-text value-serif">Au programme aujourd'hui — surprise.</div>
       <div data-layer="links" class="starting-links-list"></div>
     </div>
   </template>

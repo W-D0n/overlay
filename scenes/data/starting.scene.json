@@ -19,7 +19,7 @@
     {
       "name": "links",
       "components": [
-        { "component": "TextList", "options": { "lines": { "$bind": "socialLinks" }, "itemClass": "starting-link-item" } }
+        { "component": "TextList", "options": { "lines": { "$bind": "socialLinks" }, "itemClass": "starting-link-item value-mono-gold" } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
     }
