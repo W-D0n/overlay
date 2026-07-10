@@ -114,12 +114,15 @@ donnée, même chemin de rendu qu'avant), mais pas confirmé visuellement.
 
 ---
 
-## Gestion des couches — hors scope de la session 5/6 (owner, 2026-07-05)
+## Gestion des couches — livrée (2026-07-05, commit 4c2e331), résolu
 
-Session 5/6 couvre uniquement la composition à l'intérieur des couches existantes (ajouter/retirer/
-éditer un `ComponentMount`). "Gestion des couches" (ajouter/renommer/réordonner/supprimer une couche
-entière, listée dans le Jalon 2 ci-dessous) reste une extension future non cadrée, à planifier
-séparément quand le besoin redevient concret.
+Initialement hors scope de la session 5/6 (composition à l'intérieur des couches existantes
+uniquement), puis livrée le jour même dans une session de suite non retracée ici avant le
+2026-07-10 — cette entrée était restée obsolète, corrigée en investiguant `docs/inbox.md` §Gestion
+des couches (owner a demandé l'item, découvert déjà fait). Ajouter/supprimer une couche déjà livré
+S8 session 6/6 ; renommer (input éditable par couche, `goldbar` protégée) + réordonner (glisser-
+déposer par poignée dédiée, `moveLayer`) confirmés fonctionnels (vérification visuelle, 2026-07-10) :
+`dev/placement-panel.html` §Couches.
 
 Drag & drop par composant individuel (`ComponentMount.placement`, S8) également hors scope de la
 session 5/6 — le panneau S7 ne fait glisser que des couches entières (`layer.placement`). Un
