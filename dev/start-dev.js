@@ -16,6 +16,7 @@
  * Lancement : `bun dev/start-dev.js` (ou double-clic sur start-dev.bat).
  */
 import { existsSync } from 'node:fs';
+import { findBusyPorts } from './port-check.js';
 
 const ROOT = `${import.meta.dir}/..`;
 
@@ -26,14 +27,22 @@ if (!existsSync(`${ROOT}/.env`)) {
   process.exit(1);
 }
 
-/** @type {{ name: string, cmd: string[] }[]} */
+/** @type {{ name: string, cmd: string[], port: number }[]} */
 const SERVERS = [
-  { name: 'statique',   cmd: ['bun', 'dev/static-server.js'] },
-  { name: 'relais',     cmd: ['bun', 'relay/server.js'] },
-  { name: 'tuner',      cmd: ['bun', 'dev/tuner-server.js'] },
-  { name: 'placement',  cmd: ['bun', 'dev/placement-server.js'] },
-  { name: 'scene-data', cmd: ['bun', 'dev/scene-data-server.js'] },
+  { name: 'statique',   cmd: ['bun', 'dev/static-server.js'],      port: Number(process.env.STATIC_PORT ?? 5500) },
+  { name: 'relais',     cmd: ['bun', 'relay/server.js'],           port: Number(process.env.RELAY_PORT ?? 4456) },
+  { name: 'tuner',      cmd: ['bun', 'dev/tuner-server.js'],       port: Number(process.env.TUNER_PORT ?? 4458) },
+  { name: 'placement',  cmd: ['bun', 'dev/placement-server.js'],   port: Number(process.env.PLACEMENT_PORT ?? 4459) },
+  { name: 'scene-data', cmd: ['bun', 'dev/scene-data-server.js'],  port: Number(process.env.SCENE_DATA_PORT ?? 4460) },
 ];
+
+const busy = findBusyPorts(SERVERS);
+if (busy.length > 0) {
+  console.error('[start-dev] ERREUR : port(s) déjà occupé(s) — une instance précédente tourne probablement encore :');
+  for (const s of busy) console.error(`  - ${s.name} (port ${s.port})`);
+  console.error('Ferme la fenêtre/l\'instance précédente avant de relancer (ou vérifie les process bun.exe restants dans le Gestionnaire des tâches).');
+  process.exit(1);
+}
 
 /** @type {import('bun').Subprocess[]} */
 const children = [];

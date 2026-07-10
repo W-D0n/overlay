@@ -12,6 +12,7 @@
  * Lancement : `bun dev/start-stream.js` (ou double-clic sur start-stream.bat).
  */
 import { existsSync } from 'node:fs';
+import { findBusyPorts } from './port-check.js';
 
 const ROOT = `${import.meta.dir}/..`;
 
@@ -22,11 +23,19 @@ if (!existsSync(`${ROOT}/.env`)) {
   process.exit(1);
 }
 
-/** @type {{ name: string, cmd: string[] }[]} */
+/** @type {{ name: string, cmd: string[], port: number }[]} */
 const SERVERS = [
-  { name: 'statique', cmd: ['bun', 'dev/static-server.js'] },
-  { name: 'relais',   cmd: ['bun', 'relay/server.js'] },
+  { name: 'statique', cmd: ['bun', 'dev/static-server.js'], port: Number(process.env.STATIC_PORT ?? 5500) },
+  { name: 'relais',   cmd: ['bun', 'relay/server.js'],      port: Number(process.env.RELAY_PORT ?? 4456) },
 ];
+
+const busy = findBusyPorts(SERVERS);
+if (busy.length > 0) {
+  console.error('[start-stream] ERREUR : port(s) déjà occupé(s) — une instance précédente tourne probablement encore :');
+  for (const s of busy) console.error(`  - ${s.name} (port ${s.port})`);
+  console.error('Ferme la fenêtre/l\'instance précédente avant de relancer (ou vérifie les process bun.exe restants dans le Gestionnaire des tâches).');
+  process.exit(1);
+}
 
 /** @type {import('bun').Subprocess[]} */
 const children = [];

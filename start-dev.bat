@@ -21,3 +21,8 @@ if not exist ".env" (
 )
 
 bun dev\start-dev.js
+if errorlevel 1 (
+  echo.
+  echo [start-dev] ERREUR : le process s'est arrete de facon inattendue ^(voir ci-dessus^).
+  pause
+)

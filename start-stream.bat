@@ -7,3 +7,8 @@ REM Nécessite un fichier .env local (copier .env.example -> .env, voir docs/obs
 cd /d "%~dp0"
 
 bun dev\start-stream.js
+if errorlevel 1 (
+  echo.
+  echo [start-stream] ERREUR : le process s'est arrete de facon inattendue ^(voir ci-dessus^).
+  pause
+)
