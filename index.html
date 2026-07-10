@@ -147,24 +147,9 @@
        AlertBanner (bannière centrée, comme discussion/codage), plus une cellule HUD dédiée. */
 
     /* ════════════════ INTERVIEW ════════════════ */
-    .scene[data-scene="interview"] .int-cam {
-      position: absolute; top: 40px; width: 740px; height: 820px;
-      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
-    }
-    .scene[data-scene="interview"] .int-cam-left  { left: 40px; }
-    .scene[data-scene="interview"] .int-cam-right { left: 820px; }
     .scene[data-scene="interview"] .int-center-rule {
-      position: absolute; top: 40px; left: 793px; width: 0; height: 900px;
       border-left: 0.5px dashed rgba(200,185,122,0.3);
     }
-    .scene[data-scene="interview"] .int-fiche {
-      position: absolute; top: 878px; height: 100px;
-      display: flex; align-items: center; gap: 24px;
-      border: 0.5px solid var(--color-gold); border-radius: var(--radius-md);
-      background: var(--color-bg-widget); padding: 0 24px;
-    }
-    .scene[data-scene="interview"] .int-fiche-left  { left: 40px;  width: 740px; }
-    .scene[data-scene="interview"] .int-fiche-right { left: 820px; width: 740px; }
     .scene[data-scene="interview"] .int-fiche-name { font-size: 38px; }
     .scene[data-scene="interview"] .int-fiche-v { height: 40px; }
     .scene[data-scene="interview"] .int-fiche-role { font-size: 20px; }
@@ -352,23 +337,6 @@
 
   <template data-scene="interview">
     <div data-layer="goldbar"></div>
-    <div data-layer="cams">
-      <div class="int-cam int-cam-left"  aria-hidden="true"></div>
-      <div class="int-center-rule"       aria-hidden="true"></div>
-      <div class="int-cam int-cam-right" aria-hidden="true"></div>
-    </div>
-    <div data-layer="fiches">
-      <div class="int-fiche int-fiche-left">
-        <span class="int-fiche-name heading-serif">D0n</span>
-        <div class="int-fiche-v rule-v"></div>
-        <span class="int-fiche-role value-mono-gold">Streamer · Développeur</span>
-      </div>
-      <div class="int-fiche int-fiche-right">
-        <span class="int-fiche-name heading-serif fiche-name-guest">Invité</span>
-        <div class="int-fiche-v rule-v"></div>
-        <span class="int-fiche-role value-mono-gold fiche-role-guest">—</span>
-      </div>
-    </div>
     <div data-layer="subject" class="int-subject-bar"></div>
     <div class="int-col-chat">
       <span class="int-chat-label label-mono">Chat</span>

@@ -13,12 +13,25 @@
     },
     {
       "name": "cams",
-      "components": [],
+      "components": [
+        { "component": "Box", "options": {}, "placement": { "x": 40, "y": 40, "width": 740, "height": 820 } },
+        { "component": "Divider", "options": { "className": "int-center-rule" }, "placement": { "x": 793, "y": 40, "width": 1, "height": 900 } },
+        { "component": "Box", "options": {}, "placement": { "x": 820, "y": 40, "width": 740, "height": 820 } }
+      ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
     },
     {
       "name": "fiches",
-      "components": [],
+      "components": [
+        { "component": "Box", "options": { "borderColor": "var(--border-gold)", "background": "var(--color-bg-widget)" }, "placement": { "x": 40, "y": 878, "width": 740, "height": 100 } },
+        { "component": "TextLabel", "options": { "text": "D0n", "className": "int-fiche-name heading-serif", "tag": "span" }, "placement": { "x": 65, "y": 906 } },
+        { "component": "Divider", "options": { "className": "int-fiche-v rule-v" }, "placement": { "x": 157, "y": 908, "width": 1, "height": 40 } },
+        { "component": "TextLabel", "options": { "text": "Streamer · Développeur", "className": "int-fiche-role value-mono-gold", "tag": "span" }, "placement": { "x": 182, "y": 917 } },
+        { "component": "Box", "options": { "borderColor": "var(--border-gold)", "background": "var(--color-bg-widget)" }, "placement": { "x": 820, "y": 878, "width": 740, "height": 100 } },
+        { "component": "TextLabel", "options": { "text": "Invité", "className": "int-fiche-name heading-serif fiche-name-guest", "tag": "span" }, "placement": { "x": 845, "y": 906 } },
+        { "component": "Divider", "options": { "className": "int-fiche-v rule-v" }, "placement": { "x": 964, "y": 908, "width": 1, "height": 40 } },
+        { "component": "TextLabel", "options": { "text": "—", "className": "int-fiche-role value-mono-gold fiche-role-guest", "tag": "span" }, "placement": { "x": 989, "y": 917 } }
+      ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
     },
     {
