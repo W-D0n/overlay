@@ -206,14 +206,18 @@ bruit qui fait varier la teinte des points), candidat naturel car le moteur simp
       panneau lui-même). Le placement/composition reste la majorité fonctionnelle du fichier (Fond
       + Transition ensemble ~10 % des lignes) — pas une redéfinition de son rôle central, une
       extension incrémentale d'un outil de dev interne (jamais user-facing).
-- [ ] **LAC-02** — Variabilité de couleur de `DotGridBackground` par bruit (inspiration jh3y) : pas
-      encore de demande concrete de l'owner au-delà de l'inspiration citée — candidat B2 optionnel,
-      pas un AC obligatoire. À confirmer avant B2.
-- [ ] **LAC-03** — `StarsParallaxBackground` (B6) génère ses positions procéduralement en JS au
-      montage (pas de centaines de valeurs `box-shadow` codées en dur comme le CodePen source) —
-      inclut une composante non-déterministe (positions aléatoires par instance). Confirmer que
-      c'est acceptable pour un fond de stream (pas besoin de reproductibilité pixel-perfect entre
-      deux lancements).
+- [x] **LAC-02** — Tranchée (owner, 2026-07-10) : implémentée. `DotGridAnimated.js` gagne
+      `colorMode: 'flat' | 'noise'` (défaut `'flat'`, rétrocompatible) — en mode `'noise'`, la teinte
+      de chaque point est modulée par un bruit Simplex indépendant de la couche 2 (opacité), via
+      `hueShiftRgb`/`buildHueShiftLUT` (`components/color-utils.js`). Exposé en config JSON et dans
+      `dev/placement-panel.html` (section Fond). Perf : LUT précalculée une fois par instance (61
+      entrées) plutôt qu'une conversion HSL complète par point/frame — coût CPU jugé sensible en
+      contexte stream (OBS/encodage/jeu partagent la machine). Bug trouvé et corrigé en review
+      (2026-07-10) : `simplex2` peut légèrement dépasser [-1,1] (normalisation empirique), un index
+      LUT non clampé aurait pu planter le rendu (`degToLUTIndex`, testé).
+- [x] **LAC-03** — Tranchée (owner, 2026-07-10) : acceptée telle quelle, aucun changement. Un fond
+      de stream n'a pas besoin de reproductibilité pixel-perfect entre deux lancements ; positions
+      procédurales aléatoires par instance conservées.
 
 ## Décomposition des 8 sessions
 

@@ -1,5 +1,14 @@
 // @ts-check
 import { simplex2 } from './simplex.js';
+import { buildHueShiftLUT } from './color-utils.js';
+
+/** Fréquences/amplitude de la variabilité de couleur par bruit (LAC-02) — indépendantes du
+ * tuning `MODE_PARAMS` (couche 2, opacité) : décorrélées pour éviter que la couleur et l'opacité
+ * pulsent en phase au même endroit. Constantes fixes, pas encore de besoin concret de les exposer
+ * par mode (zero preemptive code — à extraire vers `MODE_PARAMS` si un tuning par scène est demandé). */
+const COLOR_NOISE_FREQ = 0.012;
+const COLOR_NOISE_TIME_FREQ = 0.05;
+const COLOR_NOISE_MAX_DEG = 30;
 
 /**
  * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|'starting'} GridMode
@@ -75,6 +84,19 @@ export function easeProgress(easing, t) {
 }
 
 /**
+ * Convertit un delta en degrés (issu de `simplex2 * maxDeg`) en index valide de `colorLUT`.
+ * Pure — clampe défensivement : `simplex2` (normalisation empirique, voir `components/simplex.js`)
+ * peut légèrement dépasser [-1,1], ce qui sans clamp produirait un index hors bornes du tableau
+ * (`undefined` au destructuring, crash de `tick()` — bug constaté en review, 2026-07-10).
+ * @param {number} deg
+ * @param {number} maxDeg
+ * @returns {number}
+ */
+export function degToLUTIndex(deg, maxDeg) {
+  return Math.min(2 * maxDeg, Math.max(0, Math.round(deg) + maxDeg));
+}
+
+/**
  * Interpole les 4 paramètres Simplex entre deux modes à une progression déjà "easée" [0,1].
  * Pure — testable indépendamment du canvas/rAF (AD-1), consommée par `morphTo` en boucle de rendu.
  * @param {{freqX:number,freqY:number,freqT:number,amplitude:number}} from
@@ -105,6 +127,7 @@ export function lerpModeParams(from, to, progress) {
  *   dotRadius?: number,
  *   baseColor?: [number, number, number],
  *   baseOpacity?: number,
+ *   colorMode?: 'flat' | 'noise',
  * }} [options]
  * @returns {{
  *   el: HTMLCanvasElement,
@@ -123,6 +146,15 @@ export function DotGridAnimated(options = {}) {
 
   /** @type {GridMode} */
   let currentMode = resolveMode(options.mode);
+
+  /** Variabilité de couleur par bruit Simplex (LAC-02) — `'flat'` = couleur unique (défaut,
+   * comportement historique inchangé), `'noise'` = teinte de chaque point modulée par bruit. */
+  let colorMode = options.colorMode === 'noise' ? 'noise' : 'flat';
+
+  /** Table précalculée `hueShiftRgb(baseColor, deg)` par degré entier — `baseColor` ne change
+   * jamais après l'init (voir `buildHueShiftLUT`), un seul calcul suffit pour toute la durée de
+   * vie du composant, quel que soit `colorMode` (coût négligeable : 61 entrées, une fois). */
+  const colorLUT = buildHueShiftLUT(baseColor, COLOR_NOISE_MAX_DEG);
 
   /**
    * Morph en cours (Couche 3, S9/Track A) — interpole `MODE_PARAMS` de `fromParams` vers
@@ -249,7 +281,17 @@ export function DotGridAnimated(options = {}) {
       // Opacité finale : base + C1 + C2, clampée [0.04, 1]
       const opacity = Math.min(1, Math.max(0.04, baseOpacity + c1 + c2));
 
-      ctx.fillStyle = `rgba(${r},${g},${b},${opacity.toFixed(3)})`;
+      if (colorMode === 'noise') {
+        const deg = simplex2(
+          x * COLOR_NOISE_FREQ,
+          y * COLOR_NOISE_FREQ + t * COLOR_NOISE_TIME_FREQ,
+        ) * COLOR_NOISE_MAX_DEG;
+        // Lecture LUT (arrondi au degré entier) au lieu de recalculer hueShiftRgb par point/frame.
+        const [nr, ng, nb] = colorLUT[degToLUTIndex(deg, COLOR_NOISE_MAX_DEG)];
+        ctx.fillStyle = `rgba(${nr},${ng},${nb},${opacity.toFixed(3)})`;
+      } else {
+        ctx.fillStyle = `rgba(${r},${g},${b},${opacity.toFixed(3)})`;
+      }
       ctx.beginPath();
       ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
       ctx.fill();
@@ -286,8 +328,9 @@ export function DotGridAnimated(options = {}) {
      * @param {unknown} newOptions
      */
     update(newOptions) {
-      const mode = /** @type {{mode?: unknown} | null | undefined} */ (newOptions)?.mode;
-      this.setMode(mode);
+      const opts = /** @type {{mode?: unknown, colorMode?: unknown} | null | undefined} */ (newOptions);
+      this.setMode(opts?.mode);
+      colorMode = opts?.colorMode === 'noise' ? 'noise' : 'flat';
     },
 
     /**

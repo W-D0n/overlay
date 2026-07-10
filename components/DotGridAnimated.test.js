@@ -6,7 +6,7 @@
  * importés directement (sans appeler la factory) sont testés.
  */
 import { test, expect } from 'bun:test';
-import { lerpModeParams, easeProgress, MODE_PARAMS } from './DotGridAnimated.js';
+import { lerpModeParams, easeProgress, MODE_PARAMS, degToLUTIndex } from './DotGridAnimated.js';
 
 const FROM = { freqX: 0, freqY: 0, freqT: 0, amplitude: 0 };
 const TO = { freqX: 1, freqY: 2, freqT: 3, amplitude: 4 };
@@ -52,4 +52,17 @@ test('easeProgress chaque jeton valide reste borné à [0,1] sur tout le domaine
       expect(eased).toBeLessThanOrEqual(1);
     }
   }
+});
+
+test('degToLUTIndex mappe deg=-maxDeg/0/+maxDeg sur les index 0/maxDeg/2*maxDeg', () => {
+  expect(degToLUTIndex(-30, 30)).toBe(0);
+  expect(degToLUTIndex(0, 30)).toBe(30);
+  expect(degToLUTIndex(30, 30)).toBe(60);
+});
+
+test('degToLUTIndex clampe un deg hors [-maxDeg,maxDeg] (simplex2 peut légèrement dépasser [-1,1])', () => {
+  expect(degToLUTIndex(31.5, 30)).toBe(60);
+  expect(degToLUTIndex(-31.5, 30)).toBe(0);
+  expect(degToLUTIndex(1000, 30)).toBe(60);
+  expect(degToLUTIndex(-1000, 30)).toBe(0);
 });

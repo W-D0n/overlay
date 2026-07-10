@@ -103,6 +103,7 @@ export const COMPOSABLE_COMPONENT_NAMES = Object.keys(COMPONENT_FIELD_SCHEMAS);
 export const BACKGROUND_FIELD_SCHEMAS = {
   DotGridBackground: [
     { key: 'mode', label: 'Mode ambiant', type: 'select', choices: GRID_MODES, default: 'brb' },
+    { key: 'colorMode', label: 'Couleur', type: 'select', choices: ['flat', 'noise'], default: 'flat' },
   ],
   RainBackground: [
     { key: 'intensity', label: 'Intensité (0-1)', type: 'number', default: 0.5 },
