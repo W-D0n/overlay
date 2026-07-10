@@ -446,6 +446,26 @@ function applyBindings(state) {
   }
 }
 
+// ─── Réactions du fond aux alertes (Couche 4 DotGrid) ───────────────────────────
+
+/** Dernier `timestamp` de `state.latestAlert` transmis au fond — dédoublonne comme chaque `*.wire.js`
+ * le fait déjà pour `AlertBanner.show()` (même pattern, une seule source ici plutôt que dupliquée
+ * dans 9 fichiers). Voir docs/specs/dotgrid-event-triggers.md. */
+let lastBackgroundAlertTimestamp = 0;
+
+/**
+ * Relaie `state.latestAlert` au composant de fond actif, s'il expose `trigger` (optionnel, comme
+ * `morphTo` — AD-B3). No-op silencieux si le fond n'a pas de `trigger` (ex: `RainBackground`) ou
+ * si aucune alerte nouvelle n'est arrivée.
+ * @param {import('./types.js').StreamState} state
+ * @returns {void}
+ */
+function applyBackgroundReactions(state) {
+  if (!state.latestAlert || state.latestAlert.timestamp === lastBackgroundAlertTimestamp) return;
+  lastBackgroundAlertTimestamp = state.latestAlert.timestamp;
+  currentBackground?.trigger?.(state.latestAlert);
+}
+
 // ─── Montage initial ──────────────────────────────────────────────────────────
 
 /**
@@ -467,6 +487,7 @@ async function init() {
   document.addEventListener('overlay:visibility-change', (e) => applyVisibility(/** @type {CustomEvent} */ (e).detail.level));
   // overlay:morph NON câblé (AD-7 / AC-36)
   onStateChange(applyBindings); // binding déclaratif (S8) — indépendant des *.wire.js
+  onStateChange(applyBackgroundReactions); // Couche 4 DotGrid — alertes → fond actif
 
   await loadDynamicScenes();
 
