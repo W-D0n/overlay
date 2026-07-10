@@ -71,6 +71,16 @@
     .component-handle { outline-color: #7BC8A4; z-index: 5; }
     .component-handle.dragging { outline-color: #fff; }
     .component-handle-label { color: #7BC8A4; }
+    /* Poignée de redimensionnement (coin bas-droit) — extension du système de placement,
+       docs/inbox.md §Extensions, demande owner 2026-07-04. Couleur or par défaut (couche), overridée
+       en vert si l'élément est aussi .component-handle (composant individuel). */
+    .resize-handle {
+      position: absolute; right: -5px; bottom: -5px; width: 10px; height: 10px;
+      background: var(--color-gold); border: 1px solid var(--color-bg); border-radius: 2px;
+      cursor: nwse-resize; pointer-events: auto;
+    }
+    .component-handle .resize-handle { background: #7BC8A4; }
+    .placement-handle.resizing { outline-color: #fff; }
 
     #panel {
       width: 440px; flex-shrink: 0; padding: 0; overflow-y: auto;
@@ -1265,6 +1275,57 @@
       if (placement.height !== undefined) el.style.height = `${placement.height}px`;
     }
 
+    /**
+     * Poignée de redimensionnement (coin bas-droit) — extension du système de placement (couches
+     * ET composants individuels partagent cette mécanique, seule la lecture/écriture/persistance de
+     * la donnée diffère via les callbacks). docs/inbox.md §Extensions du système de placement,
+     * demande owner 2026-07-04.
+     * @param {HTMLElement} el
+     * @param {() => import('../types.js').Placement} getPlacement
+     * @param {(p: import('../types.js').Placement) => void} setPlacement - appelé à chaque mousemove (état live + style)
+     * @param {(p: import('../types.js').Placement) => void} onCommit - appelé au relâchement (persistance, no-op si le
+     *   parent gère sa propre sauvegarde via un bouton séparé)
+     */
+    function addResizeHandle(el, getPlacement, setPlacement, onCommit) {
+      const handle = document.createElement('span');
+      handle.className = 'resize-handle';
+      handle.title = 'Glisser pour redimensionner';
+      el.appendChild(handle);
+
+      let resizing = false;
+      let startMouseX = 0, startMouseY = 0, startWidth = 0, startHeight = 0;
+
+      handle.addEventListener('mousedown', (e) => {
+        resizing = true;
+        el.classList.add('resizing');
+        const scale = Number(surface.dataset.scale) || 1;
+        startMouseX = e.clientX / scale;
+        startMouseY = e.clientY / scale;
+        const current = getPlacement();
+        startWidth = current.width ?? el.offsetWidth;
+        startHeight = current.height ?? el.offsetHeight;
+        e.preventDefault();
+        e.stopPropagation(); // ne pas déclencher le drag de POSITION de l'élément parent
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!resizing) return;
+        const scale = Number(surface.dataset.scale) || 1;
+        const mouseX = e.clientX / scale;
+        const mouseY = e.clientY / scale;
+        const newWidth = Math.max(10, Math.round(startWidth + (mouseX - startMouseX)));
+        const newHeight = Math.max(10, Math.round(startHeight + (mouseY - startMouseY)));
+        setPlacement({ ...getPlacement(), width: newWidth, height: newHeight });
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!resizing) return;
+        resizing = false;
+        el.classList.remove('resizing');
+        onCommit(getPlacement());
+      });
+    }
+
     function makeDraggable(el, layerName) {
       el.classList.add('placement-handle');
       applyPlacementStyle(el, livePlacements[layerName]);
@@ -1305,6 +1366,13 @@
         dragging = false;
         el.classList.remove('dragging');
       });
+
+      addResizeHandle(
+        el,
+        () => livePlacements[layerName],
+        (p) => { livePlacements[layerName] = p; applyPlacementStyle(el, p); updateLayerRow(layerName); },
+        () => {}, // pas d'auto-save pour une couche — même bouton "Sauvegarder" que le drag de position
+      );
     }
 
     /**
@@ -1364,6 +1432,20 @@
           saveSceneConfig(`déplacement ${droppedMount.component} (${layerName})`);
         }
       });
+
+      addResizeHandle(
+        el,
+        () => liveComponentPlacements[key],
+        (p) => { liveComponentPlacements[key] = p; applyPlacementStyle(el, p); },
+        (p) => {
+          const layer = liveConfig.layers.find((l) => l.name === layerName);
+          const droppedMount = layer?.components[index];
+          if (droppedMount) {
+            droppedMount.placement = { ...p };
+            saveSceneConfig(`redimensionnement ${droppedMount.component} (${layerName})`);
+          }
+        },
+      );
     }
 
     function updateLayerRow(layerName) {

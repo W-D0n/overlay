@@ -1,50 +1,154 @@
 {
   "id": "react",
-  "background": { "component": "DotGridBackground", "options": { "mode": "react" } },
-  "transition": { "type": "crossfade", "duration": 400, "easing": "easeInOut" },
+  "background": {
+    "component": "BubbleBackground",
+    "options": {
+      "count": 15,
+      "speed": 1,
+      "color": "var(--color-gold)",
+      "minRadius": 6,
+      "maxRadius": 22
+    }
+  },
+  "transition": {
+    "type": "crossfade",
+    "duration": 400,
+    "easing": "easeInOut"
+  },
   "layers": [
     {
       "name": "goldbar",
       "components": [
-        { "component": "GoldBar", "options": { "position": "top" } },
-        { "component": "GoldBar", "options": { "position": "bottom" } }
+        {
+          "component": "GoldBar",
+          "options": {
+            "position": "top"
+          }
+        },
+        {
+          "component": "GoldBar",
+          "options": {
+            "position": "bottom"
+          }
+        }
       ],
-      "visibility": { "full": true, "minimal": true, "hidden": false }
+      "visibility": {
+        "full": true,
+        "minimal": true,
+        "hidden": false
+      }
     },
     {
       "name": "source-zone",
-      "components": [{ "component": "Box", "options": {} }],
-      "visibility": { "full": true, "minimal": false, "hidden": false },
-      "placement": { "x": 40, "y": 40, "width": 1060, "height": 800 }
+      "components": [
+        {
+          "component": "Box",
+          "options": {}
+        }
+      ],
+      "visibility": {
+        "full": true,
+        "minimal": false,
+        "hidden": false
+      },
+      "placement": {
+        "x": 40,
+        "y": 40,
+        "width": 1060,
+        "height": 800
+      }
     },
     {
       "name": "source-credit",
       "components": [
-        { "component": "TextLabel", "options": { "text": "Source", "className": "react-credit-label", "tag": "span" } },
-        { "component": "Divider", "options": { "className": "react-credit-v" } },
-        { "component": "TextLabel", "options": { "text": "—", "className": "react-credit-title", "tag": "span" } },
-        { "component": "TextLabel", "options": { "text": "", "className": "react-credit-platform", "tag": "span" } }
+        {
+          "component": "TextLabel",
+          "options": {
+            "text": "Source",
+            "className": "react-credit-label",
+            "tag": "span"
+          }
+        },
+        {
+          "component": "Divider",
+          "options": {
+            "className": "react-credit-v"
+          }
+        },
+        {
+          "component": "TextLabel",
+          "options": {
+            "text": "—",
+            "className": "react-credit-title",
+            "tag": "span"
+          }
+        },
+        {
+          "component": "TextLabel",
+          "options": {
+            "text": "",
+            "className": "react-credit-platform",
+            "tag": "span"
+          }
+        }
       ],
-      "visibility": { "full": true, "minimal": false, "hidden": false },
-      "placement": { "x": 40, "y": 858, "width": 1060, "height": 76 }
+      "visibility": {
+        "full": true,
+        "minimal": false,
+        "hidden": false
+      },
+      "placement": {
+        "x": 40,
+        "y": 858,
+        "width": 1060,
+        "height": 76
+      }
     },
     {
       "name": "cam",
-      "components": [{ "component": "Box", "options": {} }],
-      "visibility": { "full": true, "minimal": false, "hidden": false },
-      "placement": { "x": 1168, "y": 40, "width": 712, "height": 460 }
+      "components": [
+        {
+          "component": "Box",
+          "options": {}
+        }
+      ],
+      "visibility": {
+        "full": true,
+        "minimal": false,
+        "hidden": false
+      },
+      "placement": {
+        "x": 1168,
+        "y": 40,
+        "width": 712,
+        "height": 460
+      }
     },
     {
       "name": "chat",
       "components": [
-        { "component": "ChatFeed", "options": { "maxMessages": 12, "fontSize": "20px" } }
+        {
+          "component": "ChatFeed",
+          "options": {
+            "maxMessages": 12,
+            "fontSize": "20px"
+          }
+        }
       ],
-      "visibility": { "full": true, "minimal": false, "hidden": false }
+      "visibility": {
+        "full": true,
+        "minimal": false,
+        "hidden": false
+      }
     },
     {
       "name": "hud",
       "components": [],
-      "visibility": { "full": true, "minimal": false, "hidden": false }
+      "visibility": {
+        "full": true,
+        "minimal": false,
+        "hidden": false
+      }
     }
   ]
 }
