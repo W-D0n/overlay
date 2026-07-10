@@ -165,10 +165,26 @@ pas une réécriture.
   persistance via le même bouton "Sauvegarder" pour les couches, auto-save via `saveSceneConfig`
   pour les composants individuels. Vérifié en direct (Playwright, scène `react`, 3 poignées
   détectées, resize testé : 1060×800 → 1185×875px cohérent avec le scale du panneau).
-- **Placement fin à l'intérieur d'une couche composite** — ex. la couche `cams` d'`interview`
-  contient 3 éléments (cam gauche, filet, cam droite) positionnés indépendamment en CSS ; le modèle
-  actuel ne déplace la couche que comme un bloc entier. Pour aller plus loin, il faudrait un
-  sous-placement par élément dans `LayerConfig` (structure à repenser — pas juste ajouter un champ).
+- **Placement fin à l'intérieur d'une couche composite** — le mécanisme lui-même était déjà livré
+  le 2026-07-05 (`ComponentMount.placement`, modèle Figma, bouton "Positionner" dans le panneau) —
+  cette entrée décrivait `cams`/`interview` comme exemple concret, mais cette couche est vide
+  (`components: []`) dans le code, jamais construite ; note restée obsolète jusqu'à investigation
+  owner (2026-07-10), même schéma que `docs/inbox.md` §Gestion des couches. Ce qui manquait
+  réellement : les couches composites *existantes* (texte multi-lignes en flex CSS) n'avaient jamais
+  reçu de placement par composant. Migré (2026-07-10) : `message`(brb), `ide-context`(codage),
+  `cam-mini`+`tool`(creation), `subject`+`last-follow`(discussion), `next-stream`+`stats`(fin),
+  `subject`(interview) — 9 couches / 7 scènes. Règle appliquée : texte à contenu dynamique → `x,y`
+  sans `width`/`height` (la boîte s'adapte au contenu, comme avant) ; diviseurs → `x,y,width` explicite.
+  Un bug systémique découvert et corrigé en cours de route : un composant migré perd sa contribution
+  à la hauteur du calque parent (flex flow), ce qui décalait les calques flex suivants — fix via
+  `height` CSS explicite sur le calque migré (`index.html`, scopé par sélecteur `[data-layer="X"]`).
+  Vérifié pixel-exact par mesure Playwright avant/après sur les 9 couches + capture visuelle sur 4
+  scènes.
+  **Différé, hors scope** (comportement flex non trivial à figer sans régression) :
+  `next-stream`(brb, `next-info` en `flex:1` + `next-topic` poussé par `margin-left:auto`) et
+  `source-credit`(react, `react-credit-title` en `text-overflow:ellipsis` nécessitant une largeur
+  fixe). Gardent leur CSS flex actuel — pas de couche cassée, juste pas encore éditables composant
+  par composant dans le panneau.
 - **Repositionnement dynamique en cours de scène** (ex. une alerte qui glisse à l'écran via un
   événement) — `placement` actuel s'applique une seule fois au montage. Une version dynamique
   écouterait des changements d'état et réappliquerait le style à chaud.

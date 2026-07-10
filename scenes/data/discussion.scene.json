@@ -58,13 +58,15 @@
             "text": "D0n",
             "className": "disc-name",
             "tag": "h1"
-          }
+          },
+          "placement": { "x": 0, "y": 0 }
         },
         {
           "component": "Divider",
           "options": {
             "className": "disc-rule-gold"
-          }
+          },
+          "placement": { "x": 0, "y": 92, "width": 692 }
         },
         {
           "component": "TextLabel",
@@ -72,14 +74,16 @@
             "text": "Sujet du moment",
             "className": "disc-label",
             "tag": "span"
-          }
+          },
+          "placement": { "x": 0, "y": 113 }
         },
         {
           "component": "TextLabel",
           "options": {
             "text": "En attente",
             "className": "subject-text"
-          }
+          },
+          "placement": { "x": 0, "y": 138 }
         }
       ],
       "visibility": {
@@ -132,21 +136,24 @@
             "text": "Dernier follow",
             "className": "disc-label",
             "tag": "span"
-          }
+          },
+          "placement": { "x": 0, "y": 904 }
         },
         {
           "component": "TextLabel",
           "options": {
             "text": "—",
             "className": "last-follow-name"
-          }
+          },
+          "placement": { "x": 0, "y": 929 }
         },
         {
           "component": "TextLabel",
           "options": {
             "text": "twitch.tv/d0natelll0",
             "className": "disc-footer"
-          }
+          },
+          "placement": { "x": 0, "y": 985 }
         }
       ],
       "visibility": {

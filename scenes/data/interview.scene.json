@@ -24,9 +24,9 @@
     {
       "name": "subject",
       "components": [
-        { "component": "TextLabel", "options": { "text": "Sujet", "className": "int-subject-label", "tag": "span" } },
-        { "component": "Divider", "options": { "className": "int-subject-v" } },
-        { "component": "TextLabel", "options": { "text": "—", "className": "int-subject-text subject-text", "tag": "span" } }
+        { "component": "TextLabel", "options": { "text": "Sujet", "className": "int-subject-label", "tag": "span" }, "placement": { "x": 25, "y": 23 } },
+        { "component": "Divider", "options": { "className": "int-subject-v" }, "placement": { "x": 96, "y": 16, "width": 1 } },
+        { "component": "TextLabel", "options": { "text": "—", "className": "int-subject-text subject-text", "tag": "span" }, "placement": { "x": 121, "y": 14 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false },
       "placement": { "x": 40, "y": 1000, "width": 1520, "height": 60 }

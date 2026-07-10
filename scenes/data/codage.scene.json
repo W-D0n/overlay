@@ -25,10 +25,10 @@
     {
       "name": "ide-context",
       "components": [
-        { "component": "TextLabel", "options": { "text": "Fichier actif", "className": "cod-label", "tag": "span" } },
-        { "component": "TextLabel", "options": { "text": "—", "className": "file-name" } },
-        { "component": "TextLabel", "options": { "text": "", "className": "git-branch" } },
-        { "component": "TextLabel", "options": { "text": "", "className": "stack-info" } }
+        { "component": "TextLabel", "options": { "text": "Fichier actif", "className": "cod-label", "tag": "span" }, "placement": { "x": 0, "y": 267 } },
+        { "component": "TextLabel", "options": { "text": "—", "className": "file-name" }, "placement": { "x": 0, "y": 290 } },
+        { "component": "TextLabel", "options": { "text": "", "className": "git-branch" }, "placement": { "x": 0, "y": 326 } },
+        { "component": "TextLabel", "options": { "text": "", "className": "stack-info" }, "placement": { "x": 0, "y": 353 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
     },
