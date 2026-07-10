@@ -24,7 +24,7 @@ son propre jeu de paramètres — le cycle de formes original devient un effet p
 plus. Ces effets **remplacent** DotGrid (`#bg-layer` devient polymorphe, un seul effet actif à la
 fois, même emplacement/cycle de vie que DotGrid aujourd'hui). Chaque effet a son propre toolset de
 fine-tuning, exposé à la fois en config JSON ET en UI dédiée dans le panneau de dev (owner :
-option 2, avec la remarque que `dev/placement-panel.html` n'est peut-être plus le bon nom vu
+option 2, avec la remarque que `dev/overlay-setting.html` n'est peut-être plus le bon nom vu
 l'ampleur — voir LAC-01).
 
 ## Décision d'architecture — `#bg-layer` polymorphe
@@ -195,7 +195,7 @@ bruit qui fait varier la teinte des points), candidat naturel car le moteur simp
 
 ## Lacunes identifiées
 
-- [x] **LAC-01** — Tranchée en session B7 : **conservé tel quel** (`dev/placement-panel.html`),
+- [x] **LAC-01** — Tranchée en session B7 : **conservé tel quel** (`dev/overlay-setting.html`),
       pas de renommage. Avec la section Fond effectivement ajoutée (10 effets, ~70 lignes) sous les
       yeux, le renommage reste disproportionné par rapport au bénéfice : 11 fichiers référencent le
       nom actuel (`dev/component-field-schemas.js`, `dev/placement-server.js`, `dev/start-dev.js`,
@@ -210,7 +210,7 @@ bruit qui fait varier la teinte des points), candidat naturel car le moteur simp
       `colorMode: 'flat' | 'noise'` (défaut `'flat'`, rétrocompatible) — en mode `'noise'`, la teinte
       de chaque point est modulée par un bruit Simplex indépendant de la couche 2 (opacité), via
       `hueShiftRgb`/`buildHueShiftLUT` (`components/color-utils.js`). Exposé en config JSON et dans
-      `dev/placement-panel.html` (section Fond). Perf : LUT précalculée une fois par instance (61
+      `dev/overlay-setting.html` (section Fond). Perf : LUT précalculée une fois par instance (61
       entrées) plutôt qu'une conversion HSL complète par point/frame — coût CPU jugé sensible en
       contexte stream (OBS/encodage/jeu partagent la machine). Bug trouvé et corrigé en review
       (2026-07-10) : `simplex2` peut légèrement dépasser [-1,1] (normalisation empirique), un index

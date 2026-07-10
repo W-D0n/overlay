@@ -38,7 +38,7 @@ par des commandes git.
   restaurer plusieurs fois de suite en cherchant la bonne version ne doit pas polluer la liste de
   doublons pile au moment où on essaie d'y voir clair. Décision initiale ("pas de cas spécial")
   abandonnée après retour d'usage réel.
-- `dev/placement-panel.html` :
+- `dev/overlay-setting.html` :
   - Retrait de tous les boutons "Enregistrer" — chaque modification de champ sauvegarde au `change`
     (perte de focus / validation), pas à chaque frappe (`input` reste pour le retour visuel
     immédiat dans le formulaire, sans déclencher de sauvegarde réseau).
@@ -198,7 +198,7 @@ rapportée :
 | `dev/scene-data-server.js` | modifier | historique sur create/update, routes `/scene-history`, `/restore-scene` (AC-03 à AC-08) ; unique écrivain de `scenes/data/<id>.scene.json` via nouvelle route `POST /save-placement` (AC-16, AC-17) ; `/restore-scene` sérialisé (AC-18) |
 | `dev/placement-server.js` | modifier | devient un pur proxy HTTP vers `scene-data-server.js` — plus aucune écriture disque directe (AC-16) |
 | `dev/tuner-server.js` | modifier | sérialise son read-modify-write de `components/DotGridAnimated.js` via `createKeyedLock()` (même motif, latent, trouvé en revue) |
-| `dev/placement-panel.html` | modifier | retrait boutons/confirmations, section Historique (AC-09 à AC-11) |
+| `dev/overlay-setting.html` | modifier | retrait boutons/confirmations, section Historique (AC-09 à AC-11) |
 
 > Règle de cross-check (avant de déclarer "done") :
 > - Chaque AC → implémenté et vérifiable

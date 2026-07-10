@@ -98,9 +98,9 @@ via l'historique git, pas une perte définitive.
 plus `SCENE_CONFIGS` par import statique (`STATIC_SCENE_IDS` vide, aucune scène protégée, décision
 ci-dessus). Effets de bord découverts et corrigés pendant l'implémentation :
 - `loadDynamicScenes()` utilisait des chemins relatifs (`./scenes/data/...`) qui ne résolvaient
-  correctement que depuis `index.html` (racine) — cassé pour `dev/placement-panel.html` (sous-dossier).
+  correctement que depuis `index.html` (racine) — cassé pour `dev/overlay-setting.html` (sous-dossier).
   Corrigé en chemins absolus (`/scenes/data/...`).
-- `dev/placement-panel.html` n'appelait jamais `loadDynamicScenes()` — corrigé (son menu de scènes
+- `dev/overlay-setting.html` n'appelait jamais `loadDynamicScenes()` — corrigé (son menu de scènes
   était vide sans ça).
 - `dev/scene-placement-format.js`/`dev/placement-server.js` (S7) réécrivaient le `placement` par
   regex sur source JS — remplacés par un parse/mutate/stringify JSON direct, ciblant
@@ -122,7 +122,7 @@ uniquement), puis livrée le jour même dans une session de suite non retracée 
 des couches (owner a demandé l'item, découvert déjà fait). Ajouter/supprimer une couche déjà livré
 S8 session 6/6 ; renommer (input éditable par couche, `goldbar` protégée) + réordonner (glisser-
 déposer par poignée dédiée, `moveLayer`) confirmés fonctionnels (vérification visuelle, 2026-07-10) :
-`dev/placement-panel.html` §Couches.
+`dev/overlay-setting.html` §Couches.
 
 Drag & drop par composant individuel (`ComponentMount.placement`, S8) également hors scope de la
 session 5/6 — le panneau S7 ne fait glisser que des couches entières (`layer.placement`). Un
@@ -161,7 +161,7 @@ pas une réécriture.
 - **Redimensionnement par drag** — livré (2026-07-10) : poignée de resize (coin bas-droit) sur
   chaque couche/composant déplaçable, en plus du drag de position. Même mécanisme que le drag de
   position (mousedown/mousemove/mouseup sur `window`, tenant compte de l'échelle du panneau),
-  factorisé dans `addResizeHandle()` — `dev/placement-panel.html`. Édite `width`/`height` en live ;
+  factorisé dans `addResizeHandle()` — `dev/overlay-setting.html`. Édite `width`/`height` en live ;
   persistance via le même bouton "Sauvegarder" pour les couches, auto-save via `saveSceneConfig`
   pour les composants individuels. Vérifié en direct (Playwright, scène `react`, 3 poignées
   détectées, resize testé : 1060×800 → 1185×875px cohérent avec le scale du panneau).
@@ -221,7 +221,7 @@ qui écrit cette config au lieu de l'écrire à la main.
 **Jalon 1 — Placement (livré, S7, 2026-07-04)**
 Charger une config de scène, voir le rendu réel, déplacer un widget en drag & drop, lire/sauvegarder
 les nouvelles valeurs. Livré sans système d'ancrage (`Placement` en pixels absolus, plus simple,
-voir `docs/specs/scene-placement-protocol.md`) — `dev/placement-panel.html` +
+voir `docs/specs/scene-placement-protocol.md`) — `dev/overlay-setting.html` +
 `dev/placement-server.js`, 10 couches migrées sur 9 scènes. Couches non migrées (wrappers flex,
 bandes stretch, composites) restent hors scope V1.
 

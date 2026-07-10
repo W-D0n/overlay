@@ -10,7 +10,7 @@ status: draft
 ## Contexte
 
 L'owner a exprimé le besoin de piloter OBS entièrement depuis le panneau de contrôle unique (S5/S7,
-`dev/placement-panel.html`), sans repasser par l'UI native d'OBS : créer une scène OBS, l'activer,
+`dev/overlay-setting.html`), sans repasser par l'UI native d'OBS : créer une scène OBS, l'activer,
 positionner/masquer ses sources — voir `docs/inbox.md` §Contrôle OBS centralisé (demande explicite,
 2026-07-03, priorisée). S8 (moteur de scène de l'éditeur) et S7 (panneau) sont livrés — ce chantier
 était bloqué sur leur achèvement, débloqué maintenant.
@@ -41,7 +41,7 @@ Payloads des requêtes OBS WS v5 vérifiés contre le protocole officiel
 - Gestion de scènes OBS : lister, créer, activer (**session 1, livrée**).
 - Gestion des scene items : lister, ajouter une source existante à une scène, positionner
   (`SetSceneItemTransform`), masquer/afficher (`SetSceneItemEnabled`) — **session 2, livrée**.
-- UI panneau : nouvelle section dans `dev/placement-panel.html` consommant ces routes — **session 3, livrée**.
+- UI panneau : nouvelle section dans `dev/overlay-setting.html` consommant ces routes — **session 3, livrée**.
 - Vérification end-to-end contre une vraie instance OBS — **session 4, livrée** (2026-07-06).
 
 **Exclu (hors périmètre de ce chantier, pas juste différé) :**
@@ -88,7 +88,7 @@ Payloads des requêtes OBS WS v5 vérifiés contre le protocole officiel
 
 | ID | Critère | Vérifiable par |
 |---|---|---|
-| AC-11 | Nouvelle section "OBS" dans `dev/placement-panel.html` : liste les scènes OBS, marque la scène active (`(active)`), permet d'en activer une | visuel |
+| AC-11 | Nouvelle section "OBS" dans `dev/overlay-setting.html` : liste les scènes OBS, marque la scène active (`(active)`), permet d'en activer une | visuel |
 | AC-12 | Création d'une scène OBS depuis le panneau (nom + bouton "Créer"), la liste se recharge et inclut la nouvelle scène | visuel |
 | AC-13 | Sélectionner une scène OBS liste ses sources (scene items) avec leur nom | visuel |
 | AC-14 | Chaque source affiche des champs x/y + bouton "Positionner" qui appelle `set-scene-item-transform` | visuel |
@@ -207,7 +207,7 @@ impliqué, juste un passthrough typé vers `sendObsRequest`, déjà non typé JS
 | Fichier | Action | Notes |
 |---|---|---|
 | `relay/server.js` | modifier | 3 routes scènes (`/obs/list-scenes`, `/obs/create-scene`, `/obs/set-current-scene`, AC-01 à AC-05) + 4 routes scene items (`/obs/list-scene-items`, `/obs/create-scene-item`, `/obs/set-scene-item-transform`, `/obs/set-scene-item-enabled`, AC-06 à AC-10), toutes réutilisent `sendObsRequest` |
-| `dev/placement-panel.html` | modifier | section "OBS" (accordéon) : scènes + scene items, réutilise `RELAY_TOKEN` (`obs-config.local.js`, même pattern que `dev/dotgrid-tuner.html`) (AC-11 à AC-17) |
+| `dev/overlay-setting.html` | modifier | section "OBS" (accordéon) : scènes + scene items, réutilise `RELAY_TOKEN` (`obs-config.local.js`, même pattern que `dev/dotgrid-tuner.html`) (AC-11 à AC-17) |
 
 > Règle de cross-check (avant de déclarer "done") :
 > - Chaque AC → implémenté et vérifiable

@@ -411,7 +411,7 @@ entièrement par `applyBindings` (`$bind`/`trigger`).
 
 ### Contexte
 
-Étend `dev/placement-panel.html` (jalon 1 de l'éditeur, "un seul outil construit par jalons
+Étend `dev/overlay-setting.html` (jalon 1 de l'éditeur, "un seul outil construit par jalons
 successifs", voir `docs/inbox.md`) : ajouter/retirer/éditer les `ComponentMount` d'une couche, avec
 un formulaire dédié par type de composant. Les 9 scènes sont désormais des scènes dynamiques (S8,
 migration précédente) — `/update-scene` (session 4/6) accepte déjà n'importe laquelle d'entre elles.
@@ -480,7 +480,7 @@ migration précédente) — `/update-scene` (session 4/6) accepte déjà n'impor
 | Fichier | Action | Notes |
 |---|---|---|
 | `dev/component-field-schemas.js` | créer | schémas des 12 types composables (AC-30) |
-| `dev/placement-panel.html` | modifier | UI de composition par couche (AC-26 à AC-29, AC-31) |
+| `dev/overlay-setting.html` | modifier | UI de composition par couche (AC-26 à AC-29, AC-31) |
 
 > Règle de cross-check (avant de déclarer "done") :
 > - Chaque AC → implémenté et vérifiable
@@ -570,7 +570,7 @@ l'owner (2026-07-05) au-delà du texte original de la spec :
 | Fichier | Action | Notes |
 |---|---|---|
 | `dev/scene-data-server.js` | modifier | `/delete-scene` archive au lieu de supprimer (AC-35) |
-| `dev/placement-panel.html` | modifier | création/suppression de scène + gestion minimale des couches (AC-32 à AC-34, AC-36, AC-37) |
+| `dev/overlay-setting.html` | modifier | création/suppression de scène + gestion minimale des couches (AC-32 à AC-34, AC-36, AC-37) |
 
 > Règle de cross-check (avant de déclarer "done") :
 > - Chaque AC → implémenté et vérifiable

@@ -44,7 +44,7 @@ le runtime prouvé).
 **Exclu (sessions futures) :**
 - Migration des 7 scènes restantes vers `placement` (session mécanique séparée, une fois le modèle
   prouvé sur les 2 scènes de référence).
-- Panneau drag & drop (`dev/placement-panel.html`) — lit/écrit `Placement`, dépend de cette spec.
+- Panneau drag & drop (`dev/overlay-setting.html`) — lit/écrit `Placement`, dépend de cette spec.
 - Persistance du panneau (écriture dans `scenes/*.config.js`) — généralisation du pattern
   `dev/tuner-server.js` (S5), session séparée après le panneau.
 
