@@ -290,6 +290,10 @@
  *   de fond). Optionnel : un composant sans `morphTo` dégrade en crossfade du contenu (AD-B3,
  *   `docs/specs/background-effects-library.md`). Implémenté par `DotGridBackground` depuis A3.
  * @property {() => void} [destroy]                 - Libère les ressources (observers, timers)
+ * @property {(payload: unknown) => void} [trigger]  - Réaction impérative à un événement discret
+ *   (ex: alerte stream). Optionnel : un composant sans `trigger` ignore silencieusement l'appel
+ *   (`triggerBackground`, `scene-runtime.js`), même pattern que `morphTo` absent (AD-B3).
+ *   Implémenté par `DotGridBackground` depuis la Couche 4 (`docs/specs/dotgrid-event-triggers.md`).
  */
 
 /**

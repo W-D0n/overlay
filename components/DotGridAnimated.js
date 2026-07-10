@@ -97,6 +97,101 @@ export function degToLUTIndex(deg, maxDeg) {
 }
 
 /**
+ * Types de réaction Couche 4 valides — clés de `REACTION_DURATIONS` (source unique), un par
+ * `AlertEvent.type` existant (`types.js`). `docs/specs/dotgrid-event-triggers.md`.
+ * @type {readonly ('follow'|'sub'|'raid'|'bits')[]}
+ */
+export const REACTION_TYPES = /** @type {const} */ (['follow', 'sub', 'raid', 'bits']);
+
+/** Durée (ms) de chaque réaction Couche 4 — une par `REACTION_TYPES`. */
+const REACTION_DURATIONS = { follow: 2000, sub: 2000, raid: 3000, bits: 1500 };
+
+/** Boost d'opacité maximal (Couche 4), additif à C1+C2 avant clamp final. */
+const REACTION_AMPLITUDE = 0.5;
+
+/** Épaisseur (px) de la bande de front de l'onde `follow`. */
+const FOLLOW_BAND_HALF_WIDTH = 40;
+
+/**
+ * @param {unknown} type
+ * @returns {type is 'follow'|'sub'|'raid'|'bits'}
+ */
+export function isValidReactionType(type) {
+  return typeof type === 'string' && /** @type {readonly string[]} */ (REACTION_TYPES).includes(type);
+}
+
+/**
+ * Délai (ms) avant le prochain déclenchement `ambient` — `randomValue` ∈ [0,1) injecté pour rendre
+ * la fonction pure/testable (bornes 45000-90000ms, `docs/specs/dotgrid-event-triggers.md` AC-07).
+ * @param {number} randomValue
+ * @returns {number}
+ */
+export function computeAmbientDelay(randomValue) {
+  return 45000 + randomValue * 45000;
+}
+
+/**
+ * Calcule le delta d'opacité (Couche 4) d'un point pour la réaction active, à une progression déjà
+ * calculée [0,1]. Pure — testable indépendamment du canvas/rAF (AD-1).
+ * @param {{ type: 'follow'|'sub'|'raid'|'bits', params: Record<string, *> }} reaction
+ * @param {number} pointIndex
+ * @param {number} x
+ * @param {number} y
+ * @param {number} cssW
+ * @param {number} cssH
+ * @param {number} progress - [0,1]
+ * @returns {number}
+ */
+export function reactionDelta(reaction, pointIndex, x, y, cssW, cssH, progress) {
+  switch (reaction.type) {
+    case 'follow': {
+      const { cx, cy } = reaction.params;
+      const maxRadius = Math.sqrt(cssW * cssW + cssH * cssH);
+      const radius = progress * maxRadius;
+      const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+      return REACTION_AMPLITUDE * Math.max(0, 1 - Math.abs(dist - radius) / FOLLOW_BAND_HALF_WIDTH);
+    }
+    case 'sub':
+      return REACTION_AMPLITUDE * Math.sin(progress * Math.PI);
+    case 'raid': {
+      const bandWidth = cssW * 0.15;
+      const bandCenter = -bandWidth + progress * (cssW + 2 * bandWidth);
+      const dist = Math.abs(x - bandCenter);
+      return REACTION_AMPLITUDE * Math.max(0, 1 - dist / (bandWidth / 2));
+    }
+    case 'bits':
+      return reaction.params.indices.has(pointIndex) ? REACTION_AMPLITUDE * Math.sin(progress * Math.PI) : 0;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Construit les paramètres propres à un type de réaction (position aléatoire pour `follow`,
+ * indices tirés pour `bits`) — impur (Math.random, dépend de cssW/cssH/pointCount courants),
+ * appelé une seule fois au déclenchement, pas par frame.
+ * @param {'follow'|'sub'|'raid'|'bits'} type
+ * @param {number} cssW
+ * @param {number} cssH
+ * @param {number} pointCount
+ * @returns {Record<string, *>}
+ */
+function buildReactionParams(type, cssW, cssH, pointCount) {
+  if (type === 'follow') {
+    const corners = [[0, 0], [cssW, 0], [0, cssH], [cssW, cssH]];
+    const [cx, cy] = corners[Math.floor(Math.random() * corners.length)];
+    return { cx, cy };
+  }
+  if (type === 'bits') {
+    const target = Math.min(pointCount, 20 + Math.floor(Math.random() * 21));
+    const indices = new Set();
+    while (indices.size < target) indices.add(Math.floor(Math.random() * pointCount));
+    return { indices };
+  }
+  return {};
+}
+
+/**
  * Interpole les 4 paramètres Simplex entre deux modes à une progression déjà "easée" [0,1].
  * Pure — testable indépendamment du canvas/rAF (AD-1), consommée par `morphTo` en boucle de rendu.
  * @param {{freqX:number,freqY:number,freqT:number,amplitude:number}} from
@@ -119,7 +214,8 @@ export function lerpModeParams(from, to, progress) {
  * Couche 1 : oscillation sinusoïdale par point (init aléatoire au chargement).
  * Couche 2 : bruit Simplex 2D ambiant, paramétré par mode scène.
  * Couche 3 : morphisme des paramètres Simplex entre deux modes (`morphTo`, Track A / transition
- * `morph` de `scene-runtime.js`). Couche 4 : stub — implémentation prévue en Sessions 2+.
+ * `morph` de `scene-runtime.js`). Couche 4 : réactions visuelles aux alertes stream (`trigger`,
+ * `docs/specs/dotgrid-event-triggers.md`) + déclenchement `ambient` périodique automatique.
  *
  * @param {{
  *   mode?: GridMode,
@@ -133,7 +229,7 @@ export function lerpModeParams(from, to, progress) {
  *   el: HTMLCanvasElement,
  *   setMode: (mode: unknown) => void,
  *   update: (options: unknown) => void,
- *   trigger: (eventType: string) => void,
+ *   trigger: (payload: unknown) => void,
  *   morphTo: (options: { mode: GridMode, duration?: number, easing?: unknown }) => Promise<void>,
  *   destroy: () => void,
  * }}
@@ -163,6 +259,41 @@ export function DotGridAnimated(options = {}) {
    * @type {{ fromParams: {freqX:number,freqY:number,freqT:number,amplitude:number}, toParams: {freqX:number,freqY:number,freqT:number,amplitude:number}, toMode: GridMode, duration: number, easing: unknown, startTime: number, resolve: () => void } | null}
    */
   let morphState = null;
+
+  /**
+   * Réaction Couche 4 active (alerte stream ou `ambient`) — une seule à la fois, un nouveau
+   * déclenchement remplace l'ancienne immédiatement (AC-06, pas de superposition/file d'attente,
+   * les alertes sont rares). `null` = pas de réaction, C1+C2 seuls pilotent l'opacité.
+   * @type {{ type: 'follow'|'sub'|'raid'|'bits', startTime: number, duration: number, params: Record<string, *> } | null}
+   */
+  let activeReaction = null;
+
+  /** Minuteur du déclenchement `ambient` — réarmé après chaque exécution (manuelle ou auto). */
+  let ambientTimerId = /** @type {ReturnType<typeof setTimeout> | 0} */ (0);
+
+  /**
+   * Démarre une réaction Couche 4. Type invalide → no-op silencieux (AC-05), cohérent avec
+   * `resolveMode`/`resolveTransition` (repli plutôt qu'exception).
+   * @param {string} type
+   */
+  function startReaction(type) {
+    if (!isValidReactionType(type)) return;
+    activeReaction = {
+      type,
+      startTime: performance.now(),
+      duration: REACTION_DURATIONS[type],
+      params: buildReactionParams(type, cssW, cssH, pointCount),
+    };
+  }
+
+  /** Réarme le minuteur `ambient` avec un délai aléatoire 45-90s (AC-07). */
+  function scheduleAmbient() {
+    ambientTimerId = setTimeout(() => {
+      startReaction(REACTION_TYPES[Math.floor(Math.random() * REACTION_TYPES.length)]);
+      scheduleAmbient();
+    }, computeAmbientDelay(Math.random()));
+  }
+  scheduleAmbient();
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = [
@@ -265,6 +396,13 @@ export function DotGridAnimated(options = {}) {
     }
     const [r, g, b] = baseColor;
 
+    // Couche 4 — réaction active (alerte/ambient), progression [0,1] calculée une fois par frame.
+    let reactionProgress = 0;
+    if (activeReaction !== null) {
+      reactionProgress = activeReaction.duration > 0 ? (timestamp - activeReaction.startTime) / activeReaction.duration : 1;
+      if (reactionProgress >= 1) activeReaction = null;
+    }
+
     for (let i = 0; i < pointCount; i++) {
       const x = pointsX[i];
       const y = pointsY[i];
@@ -278,8 +416,11 @@ export function DotGridAnimated(options = {}) {
         y * mode.freqY + t * mode.freqT,
       ) * mode.amplitude;
 
-      // Opacité finale : base + C1 + C2, clampée [0.04, 1]
-      const opacity = Math.min(1, Math.max(0.04, baseOpacity + c1 + c2));
+      // Couche 4 — boost d'opacité de la réaction active, le cas échéant
+      const c3 = activeReaction !== null ? reactionDelta(activeReaction, i, x, y, cssW, cssH, reactionProgress) : 0;
+
+      // Opacité finale : base + C1 + C2 + C3, clampée [0.04, 1]
+      const opacity = Math.min(1, Math.max(0.04, baseOpacity + c1 + c2 + c3));
 
       if (colorMode === 'noise') {
         const deg = simplex2(
@@ -334,10 +475,16 @@ export function DotGridAnimated(options = {}) {
     },
 
     /**
-     * Stub — Couche 4 (événements stream), implémentation en Session 2+.
-     * @param {string} _eventType
+     * Déclenche une réaction visuelle Couche 4 (alerte stream) — reçoit un `AlertEvent`
+     * (`{type, username, timestamp, amount?}`, même forme que `state.latestAlert`), pas une simple
+     * chaîne (`docs/specs/dotgrid-event-triggers.md`). `type` hors des 4 valeurs valides → no-op
+     * silencieux (AC-05).
+     * @param {unknown} payload
      */
-    trigger(_eventType) {},
+    trigger(payload) {
+      const type = /** @type {{ type?: unknown } | null | undefined} */ (payload)?.type;
+      if (typeof type === 'string') startReaction(type);
+    },
 
     /**
      * Interpole les paramètres Simplex du mode courant vers `options.mode` sur `options.duration`
@@ -361,6 +508,7 @@ export function DotGridAnimated(options = {}) {
 
     destroy() {
       cancelAnimationFrame(rafId);
+      clearTimeout(ambientTimerId);
       observer.disconnect();
     },
   };

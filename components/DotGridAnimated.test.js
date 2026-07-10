@@ -6,7 +6,10 @@
  * importés directement (sans appeler la factory) sont testés.
  */
 import { test, expect } from 'bun:test';
-import { lerpModeParams, easeProgress, MODE_PARAMS, degToLUTIndex } from './DotGridAnimated.js';
+import {
+  lerpModeParams, easeProgress, MODE_PARAMS, degToLUTIndex,
+  isValidReactionType, computeAmbientDelay, reactionDelta, REACTION_TYPES,
+} from './DotGridAnimated.js';
 
 const FROM = { freqX: 0, freqY: 0, freqT: 0, amplitude: 0 };
 const TO = { freqX: 1, freqY: 2, freqT: 3, amplitude: 4 };
@@ -65,4 +68,64 @@ test('degToLUTIndex clampe un deg hors [-maxDeg,maxDeg] (simplex2 peut légèrem
   expect(degToLUTIndex(-31.5, 30)).toBe(0);
   expect(degToLUTIndex(1000, 30)).toBe(60);
   expect(degToLUTIndex(-1000, 30)).toBe(0);
+});
+
+// ── Couche 4 — réactions (docs/specs/dotgrid-event-triggers.md) ─────────────
+
+test('isValidReactionType accepte les 4 types, rejette le reste (AC-05)', () => {
+  for (const type of REACTION_TYPES) expect(isValidReactionType(type)).toBe(true);
+  expect(isValidReactionType('inconnu')).toBe(false);
+  expect(isValidReactionType(undefined)).toBe(false);
+  expect(isValidReactionType(42)).toBe(false);
+});
+
+test('computeAmbientDelay reste dans [45000,90000] (AC-07)', () => {
+  expect(computeAmbientDelay(0)).toBe(45000);
+  expect(computeAmbientDelay(1)).toBe(90000);
+  expect(computeAmbientDelay(0.5)).toBe(67500);
+});
+
+test('reactionDelta type inconnu → 0 (défensif)', () => {
+  expect(reactionDelta({ type: /** @type {*} */ ('nope'), params: {} }, 0, 0, 0, 1920, 1080, 0.5)).toBe(0);
+});
+
+test('reactionDelta sub → boost uniforme, identique quelle que soit la position', () => {
+  const reaction = { type: /** @type {const} */ ('sub'), params: {} };
+  const a = reactionDelta(reaction, 0, 0, 0, 1920, 1080, 0.5);
+  const b = reactionDelta(reaction, 1, 1900, 1000, 1920, 1080, 0.5);
+  expect(a).toBeCloseTo(b, 10);
+  expect(a).toBeGreaterThan(0);
+});
+
+test('reactionDelta sub → nul aux bornes de progression (sin(0)=sin(π)=0)', () => {
+  const reaction = { type: /** @type {const} */ ('sub'), params: {} };
+  expect(reactionDelta(reaction, 0, 100, 100, 1920, 1080, 0)).toBeCloseTo(0, 10);
+  expect(reactionDelta(reaction, 0, 100, 100, 1920, 1080, 1)).toBeCloseTo(0, 10);
+});
+
+test('reactionDelta follow → maximal près du front de l\'onde, nul loin du front', () => {
+  const reaction = { type: /** @type {const} */ ('follow'), params: { cx: 0, cy: 0 } };
+  // progress=0.5 → rayon = 0.5 * diagonale ≈ point à (radius,0), pile sur le front
+  const maxRadius = Math.sqrt(1920 * 1920 + 1080 * 1080);
+  const radius = 0.5 * maxRadius;
+  const onFront = reactionDelta(reaction, 0, radius, 0, 1920, 1080, 0.5);
+  const farFromFront = reactionDelta(reaction, 0, 0, 0, 1920, 1080, 0.5); // dist=0, loin du front à mi-parcours
+  expect(onFront).toBeGreaterThan(farFromFront);
+  expect(onFront).toBeGreaterThan(0.4); // proche de l'amplitude max (0.5)
+});
+
+test('reactionDelta raid → nul en dehors de la bande, positif dedans', () => {
+  const reaction = { type: /** @type {const} */ ('raid'), params: {} };
+  // à progress=0.5, la bande est centrée sur l'écran (cssW/2 environ)
+  const inBand = reactionDelta(reaction, 0, 960, 0, 1920, 1080, 0.5);
+  const outOfBand = reactionDelta(reaction, 0, 1920 * 5, 0, 1920, 1080, 0.5);
+  expect(inBand).toBeGreaterThan(0);
+  expect(outOfBand).toBe(0);
+});
+
+test('reactionDelta bits → seuls les points dans indices reçoivent un boost', () => {
+  const reaction = { type: /** @type {const} */ ('bits'), params: { indices: new Set([2, 5]) } };
+  expect(reactionDelta(reaction, 2, 0, 0, 1920, 1080, 0.5)).toBeGreaterThan(0);
+  expect(reactionDelta(reaction, 5, 0, 0, 1920, 1080, 0.5)).toBeGreaterThan(0);
+  expect(reactionDelta(reaction, 3, 0, 0, 1920, 1080, 0.5)).toBe(0);
 });
