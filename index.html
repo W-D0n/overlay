@@ -201,10 +201,14 @@
     }
 
     /* ════════════════ STARTING (écran d'attente pré-live) ════════════════ */
-    .scene[data-scene="starting"] .starting-center {
+    .scene[data-scene="starting"] [data-layer="message"] {
       position: absolute; inset: 0; display: flex; flex-direction: column;
       align-items: center; justify-content: center; text-align: center; gap: 28px;
     }
+    /* [data-layer="links"] existe déjà dans le template (nécessaire pour rester dans la colonne
+       centrée du calque message) avant que les composants JSON de "message" soient montés — order
+       force son rang visuel en dernier indépendamment de cet ordre DOM. */
+    .scene[data-scene="starting"] [data-layer="links"] { order: 1; }
     .scene[data-scene="starting"] .starting-name { font-size: 140px; letter-spacing: -2px; line-height: 0.9; }
     .scene[data-scene="starting"] .starting-rule-gold { width: 320px; }
     .scene[data-scene="starting"] .starting-subject-text { font-size: 38px; max-width: 1200px; }
@@ -239,12 +243,7 @@
 
 
   <template data-scene="starting">
-    <div data-layer="goldbar"></div>
-    <div data-layer="message" class="starting-center">
-      <span class="starting-tag label-mono wide">— Démarrage imminent —</span>
-      <h1 class="starting-name heading-serif">D0n</h1>
-      <div class="starting-rule-gold rule-h-gold"></div>
-      <div class="starting-subject-text value-serif">Au programme aujourd'hui — surprise.</div>
+    <div data-layer="message">
       <div data-layer="links" class="starting-links-list"></div>
     </div>
   </template>
