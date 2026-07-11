@@ -177,26 +177,16 @@
 
     /* ════════════════ CREATION (variante A uniquement, voir docs/inbox.md) ════════════════ */
     /* .creation-capture-zone retiré (S8) — remplacé par le composant Box (options par défaut). */
-    .scene[data-scene="creation"] .creation-sep {
-      position: absolute; top: 40px; left: 1434px; width: 1px; height: 1000px; background: var(--color-rule);
-    }
-    .scene[data-scene="creation"] .creation-col-right {
-      position: absolute; top: 40px; left: 1468px; width: 412px; height: 1000px; display: flex; flex-direction: column;
-    }
-    .scene[data-scene="creation"] .creation-name-block { height: 184px; padding-bottom: 14px; border-bottom: var(--border-gold); flex-shrink: 0; }
-    .scene[data-scene="creation"] .creation-name-block h1 { font-size: 48px; letter-spacing: -0.5px; line-height: 1; }
-    .scene[data-scene="creation"] .creation-cam-mini {
-      width: 120px; height: 120px; border-radius: var(--radius-md);
-      border: var(--border-panel); background: var(--color-bg-panel); flex-shrink: 0;
-    }
-    .scene[data-scene="creation"] .creation-section { padding: 16px 0; border-bottom: var(--border-rule); flex-shrink: 0; }
-    .scene[data-scene="creation"] [data-layer="tool"] { height: 121px; }
+    .scene[data-scene="creation"] [data-layer="cam-mini"] { height: 184px; padding-bottom: 14px; border-bottom: var(--border-gold); }
+    .scene[data-scene="creation"] [data-layer="cam-mini"] h1 { font-size: 48px; letter-spacing: -0.5px; line-height: 1; }
+    .scene[data-scene="creation"] [data-layer="tool"] { height: 121px; padding: 16px 0; border-bottom: var(--border-rule); }
+    .scene[data-scene="creation"] [data-layer="pomodoro"] { padding: 16px 0; border-bottom: var(--border-rule); }
     .scene[data-scene="creation"] .creation-label { margin-bottom: 8px; }
     .scene[data-scene="creation"] .creation-tool-name   { font-family: var(--font-mono); font-size: 22px; color: var(--color-text-primary); margin-bottom: 4px; }
     .scene[data-scene="creation"] .creation-tool-detail { font-size: 16px; margin-bottom: 4px; }
     .scene[data-scene="creation"] .creation-tool-app    { font-family: var(--font-mono); font-size: 14px; color: var(--color-text-mid); }
     .scene[data-scene="creation"] .creation-footer {
-      margin-top: auto; padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
+      padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
     }
 
     /* ════════════════ FIN DE STREAM ════════════════ */
@@ -304,17 +294,6 @@
     </div>
   </template>
 
-  <template data-scene="creation">
-    <div data-layer="goldbar"></div>
-    <div data-layer="capture-zone" aria-hidden="true"></div>
-    <div class="creation-sep" aria-hidden="true"></div>
-    <div class="creation-col-right">
-      <div data-layer="cam-mini" class="creation-name-block"></div>
-      <div data-layer="tool" class="creation-section"></div>
-      <div data-layer="pomodoro" class="creation-section"></div>
-      <div class="creation-footer text-ghost">twitch.tv/d0natelll0</div>
-    </div>
-  </template>
 
   <template data-scene="fin">
     <div data-layer="goldbar"></div>
