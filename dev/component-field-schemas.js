@@ -1,5 +1,6 @@
 // @ts-check
 import { GRID_MODES } from '../components/DotGridAnimated.js';
+import { COMPONENT_NAMES } from '../component-names.js';
 
 /**
  * dev/component-field-schemas.js — Schémas de champs éditables par type de composant (S8 session 5/6,
@@ -177,3 +178,25 @@ export const BACKGROUND_FIELD_SCHEMAS = {
 
 /** Noms d'effets de fond proposés par le sélecteur de la section Fond (`(aucun)` géré à part). */
 export const BACKGROUND_COMPONENT_NAMES = Object.keys(BACKGROUND_FIELD_SCHEMAS);
+
+/**
+ * Vérifie que `COMPOSABLE_COMPONENT_NAMES ∪ BACKGROUND_COMPONENT_NAMES` couvre exactement
+ * `component-names.js` — un composant ajouté au registry sans schéma d'édition (ou inversement)
+ * serait autrement une lacune silencieuse dans l'éditeur (review architecture 2026-07-11).
+ * Ne lève jamais (même convention que `validateSceneConfig`).
+ * @returns {import('../types.js').ValidationResult}
+ */
+export function validateFieldSchemas() {
+  /** @type {string[]} */
+  const errors = [];
+  const covered = new Set([...COMPOSABLE_COMPONENT_NAMES, ...BACKGROUND_COMPONENT_NAMES]);
+
+  for (const name of COMPONENT_NAMES) {
+    if (!covered.has(name)) errors.push(`composant sans schéma d'édition : ${name}`);
+  }
+  for (const name of covered) {
+    if (!COMPONENT_NAMES.includes(name)) errors.push(`schéma d'édition sans déclaration dans component-names.js : ${name}`);
+  }
+
+  return { ok: errors.length === 0, errors };
+}

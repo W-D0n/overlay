@@ -14,6 +14,7 @@ import {
   GoldBar, StatBlock, ChatFeed, PomodoroBar, AlertBanner,
   Box, Divider, TextLabel, TextList, PollBar, Badge, Image,
 } from './components/index.js';
+import { COMPONENT_NAMES } from './component-names.js';
 import { DotGridAnimated } from './components/DotGridAnimated.js';
 import { RainBackground } from './components/RainBackground.js';
 import { MatrixGridBackground } from './components/MatrixGridBackground.js';
@@ -46,3 +47,25 @@ export const COMPONENT_REGISTRY = /** @type {*} */ ({
   OrbitingShapesBackground,
   ShapeMorphBackground,
 });
+
+/**
+ * Vérifie que `COMPONENT_REGISTRY` expose exactement le vocabulaire de `component-names.js` — ni
+ * clé manquante (composant déclaré mais jamais implémenté), ni clé en trop (implémenté mais oublié
+ * dans la source unique). Ne lève jamais (AD-1, même convention que `validateSceneConfig`) ;
+ * appelée une fois au bootstrap réel (`scene-runtime.js` init), pas à chaque montage de scène.
+ * @returns {import('./types.js').ValidationResult}
+ */
+export function validateComponentRegistry() {
+  /** @type {string[]} */
+  const errors = [];
+  const registryKeys = Object.keys(COMPONENT_REGISTRY);
+
+  for (const name of COMPONENT_NAMES) {
+    if (!registryKeys.includes(name)) errors.push(`composant déclaré sans factory : ${name}`);
+  }
+  for (const key of registryKeys) {
+    if (!COMPONENT_NAMES.includes(key)) errors.push(`factory sans déclaration dans component-names.js : ${key}`);
+  }
+
+  return { ok: errors.length === 0, errors };
+}

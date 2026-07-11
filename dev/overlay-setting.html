@@ -324,7 +324,7 @@
     import { SCENE_CONFIGS, loadDynamicScenes } from '../scenes/registry.js';
     import { OBS_SCENE_MAP } from '../relay/obs-scene-map.js';
     import { DEFAULT_TRANSITION } from '../protocol.js';
-    import { COMPONENT_FIELD_SCHEMAS, COMPOSABLE_COMPONENT_NAMES, BACKGROUND_FIELD_SCHEMAS, BACKGROUND_COMPONENT_NAMES } from './component-field-schemas.js';
+    import { COMPONENT_FIELD_SCHEMAS, COMPOSABLE_COMPONENT_NAMES, BACKGROUND_FIELD_SCHEMAS, BACKGROUND_COMPONENT_NAMES, validateFieldSchemas } from './component-field-schemas.js';
     import { DESIGN_TOKENS, tokenLabel } from './design-tokens.js';
     // Montage réel des composants dans la preview (2026-07-05) — component-registry.js et
     // scene-definition-resolve.js sont sûrs à importer ici : aucun des deux n'importe store.js
@@ -358,6 +358,11 @@
     const { RELAY_TOKEN } = await import('../obs-config.local.js').catch(() => import('../obs-config.example.js'));
     /** Même motif que scene-data-server.js — validation côté client avant l'appel réseau (AC-32). */
     const VALID_SCENE_ID = /^[a-z][a-z0-9-]*$/;
+
+    const fieldSchemasCheck = validateFieldSchemas();
+    if (!fieldSchemasCheck.ok) {
+      fieldSchemasCheck.errors.forEach((e) => console.error(`[overlay-setting] schémas de champs incohérents — ${e}`));
+    }
 
     // Les 9 scènes historiques sont désormais des scènes dynamiques (JSON, S8 migration) —
     // SCENE_CONFIGS est vide tant que ce chargement n'a pas résolu (review S8 session 4/6).

@@ -134,7 +134,9 @@
  * Noms des composants JS montables dans une couche.
  * Résolu via registry dans le runtime S3. Étendu en S8 (bibliothèque de primitifs génériques +
  * DotGridBackground) — voir docs/specs/scene-definition-v2.md.
- * @typedef {'GoldBar'|'StatBlock'|'ChatFeed'|'PomodoroBar'|'AlertBanner'|'Box'|'Divider'|'TextLabel'|'TextList'|'PollBar'|'Badge'|'Image'|'DotGridBackground'|'RainBackground'|'MatrixGridBackground'|'BubbleBackground'|'FirefliesBackground'|'FloatingSymbolsBackground'|'GeometricPatternBackground'|'ColorDropsBackground'|'StarsParallaxBackground'|'OrbitingShapesBackground'|'ShapeMorphBackground'} ComponentName
+ * Dérivé de `component-names.js` (source unique, review architecture 2026-07-11) — ne plus étendre
+ * cette liste ici, éditer `COMPONENT_NAMES` dans `component-names.js`.
+ * @typedef {typeof import('./component-names.js').COMPONENT_NAMES[number]} ComponentName
  */
 
 /**

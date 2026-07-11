@@ -280,6 +280,12 @@ test('T33 [Track B AC-01] V2 — background null accepté (scène sans effet de 
   expect(validateSceneConfig(c).errors).not.toContain('background invalide : null');
 });
 
+test('T33b V2 — background rejeté si le composant existe mais n\'est pas un composant de fond (review architecture 2026-07-11)', () => {
+  const c = validConfig();
+  c.background = /** @type {*} */ ({ component: 'StatBlock', options: {} });
+  expect(validateSceneConfig(c).errors).toContain(`background invalide : ${String(c.background)}`);
+});
+
 test('T34 [AC-29] V3 — transition invalide', () => {
   const c = validConfig(); c.transition = /** @type {*} */ ({ type: 'zoom', duration: 400 });
   expect(validateSceneConfig(c).errors).toContain('transition invalide');

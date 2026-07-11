@@ -12,6 +12,8 @@
  * Voir docs/specs/scene-config-protocol.md
  */
 
+import { COMPONENT_NAMES, isBackgroundComponent } from './component-names.js';
+
 // ─── Constantes de repli (AD-3) ─────────────────────────────────────────────
 
 /** Transition de repli — utilisée quand la résolution échoue ou est incomplète. */
@@ -21,14 +23,6 @@ export const DEFAULT_TRANSITION = { type: 'crossfade', duration: 400, easing: 'e
 
 const VISIBILITY_LEVELS = ['full', 'minimal', 'hidden'];
 const TRANSITION_TYPES = ['crossfade', 'cut', 'slide', 'wipe', 'morph'];
-const COMPONENT_NAMES = [
-  'GoldBar', 'StatBlock', 'ChatFeed', 'PomodoroBar', 'AlertBanner',
-  'Box', 'Divider', 'TextLabel', 'TextList', 'PollBar', 'Badge', 'Image', 'DotGridBackground',
-  'RainBackground', 'MatrixGridBackground', 'BubbleBackground', 'FirefliesBackground',
-  'FloatingSymbolsBackground', 'GeometricPatternBackground',
-  'ColorDropsBackground', 'StarsParallaxBackground', 'OrbitingShapesBackground',
-  'ShapeMorphBackground',
-];
 
 /**
  * `SceneId` est une chaîne ouverte depuis S8 (voir types.js) — la liste réelle des scènes valides
@@ -290,11 +284,13 @@ export function validateSceneConfig(config) {
   // V1 — id est une chaîne non-vide (S8 : SceneId ouvert, existence vérifiée par scene-runtime.js)
   if (!isNonEmptyString(config.id)) errors.push(`id invalide : ${String(config.id)}`);
 
-  // V2 — background est null ou un ComponentMount valide (Track B : #bg-layer polymorphe,
-  // remplace dotgridMode — même validation que V8 pour un ComponentMount de couche)
+  // V2 — background est null ou un ComponentMount dont le composant est utilisable comme fond
+  // (Track B : #bg-layer polymorphe, remplace dotgridMode). Restreint aux `*Background` — un
+  // composant non prévu pour un fond (ex : StatBlock) était accepté par erreur avant la review
+  // architecture 2026-07-11 (validation identique à V8, trop permissive pour ce cas précis).
   if (config.background !== null
       && (typeof config.background !== 'object' || config.background === null
-          || !COMPONENT_NAMES.includes(config.background.component))) {
+          || !isBackgroundComponent(config.background.component))) {
     errors.push(`background invalide : ${String(config.background)}`);
   }
 

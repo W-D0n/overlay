@@ -20,7 +20,7 @@ import { validateSceneConfig } from './protocol.js';
 import { resolveTransition, isLayerVisible, toCssEasing } from './scene-resolve.js';
 import { resolvePlacementStyle } from './placement-resolve.js';
 import { resolveBoundValue, resolveBoundOptions, hasBoundOptions, resolveMissingRoles } from './scene-definition-resolve.js';
-import { COMPONENT_REGISTRY } from './component-registry.js';
+import { COMPONENT_REGISTRY, validateComponentRegistry } from './component-registry.js';
 import { SCENE_CONFIGS, SCENE_WIRES, loadDynamicScenes } from './scenes/registry.js';
 
 // ─── État du runtime ──────────────────────────────────────────────────────────
@@ -486,6 +486,11 @@ function applyBackgroundReactions(state) {
  * @returns {Promise<void>}
  */
 async function init() {
+  const registryCheck = validateComponentRegistry();
+  if (!registryCheck.ok) {
+    registryCheck.errors.forEach((e) => console.error(`[overlay] init : registry de composants incohérent — ${e}`));
+  }
+
   bgLayer = /** @type {HTMLElement} */ (document.getElementById('bg-layer'));
   sceneRoot = /** @type {HTMLElement} */ (document.getElementById('scene-root'));
 
