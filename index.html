@@ -95,19 +95,15 @@
     /* ════════════════ JEU ════════════════ */
     /* .cam-mini retiré (S8) — remplacé par le composant Box (background rgba custom), voir
        scenes/jeu.config.js. */
-    .scene[data-scene="jeu"] .hud-bar {
-      position: absolute; bottom: 0; left: 0; right: 0; height: 96px;
+    .scene[data-scene="jeu"] [data-layer="hud"] {
       background: rgba(10, 10, 12, 0.9); border-top: 0.5px solid rgba(200, 185, 122, 0.4);
-      display: flex; align-items: center; padding: 0 28px;
+      display: flex; align-items: center;
     }
-    .scene[data-scene="jeu"] .hud-cell {
-      display: flex; flex-direction: column; gap: 6px;
-      padding-right: 40px; border-right: 1px solid var(--color-rule); margin-right: 40px;
-    }
-    /* Générique (pas .hud-cell:last-child) : le dernier enfant du hud-bar est poussé à droite,
+    .scene[data-scene="jeu"] .hud-cell-sep { background: var(--color-rule); }
+    /* Générique (pas :last-child spécifique) : le dernier enfant du calque hud est poussé à droite,
        quel que soit son type — S8 migration, le vote (PollBar, ComponentMount) a remplacé l'alerte
        (déplacée en bannière centrée, AlertBanner) comme dernier élément. */
-    .scene[data-scene="jeu"] .hud-bar > *:last-child {
+    .scene[data-scene="jeu"] [data-layer="hud"] > *:last-child {
       margin-left: auto;
     }
     .scene[data-scene="jeu"] .hud-value { font-size: 26px; line-height: 1; }
@@ -230,26 +226,6 @@
   <!-- ════════════════ Templates de scène (structure + placement, AD-5) ════════════════ -->
 
 
-
-  <template data-scene="jeu">
-    <div data-layer="goldbar"></div>
-    <div data-layer="cam" aria-hidden="true"></div>
-    <div data-layer="hud" class="hud-bar">
-      <div class="hud-cell">
-        <span class="hud-label label-mono">D0n</span>
-        <span class="hud-value value-mono gold jeu-session">—</span>
-      </div>
-      <div class="hud-cell">
-        <span class="hud-label label-mono">Durée</span>
-        <span class="hud-value value-mono jeu-duration">00:00:00</span>
-      </div>
-      <!-- Vote chat (PollBar) monté par scenes/data/jeu.scene.json — masqué hors vote actif par
-           jeu.wire.js (S8 migration, $bind ne sait pas exprimer "masquer si null"). -->
-    </div>
-    <!-- Alerte : AlertBanner (bannière centrée), unifié avec discussion/codage (S8 migration,
-         remplace la cellule HUD dédiée). -->
-    <div data-layer="alert"></div>
-  </template>
 
   <template data-scene="interview">
     <div data-layer="goldbar"></div>

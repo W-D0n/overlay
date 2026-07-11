@@ -23,7 +23,7 @@ export function wire(mounted) {
   const root = mounted.root;
   const sessionEl  = root.querySelector('.jeu-session');
   const durationEl = root.querySelector('.jeu-duration');
-  const [pollBar]     = mounted.componentsByLayer.hud;
+  const pollBar        = mounted.componentsByLayer.hud.at(-1);
   const [alertBanner] = mounted.componentsByLayer.alert;
 
   const isNewAlert = createAlertGate();

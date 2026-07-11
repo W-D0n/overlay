@@ -19,9 +19,15 @@
     {
       "name": "hud",
       "components": [
+        { "component": "TextLabel", "options": { "text": "D0n", "className": "hud-label label-mono" }, "placement": { "x": 28, "y": 25 } },
+        { "component": "TextLabel", "options": { "text": "—", "className": "hud-value value-mono gold jeu-session" }, "placement": { "x": 28, "y": 46 } },
+        { "component": "Divider", "options": { "className": "hud-cell-sep" }, "placement": { "x": 130, "y": 25, "width": 1, "height": 47 } },
+        { "component": "TextLabel", "options": { "text": "Durée", "className": "hud-label label-mono" }, "placement": { "x": 172, "y": 25 } },
+        { "component": "TextLabel", "options": { "text": "00:00:00", "className": "hud-value value-mono jeu-duration" }, "placement": { "x": 172, "y": 46 } },
         { "component": "PollBar", "options": { "question": { "$bind": "activePoll.question" }, "yesRatio": { "$bind": "activePoll.yesRatio" } } }
       ],
-      "visibility": { "full": true, "minimal": false, "hidden": false }
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 0, "y": 984, "width": 1920, "height": 96 }
     },
     {
       "name": "alert",
