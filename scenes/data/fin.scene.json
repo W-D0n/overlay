@@ -17,33 +17,61 @@
       "placement": { "x": 40, "y": 40, "width": 800, "height": 992 }
     },
     {
-      "name": "recap",
+      "name": "separator",
       "components": [
-        { "component": "TextList", "options": { "lines": { "$bind": "recapLines" }, "itemClass": "fin-recap-line value-serif" } }
+        { "component": "Divider", "options": { "orientation": "vertical" }, "placement": { "x": 880, "y": 40, "width": 1, "height": 1000 } },
+        { "component": "Divider", "options": { "className": "fin-bar-bot-full" }, "placement": { "x": 0, "y": 1078, "width": 1920, "height": 3 } }
+      ],
+      "visibility": { "full": true, "minimal": true, "hidden": false }
+    },
+    {
+      "name": "name",
+      "components": [
+        { "component": "TextLabel", "options": { "text": "D0n", "className": "heading-serif", "tag": "h1" }, "placement": { "x": 920, "y": 40 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
+    },
+    {
+      "name": "recap",
+      "components": [
+        { "component": "TextLabel", "options": { "text": "Session — Récap", "className": "fin-label label-mono", "tag": "span" } },
+        { "component": "TextList", "options": { "lines": { "$bind": "recapLines" }, "itemClass": "fin-recap-line value-serif" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 920, "y": 139, "width": 960 }
     },
     {
       "name": "next-stream",
       "components": [
-        { "component": "TextLabel", "options": { "text": "Prochain stream", "className": "fin-label label-mono", "tag": "span" }, "placement": { "x": 0, "y": 195 } },
-        { "component": "TextLabel", "options": { "text": "À venir", "className": "fin-next-when value-serif" }, "placement": { "x": 0, "y": 224 } },
-        { "component": "TextLabel", "options": { "text": "", "className": "fin-next-topic value-serif gold" }, "placement": { "x": 0, "y": 274 } }
+        { "component": "TextLabel", "options": { "text": "Prochain stream", "className": "fin-label label-mono", "tag": "span" }, "placement": { "x": 0, "y": 22 } },
+        { "component": "TextLabel", "options": { "text": "À venir", "className": "fin-next-when value-serif" }, "placement": { "x": 0, "y": 51 } },
+        { "component": "TextLabel", "options": { "text": "", "className": "fin-next-topic value-serif gold" }, "placement": { "x": 0, "y": 101 } }
       ],
-      "visibility": { "full": true, "minimal": false, "hidden": false }
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 920, "y": 213, "width": 960 }
     },
     {
       "name": "stats",
       "components": [
-        { "component": "StatBlock", "options": { "label": "NOUVEAUX FOLLOWS", "value": "—", "valueColor": "#C8B97A" }, "placement": { "x": 0, "y": 319 } },
-        { "component": "StatBlock", "options": { "label": "DURÉE", "value": "00:00:00" }, "placement": { "x": 210, "y": 319 } }
+        { "component": "StatBlock", "options": { "label": "NOUVEAUX FOLLOWS", "value": "—", "valueColor": "#C8B97A" }, "placement": { "x": 0, "y": 45 } },
+        { "component": "StatBlock", "options": { "label": "DURÉE", "value": "00:00:00" }, "placement": { "x": 210, "y": 45 } }
       ],
-      "visibility": { "full": true, "minimal": false, "hidden": false }
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 920, "y": 314, "width": 960 }
     },
     {
       "name": "links",
       "components": [
+        { "component": "TextLabel", "options": { "text": "Liens", "className": "fin-label label-mono", "tag": "span" } },
         { "component": "TextList", "options": { "lines": { "$bind": "socialLinks" }, "itemClass": "fin-link-item value-mono-gold" } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 920, "y": 373, "width": 960 }
+    },
+    {
+      "name": "footer",
+      "components": [
+        { "component": "TextLabel", "options": { "text": "Mozaïk · À bientôt", "className": "fin-footer text-ghost" }, "placement": { "x": 920, "y": 1008 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
     }

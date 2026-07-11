@@ -190,19 +190,13 @@
     }
 
     /* ════════════════ FIN DE STREAM ════════════════ */
-    .scene[data-scene="fin"] .fin-bar-bot-full {
-      position: absolute; bottom: 0; left: 0; right: 0; height: 2.5px; background: var(--color-gold); opacity: 0.8;
-    }
+    .scene[data-scene="fin"] .fin-bar-bot-full { background: var(--color-gold); opacity: 0.8; }
     /* .fin-cam retiré (S8) — remplacé par le composant Box (options par défaut). */
-    .scene[data-scene="fin"] .fin-sep {
-      position: absolute; top: 40px; left: 880px; width: 1px; height: 1000px; background: var(--color-rule);
-    }
-    .scene[data-scene="fin"] .fin-col-right {
-      position: absolute; top: 40px; left: 920px; width: 960px; height: 1000px; display: flex; flex-direction: column;
-    }
-    .scene[data-scene="fin"] .fin-name-block { padding-bottom: 18px; border-bottom: var(--border-gold); flex-shrink: 0; }
-    .scene[data-scene="fin"] .fin-name-block h1 { font-size: 80px; letter-spacing: -1px; line-height: 1; }
-    .scene[data-scene="fin"] .fin-section { padding: 22px 0; border-bottom: var(--border-rule); flex-shrink: 0; }
+    .scene[data-scene="fin"] [data-layer="name"] h1 { font-size: 80px; letter-spacing: -1px; line-height: 1; padding-bottom: 18px; border-bottom: var(--border-gold); }
+    .scene[data-scene="fin"] [data-layer="recap"],
+    .scene[data-scene="fin"] [data-layer="next-stream"],
+    .scene[data-scene="fin"] [data-layer="stats"],
+    .scene[data-scene="fin"] [data-layer="links"] { padding: 22px 0; border-bottom: var(--border-rule); }
     .scene[data-scene="fin"] [data-layer="next-stream"] { height: 101px; }
     .scene[data-scene="fin"] .fin-label {
       margin-bottom: 14px;
@@ -211,12 +205,12 @@
     .scene[data-scene="fin"] .fin-recap-line.dim { color: var(--color-text-mid); }
     .scene[data-scene="fin"] .fin-next-when  { font-size: 38px; margin-bottom: 6px; }
     .scene[data-scene="fin"] .fin-next-topic { font-size: 36px; }
-    .scene[data-scene="fin"] .fin-stats-grid { height: 59px; }
+    .scene[data-scene="fin"] [data-layer="stats"] { height: 59px; }
     /* Conteneur .fin-links-list retiré (S8) — display:flex/gap fournis par le composant TextList. */
     .scene[data-scene="fin"] .fin-link-item  { font-size: 26px; }
     .scene[data-scene="fin"] .fin-link-item.dim { color: var(--color-text-mid); }
     .scene[data-scene="fin"] .fin-footer {
-      margin-top: auto; padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
+      padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
     }
 
     /* ════════════════ STARTING (écran d'attente pré-live) ════════════════ */
@@ -294,25 +288,6 @@
     </div>
   </template>
 
-
-  <template data-scene="fin">
-    <div data-layer="goldbar"></div>
-    <div class="fin-bar-bot-full" aria-hidden="true"></div>
-    <div data-layer="cam" aria-hidden="true"></div>
-    <div class="fin-sep" aria-hidden="true"></div>
-    <div class="fin-col-right">
-      <div class="fin-name-block"><h1 class="heading-serif">D0n</h1></div>
-      <div data-layer="recap" class="fin-section">
-        <span class="fin-label label-mono">Session — Récap</span>
-      </div>
-      <div data-layer="next-stream" class="fin-section"></div>
-      <div data-layer="stats" class="fin-section fin-stats-grid"></div>
-      <div data-layer="links" class="fin-section">
-        <span class="fin-label label-mono">Liens</span>
-      </div>
-      <div class="fin-footer text-ghost">Mozaïk · À bientôt</div>
-    </div>
-  </template>
 
   <template data-scene="starting">
     <div data-layer="goldbar"></div>
