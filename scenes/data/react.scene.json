@@ -125,8 +125,26 @@
       }
     },
     {
+      "name": "separator",
+      "components": [
+        {
+          "component": "Divider",
+          "options": { "orientation": "vertical" },
+          "placement": { "x": 1134, "y": 40, "width": 1, "height": 980 }
+        }
+      ],
+      "visibility": { "full": true, "minimal": true, "hidden": false }
+    },
+    {
       "name": "chat",
       "components": [
+        {
+          "component": "TextLabel",
+          "options": {
+            "text": "Chat",
+            "className": "react-chat-label label-mono"
+          }
+        },
         {
           "component": "ChatFeed",
           "options": {
@@ -139,16 +157,24 @@
         "full": true,
         "minimal": false,
         "hidden": false
-      }
+      },
+      "placement": { "x": 1168, "y": 520, "width": 712, "height": 500 }
     },
     {
       "name": "hud",
-      "components": [],
+      "components": [
+        { "component": "TextLabel", "options": { "text": "D0n", "className": "react-hud-name heading-serif" }, "placement": { "x": 40, "y": 14 } },
+        { "component": "Divider", "options": { "className": "react-hud-v rule-v" }, "placement": { "x": 130, "y": 17, "width": 1, "height": 28 } },
+        { "component": "TextLabel", "options": { "text": "Durée", "className": "react-hud-lbl label-mono" }, "placement": { "x": 171, "y": 10 } },
+        { "component": "TextLabel", "options": { "text": "00:00", "className": "react-hud-val value-mono-gold react-hud-duration" }, "placement": { "x": 171, "y": 27 } },
+        { "component": "TextLabel", "options": { "text": "twitch.tv/d0natelll0", "className": "react-hud-link text-ghost" }, "placement": { "x": 1724, "y": 23 } }
+      ],
       "visibility": {
         "full": true,
         "minimal": false,
         "hidden": false
-      }
+      },
+      "placement": { "x": 0, "y": 1020, "width": 1920, "height": 60 }
     }
   ]
 }

@@ -144,7 +144,7 @@
     /* ════════════════ REACT ════════════════ */
     /* .react-source-zone/.react-cam retirés (S8) — remplacés par le composant Box (défauts).
        .react-source-credit garde son CSS (contenu structuré, pas un simple placeholder). */
-    .scene[data-scene="react"] .react-source-credit {
+    .scene[data-scene="react"] [data-layer="source-credit"] {
       border: 0.5px solid var(--color-gold); border-radius: var(--radius-md); background: var(--color-bg-widget);
       display: flex; align-items: center; padding: 0 24px; gap: 20px;
     }
@@ -155,25 +155,16 @@
       overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
     }
     .scene[data-scene="react"] .react-credit-platform { font-size: 20px; flex-shrink: 0; }
-    .scene[data-scene="react"] .react-sep {
-      position: absolute; top: 40px; left: 1134px; width: 1px; height: 980px; background: var(--color-rule);
+    .scene[data-scene="react"] [data-layer="chat"] {
+      display: flex; flex-direction: column; overflow: hidden;
     }
-    .scene[data-scene="react"] .react-col-chat {
-      position: absolute; top: 520px; left: 1168px; width: 712px; height: 500px;
-      display: flex; flex-direction: column;
-    }
+    .scene[data-scene="react"] [data-layer="chat"] > *:last-child { flex: 1; min-height: 0; }
     .scene[data-scene="react"] .react-chat-label { margin-bottom: 12px; flex-shrink: 0; }
-    .scene[data-scene="react"] [data-layer="chat"] { flex: 1; overflow: hidden; }
-    .scene[data-scene="react"] .react-hud-bottom {
-      position: absolute; bottom: 0; left: 0; right: 0; height: 60px;
+    .scene[data-scene="react"] [data-layer="hud"] {
       background: var(--color-bg-widget); border-top: var(--border-rule);
-      display: flex; align-items: center; padding: 0 40px; gap: 40px;
     }
     .scene[data-scene="react"] .react-hud-name { font-size: 28px; }
-    .scene[data-scene="react"] .react-hud-v    { height: 28px; }
     .scene[data-scene="react"] .react-hud-val  { font-size: 22px; }
-    .scene[data-scene="react"] .react-hud-pair { display: flex; flex-direction: column; gap: 2px; }
-    .scene[data-scene="react"] .react-hud-link { margin-left: auto; }
 
     /* ════════════════ CREATION (variante A uniquement, voir docs/inbox.md) ════════════════ */
     /* .creation-capture-zone retiré (S8) — remplacé par le composant Box (options par défaut). */
@@ -267,24 +258,6 @@
       <span class="int-chat-label label-mono">Chat</span>
       <div data-layer="chat"></div>
       <div data-layer="stats"></div>
-    </div>
-  </template>
-
-  <template data-scene="react">
-    <div data-layer="goldbar"></div>
-    <div data-layer="source-zone" aria-hidden="true"></div>
-    <div data-layer="source-credit" class="react-source-credit"></div>
-    <div class="react-sep" aria-hidden="true"></div>
-    <div data-layer="cam" aria-hidden="true"></div>
-    <div class="react-col-chat">
-      <span class="react-chat-label label-mono">Chat</span>
-      <div data-layer="chat"></div>
-    </div>
-    <div data-layer="hud" class="react-hud-bottom">
-      <span class="react-hud-name heading-serif">D0n</span>
-      <div class="react-hud-v rule-v"></div>
-      <div class="react-hud-pair"><span class="react-hud-lbl label-mono">Durée</span><span class="react-hud-val value-mono-gold react-hud-duration">00:00</span></div>
-      <span class="react-hud-link text-ghost">twitch.tv/d0natelll0</span>
     </div>
   </template>
 
