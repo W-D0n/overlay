@@ -214,8 +214,36 @@ function applyBackground(mount) {
 // ─── Transition de scène ─────────────────────────────────────────────────────────
 
 /**
+ * Échafaudage commun à `crossfade`/`slide`/`wipe` : filet `transitionend` OU timeout (le premier
+ * déclenché annule l'autre), démontage de `previous`, bookkeeping `finalizePending`. Remet toujours
+ * `next.root.style.transition` à vide (propriété posée par les 3 transitions) — `cleanup` ne
+ * nettoie que ce qui est propre à la transition appelante (extraction review architecture
+ * 2026-07-12 : les 3 fonctions répétaient ce bloc à l'identique).
+ * @param {import('./types.js').MountedScene} previous
+ * @param {import('./types.js').MountedScene} next
+ * @param {import('./types.js').SceneTransition} resolved
+ * @param {() => void} [cleanup]
+ * @returns {void}
+ */
+function runSceneTransition(previous, next, resolved, cleanup = () => {}) {
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    next.root.removeEventListener('transitionend', finish);
+    next.root.style.transition = '';
+    cleanup();
+    previous.destroy();
+    if (finalizePending === finish) finalizePending = null;
+  };
+  next.root.addEventListener('transitionend', finish, { once: true });
+  const timer = setTimeout(finish, resolved.duration + 100);
+  finalizePending = finish;
+}
+
+/**
  * Crossfade entre l'ancienne et la nouvelle scène, puis démonte l'ancienne.
- * Filet : `transitionend` OU timeout (le premier déclenché annule l'autre).
  * @param {import('./types.js').MountedScene} previous
  * @param {import('./types.js').MountedScene} next
  * @param {import('./types.js').SceneTransition} resolved
@@ -230,18 +258,9 @@ function crossfade(previous, next, resolved) {
   next.root.style.opacity = '1';
   previous.root.style.opacity = '0';
 
-  let done = false;
-  const finish = () => {
-    if (done) return;
-    done = true;
-    clearTimeout(timer);
-    next.root.removeEventListener('transitionend', finish);
-    previous.destroy();
-    if (finalizePending === finish) finalizePending = null;
-  };
-  next.root.addEventListener('transitionend', finish, { once: true });
-  const timer = setTimeout(finish, resolved.duration + 100);
-  finalizePending = finish;
+  runSceneTransition(previous, next, resolved, () => {
+    next.root.style.opacity = '';
+  });
 }
 
 /** Axe de translation `slide` selon la direction — gauche/droite = X, haut/bas = Y. */
@@ -253,7 +272,6 @@ const SLIDE_EXIT_TO = { right: '-100%', left: '100%', up: '100%', down: '-100%' 
 
 /**
  * Slide entre l'ancienne et la nouvelle scène (translateX/Y), puis démonte l'ancienne.
- * Même filet `transitionend`/timeout que `crossfade` (AC-06).
  * @param {import('./types.js').MountedScene} previous
  * @param {import('./types.js').MountedScene} next
  * @param {import('./types.js').SceneTransition} resolved
@@ -271,20 +289,9 @@ function slide(previous, next, resolved) {
   next.root.style.transform = `translate${axis}(0)`;
   previous.root.style.transform = `translate${axis}(${SLIDE_EXIT_TO[direction]})`;
 
-  let done = false;
-  const finish = () => {
-    if (done) return;
-    done = true;
-    clearTimeout(timer);
-    next.root.removeEventListener('transitionend', finish);
+  runSceneTransition(previous, next, resolved, () => {
     next.root.style.transform = '';
-    next.root.style.transition = '';
-    previous.destroy();
-    if (finalizePending === finish) finalizePending = null;
-  };
-  next.root.addEventListener('transitionend', finish, { once: true });
-  const timer = setTimeout(finish, resolved.duration + 100);
-  finalizePending = finish;
+  });
 }
 
 /** `clip-path: inset(...)` de l'entrante `wipe` pour un pourcentage restant à révéler. */
@@ -297,7 +304,6 @@ const WIPE_INSET = {
 
 /**
  * Wipe : révélation de la scène entrante via `clip-path` animé, sortante statique dessous.
- * Même filet `transitionend`/timeout que `crossfade` (AC-06).
  * @param {import('./types.js').MountedScene} previous
  * @param {import('./types.js').MountedScene} next
  * @param {import('./types.js').SceneTransition} resolved
@@ -315,21 +321,10 @@ function wipe(previous, next, resolved) {
   next.root.style.transition = `clip-path ${resolved.duration}ms ${toCssEasing(resolved.easing)}`;
   next.root.style.clipPath = inset ? `inset(${inset(0)})` : '';
 
-  let done = false;
-  const finish = () => {
-    if (done) return;
-    done = true;
-    clearTimeout(timer);
-    next.root.removeEventListener('transitionend', finish);
+  runSceneTransition(previous, next, resolved, () => {
     next.root.style.clipPath = '';
-    next.root.style.transition = '';
     next.root.style.boxShadow = '';
-    previous.destroy();
-    if (finalizePending === finish) finalizePending = null;
-  };
-  next.root.addEventListener('transitionend', finish, { once: true });
-  const timer = setTimeout(finish, resolved.duration + 100);
-  finalizePending = finish;
+  });
 }
 
 /**
