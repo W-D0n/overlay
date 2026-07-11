@@ -86,7 +86,7 @@
         {
           "component": "TextLabel",
           "options": {
-            "text": "",
+            "text": { "$bind": "sourcePlatform", "$default": "" },
             "className": "react-credit-platform value-mono-gold",
             "tag": "span"
           }

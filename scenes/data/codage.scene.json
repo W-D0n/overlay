@@ -37,9 +37,9 @@
       "name": "ide-context",
       "components": [
         { "component": "TextLabel", "options": { "text": "Fichier actif", "className": "cod-label label-mono", "tag": "span" }, "placement": { "x": 0, "y": 18 } },
-        { "component": "TextLabel", "options": { "text": "—", "className": "file-name" }, "placement": { "x": 0, "y": 41 } },
-        { "component": "TextLabel", "options": { "text": "", "className": "git-branch value-mono-gold" }, "placement": { "x": 0, "y": 77 } },
-        { "component": "TextLabel", "options": { "text": "", "className": "stack-info" }, "placement": { "x": 0, "y": 104 } }
+        { "component": "TextLabel", "options": { "text": { "$bind": "currentFile", "$default": "—" }, "className": "file-name" }, "placement": { "x": 0, "y": 41 } },
+        { "component": "TextLabel", "options": { "text": { "$bind": "currentBranch", "$default": "" }, "className": "git-branch value-mono-gold" }, "placement": { "x": 0, "y": 77 } },
+        { "component": "TextLabel", "options": { "text": { "$bind": "currentActivity", "$default": "" }, "className": "stack-info" }, "placement": { "x": 0, "y": 104 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false },
       "placement": { "x": 1468, "y": 289, "width": 412 }
@@ -55,7 +55,7 @@
     {
       "name": "stats",
       "components": [
-        { "component": "StatBlock", "options": { "label": "DURÉE", "value": "00:00:00", "valueColor": "#C8B97A" } }
+        { "component": "StatBlock", "options": { "label": "DURÉE", "value": { "$bind": "duration" }, "valueColor": "#C8B97A" } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false },
       "placement": { "x": 1468, "y": 520, "width": 412 }

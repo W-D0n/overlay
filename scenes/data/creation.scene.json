@@ -37,9 +37,9 @@
       "name": "tool",
       "components": [
         { "component": "TextLabel", "options": { "text": "Outil actif", "className": "creation-label label-mono", "tag": "span" }, "placement": { "x": 0, "y": 31 } },
-        { "component": "TextLabel", "options": { "text": "—", "className": "creation-tool-name" }, "placement": { "x": 0, "y": 54 } },
-        { "component": "TextLabel", "options": { "text": "", "className": "creation-tool-detail value-mono-gold" }, "placement": { "x": 0, "y": 83 } },
-        { "component": "TextLabel", "options": { "text": "", "className": "creation-tool-app" }, "placement": { "x": 0, "y": 105 } }
+        { "component": "TextLabel", "options": { "text": { "$bind": "currentTool", "$default": "—" }, "className": "creation-tool-name" }, "placement": { "x": 0, "y": 54 } },
+        { "component": "TextLabel", "options": { "text": { "$bind": "currentFile", "$default": "" }, "className": "creation-tool-detail value-mono-gold" }, "placement": { "x": 0, "y": 83 } },
+        { "component": "TextLabel", "options": { "text": { "$bind": "currentActivity", "$default": "" }, "className": "creation-tool-app" }, "placement": { "x": 0, "y": 105 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false },
       "placement": { "x": 1468, "y": 224, "width": 412 }

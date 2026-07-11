@@ -10,14 +10,8 @@ import { onStateChange } from '../store.js';
  */
 export function wire(mounted) {
   const [pomodoro] = mounted.componentsByLayer.pomodoro;
-  const toolNameEl   = mounted.root.querySelector('.creation-tool-name');
-  const toolDetailEl = mounted.root.querySelector('.creation-tool-detail');
-  const toolAppEl    = mounted.root.querySelector('.creation-tool-app');
 
   return onStateChange((state) => {
     pomodoro.update?.(state.pomodoro);
-    if (toolNameEl)   toolNameEl.textContent   = state.currentTool     || '—';
-    if (toolDetailEl) toolDetailEl.textContent = state.currentFile     || '';
-    if (toolAppEl)    toolAppEl.textContent    = state.currentActivity || '';
   });
 }

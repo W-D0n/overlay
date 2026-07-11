@@ -17,7 +17,7 @@
         { "component": "TextLabel", "options": { "text": "— Démarrage imminent —", "className": "starting-tag label-mono wide" } },
         { "component": "TextLabel", "options": { "text": "D0n", "className": "starting-name heading-serif", "tag": "h1" } },
         { "component": "Divider", "options": { "className": "starting-rule-gold rule-h-gold" } },
-        { "component": "TextLabel", "options": { "text": "Au programme aujourd'hui — surprise.", "className": "starting-subject-text value-serif" } }
+        { "component": "TextLabel", "options": { "text": { "$bind": "subjectLine", "$default": "Au programme aujourd'hui — surprise." }, "className": "starting-subject-text value-serif" } }
       ],
       "visibility": { "full": true, "minimal": true, "hidden": false }
     },

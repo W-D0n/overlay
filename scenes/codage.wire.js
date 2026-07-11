@@ -13,12 +13,8 @@ const ALERT_STRIP_LABELS = { follow: '+ follow', sub: '+ sub', raid: 'raid', bit
  * @returns {() => void} cleanup (désabonnement + timer de la bande basse)
  */
 export function wire(mounted) {
-  const [statDuration] = mounted.componentsByLayer.stats;
   const [pomodoro] = mounted.componentsByLayer.pomodoro;
   const [alert] = mounted.componentsByLayer.alert;
-  const fileEl   = mounted.root.querySelector('.file-name');
-  const branchEl = mounted.root.querySelector('.git-branch');
-  const stackEl  = mounted.root.querySelector('.stack-info');
   const stripEl  = mounted.root.querySelector('.cod-alert-text');
 
   const isNewAlert = createAlertGate();
@@ -26,11 +22,7 @@ export function wire(mounted) {
   let stripTimer = null;
 
   const unsubscribe = onStateChange((state) => {
-    statDuration.update?.({ value: state.duration });
     pomodoro.update?.(state.pomodoro);
-    if (fileEl)   fileEl.textContent   = state.currentFile || '—';
-    if (branchEl) branchEl.textContent = state.currentBranch || '';
-    if (stackEl)  stackEl.textContent  = state.currentActivity || '';
 
     if (state.latestAlert && isNewAlert(state.latestAlert)) {
       alert.show?.(state.latestAlert);

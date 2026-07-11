@@ -25,6 +25,24 @@ test('resolveBoundValue returns undefined for a missing path, never throws', () 
   expect(resolveBoundValue({ $bind: 'nope.really.not.there' }, STATE)).toBeUndefined();
 });
 
+test('resolveBoundValue returns $default when the bound path is missing', () => {
+  expect(resolveBoundValue({ $bind: 'nope.not.there', $default: 'En attente' }, STATE)).toBe('En attente');
+});
+
+test('resolveBoundValue returns $default when the bound value is an empty string (falsy)', () => {
+  const state = /** @type {*} */ ({ nextStreamTopic: '' });
+  expect(resolveBoundValue({ $bind: 'nextStreamTopic', $default: 'À venir' }, state)).toBe('À venir');
+});
+
+test('resolveBoundValue returns the real value over $default when it is truthy', () => {
+  expect(resolveBoundValue({ $bind: 'subjectLine', $default: 'En attente' }, STATE)).toBe('Sculpt');
+});
+
+test('resolveBoundValue returns falsy non-empty values as-is, ignoring $default (0 is valid data)', () => {
+  const state = /** @type {*} */ ({ viewers: 0 });
+  expect(resolveBoundValue({ $bind: 'viewers', $default: 99 }, state)).toBe(0);
+});
+
 test('resolveBoundOptions resolves each key independently, mixing literal and bound', () => {
   const resolved = resolveBoundOptions({
     text: { $bind: 'subjectLine' },

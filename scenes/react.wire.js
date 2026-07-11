@@ -11,13 +11,11 @@ import { onStateChange } from '../store.js';
 export function wire(mounted) {
   const [chat] = mounted.componentsByLayer.chat;
   const creditTitleEl    = mounted.root.querySelector('.react-credit-title');
-  const creditPlatformEl = mounted.root.querySelector('.react-credit-platform');
   const hudDurationEl    = mounted.root.querySelector('.react-hud-duration');
 
   return onStateChange((state) => {
     chat.update?.(state.chatMessages);
     if (creditTitleEl)    creditTitleEl.textContent    = [state.sourceTitle, state.sourceAuthor].filter(Boolean).join(' · ') || '—';
-    if (creditPlatformEl) creditPlatformEl.textContent = state.sourcePlatform || '';
     if (hudDurationEl)    hudDurationEl.textContent      = state.duration.slice(0, 5);
   });
 }

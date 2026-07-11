@@ -30,13 +30,23 @@ function getByPath(obj, path) {
 /**
  * Résoudre une valeur : si elle est liée (`{ $bind: path }`), retourne `state[path]` ; sinon,
  * retourne la valeur littérale telle quelle.
+ *
+ * `$default` (optionnel) : retourné à la place quand le chemin résout à `undefined`, `null` ou
+ * une chaîne vide — jamais pour `0`/`false`, valeurs de données légitimes (cohérent avec
+ * `placement-resolve.test.js` "x/y = 0 falsy mais valide"). Remplace le pattern
+ * `state.champ || 'repli'` copié-collé dans la plupart des `scenes/*.wire.js` (review
+ * architecture, 2026-07-11).
  * @param {unknown} value
  * @param {import('./types.js').StreamState} state
  * @returns {unknown}
  */
 export function resolveBoundValue(value, state) {
-  if (isBoundValue(value)) return getByPath(/** @type {*} */ (state), value.$bind);
-  return value;
+  if (!isBoundValue(value)) return value;
+  const resolved = getByPath(/** @type {*} */ (state), value.$bind);
+  if ('$default' in value && (resolved === undefined || resolved === null || resolved === '')) {
+    return value.$default;
+  }
+  return resolved;
 }
 
 /**

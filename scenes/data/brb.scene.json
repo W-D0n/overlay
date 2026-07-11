@@ -109,7 +109,7 @@
         {
           "component": "TextLabel",
           "options": {
-            "text": "—",
+            "text": { "$bind": "currentSong", "$default": "—" },
             "className": "brb-song value-mono-gold"
           },
           "placement": { "x": 0, "y": 477 }
@@ -170,7 +170,7 @@
           "component": "StatBlock",
           "options": {
             "label": "DURÉE",
-            "value": "00:00:00",
+            "value": { "$bind": "duration" },
             "valueColor": "#C8B97A"
           }
         }
@@ -196,7 +196,7 @@
         {
           "component": "TextLabel",
           "options": {
-            "text": "À venir",
+            "text": { "$bind": "nextStream", "$default": "À venir" },
             "className": "next-info value-serif",
             "tag": "span"
           }
@@ -204,7 +204,7 @@
         {
           "component": "TextLabel",
           "options": {
-            "text": "",
+            "text": { "$bind": "nextStreamTopic", "$default": "" },
             "className": "next-topic value-serif gold",
             "tag": "span"
           }

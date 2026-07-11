@@ -142,6 +142,8 @@
  * (`scene-definition-resolve.js`, S8) au montage et à chaque changement d'état.
  * @typedef {Object} BoundValue
  * @property {string} $bind - Chemin dans `StreamState` (ex : 'subjectLine', 'sessionStats.maxViewers')
+ * @property {*} [$default] - Repli si le chemin résout à `undefined`/`null`/chaîne vide (jamais
+ *   pour `0`/`false`, données légitimes) — remplace le pattern `state.champ || 'repli'` des wire.js
  */
 
 /**

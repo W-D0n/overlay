@@ -44,8 +44,8 @@
       "name": "next-stream",
       "components": [
         { "component": "TextLabel", "options": { "text": "Prochain stream", "className": "fin-label label-mono", "tag": "span" }, "placement": { "x": 0, "y": 22 } },
-        { "component": "TextLabel", "options": { "text": "À venir", "className": "fin-next-when value-serif" }, "placement": { "x": 0, "y": 51 } },
-        { "component": "TextLabel", "options": { "text": "", "className": "fin-next-topic value-serif gold" }, "placement": { "x": 0, "y": 101 } }
+        { "component": "TextLabel", "options": { "text": { "$bind": "nextStream", "$default": "À venir" }, "className": "fin-next-when value-serif" }, "placement": { "x": 0, "y": 51 } },
+        { "component": "TextLabel", "options": { "text": { "$bind": "nextStreamTopic", "$default": "" }, "className": "fin-next-topic value-serif gold" }, "placement": { "x": 0, "y": 101 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false },
       "placement": { "x": 920, "y": 213, "width": 960 }
@@ -54,7 +54,7 @@
       "name": "stats",
       "components": [
         { "component": "StatBlock", "options": { "label": "NOUVEAUX FOLLOWS", "value": "—", "valueColor": "#C8B97A" }, "placement": { "x": 0, "y": 45 } },
-        { "component": "StatBlock", "options": { "label": "DURÉE", "value": "00:00:00" }, "placement": { "x": 210, "y": 45 } }
+        { "component": "StatBlock", "options": { "label": "DURÉE", "value": { "$bind": "sessionStats.duration", "$default": "00:00:00" } }, "placement": { "x": 210, "y": 45 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false },
       "placement": { "x": 920, "y": 314, "width": 960 }

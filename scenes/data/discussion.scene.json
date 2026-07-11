@@ -119,7 +119,7 @@
         {
           "component": "TextLabel",
           "options": {
-            "text": "En attente",
+            "text": { "$bind": "subjectLine", "$default": "En attente" },
             "className": "subject-text value-serif"
           },
           "placement": {
@@ -142,7 +142,7 @@
           "component": "StatBlock",
           "options": {
             "label": "DURÉE",
-            "value": "00:00:00",
+            "value": { "$bind": "duration" },
             "valueColor": "#C8B97A"
           }
         }

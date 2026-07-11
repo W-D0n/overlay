@@ -19,7 +19,6 @@ import { wire as wireInterview }     from './interview.wire.js';
 import { wire as wireReact }         from './react.wire.js';
 import { wire as wireCreation }      from './creation.wire.js';
 import { wire as wireFin }           from './fin.wire.js';
-import { wire as wireStarting }      from './starting.wire.js';
 import { STATIC_SCENE_IDS } from './reserved-scene-ids.js';
 
 export { STATIC_SCENE_IDS };
@@ -37,7 +36,6 @@ export const SCENE_WIRES = {
   react: wireReact,
   creation: wireCreation,
   fin: wireFin,
-  starting: wireStarting,
 };
 
 /**
