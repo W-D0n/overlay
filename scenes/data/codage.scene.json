@@ -18,38 +18,60 @@
       "placement": { "x": 40, "y": 40, "width": 1360, "height": 992 }
     },
     {
+      "name": "separator",
+      "components": [
+        { "component": "Divider", "options": { "orientation": "vertical" }, "placement": { "x": 1434, "y": 40, "width": 1, "height": 1000 } }
+      ],
+      "visibility": { "full": true, "minimal": true, "hidden": false }
+    },
+    {
       "name": "cam-mini",
-      "components": [],
-      "visibility": { "full": true, "minimal": false, "hidden": false }
+      "components": [
+        { "component": "TextLabel", "options": { "text": "D0n", "className": "cod-name heading-serif", "tag": "h1" }, "placement": { "x": 0, "y": 0 } },
+        { "component": "Box", "options": {}, "placement": { "x": 0, "y": 85, "width": 164, "height": 164 } }
+      ],
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 1468, "y": 40, "width": 412 }
     },
     {
       "name": "ide-context",
       "components": [
-        { "component": "TextLabel", "options": { "text": "Fichier actif", "className": "cod-label label-mono", "tag": "span" }, "placement": { "x": 0, "y": 267 } },
-        { "component": "TextLabel", "options": { "text": "—", "className": "file-name" }, "placement": { "x": 0, "y": 290 } },
-        { "component": "TextLabel", "options": { "text": "", "className": "git-branch value-mono-gold" }, "placement": { "x": 0, "y": 326 } },
-        { "component": "TextLabel", "options": { "text": "", "className": "stack-info" }, "placement": { "x": 0, "y": 353 } }
+        { "component": "TextLabel", "options": { "text": "Fichier actif", "className": "cod-label label-mono", "tag": "span" }, "placement": { "x": 0, "y": 18 } },
+        { "component": "TextLabel", "options": { "text": "—", "className": "file-name" }, "placement": { "x": 0, "y": 41 } },
+        { "component": "TextLabel", "options": { "text": "", "className": "git-branch value-mono-gold" }, "placement": { "x": 0, "y": 77 } },
+        { "component": "TextLabel", "options": { "text": "", "className": "stack-info" }, "placement": { "x": 0, "y": 104 } }
       ],
-      "visibility": { "full": true, "minimal": false, "hidden": false }
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 1468, "y": 289, "width": 412 }
     },
     {
       "name": "pomodoro",
       "components": [
         { "component": "PomodoroBar", "options": {} }
       ],
-      "visibility": { "full": true, "minimal": false, "hidden": false }
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 1468, "y": 413, "width": 412 }
     },
     {
       "name": "stats",
       "components": [
         { "component": "StatBlock", "options": { "label": "DURÉE", "value": "00:00:00", "valueColor": "#C8B97A" } }
       ],
+      "visibility": { "full": true, "minimal": false, "hidden": false },
+      "placement": { "x": 1468, "y": 520, "width": 412 }
+    },
+    {
+      "name": "footer",
+      "components": [
+        { "component": "TextLabel", "options": { "text": "twitch.tv/d0natelll0", "className": "cod-footer text-ghost" }, "placement": { "x": 1468, "y": 1008 } }
+      ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
     },
     {
       "name": "alert",
       "components": [
-        { "component": "AlertBanner", "options": {} }
+        { "component": "AlertBanner", "options": {} },
+        { "component": "TextLabel", "options": { "text": "", "className": "cod-alert-text text-ghost" }, "placement": { "x": 40, "y": 1050 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
     }

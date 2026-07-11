@@ -75,22 +75,11 @@
 
     /* ════════════════ CODAGE ════════════════ */
     /* .cod-capture retiré (S8) — remplacé par le composant Box (options par défaut). */
-    .scene[data-scene="codage"] .cod-separator {
-      position: absolute; top: 40px; left: 1434px; width: 1px; height: 1000px; background: var(--color-rule);
-    }
-    .scene[data-scene="codage"] .cod-col-right {
-      position: absolute; top: 40px; left: 1468px; width: 412px; height: 1000px;
-      display: flex; flex-direction: column;
-    }
-    .scene[data-scene="codage"] .cod-block { flex-shrink: 0; }
-    .scene[data-scene="codage"] .cod-name-block { padding-bottom: 14px; border-bottom: var(--border-gold); }
-    .scene[data-scene="codage"] .cod-name { font-size: 54px; letter-spacing: -0.5px; line-height: 1; }
-    .scene[data-scene="codage"] .cod-cam-mini {
-      margin-top: 16px; width: 164px; height: 164px;
-      border-radius: var(--radius-md); border: var(--border-panel); background: var(--color-bg-panel);
-    }
-    .scene[data-scene="codage"] .cod-section { padding: 18px 0; border-bottom: var(--border-rule); }
+    .scene[data-scene="codage"] .cod-name { font-size: 54px; letter-spacing: -0.5px; line-height: 1; padding-bottom: 14px; border-bottom: var(--border-gold); }
     .scene[data-scene="codage"] [data-layer="ide-context"] { height: 124px; }
+    .scene[data-scene="codage"] [data-layer="ide-context"],
+    .scene[data-scene="codage"] [data-layer="pomodoro"],
+    .scene[data-scene="codage"] [data-layer="stats"] { padding: 18px 0; border-bottom: var(--border-rule); }
     .scene[data-scene="codage"] .cod-label { margin-bottom: 8px; }
     .scene[data-scene="codage"] .file-name {
       font-family: var(--font-mono); font-size: 26px; color: var(--color-text-primary);
@@ -98,14 +87,9 @@
     }
     .scene[data-scene="codage"] .git-branch { font-size: 20px; margin-bottom: 4px; }
     .scene[data-scene="codage"] .stack-info { font-family: var(--font-mono); font-size: 18px; color: var(--color-text-mid); }
-    .scene[data-scene="codage"] [data-layer="stats"] { display: flex; gap: 32px; }
-    .scene[data-scene="codage"] .cod-alert-strip {
-      position: absolute; bottom: 20px; left: 40px; width: 1360px; height: 20px;
-      display: flex; align-items: center;
-    }
     .scene[data-scene="codage"] .cod-alert-text { letter-spacing: var(--tracking-label); }
     .scene[data-scene="codage"] .cod-footer {
-      margin-top: auto; padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
+      padding-top: 16px; border-top: 0.3px solid var(--color-gold-dim);
     }
 
     /* ════════════════ JEU ════════════════ */
@@ -271,24 +255,6 @@
   <!-- ════════════════ Templates de scène (structure + placement, AD-5) ════════════════ -->
 
 
-  <template data-scene="codage">
-    <div data-layer="goldbar"></div>
-    <div data-layer="ide-zone" aria-hidden="true"></div>
-    <div class="cod-separator" aria-hidden="true"></div>
-    <div class="cod-col-right">
-      <div data-layer="cam-mini" class="cod-block">
-        <div class="cod-name-block"><h1 class="cod-name heading-serif">D0n</h1></div>
-        <div class="cod-cam-mini" aria-hidden="true"></div>
-      </div>
-      <div data-layer="ide-context" class="cod-block cod-section"></div>
-      <div data-layer="pomodoro" class="cod-block cod-section"></div>
-      <div data-layer="stats" class="cod-block cod-section"></div>
-      <div class="cod-footer text-ghost">twitch.tv/d0natelll0</div>
-    </div>
-    <div data-layer="alert">
-      <div class="cod-alert-strip"><span class="cod-alert-text text-ghost"></span></div>
-    </div>
-  </template>
 
   <template data-scene="jeu">
     <div data-layer="goldbar"></div>
