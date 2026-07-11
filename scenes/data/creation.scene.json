@@ -47,7 +47,7 @@
     {
       "name": "pomodoro",
       "components": [
-        { "component": "PomodoroBar", "options": {} }
+        { "component": "PomodoroBar", "options": {}, "role": "pomodoro" }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false },
       "placement": { "x": 1468, "y": 345, "width": 412 }

@@ -47,7 +47,7 @@
     {
       "name": "chat",
       "components": [
-        { "component": "ChatFeed", "options": { "maxMessages": 10, "fontSize": "18px" } }
+        { "component": "ChatFeed", "options": { "maxMessages": 10, "fontSize": "18px" }, "role": "chat" }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
     },

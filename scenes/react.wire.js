@@ -9,13 +9,14 @@ import { onStateChange } from '../store.js';
  * @returns {() => void} cleanup (désabonnement)
  */
 export function wire(mounted) {
-  const [chat] = mounted.componentsByLayer.chat;
-  const creditTitleEl    = mounted.root.querySelector('.react-credit-title');
-  const hudDurationEl    = mounted.root.querySelector('.react-hud-duration');
+  const { chat } = mounted.componentsByRole;
+  const creditTitleEl = mounted.componentsByRole['credit-title'].el;
+  const hudDurationEl = mounted.componentsByRole['hud-duration'].el;
 
   return onStateChange((state) => {
     chat.update?.(state.chatMessages);
-    if (creditTitleEl)    creditTitleEl.textContent    = [state.sourceTitle, state.sourceAuthor].filter(Boolean).join(' · ') || '—';
-    if (hudDurationEl)    hudDurationEl.textContent      = state.duration.slice(0, 5);
+    creditTitleEl.textContent = [state.sourceTitle, state.sourceAuthor].filter(Boolean).join(' · ') || '—';
+    hudDurationEl.textContent = state.duration.slice(0, 5);
   });
 }
+wire.REQUIRED_ROLES = ['chat', 'credit-title', 'hud-duration'];

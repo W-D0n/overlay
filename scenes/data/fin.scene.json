@@ -53,7 +53,7 @@
     {
       "name": "stats",
       "components": [
-        { "component": "StatBlock", "options": { "label": "NOUVEAUX FOLLOWS", "value": "—", "valueColor": "#C8B97A" }, "placement": { "x": 0, "y": 45 } },
+        { "component": "StatBlock", "options": { "label": "NOUVEAUX FOLLOWS", "value": "—", "valueColor": "#C8B97A" }, "placement": { "x": 0, "y": 45 }, "role": "stat-new-follows" },
         { "component": "StatBlock", "options": { "label": "DURÉE", "value": { "$bind": "sessionStats.duration", "$default": "00:00:00" } }, "placement": { "x": 210, "y": 45 } }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false },

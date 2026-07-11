@@ -81,7 +81,8 @@
             "text": "—",
             "className": "react-credit-title value-serif",
             "tag": "span"
-          }
+          },
+          "role": "credit-title"
         },
         {
           "component": "TextLabel",
@@ -150,7 +151,8 @@
           "options": {
             "maxMessages": 12,
             "fontSize": "20px"
-          }
+          },
+          "role": "chat"
         }
       ],
       "visibility": {
@@ -166,7 +168,7 @@
         { "component": "TextLabel", "options": { "text": "D0n", "className": "react-hud-name heading-serif" }, "placement": { "x": 40, "y": 14 } },
         { "component": "Divider", "options": { "className": "react-hud-v rule-v" }, "placement": { "x": 130, "y": 17, "width": 1, "height": 28 } },
         { "component": "TextLabel", "options": { "text": "Durée", "className": "react-hud-lbl label-mono" }, "placement": { "x": 171, "y": 10 } },
-        { "component": "TextLabel", "options": { "text": "00:00", "className": "react-hud-val value-mono-gold react-hud-duration" }, "placement": { "x": 171, "y": 27 } },
+        { "component": "TextLabel", "options": { "text": "00:00", "className": "react-hud-val value-mono-gold react-hud-duration" }, "placement": { "x": 171, "y": 27 }, "role": "hud-duration" },
         { "component": "TextLabel", "options": { "text": "twitch.tv/d0natelll0", "className": "react-hud-link text-ghost" }, "placement": { "x": 1724, "y": 23 } }
       ],
       "visibility": {

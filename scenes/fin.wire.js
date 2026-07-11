@@ -9,10 +9,11 @@ import { onStateChange } from '../store.js';
  * @returns {() => void} cleanup (désabonnement)
  */
 export function wire(mounted) {
-  const [statNewFollows] = mounted.componentsByLayer.stats;
+  const statNewFollows = mounted.componentsByRole['stat-new-follows'];
   // 'recap' et 'links' sont gérés déclarativement (TextList + $bind, voir fin.config.js, S8).
 
   return onStateChange((state) => {
     statNewFollows.update?.({ value: state.sessionStats.newFollows > 0 ? `+${state.sessionStats.newFollows}` : '—' });
   });
 }
+wire.REQUIRED_ROLES = ['stat-new-follows'];

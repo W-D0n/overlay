@@ -13,9 +13,8 @@ const ALERT_STRIP_LABELS = { follow: '+ follow', sub: '+ sub', raid: 'raid', bit
  * @returns {() => void} cleanup (désabonnement + timer de la bande basse)
  */
 export function wire(mounted) {
-  const [pomodoro] = mounted.componentsByLayer.pomodoro;
-  const [alert] = mounted.componentsByLayer.alert;
-  const stripEl  = mounted.root.querySelector('.cod-alert-text');
+  const { pomodoro, alert } = mounted.componentsByRole;
+  const stripEl = mounted.componentsByRole['alert-strip'].el;
 
   const isNewAlert = createAlertGate();
   /** @type {ReturnType<typeof setTimeout> | null} */
@@ -26,11 +25,9 @@ export function wire(mounted) {
 
     if (state.latestAlert && isNewAlert(state.latestAlert)) {
       alert.show?.(state.latestAlert);
-      if (stripEl) {
-        stripEl.textContent = `${ALERT_STRIP_LABELS[state.latestAlert.type] ?? ''} — ${state.latestAlert.username}`;
-        if (stripTimer) clearTimeout(stripTimer);
-        stripTimer = setTimeout(() => { stripEl.textContent = ''; }, 6000);
-      }
+      stripEl.textContent = `${ALERT_STRIP_LABELS[state.latestAlert.type] ?? ''} — ${state.latestAlert.username}`;
+      if (stripTimer) clearTimeout(stripTimer);
+      stripTimer = setTimeout(() => { stripEl.textContent = ''; }, 6000);
     }
   });
 
@@ -39,3 +36,4 @@ export function wire(mounted) {
     if (stripTimer) clearTimeout(stripTimer);
   };
 }
+wire.REQUIRED_ROLES = ['pomodoro', 'alert', 'alert-strip'];

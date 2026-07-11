@@ -10,11 +10,11 @@ import { onStateChange } from '../store.js';
  * @returns {() => void} cleanup (désabonnement)
  */
 export function wire(mounted) {
-  const [chat] = mounted.componentsByLayer.chat;
-  const activityEl = mounted.root.querySelector('.brb-activity');
+  const { chat, activity } = mounted.componentsByRole;
 
   return onStateChange((state) => {
     chat.update?.(state.chatMessages);
-    if (activityEl) activityEl.textContent = state.currentActivity ? `sur ${state.currentActivity}.` : "sur l'atelier.";
+    activity.el.textContent = state.currentActivity ? `sur ${state.currentActivity}.` : "sur l'atelier.";
   });
 }
+wire.REQUIRED_ROLES = ['chat', 'activity'];

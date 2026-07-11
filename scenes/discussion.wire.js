@@ -10,17 +10,17 @@ import { createAlertGate } from './alert-gate.js';
  * @returns {() => void} cleanup (désabonnement)
  */
 export function wire(mounted) {
-  const [chat] = mounted.componentsByLayer.chat;
-  const [alert] = mounted.componentsByLayer.alert;
-  const followEl  = mounted.root.querySelector('.last-follow-name');
+  const { chat, alert } = mounted.componentsByRole;
+  const followEl = mounted.componentsByRole['last-follow-name'].el;
 
   const isNewAlert = createAlertGate();
 
   return onStateChange((state) => {
     chat.update?.(state.chatMessages);
-    if (followEl && state.latestAlert?.type === 'follow') followEl.textContent = state.latestAlert.username;
+    if (state.latestAlert?.type === 'follow') followEl.textContent = state.latestAlert.username;
     if (state.latestAlert && isNewAlert(state.latestAlert)) {
       alert.show?.(state.latestAlert);
     }
   });
 }
+wire.REQUIRED_ROLES = ['chat', 'alert', 'last-follow-name'];

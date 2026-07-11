@@ -89,7 +89,8 @@
             "text": "sur l'atelier.",
             "className": "brb-activity value-serif gold"
           },
-          "placement": { "x": 0, "y": 334 }
+          "placement": { "x": 0, "y": 334 },
+          "role": "activity"
         },
         {
           "component": "Divider",
@@ -148,7 +149,8 @@
           "options": {
             "maxMessages": 10,
             "fontSize": "20px"
-          }
+          },
+          "role": "chat"
         }
       ],
       "visibility": {

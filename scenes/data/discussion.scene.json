@@ -170,7 +170,8 @@
           "options": {
             "maxMessages": 7,
             "fontSize": "22px"
-          }
+          },
+          "role": "chat"
         }
       ],
       "visibility": {
@@ -204,7 +205,8 @@
           "placement": {
             "x": 0,
             "y": 929
-          }
+          },
+          "role": "last-follow-name"
         },
         {
           "component": "TextLabel",
@@ -227,7 +229,9 @@
     },
     {
       "name": "alert",
-      "components": [],
+      "components": [
+        { "component": "AlertBanner", "options": {}, "role": "alert" }
+      ],
       "visibility": {
         "full": true,
         "minimal": false,

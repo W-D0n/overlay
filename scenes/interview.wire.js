@@ -9,9 +9,10 @@ import { onStateChange } from '../store.js';
  * @returns {() => void} cleanup (désabonnement)
  */
 export function wire(mounted) {
-  const [chat] = mounted.componentsByLayer.chat;
+  const { chat } = mounted.componentsByRole;
 
   return onStateChange((state) => {
     chat.update?.(state.chatMessages);
   });
 }
+wire.REQUIRED_ROLES = ['chat'];

@@ -47,7 +47,7 @@
     {
       "name": "pomodoro",
       "components": [
-        { "component": "PomodoroBar", "options": {} }
+        { "component": "PomodoroBar", "options": {}, "role": "pomodoro" }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false },
       "placement": { "x": 1468, "y": 413, "width": 412 }
@@ -70,8 +70,8 @@
     {
       "name": "alert",
       "components": [
-        { "component": "AlertBanner", "options": {} },
-        { "component": "TextLabel", "options": { "text": "", "className": "cod-alert-text text-ghost" }, "placement": { "x": 40, "y": 1050 } }
+        { "component": "AlertBanner", "options": {}, "role": "alert" },
+        { "component": "TextLabel", "options": { "text": "", "className": "cod-alert-text text-ghost" }, "placement": { "x": 40, "y": 1050 }, "role": "alert-strip" }
       ],
       "visibility": { "full": true, "minimal": false, "hidden": false }
     }

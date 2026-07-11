@@ -9,9 +9,10 @@ import { onStateChange } from '../store.js';
  * @returns {() => void} cleanup (désabonnement)
  */
 export function wire(mounted) {
-  const [pomodoro] = mounted.componentsByLayer.pomodoro;
+  const { pomodoro } = mounted.componentsByRole;
 
   return onStateChange((state) => {
     pomodoro.update?.(state.pomodoro);
   });
 }
+wire.REQUIRED_ROLES = ['pomodoro'];
