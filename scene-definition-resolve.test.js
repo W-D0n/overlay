@@ -1,6 +1,6 @@
 // @ts-check
 import { test, expect } from 'bun:test';
-import { resolveBoundValue, resolveBoundOptions, hasBoundOptions } from './scene-definition-resolve.js';
+import { resolveBoundValue, resolveBoundOptions, hasBoundOptions, resolveMissingRoles } from './scene-definition-resolve.js';
 
 const STATE = /** @type {*} */ ({
   subjectLine: 'Sculpt',
@@ -63,4 +63,16 @@ test('hasBoundOptions is true if at least one option is bound', () => {
 test('hasBoundOptions is false if all options are literal', () => {
   expect(hasBoundOptions({ text: 'static', color: '#fff' })).toBe(false);
   expect(hasBoundOptions({})).toBe(false);
+});
+
+test('resolveMissingRoles is empty when every required role is present', () => {
+  expect(resolveMissingRoles(['chat', 'alert'], { chat: {}, alert: {} })).toEqual([]);
+});
+
+test('resolveMissingRoles lists roles absent from componentsByRole', () => {
+  expect(resolveMissingRoles(['chat', 'alert'], { chat: {} })).toEqual(['alert']);
+});
+
+test('resolveMissingRoles is empty when no role is required', () => {
+  expect(resolveMissingRoles([], {})).toEqual([]);
 });

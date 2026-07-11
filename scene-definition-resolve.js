@@ -71,3 +71,15 @@ export function resolveBoundOptions(options, state) {
 export function hasBoundOptions(options) {
   return Object.values(options).some(isBoundValue);
 }
+
+/**
+ * Rôles requis par un `*.wire.js` (`SceneWire.REQUIRED_ROLES`) mais absents de `componentsByRole` —
+ * détermine si `scene-runtime.js` doit sauter le wiring de la scène (dégradé, voir docs/inbox.md).
+ * Vide = tous les rôles requis sont satisfaits.
+ * @param {string[]} requiredRoles
+ * @param {Record<string, *>} componentsByRole
+ * @returns {string[]}
+ */
+export function resolveMissingRoles(requiredRoles, componentsByRole) {
+  return requiredRoles.filter((role) => !(role in componentsByRole));
+}

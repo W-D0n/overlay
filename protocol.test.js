@@ -373,3 +373,22 @@ test('T48 [AC-02] V11 — placement absent sur un composant accepté (rétrocomp
   const c = validConfig();
   expect(validateSceneConfig(c).errors).toEqual([]);
 });
+
+test('T49 V12 — role absent accepté (rétrocompatibilité, seam wire.js optionnel)', () => {
+  const c = validConfig();
+  expect(validateSceneConfig(c).errors).toEqual([]);
+});
+
+test('T50 V12 — role unique par scène accepté', () => {
+  const c = validConfig();
+  c.layers[0].components[0].role = 'goldbar-top';
+  c.layers[1].components.push({ component: 'TextLabel', options: {}, role: 'chat' });
+  expect(validateSceneConfig(c).errors).toEqual([]);
+});
+
+test('T51 V12 — role dupliqué dans la même scène rejeté, même sur des couches différentes', () => {
+  const c = validConfig();
+  c.layers[0].components[0].role = 'chat';
+  c.layers[1].components.push({ component: 'TextLabel', options: {}, role: 'chat' });
+  expect(validateSceneConfig(c).errors).toContain('role dupliqué : chat');
+});

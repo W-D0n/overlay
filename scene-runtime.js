@@ -19,7 +19,7 @@ import { store, onStateChange } from './store.js';
 import { validateSceneConfig } from './protocol.js';
 import { resolveTransition, isLayerVisible, toCssEasing } from './scene-resolve.js';
 import { resolvePlacementStyle } from './placement-resolve.js';
-import { resolveBoundValue, resolveBoundOptions, hasBoundOptions } from './scene-definition-resolve.js';
+import { resolveBoundValue, resolveBoundOptions, hasBoundOptions, resolveMissingRoles } from './scene-definition-resolve.js';
 import { COMPONENT_REGISTRY } from './component-registry.js';
 import { SCENE_CONFIGS, SCENE_WIRES, loadDynamicScenes } from './scenes/registry.js';
 
@@ -65,6 +65,8 @@ function mountScene(id) {
 
   /** @type {Record<string, import('./types.js').ComponentInstance[]>} */
   const componentsByLayer = {};
+  /** @type {Record<string, import('./types.js').ComponentInstance>} */
+  const componentsByRole = {};
   /** @type {import('./types.js').ComponentInstance[]} */
   const allInstances = [];
   /** @type {{ instance: import('./types.js').ComponentInstance, mount: import('./types.js').ComponentMount }[]} */
@@ -99,6 +101,7 @@ function mountScene(id) {
       layerEl.appendChild(instance.el);
       instances.push(instance);
       allInstances.push(instance);
+      if (mount.role) componentsByRole[mount.role] = instance;
       if (hasBoundOptions(mount.options ?? {}) || mount.trigger) {
         boundMounts.push({ instance, mount });
       }
@@ -109,10 +112,15 @@ function mountScene(id) {
   sceneRoot.appendChild(container);
 
   /** @type {import('./types.js').MountedScene} */
-  const mounted = { id: /** @type {*} */ (id), root: container, componentsByLayer, boundMounts, destroy: () => {} };
+  const mounted = { id: /** @type {*} */ (id), root: container, componentsByLayer, componentsByRole, boundMounts, destroy: () => {} };
   // Le wire est optionnel (S8) : une scène entièrement déclarative (binding via $bind/trigger)
   // n'a pas besoin de *.wire.js écrit à la main.
-  const cleanupWire = SCENE_WIRES[id]?.(mounted) ?? (() => {});
+  const wire = SCENE_WIRES[id];
+  const missingRoles = resolveMissingRoles(wire?.REQUIRED_ROLES ?? [], componentsByRole);
+  if (wire && missingRoles.length > 0) {
+    console.error(`[overlay] mount : wire de la scène '${id}' désactivé — rôle(s) manquant(s) : ${missingRoles.join(', ')}`);
+  }
+  const cleanupWire = (wire && missingRoles.length === 0) ? wire(mounted) : (() => {});
   mounted.destroy = () => {
     cleanupWire();
     allInstances.forEach((instance) => instance.destroy?.());

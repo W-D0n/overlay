@@ -162,6 +162,10 @@
  * @property {Placement} [placement] - Position individuelle du composant (S8, remplace le placement
  *   par couche de S7 pour les composants qui l'utilisent — modèle Figma, chaque élément indépendant)
  * @property {ComponentTrigger} [trigger] - Déclencheur impératif optionnel
+ * @property {string} [role] - Identifiant du contrat fonctionnel adressé par un `*.wire.js` (ex :
+ *   'chat', 'poll'). Unique par scène (validateSceneConfig V12). Un mount sans wire n'en a pas
+ *   besoin. Remplace l'adressage par position (`componentsByLayer[i]`) ou par classe CSS
+ *   (`querySelector`), tous deux fragiles au réordonnancement/renommage dans l'éditeur.
  */
 
 /**
@@ -304,6 +308,9 @@
  * @property {SceneId} id
  * @property {HTMLElement} root                                       - Conteneur de la scène (enfant de #scene-root)
  * @property {Record<string, ComponentInstance[]>} componentsByLayer - Instances groupées par `name` de couche, dans l'ordre de la config
+ * @property {Record<string, ComponentInstance>} componentsByRole    - Instance unique par `role`
+ *   déclaré (voir `ComponentMount.role`) — c'est la seule surface qu'un `*.wire.js` doit lire pour
+ *   adresser un composant précis.
  * @property {{ instance: ComponentInstance, mount: ComponentMount }[]} boundMounts - Interne à
  *   scene-runtime.js (S8) : composants ayant des options `$bind` ou un `trigger`, ré-évalués à
  *   chaque changement d'état. Les `*.wire.js` n'ont pas besoin d'y toucher.
@@ -312,9 +319,11 @@
 
 /**
  * Module de câblage d'une scène (AD-6) : abonne les composants montés au store.
- * @callback SceneWire
- * @param {MountedScene} mounted
- * @returns {() => void} Fonction de désabonnement (cleanup), appelée au démontage
+ * `REQUIRED_ROLES` (optionnel, propriété statique sur la fonction) déclare les `role` que ce wire
+ * lit dans `mounted.componentsByRole` — `scene-runtime.js` vérifie leur présence avant d'appeler
+ * `wire()` ; si un rôle manque, le wiring de la scène est sauté entièrement (dégradé : la mise en
+ * page s'affiche, l'interactivité de ce wire non — voir docs/inbox.md).
+ * @typedef {{ (mounted: MountedScene): () => void, REQUIRED_ROLES?: string[] }} SceneWire
  */
 
 // Export vide pour permettre l'import en module si besoin

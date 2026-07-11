@@ -364,6 +364,16 @@ export function validateSceneConfig(config) {
     });
   }
 
+  // V12 — `role` unique par scène (optionnel, seam wire.js ↔ scene.json, voir docs/inbox.md)
+  const seenRoles = new Set();
+  for (const l of layers) {
+    for (const c of l.components) {
+      if (typeof c !== 'object' || c === null || c.role === undefined) continue;
+      if (seenRoles.has(c.role)) errors.push(`role dupliqué : ${c.role}`);
+      seenRoles.add(c.role);
+    }
+  }
+
   return { ok: errors.length === 0, errors };
 }
 
