@@ -31,6 +31,17 @@
       }
     },
     {
+      "name": "separator",
+      "components": [
+        {
+          "component": "Divider",
+          "options": { "orientation": "vertical" },
+          "placement": { "x": 1140, "y": 40, "width": 1, "height": 940 }
+        }
+      ],
+      "visibility": { "full": true, "minimal": true, "hidden": false }
+    },
+    {
       "name": "message",
       "components": [
         {
@@ -120,6 +131,19 @@
       "name": "chat",
       "components": [
         {
+          "component": "TextLabel",
+          "options": {
+            "text": "Chat",
+            "className": "brb-chat-label label-mono"
+          }
+        },
+        {
+          "component": "Divider",
+          "options": {
+            "className": "brb-chat-rule rule-h"
+          }
+        },
+        {
           "component": "ChatFeed",
           "options": {
             "maxMessages": 10,
@@ -155,7 +179,8 @@
         "full": true,
         "minimal": false,
         "hidden": false
-      }
+      },
+      "placement": { "x": 1174, "y": 886 }
     },
     {
       "name": "next-stream",
@@ -197,7 +222,8 @@
         "full": true,
         "minimal": false,
         "hidden": false
-      }
+      },
+      "placement": { "x": 0, "y": 992, "width": 1920, "height": 88 }
     }
   ]
 }

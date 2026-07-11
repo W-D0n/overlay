@@ -51,11 +51,6 @@
     .scene[data-scene="discussion"] .last-follow-name { font-size: 38px; }
 
     /* ════════════════ BRB ════════════════ */
-    /* Position/taille de .brb-block-left pilotées par Placement (scenes/brb.config.js), voir
-       docs/specs/scene-placement-protocol.md. */
-    .scene[data-scene="brb"] .brb-block-left {
-      display: flex; flex-direction: column;
-    }
     .scene[data-scene="brb"] .brb-tag { margin-bottom: 32px; }
     .scene[data-scene="brb"] .brb-name { font-size: 120px; letter-spacing: -2px; line-height: 0.9; margin-bottom: 24px; }
     .scene[data-scene="brb"] .brb-rule-gold { margin-bottom: 32px; }
@@ -63,22 +58,13 @@
     .scene[data-scene="brb"] .brb-activity { font-size: 38px; line-height: 1.4; }
     .scene[data-scene="brb"] .brb-song-label { margin-bottom: 10px; }
     .scene[data-scene="brb"] .brb-song { font-size: 22px; }
-    .scene[data-scene="brb"] .brb-separator {
-      position: absolute; top: 40px; left: 1140px; width: 1px; height: 940px; background: var(--color-rule);
-    }
-    /* Position/taille de .brb-block-right pilotées par Placement (scenes/brb.config.js). */
-    .scene[data-scene="brb"] .brb-block-right {
-      display: flex; flex-direction: column;
-    }
     .scene[data-scene="brb"] .brb-chat-label { margin-bottom: 16px; flex-shrink: 0; }
     .scene[data-scene="brb"] .brb-chat-rule { margin-bottom: 16px; }
-    .scene[data-scene="brb"] [data-layer="chat"] { overflow: hidden; }
-    .scene[data-scene="brb"] .brb-stats {
-      position: absolute; left: 1174px; bottom: 140px; display: flex; gap: 40px;
-      padding-top: 16px; border-top: 0.5px solid var(--color-rule);
+    .scene[data-scene="brb"] [data-layer="chat"] { overflow: hidden; display: flex; flex-direction: column; }
+    .scene[data-scene="brb"] [data-layer="stats"] {
+      display: flex; gap: 40px; padding-top: 16px; border-top: 0.5px solid var(--color-rule);
     }
-    .scene[data-scene="brb"] .brb-next {
-      position: absolute; bottom: 0; left: 0; right: 0; height: 88px;
+    .scene[data-scene="brb"] [data-layer="next-stream"] {
       background: var(--color-bg-widget); border-top: 0.5px solid var(--color-gold-dim);
       display: flex; align-items: center; padding: 0 80px; gap: 48px;
     }
@@ -284,17 +270,6 @@
 
   <!-- ════════════════ Templates de scène (structure + placement, AD-5) ════════════════ -->
 
-  <template data-scene="brb">
-    <div data-layer="goldbar"></div>
-    <div data-layer="message" class="brb-block-left"></div>
-    <div class="brb-separator" aria-hidden="true"></div>
-    <div data-layer="chat" class="brb-block-right">
-      <div class="brb-chat-label label-mono">Chat</div>
-      <div class="brb-chat-rule rule-h"></div>
-    </div>
-    <div data-layer="stats" class="brb-stats"></div>
-    <div data-layer="next-stream" class="brb-next"></div>
-  </template>
 
   <template data-scene="codage">
     <div data-layer="goldbar"></div>
