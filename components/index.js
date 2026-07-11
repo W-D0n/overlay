@@ -557,8 +557,6 @@ export function TextLabel({ text = '', font = 'serif', size = '16px', color = 'v
  * scène via `itemClass`/`.dim` — ce composant ne fixe aucune couleur en inline (chaque scène a des
  * couleurs de mise en avant différentes : or pour les liens sociaux, texte primaire pour un récap —
  * un inline unique casserait l'une des deux, corrigé après l'avoir constaté en migration S8).
- * Remplace le rendu manuel dupliqué (`fin.wire.js` recapLines/socialLinks, `starting.wire.js`
- * socialLinks).
  *
  * @param {{ lines?: string[], itemClass?: string }} [options]
  * @returns {{ el: HTMLDivElement, update: (lines: string[]) => void }}
