@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Guide — Utiliser le panneau de dev</title>
+<style>
+  :root {
+    --bg: #0A0A0C; --panel: #111114; --rule: #1E1E22;
+    --gold: #C8B97A; --text: #F2F0EC; --dim: #9A9AA2; --ghost: #5A5A62;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: Georgia, 'Times New Roman', serif;
+    max-width: 900px; margin: 0 auto; padding: 48px 24px 120px;
+    line-height: 1.6;
+  }
+  h1 { font-size: 32px; border-bottom: 1px solid var(--gold); padding-bottom: 16px; }
+  h2 { font-size: 22px; color: var(--gold); margin-top: 56px; border-left: 3px solid var(--gold); padding-left: 12px; }
+  h3 { font-size: 17px; color: var(--text); margin-top: 32px; }
+  code, pre { font-family: 'Consolas', 'Courier New', monospace; }
+  code { background: var(--panel); padding: 2px 6px; border-radius: 3px; color: var(--gold); font-size: 0.9em; }
+  pre { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; overflow-x: auto; }
+  pre code { background: none; padding: 0; color: var(--text); }
+  a { color: var(--gold); }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid var(--rule); padding: 8px 12px; text-align: left; font-family: monospace; font-size: 0.9em; }
+  th { background: var(--panel); color: var(--gold); }
+  .callout {
+    background: var(--panel); border-left: 3px solid var(--gold);
+    padding: 14px 18px; border-radius: 4px; font-size: 0.95em; color: var(--dim);
+  }
+  .callout code { font-size: 0.95em; }
+  figure { margin: 24px 0; text-align: center; }
+  figure img {
+    max-width: 100%; border: 1px solid var(--rule); border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  figcaption { font-size: 0.85em; color: var(--ghost); margin-top: 8px; font-style: italic; }
+  .badge { display: inline-block; background: var(--gold); color: var(--bg); font-size: 0.75em;
+    padding: 2px 8px; border-radius: 10px; font-family: monospace; font-weight: bold; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  nav.crumbs { font-size: 0.85em; color: var(--ghost); margin-bottom: 32px; }
+  nav.crumbs a { color: var(--dim); }
+  footer.nav { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--rule);
+    display: flex; justify-content: space-between; font-size: 0.9em; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<nav class="crumbs">docs/guides/ — <a href="creer-un-composant.html">Créer un composant</a> · <a href="harmoniser-scenes-obs.html">Harmoniser OBS</a></nav>
+
+<h1>Utiliser le panneau de dev</h1>
+<p><em>Tweaker sans écrire de code.</em></p>
+
+<div class="callout">
+  Pour ajuster ce qui existe déjà (paramètres DotGrid, effets de fond, composants d'une scène, noms
+  de scènes OBS) — sans toucher un seul fichier à la main.<br>
+  Pour créer un <strong>nouveau</strong> type de composant/effet, voir
+  <a href="creer-un-composant.html">creer-un-composant.html</a>.
+</div>
+
+<h2>Lancement</h2>
+<pre><code>bun dev/start-dev.js</code></pre>
+<p>(ou double-clic sur <code>start-dev.bat</code>). <strong>Jamais pendant un live</strong> — ces
+serveurs écrivent sur disque. Ouvre automatiquement 3 onglets : preview auto-reload,
+<code>dotgrid-tuner.html</code>, <code>overlay-setting.html</code>.</p>
+
+<h2><code>dev/overlay-setting.html</code> — l'outil principal</h2>
+<p>C'est l'éditeur visuel de l'overlay. Une scène à la fois (menu déroulant en haut), le rendu réel
+est affiché dans le panneau de gauche.</p>
+
+<figure>
+  <img src="img/panel-overview.png" alt="Panneau overlay-setting.html : preview à gauche, panneau de configuration à droite">
+  <figcaption>Vue d'ensemble — preview de la scène « discussion » à gauche, panneau de configuration à droite.</figcaption>
+</figure>
+
+<h3>Ajouter / retirer / configurer un composant dans une couche</h3>
+<p>Chaque couche listée à droite affiche ses composants actuels.</p>
+<ul>
+  <li><strong>Ajouter</strong> — menu déroulant « + composant » → choisir un type (<code>StatBlock</code>,
+    <code>TextLabel</code>, <code>Badge</code>...) → un formulaire apparaît avec les champs propres à ce type.</li>
+  <li><strong>Configurer</strong> — chaque champ peut être une valeur fixe, ou basculé en
+    <span class="badge">lié</span> pour le connecter à une valeur d'état live (ex : <code>state.duration</code>).</li>
+  <li><strong>Retirer</strong> — bouton « × » sur le composant.</li>
+  <li>Les changements de composition (ajout/retrait) sont sauvegardés <strong>immédiatement</strong>.
+    Les éditions de champ attendent le bouton « Enregistrer ».</li>
+</ul>
+
+<figure>
+  <img src="img/bind-toggle.png" alt="Champ Texte basculé en mode lié, montrant subjectLine et duration">
+  <figcaption>Le bouton <span class="badge">lié</span> à côté d'un champ (ici « Texte » → <code>subjectLine</code>,
+  « Valeur » → <code>duration</code>) le connecte à l'état live plutôt qu'à une valeur fixe.</figcaption>
+</figure>
+
+<h3>Changer / tweaker l'effet de fond d'une scène</h3>
+<p>Section « Fond » en haut du panneau — menu déroulant pour choisir le composant de fond
+(<code>DotGridBackground</code>, <code>RainBackground</code>, <code>MatrixGridBackground</code>...).
+Chaque effet a son propre formulaire (intensité, couleur, vitesse...). Voir
+<code>dev/component-field-schemas.js</code> §<code>BACKGROUND_FIELD_SCHEMAS</code> pour la liste + les
+paramètres de chacun.</p>
+
+<h3>Déplacer un widget</h3>
+<p>Glisser-déposer directement dans l'aperçu. Chaque widget a une position en pixels absolus dans le
+canvas 1920×1080 — pas de flou d'ancrage, ce que tu vois dans la preview est la position OBS réelle.</p>
+
+<svg viewBox="0 0 640 220" style="width:100%;max-width:640px;display:block;margin:24px auto;">
+  <rect x="0" y="0" width="640" height="220" fill="#111114" rx="6"/>
+  <rect x="20" y="20" width="600" height="180" fill="none" stroke="#1E1E22" stroke-width="1"/>
+  <rect x="60" y="50" width="180" height="90" fill="#0A0A0C" stroke="#C8B97A" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="150" y="100" fill="#F2F0EC" font-size="13" text-anchor="middle" font-family="monospace">StatBlock</text>
+  <text x="60" y="42" fill="#5A5A62" font-size="11" font-family="monospace">x:60 y:50</text>
+  <line x1="60" y1="140" x2="240" y2="140" stroke="#C8B97A" stroke-width="1" stroke-dasharray="2 2"/>
+  <text x="150" y="158" fill="#9A9AA2" font-size="11" font-family="monospace" text-anchor="middle">width: 180px (poignée bas-droite)</text>
+  <circle cx="240" cy="140" r="4" fill="#C8B97A"/>
+  <text x="380" y="80" fill="#9A9AA2" font-size="12" font-family="monospace">canvas 1920×1080</text>
+  <text x="380" y="100" fill="#5A5A62" font-size="11" font-family="monospace">glisser = x/y</text>
+  <text x="380" y="118" fill="#5A5A62" font-size="11" font-family="monospace">poignée coin = width/height</text>
+</svg>
+
+<p>(couches migrées en <code>Placement</code> pixel absolu — pas toutes, certaines restent en CSS
+flex, voir <code>docs/specs/scene-placement-protocol.md</code>).</p>
+
+<h3>Gérer les couches</h3>
+<p>« + couche » pour en ajouter une entièrement vide. Renommage (input inline, couche <code>goldbar</code>
+protégée) et réordonnancement (boutons ↑/↓ + glisser-déposer par poignée dédiée) des couches existantes.</p>
+
+<h3>Créer / supprimer une scène entière</h3>
+<p>Bas du panneau : « + scène » (id + couche minimale), bouton supprimer (<strong>archive</strong>, ne
+supprime jamais vraiment — <code>scenes/data/archived/&lt;id&gt;.scene.json</code>, récupérable).</p>
+
+<h2>Section OBS</h2>
+<ul>
+  <li>Activer une scène OBS, en créer une nouvelle, ajouter une source à une scène OBS — nécessite le
+    relais (<code>relay/server.js</code>) lancé et un <code>obs-config.local.js</code> avec le token
+    (voir <code>docs/obs-setup.md</code>).</li>
+  <li><strong>« Renommer les scènes OBS »</strong> — voir <a href="harmoniser-scenes-obs.html">le guide dédié</a>.</li>
+</ul>
+
+<figure>
+  <img src="img/obs-rename.png" alt="Section Renommer les scènes OBS, une ligne par scène overlay avec le nom OBS correspondant">
+  <figcaption>Une ligne par scène overlay — le champ texte contient le nom <em>exact</em> de la scène dans OBS.</figcaption>
+</figure>
+
+<h2><code>dev/dotgrid-tuner.html</code> — réglage fin du DotGrid</h2>
+<p>Sliders live sur les paramètres Simplex par mode (<code>freqX</code>/<code>freqY</code>/<code>freqT</code>/<code>amplitude</code>)
++ <code>baseOpacity</code>/<code>dotRadius</code> globaux. Bouton « Sauvegarder » réécrit directement
+<code>components/DotGridAnimated.js</code>. Bouton « Copier » en secours si le serveur d'écriture
+(<code>dev/tuner-server.js</code>) n'est pas lancé.</p>
+<p><code>colorMode: 'noise'</code> se règle depuis <code>overlay-setting.html</code> §Fond →
+<code>DotGridBackground</code>, pas depuis le tuner.</p>
+
+<h2>Ce qui n'est PAS encore éditable depuis un panneau</h2>
+<div class="grid2">
+  <div class="callout">
+    <strong>next-stream</strong> (brb) et <strong>source-credit</strong> (react) restent en CSS flex —
+    choix assumé (texte dynamique collé à ses voisins, pas des widgets à repositionner séparément).
+  </div>
+  <div class="callout">
+    Comportements de la Couche 4 DotGrid (follow/sub/raid/bits/ambient) — constantes dans
+    <code>DotGridAnimated.js</code>, pas de formulaire dédié (zero preemptive code).
+  </div>
+</div>
+<p>Ces limites ne sont pas des oublis — ce sont des choix « zero preemptive code » du projet : la UI
+correspondante s'ajoutera quand le besoin deviendra concret, pas avant.</p>
+
+<footer class="nav">
+  <span></span>
+  <a href="creer-un-composant.html">Créer un composant →</a>
+</footer>
+
+</body>
+</html>

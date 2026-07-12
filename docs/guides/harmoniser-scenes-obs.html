@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Guide — Harmoniser les noms de scènes OBS</title>
+<style>
+  :root {
+    --bg: #0A0A0C; --panel: #111114; --rule: #1E1E22;
+    --gold: #C8B97A; --text: #F2F0EC; --dim: #9A9AA2; --ghost: #5A5A62; --red: #C86A6A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: Georgia, 'Times New Roman', serif;
+    max-width: 900px; margin: 0 auto; padding: 48px 24px 120px;
+    line-height: 1.6;
+  }
+  h1 { font-size: 32px; border-bottom: 1px solid var(--gold); padding-bottom: 16px; }
+  h2 { font-size: 22px; color: var(--gold); margin-top: 56px; border-left: 3px solid var(--gold); padding-left: 12px; }
+  code, pre { font-family: 'Consolas', 'Courier New', monospace; }
+  code { background: var(--panel); padding: 2px 6px; border-radius: 3px; color: var(--gold); font-size: 0.9em; }
+  pre { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; overflow-x: auto; font-size: 0.9em; }
+  pre code { background: none; padding: 0; color: var(--text); }
+  a { color: var(--gold); }
+  .callout {
+    background: var(--panel); border-left: 3px solid var(--gold);
+    padding: 14px 18px; border-radius: 4px; font-size: 0.95em; color: var(--dim);
+  }
+  .callout.danger { border-left-color: var(--red); }
+  .callout code { font-size: 0.95em; }
+  figure { margin: 24px 0; text-align: center; }
+  figure img {
+    max-width: 100%; border: 1px solid var(--rule); border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  figcaption { font-size: 0.85em; color: var(--ghost); margin-top: 8px; font-style: italic; }
+  ol, ul { padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  nav.crumbs { font-size: 0.85em; color: var(--ghost); margin-bottom: 32px; }
+  nav.crumbs a { color: var(--dim); }
+  footer.nav { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--rule);
+    display: flex; justify-content: space-between; font-size: 0.9em; }
+</style>
+</head>
+<body>
+
+<nav class="crumbs">docs/guides/ — <a href="utiliser-le-panneau.html">Utiliser le panneau</a> · <a href="creer-un-composant.html">Créer un composant</a></nav>
+
+<h1>Harmoniser les noms de scènes OBS avec l'overlay</h1>
+
+<h2>Le problème</h2>
+<p>L'overlay a 9 scènes internes (<code>discussion</code>, <code>codage</code>, <code>brb</code>,
+<code>jeu</code>, <code>interview</code>, <code>react</code>, <code>creation</code>, <code>fin</code>,
+<code>starting</code>). Le relais (<code>relay/server.js</code>) écoute les changements de scène OBS
+et doit traduire le nom <strong>exact</strong> de ta scène OBS vers l'identifiant interne correspondant.</p>
+
+<svg viewBox="0 0 820 160" style="width:100%;max-width:820px;display:block;margin:16px auto;">
+  <rect x="20" y="50" width="200" height="60" fill="#111114" stroke="#C8B97A" rx="6"/>
+  <text x="120" y="75" fill="#F2F0EC" font-family="monospace" font-size="13" text-anchor="middle">Scène OBS</text>
+  <text x="120" y="95" fill="#C8B97A" font-family="monospace" font-size="12" text-anchor="middle">"Just Chatting"</text>
+
+  <line x1="220" y1="80" x2="320" y2="80" stroke="#5A5A62" marker-end="url(#arrow)"/>
+  <text x="270" y="70" fill="#9A9AA2" font-family="monospace" font-size="10" text-anchor="middle">relay/</text>
+  <text x="270" y="98" fill="#9A9AA2" font-family="monospace" font-size="10" text-anchor="middle">obs-scene-map-data.js</text>
+
+  <rect x="320" y="50" width="200" height="60" fill="#111114" stroke="#1E1E22" rx="6"/>
+  <text x="420" y="75" fill="#F2F0EC" font-family="monospace" font-size="13" text-anchor="middle">Identifiant interne</text>
+  <text x="420" y="95" fill="#C8B97A" font-family="monospace" font-size="12" text-anchor="middle">discussion</text>
+
+  <line x1="520" y1="80" x2="620" y2="80" stroke="#5A5A62" marker-end="url(#arrow)"/>
+
+  <rect x="620" y="50" width="180" height="60" fill="#111114" stroke="#1E1E22" rx="6"/>
+  <text x="710" y="75" fill="#F2F0EC" font-family="monospace" font-size="13" text-anchor="middle">Overlay affiche</text>
+  <text x="710" y="95" fill="#C8B97A" font-family="monospace" font-size="12" text-anchor="middle">scène discussion</text>
+
+  <text x="420" y="140" fill="#5A5A62" font-family="monospace" font-size="11" text-anchor="middle">Si le nom OBS ne matche aucune clé de la table → avertissement, rien ne se passe côté overlay</text>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5A5A62"/>
+    </marker>
+  </defs>
+</svg>
+
+<p>Si tu renommes une scène dans OBS, ou si tes noms ne correspondent pas à ceux utilisés par défaut,
+le relais ne saura plus faire le lien : la scène s'affiche dans OBS mais l'overlay ne change pas.</p>
+
+<h2>Comment le savoir</h2>
+<p>Le relais logue <strong>toujours</strong> un avertissement clair quand une scène OBS lui est inconnue :</p>
+<pre><code>[relay] scène OBS "Nom Que Tu As Utilisé" absente de la table de correspondance — ignorée</code></pre>
+<p>Si tu vois ce message dans le terminal de <code>start-stream.bat</code>/<code>start-dev.bat</code>,
+c'est le signal qu'il faut mettre à jour le mapping.</p>
+
+<h2>Comment corriger — méthode recommandée (panneau, aucun code)</h2>
+<ol>
+  <li>Lancer <code>bun dev/start-dev.js</code> (jamais pendant un live).</li>
+  <li>Dans <code>dev/overlay-setting.html</code>, section <strong>OBS</strong> → sous-section
+    <strong>« Renommer les scènes OBS »</strong>.</li>
+  <li>Chaque ligne correspond à une scène overlay avec un champ texte pré-rempli du nom OBS
+    actuellement associé.</li>
+  <li>Remplace le texte par le nom <strong>exact</strong> de ta scène dans OBS (respecte la casse,
+    les espaces).</li>
+  <li>Bouton <strong>« Enregistrer les noms »</strong> — réécrit <code>relay/obs-scene-map-data.js</code>.</li>
+  <li><strong>Relance <code>relay/server.js</code></strong> — le fichier est importé une seule fois
+    au démarrage, pas de rechargement à chaud.</li>
+</ol>
+
+<figure>
+  <img src="img/obs-rename.png" alt="Section Renommer les scènes OBS avec une ligne par scène">
+  <figcaption>Une ligne par scène overlay (<code>brb</code>, <code>codage</code>, <code>discussion</code>...),
+  champ texte pour le nom OBS exact.</figcaption>
+</figure>
+
+<h2>Pourquoi ce n'est pas 100% automatique</h2>
+<p>OBS WebSocket ne pousse pas d'événement « cette scène a été renommée, voici l'ancien et le nouveau
+nom » que le relais pourrait exploiter pour se mettre à jour tout seul de façon fiable — et même s'il
+le faisait, laisser un process modifier silencieusement son propre fichier de config en plein live
+serait plus risqué que rassurant. Le panneau est le compromis retenu : zéro édition de code à la main,
+un clic pour sauvegarder, mais une action explicite de ta part.</p>
+
+<h2>Éditer à la main (si tu préfères)</h2>
+<p><code>relay/obs-scene-map-data.js</code> est un objet JS trivial :</p>
+<pre><code>export const OBS_SCENE_MAP = {
+  'Nom Exact Dans OBS': 'discussion',
+  // ...
+};</code></pre>
+<div class="callout danger">
+  Si le panneau est utilisé ensuite, sa prochaine sauvegarde réécrira le fichier <strong>en entier</strong>
+  (pas de fusion) — la dernière sauvegarde du panneau écrase une édition manuelle antérieure non
+  re-synchronisée dans le panneau lui-même.
+</div>
+
+<h2>Une scène OBS sans équivalent overlay ?</h2>
+<p>Si tu crées une scène OBS pour un usage qui n'a pas encore de scène overlay correspondante, il faut
+d'abord créer la scène overlay elle-même (panneau → « + scène », voir
+<a href="utiliser-le-panneau.html">utiliser-le-panneau.html</a>) avant de pouvoir la mapper ici.</p>
+
+<footer class="nav">
+  <a href="creer-un-composant.html">← Créer un composant</a>
+  <a href="utiliser-le-panneau.html">Utiliser le panneau →</a>
+</footer>
+
+</body>
+</html>
