@@ -9,19 +9,15 @@
     --gold: #C8B97A; --text: #F2F0EC; --dim: #9A9AA2; --ghost: #5A5A62; --red: #C86A6A;
   }
   * { box-sizing: border-box; }
-  html { font-size: 19px; }
+  html { font-size: 110%; }
   body {
     background: var(--bg); color: var(--text);
     font-family: Georgia, 'Times New Roman', serif;
-    width: min(1100px, 100% - 64px); margin: 0 auto; padding: 48px 0 120px;
+    width: 80%; margin: 0 auto; padding: 3em 0 6em;
     line-height: 1.65;
   }
   h1 { font-size: 2.1rem; border-bottom: 1px solid var(--gold); padding-bottom: 16px; }
   h2 { font-size: 1.45rem; color: var(--gold); margin-top: 56px; border-left: 3px solid var(--gold); padding-left: 12px; }
-  @media (max-width: 640px) {
-    html { font-size: 17px; }
-    body { width: min(1100px, 100% - 32px); padding: 32px 0 80px; }
-  }
   code, pre { font-family: 'Consolas', 'Courier New', monospace; }
   code { background: var(--panel); padding: 2px 6px; border-radius: 3px; color: var(--gold); font-size: 0.9em; }
   pre { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; overflow-x: auto; font-size: 0.9em; }
