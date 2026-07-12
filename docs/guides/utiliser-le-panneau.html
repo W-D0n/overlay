@@ -2,51 +2,9 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Guide — Utiliser le panneau de dev</title>
-<style>
-  :root {
-    --bg: #0A0A0C; --panel: #111114; --rule: #1E1E22;
-    --gold: #C8B97A; --text: #F2F0EC; --dim: #9A9AA2; --ghost: #5A5A62;
-  }
-  * { box-sizing: border-box; }
-  html { font-size: 110%; }
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: Georgia, 'Times New Roman', serif;
-    width: 80%; margin: 0 auto; padding: 3em 0 6em;
-    line-height: 1.65;
-  }
-  h1 { font-size: 2.1rem; border-bottom: 1px solid var(--gold); padding-bottom: 16px; }
-  h2 { font-size: 1.45rem; color: var(--gold); margin-top: 56px; border-left: 3px solid var(--gold); padding-left: 12px; }
-  h3 { font-size: 1.1rem; color: var(--text); margin-top: 32px; }
-  code, pre { font-family: 'Consolas', 'Courier New', monospace; }
-  code { background: var(--panel); padding: 2px 6px; border-radius: 3px; color: var(--gold); font-size: 0.9em; }
-  pre { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; overflow-x: auto; }
-  pre code { background: none; padding: 0; color: var(--text); }
-  a { color: var(--gold); }
-  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
-  th, td { border: 1px solid var(--rule); padding: 8px 12px; text-align: left; font-family: monospace; font-size: 0.9em; }
-  th { background: var(--panel); color: var(--gold); }
-  .callout {
-    background: var(--panel); border-left: 3px solid var(--gold);
-    padding: 14px 18px; border-radius: 4px; font-size: 0.95em; color: var(--dim);
-  }
-  .callout code { font-size: 0.95em; }
-  figure { margin: 24px 0; text-align: center; }
-  figure img {
-    max-width: 100%; border: 1px solid var(--rule); border-radius: 6px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-  }
-  figcaption { font-size: 0.85em; color: var(--ghost); margin-top: 8px; font-style: italic; }
-  .badge { display: inline-block; background: var(--gold); color: var(--bg); font-size: 0.75em;
-    padding: 2px 8px; border-radius: 10px; font-family: monospace; font-weight: bold; }
-  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  nav.crumbs { font-size: 0.85em; color: var(--ghost); margin-bottom: 32px; }
-  nav.crumbs a { color: var(--dim); }
-  footer.nav { margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--rule);
-    display: flex; justify-content: space-between; font-size: 0.9em; }
-  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
-</style>
+<link rel="stylesheet" href="guide.css">
 </head>
 <body>
 
@@ -91,8 +49,8 @@ est affiché dans le panneau de gauche.</p>
 
 <figure>
   <img src="img/bind-toggle.png" alt="Champ Texte basculé en mode lié, montrant subjectLine et duration">
-  <figcaption>Le bouton <span class="badge">lié</span> à côté d'un champ (ici « Texte » → <code>subjectLine</code>,
-  « Valeur » → <code>duration</code>) le connecte à l'état live plutôt qu'à une valeur fixe.</figcaption>
+  <figcaption>Le bouton <span class="badge">lié</span> à côté d'un champ (ici « Texte » → <code>subjectLine</code>)
+  le connecte à l'état live ; les autres champs restent en <span class="badge" style="background:none;color:var(--dim);border:1px solid var(--rule)">fixe</span>.</figcaption>
 </figure>
 
 <h3>Changer / tweaker l'effet de fond d'une scène</h3>
