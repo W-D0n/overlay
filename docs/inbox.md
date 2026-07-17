@@ -70,6 +70,9 @@ Capture d'idées et questions ouvertes. Trier via `/inbox-triage`.
 7. **Import contrôlable** — le tuner résume créations, mises à jour et renommages puis attend une
    confirmation explicite. Une révision serveur refuse un résumé devenu obsolète et force son
    recalcul. Les cartes Atelier et personnelles partagent désormais la même structure.
+8. **Contrôle pré-live** — le tuner vérifie en lecture seule le serveur d'état, la sélection,
+   l'URL OBS, la mesure locale et le relais optionnel. Le résultat prêt, attention ou bloquant reste
+   relançable et propose une action concrète pour chaque point concerné.
 
 Le **binding OBS automatique** reste volontairement optionnel : attendre le retour d'usage sur les
 URL stables avant d'ajouter une table scène OBS → preset.

@@ -28,6 +28,7 @@
   --color-text-dim:     #5A5A62;   /* chat ancien, tertaire */
   --color-text-ghost:   #3C3C48;   /* liens, métadonnées */
   --color-text-dead:    #2A2A32;   /* watermark zone capture */
+  --color-danger:       #C86A6A;   /* erreur bloquante / action destructive */
 
   /* ─── Typographie ──────────────────────────────────────────── */
   --font-serif:   'Times New Roman', Georgia, 'Palatino Linotype', serif;

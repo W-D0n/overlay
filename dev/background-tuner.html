@@ -173,7 +173,7 @@
       color: var(--color-text-dim);
       padding: 2px 4px;
     }
-    .preset-row .preset-delete:hover { color: #C86A6A; }
+    .preset-row .preset-delete:hover { color: var(--color-danger); }
     .preset-meta {
       flex-basis: 100%;
       color: var(--color-text-dim);
@@ -198,9 +198,9 @@
     .preset-import-actions { display: flex; gap: var(--space-sm); }
 
     /* Confirmation de suppression inline — remplace le confirm() natif */
-    .preset-row .confirm-label { flex: 1; color: #C86A6A; }
-    .preset-row .confirm-yes { border-color: #C86A6A; color: #C86A6A; }
-    .preset-row .confirm-yes:hover { border-color: #C86A6A; }
+    .preset-row .confirm-label { flex: 1; color: var(--color-danger); }
+    .preset-row .confirm-yes { border-color: var(--color-danger); color: var(--color-danger); }
+    .preset-row .confirm-yes:hover { border-color: var(--color-danger); }
     .preset-row .confirm-no { color: var(--color-text-mid); border-color: var(--color-rule); }
 
     .save-row { display: flex; gap: 8px; margin-top: 8px; }
@@ -217,8 +217,61 @@
     .runtime-row label { margin-top: 0; }
     #runtime-status { color: var(--color-text-dim); white-space: nowrap; padding-bottom: 7px; }
 
+    .live-readiness {
+      margin: var(--space-md) 0 var(--space-lg);
+      padding: var(--space-md);
+      border: var(--border-rule-mid);
+      border-left: 2px solid var(--color-rule-mid);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg-panel);
+    }
+    .live-readiness[data-status="ready"] { border-left-color: var(--color-gold); }
+    .live-readiness[data-status="attention"] { border-left-color: var(--color-text-mid); }
+    .live-readiness[data-status="blocking"] { border-left-color: var(--color-danger); }
+    .live-readiness-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+    .live-readiness-kicker {
+      display: block;
+      margin-bottom: 2px;
+      color: var(--color-text-dim);
+      font-size: var(--text-base);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+    }
+    #live-readiness-title { color: var(--color-text-primary); font-size: var(--text-md); font-weight: 400; }
+    #live-readiness-run { flex: none; }
+    #live-readiness-summary {
+      margin: var(--space-sm) 0 0;
+      color: var(--color-text-mid);
+      font-size: var(--text-base);
+      line-height: 1.45;
+    }
+    .live-readiness-checks { display: grid; gap: var(--space-sm); margin-top: var(--space-md); }
+    .readiness-check {
+      display: grid;
+      grid-template-columns: 18px minmax(0, 1fr);
+      column-gap: var(--space-sm);
+      padding-top: var(--space-sm);
+      border-top: var(--border-rule);
+    }
+    .readiness-check-mark { color: var(--color-text-mid); line-height: 1.2; }
+    .readiness-check[data-status="ready"] .readiness-check-mark { color: var(--color-gold); }
+    .readiness-check[data-status="blocking"] .readiness-check-mark { color: var(--color-danger); }
+    .readiness-check-title { color: var(--color-text-primary); font-size: var(--text-base); }
+    .readiness-check-detail {
+      margin-top: 2px;
+      color: var(--color-text-dim);
+      font-size: var(--text-base);
+      line-height: 1.4;
+    }
+    .readiness-check-action { grid-column: 2; justify-self: start; margin-top: var(--space-xs); }
+
     #server-status { color: var(--color-text-dim); margin-top: 20px; }
-    #server-status.error { color: #C86A6A; }
+    #server-status.error { color: var(--color-danger); }
   </style>
 </head>
 <body>
@@ -237,6 +290,18 @@
       </div>
       <span id="runtime-status">FPS —</span>
     </div>
+
+    <section id="live-readiness" class="live-readiness" data-status="idle" aria-live="polite">
+      <div class="live-readiness-head">
+        <div>
+          <span class="live-readiness-kicker">Avant le live</span>
+          <strong id="live-readiness-title">À vérifier</strong>
+        </div>
+        <button id="live-readiness-run" type="button">Vérifier</button>
+      </div>
+      <p id="live-readiness-summary">Contrôle l’effet, l’URL OBS et les services sans rien modifier.</p>
+      <div id="live-readiness-checks" class="live-readiness-checks"></div>
+    </section>
 
     <label for="effect-select">Effet</label>
     <select id="effect-select"></select>
@@ -296,6 +361,7 @@
       createBackgroundPresetImportReview,
       reduceBackgroundPresetImportReview,
     } from './background-preset-import-flow.js';
+    import { collectBackgroundLiveReadiness } from './background-live-readiness.js';
 
     const STATE_SERVER = 'http://localhost:4462';
     const NONE_VALUE = '__none__';
@@ -321,6 +387,11 @@
     const qualitySelect = document.getElementById('quality-select');
     const runtimeStatus = document.getElementById('runtime-status');
     const serverStatus = document.getElementById('server-status');
+    const liveReadiness = document.getElementById('live-readiness');
+    const liveReadinessTitle = document.getElementById('live-readiness-title');
+    const liveReadinessSummary = document.getElementById('live-readiness-summary');
+    const liveReadinessChecks = document.getElementById('live-readiness-checks');
+    const liveReadinessRun = document.getElementById('live-readiness-run');
 
     /** État courant local — miroir de `current` côté serveur. */
     let current = { component: null, options: {} };
@@ -330,6 +401,7 @@
     let importReviewState = createBackgroundPresetImportReview();
     /** Palette normalisée depuis components/color-palette.json. */
     let colorPalette = { colors: [], gradients: [] };
+    let measuredFps = null;
 
     // ── Sidebar rétractable ──────────────────────────────────
     const sidebar = document.getElementById('sidebar');
@@ -351,7 +423,10 @@
 
     document.addEventListener('visibilitychange', () => {
       mount.setPaused(document.hidden);
-      if (document.hidden) runtimeStatus.textContent = 'en pause';
+      if (document.hidden) {
+        measuredFps = null;
+        runtimeStatus.textContent = 'en pause';
+      }
     });
 
     let fpsFrames = 0;
@@ -360,6 +435,7 @@
       fpsFrames += 1;
       if (now - fpsSince >= 1000) {
         const fps = Math.round((fpsFrames * 1000) / (now - fpsSince));
+        measuredFps = fps;
         runtimeStatus.textContent = document.hidden ? 'en pause' : `${fps} FPS · DPR ${qualitySelect.value === 'performance' ? '1' : Math.min(devicePixelRatio || 1, 2)}`;
         fpsFrames = 0;
         fpsSince = now;
@@ -367,6 +443,115 @@
       requestAnimationFrame(measureFps);
     }
     requestAnimationFrame(measureFps);
+
+    // ── Contrôle avant live ──────────────────────────────────
+    const readinessCopy = {
+      ready: {
+        title: 'Prêt pour le live',
+        summary: 'Les points vérifiables automatiquement sont prêts. Confirme le rendu dans OBS.',
+      },
+      attention: {
+        title: 'À vérifier',
+        summary: 'Le fond peut fonctionner, mais un point mérite ton attention avant le live.',
+      },
+      blocking: {
+        title: 'À corriger',
+        summary: 'Un point empêche de préparer une URL OBS fiable.',
+      },
+    };
+
+    function currentRuntimeMeasurement() {
+      return {
+        fps: measuredFps,
+        pixelRatio: document.hidden
+          ? null
+          : (qualitySelect.value === 'performance' ? 1 : Math.min(devicePixelRatio || 1, 2)),
+        paused: document.hidden,
+      };
+    }
+
+    async function runReadinessAction(action, button) {
+      if (typeof action.value === 'string') {
+        await navigator.clipboard.writeText(action.value);
+        button.textContent = 'URL copiée';
+        return;
+      }
+      if (action.type === 'retry') {
+        runLiveReadiness();
+        return;
+      }
+      if (action.type === 'focus-effect') {
+        effectSelect.focus();
+        effectSelect.scrollIntoView({ block: 'center' });
+        return;
+      }
+      if (action.type === 'focus-presets') {
+        presetSearch.focus();
+        presetSearch.scrollIntoView({ block: 'center' });
+      }
+    }
+
+    function renderLiveReadiness(report) {
+      const copy = readinessCopy[report.status];
+      liveReadiness.dataset.status = report.status;
+      liveReadinessTitle.textContent = copy.title;
+      liveReadinessSummary.textContent = copy.summary;
+      liveReadinessChecks.replaceChildren();
+
+      const marks = { ready: '✓', attention: '!', blocking: '×' };
+      for (const check of report.checks) {
+        const item = document.createElement('article');
+        item.className = 'readiness-check';
+        item.dataset.status = check.status;
+
+        const mark = document.createElement('span');
+        mark.className = 'readiness-check-mark';
+        mark.textContent = marks[check.status];
+        mark.setAttribute('aria-hidden', 'true');
+
+        const content = document.createElement('div');
+        const title = document.createElement('div');
+        title.className = 'readiness-check-title';
+        title.textContent = check.title;
+        const detail = document.createElement('p');
+        detail.className = 'readiness-check-detail';
+        detail.textContent = check.detail;
+        content.append(title, detail);
+        item.append(mark, content);
+
+        if (check.action) {
+          const action = document.createElement('button');
+          action.className = 'readiness-check-action';
+          action.type = 'button';
+          action.textContent = check.action.label;
+          action.onclick = () => runReadinessAction(check.action, action);
+          item.appendChild(action);
+        }
+        liveReadinessChecks.appendChild(item);
+      }
+    }
+
+    async function runLiveReadiness() {
+      liveReadiness.setAttribute('aria-busy', 'true');
+      liveReadinessRun.disabled = true;
+      liveReadinessRun.textContent = 'Vérification…';
+      liveReadinessTitle.textContent = 'Vérification…';
+      liveReadinessSummary.textContent = 'Lecture des services et du rendu en cours.';
+      try {
+        const report = await collectBackgroundLiveReadiness({
+          stateServer: STATE_SERVER,
+          selection: { presetId: activePresetId, quality: qualitySelect.value },
+          runtime: currentRuntimeMeasurement(),
+        });
+        renderLiveReadiness(report);
+      } finally {
+        liveReadiness.removeAttribute('aria-busy');
+        liveReadinessRun.disabled = false;
+        liveReadinessRun.textContent = 'Revérifier';
+      }
+    }
+
+    liveReadinessRun.onclick = runLiveReadiness;
 
     // ── Communication serveur ────────────────────────────────
     function reportServerError(message) {
@@ -1032,6 +1217,7 @@
       renderBuiltinPresets();
       connectStateWs();
       connectPresetsWs();
+      setTimeout(runLiveReadiness, 1200);
     }
 
     init();

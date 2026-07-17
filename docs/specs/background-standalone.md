@@ -36,6 +36,7 @@ Décisions validées (AskUserQuestion, 2026-07-14) :
 | `dev/background-preset-library.js` | Recherche commune, format d'échange versionné et fusion atomique des imports. Logique pure testée. |
 | `dev/background-preset-import-flow.js` | État pur de confirmation : seule l'action confirmée produit une commande d'import. |
 | `dev/background-preset-presenter.js` | Formate le plan métier pour l'interface, sans polluer la bibliothèque de domaine. |
+| `dev/background-live-readiness.js` | Diagnostic pré-live en lecture seule : état, sélection, URL OBS, mesure locale et relais optionnel. La collecte réseau est séparée de l'évaluation pure. |
 | `dev/background-state-server.js` | Serveur Bun (port 4462, `BACKGROUND_STATE_PORT`). Persiste `dev/data/background-state.json`. Écritures sérialisées (`keyed-lock`). |
 | `dev/studio.html` / `dev/studio.config.js` | Entrée unique vers le tuner de fonds et l'éditeur des scènes complètes ; navigation déclarée hors de la page. |
 | `dev/background-tuner.html` | Page de tuning : rendu plein écran, contrôles guidés, profil performance, bibliothèque Atelier et presets personnels. |
@@ -117,6 +118,9 @@ Toutes les écritures passent par un `keyed-lock` (clé unique) — même motif 
   bibliothèque personnelle portable ; le plan d'import est résumé puis confirmé avant écriture.
   Six presets Atelier fournissent des points de départ sans polluer l'état utilisateur.
 - Profil performance : indicateur FPS, DPR 1 ; le mode auto plafonne le DPR à 2.
+- Le bloc « Prêt pour le live » vérifie en lecture seule l'état, la sélection, l'URL OBS, la mesure
+  locale et le relais optionnel. Il distingue prêt, attention et bloquant, avec une action guidée
+  par ligne. Aucun seuil FPS arbitraire n'est présenté comme une certification OBS.
 - `background.html` et le tuner appellent `setPaused(document.hidden)` à chaque changement de
   visibilité afin qu'un canvas invisible ne continue pas sa boucle.
 - La page écoute aussi le WS (synchro si un autre onglet modifie l'état).
@@ -153,6 +157,8 @@ fusion sans écrasement. `dev/background-state-server.test.js` vérifie par HTTP
 n'écrit pas le fichier, qu'une révision périmée est refusée et qu'aucun événement WebSocket indu
 n'est diffusé. `dev/background-preset-import-flow.test.js` garantit qu'aucune commande réseau
 n'existe avant confirmation ; le présentateur possède son test de libellé séparé.
+`dev/background-live-readiness.test.js` couvre les états prêt, attention et bloquant, les URL
+courante et liée à un preset, les données partielles et la collecte réseau exclusivement en GET.
 
 ## Hors scope
 

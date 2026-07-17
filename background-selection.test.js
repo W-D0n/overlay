@@ -1,5 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { backgroundPresetUrl, selectBackground } from './background-selection.js';
+import {
+  backgroundCurrentUrl,
+  backgroundPresetUrl,
+  selectBackground,
+} from './background-selection.js';
 
 const file = {
   current: { component: 'RainBackground', options: { speed: 1 } },
@@ -37,5 +41,12 @@ describe('sélection du fond standalone', () => {
   test('backgroundPresetUrl peut demander le profil performance', () => {
     const url = new URL(backgroundPresetUrl('discussion-calme', undefined, { performance: true }));
     expect(url.searchParams.get('quality')).toBe('performance');
+  });
+
+  test('backgroundCurrentUrl suit le tuner avec transparence et profil performance optionnel', () => {
+    expect(backgroundCurrentUrl()).toBe('http://localhost:5500/background.html?transparent=1');
+    expect(backgroundCurrentUrl(undefined, { performance: true })).toBe(
+      'http://localhost:5500/background.html?transparent=1&quality=performance',
+    );
   });
 });

@@ -81,6 +81,26 @@ CSS.</p>
 <p>La ligne de statut en bas de la barre indique si le serveur d'état répond. Si elle est rouge,
 lancer <code>start-dev.bat</code> ou <code>start-stream.bat</code>.</p>
 
+<h2>Vérifier avant un live</h2>
+<p>Le bloc <strong>Prêt pour le live</strong> se contrôle automatiquement à l'ouverture du tuner.
+Le bouton <strong>Revérifier</strong> permet de relancer le diagnostic après avoir changé un effet,
+un preset ou le profil de rendu.</p>
+<p>Le diagnostic est entièrement en lecture seule : il ne modifie ni le fond courant, ni les
+presets, ni la configuration OBS. Il vérifie :</p>
+<ul>
+  <li>la disponibilité du serveur d'état ;</li>
+  <li>la validité de l'effet ou du preset sélectionné ;</li>
+  <li>l'adresse à utiliser dans la Source Navigateur OBS ;</li>
+  <li>la présence d'une mesure locale FPS/DPR ;</li>
+  <li>le relais optionnel, qui n'est pas requis pour une URL de fond autonome.</li>
+</ul>
+<p>Le résultat est <strong>Prêt</strong>, <strong>Attention</strong> ou <strong>Bloquant</strong>.
+Chaque ligne concernée propose une action directe : copier l'URL, choisir un effet ou un preset,
+ou réessayer après avoir relancé <code>start-dev.bat</code> ou <code>start-stream.bat</code>.</p>
+<div class="callout"><strong>À confirmer dans OBS.</strong> La mesure FPS vient du navigateur
+courant : elle confirme que l'animation tourne, mais ne certifie pas ses performances dans OBS.
+Faire une dernière vérification visuelle avant le live.</div>
+
 <h2>Couleurs, palettes et scènes</h2>
 <ul>
   <li><code>tokens.css</code> contient les couleurs de l'identité Atelier utilisées par

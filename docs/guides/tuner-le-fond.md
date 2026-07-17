@@ -66,6 +66,27 @@ Ouvrir `http://localhost:5500/dev/studio.html` (s'ouvre aussi automatiquement av
 
 La ligne de statut en bas de la barre indique si le serveur d'état répond.
 
+## Vérifier avant un live
+
+Le bloc **Prêt pour le live** se contrôle automatiquement à l'ouverture du tuner. Le bouton
+**Revérifier** permet de relancer le diagnostic à tout moment, notamment après avoir changé un
+effet, un preset ou le profil de rendu.
+
+Le diagnostic est entièrement en lecture seule : il ne modifie ni le fond courant, ni les presets,
+ni la configuration OBS. Il vérifie :
+
+- la disponibilité du serveur d'état ;
+- la validité de l'effet ou du preset sélectionné ;
+- l'adresse à utiliser dans la Source Navigateur OBS ;
+- la présence d'une mesure locale FPS/DPR ;
+- le relais optionnel, qui n'est pas requis pour une URL de fond autonome.
+
+Le résultat est **Prêt**, **Attention** ou **Bloquant**. Chaque ligne concernée propose une action
+directe : copier l'URL, choisir un effet ou un preset, ou réessayer après avoir relancé
+`start-dev.bat` ou `start-stream.bat`. La mesure FPS vient du navigateur courant : elle confirme que
+l'animation tourne, mais ne certifie pas ses performances dans OBS. Toujours faire une dernière
+vérification visuelle dans OBS avant le live.
+
 ## Couleurs, palettes et scènes
 
 - `tokens.css` contient les couleurs de l'identité Atelier utilisées par l'interface.

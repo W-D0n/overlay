@@ -16,14 +16,30 @@ export function selectBackground(file, presetRef) {
 }
 
 /**
+ * @param {string} [baseUrl]
+ * @param {{ performance?: boolean }} [options]
+ */
+function backgroundUrl(presetId, baseUrl, options) {
+  const url = new URL(baseUrl);
+  if (presetId !== null) url.searchParams.set('preset', presetId);
+  url.searchParams.set('transparent', '1');
+  if (options.performance === true) url.searchParams.set('quality', 'performance');
+  return url.toString();
+}
+
+/**
+ * @param {string} [baseUrl]
+ * @param {{ performance?: boolean }} [options]
+ */
+export function backgroundCurrentUrl(baseUrl = 'http://localhost:5500/background.html', options = {}) {
+  return backgroundUrl(null, baseUrl, options);
+}
+
+/**
  * @param {string} presetId
  * @param {string} [baseUrl]
  * @param {{ performance?: boolean }} [options]
  */
 export function backgroundPresetUrl(presetId, baseUrl = 'http://localhost:5500/background.html', options = {}) {
-  const url = new URL(baseUrl);
-  url.searchParams.set('preset', presetId);
-  url.searchParams.set('transparent', '1');
-  if (options.performance === true) url.searchParams.set('quality', 'performance');
-  return url.toString();
+  return backgroundUrl(presetId, baseUrl, options);
 }
