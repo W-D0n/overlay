@@ -51,7 +51,7 @@ function reportStatus(checks) {
  * L'absence du relais reste un constat informatif : le mode background-only n'en dépend pas.
  *
  * @param {{
- *   stateServer?: string,
+ *   stateServer: string,
  *   relayUrl?: string,
  *   selection: { presetId: string | null, quality: 'auto' | 'performance' },
  *   runtime: { fps: number | null, pixelRatio: number | null, paused: boolean },
@@ -59,7 +59,7 @@ function reportStatus(checks) {
  * }} input
  */
 export async function collectBackgroundLiveReadiness(input) {
-  const stateServer = (input.stateServer ?? 'http://localhost:4462').replace(/\/$/, '');
+  const stateServer = input.stateServer.replace(/\/$/, '');
   const relayUrl = input.relayUrl ?? 'http://localhost:4456/';
   const fetchImpl = input.fetchImpl ?? fetch;
   const signal = AbortSignal.timeout(1500);

@@ -15,29 +15,30 @@ export function clampNumericFieldValue(value, min, max) {
  * @param {import('./component-field-schemas.js').FieldSchema} field
  * @param {unknown} currentValue
  * @param {(value: number) => void} onChange
- * @param {{ exactEvent?: 'input'|'change' }} [options]
+ * @param {{ exactEvent?: 'input'|'change', documentRef?: Document }} [options]
  */
 export function buildNumericFieldControl(field, currentValue, onChange, options = {}) {
+  const documentRef = options.documentRef ?? document;
   const min = Number(field.min);
   const max = Number(field.max);
   const step = Number(field.step);
   const value = clampNumericFieldValue(Number(currentValue), min, max);
 
-  const wrapper = document.createElement('div');
+  const wrapper = documentRef.createElement('div');
   wrapper.className = 'numeric-control';
-  const range = document.createElement('input');
+  const range = documentRef.createElement('input');
   range.type = 'range';
   range.min = String(min);
   range.max = String(max);
   range.step = String(step);
   range.value = String(value);
-  const exact = document.createElement('input');
+  const exact = documentRef.createElement('input');
   exact.type = 'number';
   exact.min = range.min;
   exact.max = range.max;
   exact.step = range.step;
   exact.value = String(value);
-  const unit = document.createElement('span');
+  const unit = documentRef.createElement('span');
   unit.className = 'field-unit';
   unit.textContent = field.unit ?? '';
 

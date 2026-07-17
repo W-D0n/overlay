@@ -73,6 +73,9 @@ Capture d'idées et questions ouvertes. Trier via `/inbox-triage`.
 8. **Contrôle pré-live** — le tuner vérifie en lecture seule le serveur d'état, la sélection,
    l'URL OBS, la mesure locale et le relais optionnel. Le résultat prêt, attention ou bloquant reste
    relançable et propose une action concrète pour chaque point concerné.
+9. **Runtime du tuner modulaire** — le HTML délègue désormais les requêtes, les champs, l'aperçu,
+   les presets/imports et le diagnostic à des modules testables. « Revérifier » rejoue la validation
+   progressive des cinq lignes en respectant la réduction de mouvement.
 
 Le **binding OBS automatique** reste volontairement optionnel : attendre le retour d'usage sur les
 URL stables avant d'ajouter une table scène OBS → preset.

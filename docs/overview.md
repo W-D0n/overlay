@@ -17,9 +17,9 @@ Contraintes structurantes :
 Depuis le 14 juillet 2026, le développement actif cible un flux **background-only** :
 
 ```text
-background-tuner.html
-        │ POST + WebSocket
-        ▼
+background-tuner.html ──► background-tuner-runtime.js
+                              │ contrôleurs + client HTTP/WS
+                              ▼
 background-state-server.js ──► dev/data/background-state.json
         │
         ▼
@@ -28,7 +28,11 @@ background.html (OBS)
 
 - `background.html` rend l'effet courant, ou un preset fixe avec `?preset=...`.
 - `dev/studio.html` réunit la création des fonds et des scènes dans une navigation unique.
-- `dev/background-tuner.html` utilise le même moteur de montage pour son aperçu.
+- `dev/background-tuner.html` ne porte que le markup et les styles ;
+  `dev/background-tuner-runtime.js` orchestre ses modules et utilise le même moteur de montage pour
+  l'aperçu.
+- La bibliothèque de presets et son transfert import/export sont séparés : un fichier choisi est
+  toujours prévisualisé avant que la confirmation n'autorise son écriture.
 - `dev/background-state-server.js` persiste l'état et le diffuse en direct.
 - Un seul effet est actif à la fois parmi les 12 enregistrés.
 - Les presets mémorisent `{ id, name, component, options, tags? }` et exposent une URL OBS stable pour

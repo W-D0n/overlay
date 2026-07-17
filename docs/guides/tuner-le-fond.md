@@ -70,7 +70,8 @@ La ligne de statut en bas de la barre indique si le serveur d'état répond.
 
 Le bloc **Prêt pour le live** se contrôle automatiquement à l'ouverture du tuner. Le bouton
 **Revérifier** permet de relancer le diagnostic à tout moment, notamment après avoir changé un
-effet, un preset ou le profil de rendu.
+effet, un preset ou le profil de rendu. Les résultats et leurs coches se rejouent alors dans
+l'ordre ; le mouvement est automatiquement désactivé si le système demande moins d'animations.
 
 Le diagnostic est entièrement en lecture seule : il ne modifie ni le fond courant, ni les presets,
 ni la configuration OBS. Il vérifie :
@@ -152,6 +153,28 @@ bun test
 Les tests de cohérence existants attrapent les oublis (nom sans factory, factory sans schéma).
 Recharger le tuner : le nouvel effet est dans le menu déroulant, avec son formulaire et ses
 presets — `background.html`, le tuner et le serveur n'ont pas bougé.
+
+## Faire évoluer le tuner
+
+La page `dev/background-tuner.html` ne contient plus sa logique métier. Selon le changement :
+
+- **ajouter ou modifier un champ** : déclarer le champ dans `dev/component-field-schemas.js` ; son
+  rendu commun vit dans `dev/background-field-renderer.js` ;
+- **ajouter une requête au serveur d'état** : ajouter la méthode et sa route uniquement dans
+  `dev/background-state-client.js` ;
+- **ajouter une action de preset** : intervenir dans `dev/background-preset-controller.js` ;
+- **modifier l'import/export** : intervenir dans `dev/background-preset-transfer-controller.js`
+  et conserver la prévisualisation puis la confirmation avant écriture ;
+- **modifier le montage, la qualité ou la mesure FPS** : utiliser
+  `dev/background-preview-controller.js` ; l'état courant et le preset actif sont isolés dans
+  `dev/background-preview-session.js` ;
+- **modifier le contrôle pré-live** : la synthèse reste dans `dev/background-live-readiness.js` et
+  son rendu dans `dev/background-readiness-controller.js` ;
+- **câbler un nouveau module au démarrage** : le faire dans `dev/background-tuner-runtime.js`.
+
+Les identifiants HTML, les URL et les routes serveur font partie du contrat : ne pas les recopier
+dans plusieurs modules. Ajouter un test à l'interface concernée, puis lancer `bun test` et vérifier
+les parcours du Studio à 1920×1080.
 
 ## Performance et cycle de vie
 

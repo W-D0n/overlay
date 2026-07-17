@@ -84,7 +84,8 @@ lancer <code>start-dev.bat</code> ou <code>start-stream.bat</code>.</p>
 <h2>Vérifier avant un live</h2>
 <p>Le bloc <strong>Prêt pour le live</strong> se contrôle automatiquement à l'ouverture du tuner.
 Le bouton <strong>Revérifier</strong> permet de relancer le diagnostic après avoir changé un effet,
-un preset ou le profil de rendu.</p>
+un preset ou le profil de rendu. Les résultats et leurs coches se rejouent alors dans l'ordre ;
+le mouvement est désactivé si le système demande moins d'animations.</p>
 <p>Le diagnostic est entièrement en lecture seule : il ne modifie ni le fond courant, ni les
 presets, ni la configuration OBS. Il vérifie :</p>
 <ul>
@@ -192,6 +193,28 @@ libre) et <code>'colors'</code> (liste ajout/retrait + gradients).</p>
 <p>Les tests de cohérence existants attrapent les oublis : un nom déclaré sans factory, une
 factory sans schéma, etc. Ensuite, recharger le tuner — le nouvel effet est dans le menu
 déroulant, avec son formulaire, ses presets, et l'URL OBS le prend en charge sans rien toucher.</p>
+
+<h2>Faire évoluer le tuner</h2>
+<p><code>dev/background-tuner.html</code> ne contient plus sa logique métier. Selon le changement :</p>
+<ul>
+  <li><strong>Champ</strong> : déclaration dans <code>dev/component-field-schemas.js</code>, rendu
+      commun dans <code>dev/background-field-renderer.js</code>.</li>
+  <li><strong>Requête d'état</strong> : méthode et route uniquement dans
+      <code>dev/background-state-client.js</code>.</li>
+  <li><strong>Action de preset</strong> : <code>dev/background-preset-controller.js</code>.</li>
+  <li><strong>Import/export</strong> :
+      <code>dev/background-preset-transfer-controller.js</code>, en conservant la prévisualisation
+      puis la confirmation avant écriture.</li>
+  <li><strong>Montage, qualité ou FPS</strong> : <code>dev/background-preview-controller.js</code> ;
+      l'état courant et le preset actif vivent dans <code>dev/background-preview-session.js</code>.</li>
+  <li><strong>Contrôle pré-live</strong> : synthèse dans
+      <code>dev/background-live-readiness.js</code>, rendu dans
+      <code>dev/background-readiness-controller.js</code>.</li>
+  <li><strong>Câblage au démarrage</strong> : <code>dev/background-tuner-runtime.js</code>.</li>
+</ul>
+<p>Les identifiants HTML, URL et routes serveur font partie du contrat : ne pas les recopier dans
+plusieurs modules. Ajouter un test à l'interface concernée, lancer <code>bun test</code>, puis vérifier
+les parcours du Studio à 1920×1080.</p>
 
 <h2>Performance et cycle de vie</h2>
 <p>Les canvas utilisent <code>components/canvas-runtime.js</code> : DPR 2 maximum en Auto, DPR 1
