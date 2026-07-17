@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920">
+  <title>Overlay — Fond seul</title>
+  <!--
+    URL OBS background-only (docs/specs/background-standalone.md) : ne rend QUE l'effet de fond
+    courant, piloté par dev/background-state-server.js (port 4462). Aucun lien avec le moteur de
+    scènes (scene-runtime.js). État chargé au démarrage (GET /state), puis suivi en live via
+    WS /state-ws — serveur injoignable : page vide + reconnexion avec backoff, jamais d'erreur
+    visible dans la Browser Source.
+    OBS : Browser Source 1920×1080, pointer-events: none.
+    Option "?transparent=1" : force le body en transparent (au lieu du noir Atelier) pour
+    superposer l'animation au-dessus d'autres sources OBS (gameplay, cam).
+  -->
+  <link rel="stylesheet" href="./tokens.css">
+  <style>
+    body.transparent { background-color: transparent; }
+
+    #bg-layer {
+      position: absolute;
+      inset: 0;
+      width: 1920px;
+      height: 1080px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="bg-layer"></div>
+
+  <script type="module">
+    import { createBackgroundMount } from './background-mount.js';
+    import { selectBackground } from './background-selection.js';
+
+    const searchParams = new URLSearchParams(location.search);
+    const presetRef = searchParams.get('preset');
+
+    if (searchParams.get('transparent') === '1') {
+      document.body.classList.add('transparent');
+    }
+
+    const STATE_SERVER = 'http://localhost:4462';
+    const mount = createBackgroundMount(document.getElementById('bg-layer'));
+    mount.setPaused(document.hidden);
+    document.addEventListener('visibilitychange', () => mount.setPaused(document.hidden));
+
+    function applySafely(current) {
+      try {
+        mount.apply(current);
+      } catch (err) {
+        // Effet inconnu (état plus récent que le code chargé par OBS) : on garde l'effet en
+        // place plutôt qu'un écran vide en live, et on trace pour diagnostic.
+        console.error('[background] état non applicable :', err);
+      }
+    }
+
+    async function loadInitialState() {
+      try {
+        const response = await fetch(`${STATE_SERVER}/state`);
+        if (!response.ok) throw new Error(`GET /state → ${response.status}`);
+        const file = await response.json();
+        const selected = selectBackground(file, presetRef);
+        if (selected === null) {
+          mount.apply({ component: null, options: {} });
+          throw new Error(`preset inconnu : ${presetRef}`);
+        }
+        applySafely(selected);
+      } catch (err) {
+        console.error('[background] chargement de l\'état impossible :', err);
+      }
+    }
+
+    /** Reconnexion avec backoff (1s → 30s max) : OBS peut charger la page avant le serveur. */
+    function connect(delayMs = 1000) {
+      const wsPath = presetRef === null ? 'state-ws' : 'presets-ws';
+      const ws = new WebSocket(`ws://localhost:4462/${wsPath}`);
+      ws.onopen = () => {
+        delayMs = 1000;
+        loadInitialState(); // resynchronise l'état manqué pendant la déconnexion
+      };
+      ws.onmessage = (event) => {
+        if (presetRef === null) applySafely(JSON.parse(event.data));
+        else {
+          const change = JSON.parse(event.data);
+          if (change.id === presetRef || change.name === presetRef) loadInitialState();
+        }
+      };
+      ws.onclose = () => setTimeout(() => connect(Math.min(delayMs * 2, 30000)), delayMs);
+    }
+
+    connect();
+  </script>
+</body>
+</html>

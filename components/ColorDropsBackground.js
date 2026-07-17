@@ -1,4 +1,5 @@
 // @ts-check
+import { canvasPixelRatio } from './canvas-runtime.js';
 /**
  * ColorDropsBackground.js — Gouttes de couleur tombant verticalement (Track B, session B6).
  *
@@ -16,6 +17,7 @@
  * @returns {import('../types.js').ComponentInstance}
  */
 import { resolveColor } from './color-utils.js';
+import { frameDeltaSeconds } from './animation-time.js';
 
 export function ColorDropsBackground(options = {}) {
   let count = Math.max(1, Math.round(options.count ?? 24));
@@ -30,6 +32,8 @@ export function ColorDropsBackground(options = {}) {
   let cssW = 0;
   let cssH = 0;
   let rafId = 0;
+  /** @type {number | null} */
+  let previousTimestamp = null;
   /** @type {[number, number, number][]} */
   let rgbPalette = colors.map(resolveColor);
   /** @type {CanvasGradient[]} */
@@ -61,7 +65,7 @@ export function ColorDropsBackground(options = {}) {
     return {
       x: Math.random() * cssW,
       y: randomY ? Math.random() * cssH : -length,
-      vy: (1.5 + Math.random() * 2.5) * speed,
+      vy: (1.5 + Math.random() * 2.5) * 60,
       colorIdx: Math.floor(Math.random() * rgbPalette.length),
       width: 0.5 + Math.random() * 1.2,
     };
@@ -74,7 +78,7 @@ export function ColorDropsBackground(options = {}) {
   buildGradients();
 
   function handleResize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasPixelRatio();
     const w = canvas.offsetWidth;
     const h = canvas.offsetHeight;
     if (w === 0 || h === 0) return;
@@ -84,12 +88,15 @@ export function ColorDropsBackground(options = {}) {
     canvas.height = h * dpr;
     ctx.scale(dpr, dpr);
     seed();
+    previousTimestamp = null;
     if (rafId !== 0) cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(tick);
   }
 
-  function tick() {
+  function tick(timestamp) {
     rafId = requestAnimationFrame(tick);
+    const delta = frameDeltaSeconds(previousTimestamp, timestamp);
+    previousTimestamp = timestamp;
     ctx.clearRect(0, 0, cssW, cssH);
 
     for (let i = 0; i < drops.length; i++) {
@@ -105,7 +112,7 @@ export function ColorDropsBackground(options = {}) {
       ctx.stroke();
       ctx.restore();
 
-      d.y += d.vy;
+      d.y += d.vy * speed * delta;
       if (d.y - length > cssH) drops[i] = spawn(false);
     }
   }

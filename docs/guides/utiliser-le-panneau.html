@@ -23,10 +23,21 @@
 <h2>Lancement</h2>
 <pre><code>bun dev/start-dev.js</code></pre>
 <p>(ou double-clic sur <code>start-dev.bat</code>). <strong>Jamais pendant un live</strong> — ces
-serveurs écrivent sur disque. Ouvre automatiquement 3 onglets : preview auto-reload,
-<code>dotgrid-tuner.html</code>, <code>overlay-setting.html</code>.</p>
+serveurs écrivent sur disque. Ouvre automatiquement 2 onglets : le Studio de création et la
+preview auto-reload.</p>
 
-<h2><code>dev/overlay-setting.html</code> — l'outil principal</h2>
+<p>Entrée principale : <code>http://localhost:5500/dev/studio.html</code>. Les URL directes
+<code>dev/background-tuner.html</code> et <code>dev/overlay-setting.html</code> restent disponibles
+pour le diagnostic.</p>
+
+<h2>Studio → Fonds &amp; presets</h2>
+<p>C'est l'outil principal pour le flux OBS <code>background.html</code> : choix d'un effet, réglages
+live guidés, bibliothèque Atelier, presets et copie de l'URL OBS dédiée. Le profil Performance OBS
+et l'indicateur FPS permettent de vérifier le coût avant le live. La recherche couvre nom, effet et
+tag ; Exporter et Importer déplacent la bibliothèque personnelle dans un JSON validé avant
+écriture. Il ne modifie jamais le code source.</p>
+
+<h2>Studio → Scènes complètes</h2>
 <p>C'est l'éditeur visuel de l'overlay. Une scène à la fois (menu déroulant en haut), le rendu réel
 est affiché dans le panneau de gauche.</p>
 
@@ -44,7 +55,7 @@ est affiché dans le panneau de gauche.</p>
     <span class="badge">lié</span> pour le connecter à une valeur d'état live (ex : <code>state.duration</code>).</li>
   <li><strong>Retirer</strong> — bouton « × » sur le composant.</li>
   <li>Les changements de composition (ajout/retrait) sont sauvegardés <strong>immédiatement</strong>.
-    Les éditions de champ attendent le bouton « Enregistrer ».</li>
+    Les éditions de champ sont sauvegardées au changement validé (perte de focus ou sélection).</li>
 </ul>
 
 <figure>
@@ -102,11 +113,11 @@ supprime jamais vraiment — <code>scenes/data/archived/&lt;id&gt;.scene.json</c
   <figcaption>Une ligne par scène overlay — le champ texte contient le nom <em>exact</em> de la scène dans OBS.</figcaption>
 </figure>
 
-<h2><code>dev/dotgrid-tuner.html</code> — réglage fin du DotGrid</h2>
+<h2><code>dev/dotgrid-tuner.html</code> — réglage avancé du DotGrid</h2>
 <p>Sliders live sur les paramètres Simplex par mode (<code>freqX</code>/<code>freqY</code>/<code>freqT</code>/<code>amplitude</code>)
 + <code>baseOpacity</code>/<code>dotRadius</code> globaux. Bouton « Sauvegarder » réécrit directement
-<code>components/DotGridAnimated.js</code>. Bouton « Copier » en secours si le serveur d'écriture
-(<code>dev/tuner-server.js</code>) n'est pas lancé.</p>
+<code>components/DotGridAnimated.js</code>. Cet outil développeur n'est pas ouvert par défaut : lancer
+<code>bun dev/tuner-server.js</code> avant de l'utiliser. Le bouton « Copier » reste disponible en secours.</p>
 <p><code>colorMode: 'noise'</code> se règle depuis <code>overlay-setting.html</code> §Fond →
 <code>DotGridBackground</code>, pas depuis le tuner.</p>
 

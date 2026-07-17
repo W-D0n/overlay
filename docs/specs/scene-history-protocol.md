@@ -1,8 +1,8 @@
 ---
 feature: scene-history-protocol
 created: 2026-07-05
-updated: 2026-07-06
-status: draft
+updated: 2026-07-17
+status: implemented
 ---
 
 <!-- Extension 2026-07-05 : historique partagé avec placement-server.js (drag & drop), voir
@@ -11,6 +11,12 @@ status: draft
      et AC-14/AC-15/AC-16 en fin de document. -->
 
 # Spec : scene-history-protocol
+
+> Maintenance 2026-07-17 : le proxy `placement-server.js` a été supprimé. Le panneau appelle
+> directement `scene-data-server.js/save-placement`, déjà propriétaire atomique du fichier de scène
+> et de son historique. Les mentions du proxy et du port 4459 ci-dessous décrivent l'étape
+> historique qui avait d'abord éliminé les écritures concurrentes ; AC-12 et AC-16 sont superseded
+> par cette interface directe.
 
 ## Contexte
 

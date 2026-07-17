@@ -4,9 +4,8 @@
  * bord, AD-1 — la logique de fenêtre glissante pure vit dans `scene-data-format.js`).
  *
  * Seul `scene-data-server.js` importe ce module (owner, 2026-07-06, voir
- * docs/specs/scene-history-protocol.md §Concurrence d'accès) — `placement-server.js` passe
- * désormais par `POST /append-scene-history` en HTTP plutôt que d'écrire le fichier directement.
- * Deux process Bun distincts écrivant le même fichier sans coordination provoquaient une race :
+ * docs/specs/scene-history-protocol.md §Concurrence d'accès). Composition et placement passent par
+ * ce même propriétaire. Deux process Bun distincts écrivant le même fichier provoquaient une race :
  * un `GET /scene-history` concurrent d'une écriture pouvait lire un fichier à moitié écrit
  * (`SyntaxError: Unexpected end of JSON input`), et deux écritures concurrentes pouvaient se
  * substituer l'une à l'autre et perdre silencieusement une entrée d'historique.

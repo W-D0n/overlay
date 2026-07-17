@@ -75,7 +75,7 @@ Payloads des requêtes OBS WS v5 vérifiés contre le protocole officiel
 | AC-10 | Les 4 routes exigent le secret partagé (401 sinon) et retournent 502 si OBS refuse la requête (scène/scene item introuvable) | manuel |
 
 > Pas de fichier de test unitaire (`relay/server.test.js`) : aucun des 3 serveurs de dev
-> (`scene-data-server.js`, `placement-server.js`, `tuner-server.js`) n'a de test unitaire sur sa
+> (`scene-data-server.js`, `tuner-server.js`) n'a de test unitaire sur sa
 > couche HTTP — convention existante du projet (effets vérifiés manuellement/visuellement, logique
 > pure testée séparément, AD-1). Vérifié avec un faux serveur OBS WS v5 minimal (handshake
 > HELLO/IDENTIFY + REQUEST/REQUEST_RESPONSE), étendu session 2 pour simuler

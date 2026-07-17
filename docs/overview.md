@@ -2,76 +2,89 @@
 
 ## Pourquoi ce projet
 
-Habillage stream complet et **autonome** pour D0n (streamer-dev, entité Mozaïk).
-Direction artistique **Atelier** : noir profond, or patiné, grille de points animée,
-typographie serif + monospace.
+Overlay stream autonome pour D0n / Mozaïk, réutilisable sans couplage à un service personnel.
+Direction artistique **Atelier** : noir profond, or patiné, serif + monospace.
 
-Le projet doit pouvoir être **publié comme outil indépendant** — réutilisable par
-d'autres streamers sans couplage à l'écosystème personnel de D0n (notamment MyVault).
+Contraintes structurantes :
+
+- HTML/CSS/JS natif, zéro build et zéro dépendance ;
+- Browser Source OBS fixe en 1920×1080 ;
+- composants sous le contrat `{ el, update?, destroy? }` ;
+- variables visuelles partagées dans `tokens.css`.
+
+## Focus actuel — fond autonome
+
+Depuis le 14 juillet 2026, le développement actif cible un flux **background-only** :
+
+```text
+background-tuner.html
+        │ POST + WebSocket
+        ▼
+background-state-server.js ──► dev/data/background-state.json
+        │
+        ▼
+background.html (OBS)
+```
+
+- `background.html` rend l'effet courant, ou un preset fixe avec `?preset=...`.
+- `dev/studio.html` réunit la création des fonds et des scènes dans une navigation unique.
+- `dev/background-tuner.html` utilise le même moteur de montage pour son aperçu.
+- `dev/background-state-server.js` persiste l'état et le diffuse en direct.
+- Un seul effet est actif à la fois parmi les 12 enregistrés.
+- Les presets mémorisent `{ id, name, component, options, tags? }` et exposent une URL OBS stable pour
+  affecter des ambiances différentes aux scènes.
+
+Le contrat détaillé vit dans `docs/specs/background-standalone.md`.
+
+## Modèle des effets
+
+Un effet de fond est constitué de trois pièces :
+
+1. une factory `components/XxxBackground.js` ;
+2. son nom et sa factory dans `component-names.js` / `component-registry.js` ;
+3. son formulaire dans `BACKGROUND_FIELD_SCHEMAS`
+   (`dev/component-field-schemas.js`).
+
+Cette structure rend tout nouvel effet immédiatement disponible dans le tuner et dans OBS sans
+modifier les deux pages.
+
+## Couleurs
+
+`tokens.css` reste la source de vérité de l'identité Atelier. Les options couleur des animations
+sont volontairement libres : hex, `rgb()`, `oklch()` ou `var(--token)`.
+
+`components/color-palette.json` est la palette de travail destinée au sélecteur de couleurs et aux
+gradients nommés. Elle ne remplace pas les tokens CSS utilisés par l'interface et les composants
+non configurables.
+
+## Moteur de scènes — rendu et création conservés
+
+Le moteur historique reste fonctionnel :
+
+- page unique `index.html` ;
+- neuf scènes JSON dans `scenes/data/` ;
+- couches nommées et niveaux `full` / `minimal` / `hidden` ;
+- transitions et fonds polymorphes ;
+- protocole `{ type, data }` ;
+- relais OBS WebSocket ;
+- éditeur `dev/overlay-setting.html`.
+
+Ce sous-système n'est plus le flux live principal, mais ses neuf rendus et son éditeur restent
+fonctionnels. `start-dev.bat` ouvre le Studio et la preview ; le nettoyage
+du dépôt ne doit jamais modifier l'apparence d'une scène sans validation visuelle explicite.
 
 ## Principe d'indépendance
 
-L'indépendance n'est pas l'absence de connexions réseau — c'est l'abstraction du **protocole**.
+L'indépendance repose sur des protocoles locaux explicites :
 
-- L'overlay consomme un flux de messages `{ type, data }` (voir `store.js`).
-- N'importe quelle source peut l'alimenter : MyVault, un script Python, OBS WebSocket v5
-  directement, etc. (variante "architecture pluggable").
-- Le protocole OBS WebSocket v5 (handshake, auth SHA256, événements natifs) est pris en charge
-  **dans le projet lui-même** (fichier d'adaptation dédié `obs-ws.js`), pour rester autonome.
+- le moteur de scènes consomme des messages `{ type, data }` ;
+- le fond autonome consomme un état `{ component, options }` ;
+- les sources de données et l'UI restent remplaçables tant qu'elles respectent ces contrats.
 
-## Direction architecture en cours de définition (grill-me juin 2026)
+## Documents de référence
 
-> Statut : **spec en cours** — décisions validées listées ci-dessous, détail dans `docs/specs/`.
-
-### Page unique vs multi-fichiers
-
-Migration décidée : d'une architecture **multi-fichiers** (7 HTML séparés, 1 Browser Source
-chacun) vers une **page unique** qui gère plusieurs scènes/layouts. Objectif : faire évoluer
-l'outil avec de nouvelles scènes, transitions et animations depuis un socle unifié.
-
-### Deux axes orthogonaux
-
-Le modèle mental repose sur deux dimensions indépendantes :
-
-```
-scène       × niveau de visibilité
-─────────────────────────────────
-discussion  × full     → overlay complet
-discussion  × minimal  → sous-ensemble (ex : DotGrid + barre or)
-discussion  × hidden   → body transparent, rien (cinématique plein écran)
-codage      × full     → overlay complet
-...
-```
-
-- **Scène** = layout + composants actifs (discussion, codage, gaming, brb…).
-- **Niveau de visibilité** = full / minimal / hidden. Orthogonal à la scène. Permet de masquer
-  l'overlay à tout moment (cinématique, moment de visionnage) sans changer de scène.
-- La transparence est appliquée dynamiquement (`body.style.background`), pas figée par scène.
-
-### Couches nommées (socle d'un futur éditeur)
-
-Chaque élément d'une scène appartient à une **couche nommée** (`data-layer="ide"`).
-Une config externe par scène (`scene-config.js`) déclare quelles couches survivent à quel
-niveau de visibilité. La config est conçue comme un **objet sérialisable** — c'est exactement
-le format qu'un futur éditeur de scènes écrirait. On adopte la structure maintenant ; on ne
-construit pas l'éditeur (voir `{inbox}`).
-
-### Couche de fond de page (DotGrid)
-
-Le DotGrid n'est **pas** une couche de scène — c'est une **couche de fond permanente de la page**,
-montée dans un conteneur dédié (`#bg-layer`), au-dessus du `body`, en dessous de toutes les scènes.
-
-Conséquences :
-- Une seule instance DotGrid vit en permanence (perf : pas 7 instances).
-- Le DotGrid survit aux changements de scène → assure la **continuité visuelle** (transition douce).
-  Changer de scène = `grid.setMode(nouveauMode)` interpolé pendant que les composants se swappent.
-- Le niveau `minimal` devient trivial : DotGrid seul, déjà séparé des scènes.
-
-**Garde-fou (zero preemptive code) :** on réserve l'**emplacement** `#bg-layer` et on y monte
-DotGrid. On ne construit PAS un "système de couches d'animation générique" tant qu'il n'y a qu'une
-animation. Le jour où une 2ᵉ animation de fond existe, elle se monte dans l'emplacement existant ;
-l'abstraction de coordination ne s'écrit qu'à la 2ᵉ-3ᵉ occurrence (rule of three).
-
-## Vision future (non spécifiée)
-
-Éditeur de scènes visuel — voir `docs/inbox.md`. Épopée distincte, hors scope des specs actuelles.
+- `docs/specs/background-standalone.md` — architecture active ;
+- `docs/specs/background-effects-library.md` — contrat et inventaire des effets ;
+- `docs/guides/tuner-le-fond.md` — utilisation quotidienne ;
+- `docs/inbox.md` — backlog actif puis historique ;
+- `docs/MAP.md` — feuille de route et livraisons.

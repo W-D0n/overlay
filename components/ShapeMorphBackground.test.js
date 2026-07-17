@@ -4,7 +4,7 @@
  */
 
 import { test, expect } from 'bun:test';
-import { computeRadii, lerpRadii, SAMPLES, SHAPE_NAMES } from './ShapeMorphBackground.js';
+import { buildPatternLayout, computeRadii, lerpRadii, SAMPLES, SHAPE_NAMES } from './ShapeMorphBackground.js';
 
 test('T01 [Track B B8] computeRadii — chaque silhouette retourne SAMPLES rayons', () => {
   for (const shape of SHAPE_NAMES) {
@@ -52,4 +52,18 @@ test('T07 [Track B B8] SHAPE_NAMES contient les 5 silhouettes du chantier origin
   expect([...SHAPE_NAMES].sort()).toEqual(
     ['batmanMask', 'helmet', 'ninjaStar', 'pizza', 'shell'].sort(),
   );
+});
+
+test('buildPatternLayout distribue toutes les formes dans les bornes demandées', () => {
+  const layout = buildPatternLayout(12, 0.8);
+  expect(layout).toHaveLength(12);
+  for (const item of layout) {
+    expect(Math.abs(item.x)).toBeLessThanOrEqual(0.4);
+    expect(Math.abs(item.y)).toBeLessThanOrEqual(0.4);
+    expect(item.scale).toBeGreaterThan(0);
+  }
+});
+
+test('buildPatternLayout centre le cas à une seule forme', () => {
+  expect(buildPatternLayout(1, 1)[0]).toMatchObject({ x: 0, y: 0 });
 });

@@ -7,7 +7,7 @@
  */
 import { test, expect } from 'bun:test';
 import {
-  lerpModeParams, easeProgress, MODE_PARAMS, degToLUTIndex,
+  lerpModeParams, easeProgress, MODE_PARAMS, degToLUTIndex, buildColorRamp,
   isValidReactionType, computeAmbientDelay, reactionDelta, REACTION_TYPES,
 } from './DotGridAnimated.js';
 
@@ -68,6 +68,14 @@ test('degToLUTIndex clampe un deg hors [-maxDeg,maxDeg] (simplex2 peut légèrem
   expect(degToLUTIndex(-31.5, 30)).toBe(0);
   expect(degToLUTIndex(1000, 30)).toBe(60);
   expect(degToLUTIndex(-1000, 30)).toBe(0);
+});
+
+test('buildColorRamp interpole les deux couleurs avec un milieu exact', () => {
+  expect(buildColorRamp([0, 20, 40], [100, 120, 140], 1)).toEqual([
+    [0, 20, 40],
+    [50, 70, 90],
+    [100, 120, 140],
+  ]);
 });
 
 // ── Couche 4 — réactions (docs/specs/dotgrid-event-triggers.md) ─────────────

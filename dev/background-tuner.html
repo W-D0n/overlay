@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tuner — Fond</title>
+  <!--
+    dev/background-tuner.html — Page de tuning des effets de fond (docs/specs/background-standalone.md).
+    Aperçu plein écran (même moteur que background.html : background-mount.js) + sidebar rétractable :
+    dropdown des effets (BACKGROUND_FIELD_SCHEMAS), formulaire généré, presets nommés.
+    Chaque réglage : rendu local immédiat + POST /state (débounce 150 ms) vers
+    dev/background-state-server.js → l'URL OBS suit en direct.
+  -->
+  <link rel="stylesheet" href="../tokens.css">
+  <style>
+    body { margin: 0; overflow: hidden; }
+
+    #bg-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    /* ── Sidebar rétractable ─────────────────────────────────── */
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 320px;
+      background: rgba(10, 10, 12, 0.92);
+      border-right: 1px solid var(--color-rule);
+      color: var(--color-text-primary);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 16px;
+      overflow-y: auto;
+      transition: transform 0.25s ease;
+      box-sizing: border-box;
+    }
+    #sidebar.collapsed { transform: translateX(-100%); }
+
+    #sidebar-toggle {
+      position: fixed;
+      top: 12px;
+      left: 320px;
+      z-index: 10;
+      background: rgba(10, 10, 12, 0.92);
+      border: 1px solid var(--color-rule);
+      border-left: none;
+      color: var(--color-gold);
+      font-family: var(--font-mono);
+      font-size: 14px;
+      padding: 6px 10px;
+      cursor: pointer;
+      transition: left 0.25s ease;
+    }
+    #sidebar.collapsed + #sidebar-toggle { left: 0; }
+
+    h1 {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--color-gold);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin: 0 0 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--color-rule);
+    }
+    h2 {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--color-text-mid);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin: 24px 0 10px;
+    }
+
+    label { display: block; color: var(--color-text-mid); margin: 12px 0 4px; }
+    .field-help {
+      color: var(--color-text-dim);
+      font-size: var(--text-xs);
+      line-height: 1.35;
+      margin-top: var(--space-xs);
+    }
+    select, input, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      background: var(--color-bg-widget);
+      border: 1px solid var(--color-rule);
+      color: var(--color-text-primary);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 6px 8px;
+      border-radius: 3px;
+    }
+    textarea { resize: vertical; min-height: 64px; }
+
+    .numeric-control {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 72px auto;
+      gap: 6px;
+      align-items: center;
+    }
+    .numeric-control input[type="range"] { padding: 0; accent-color: var(--color-gold); }
+    .numeric-control input[type="number"] { text-align: right; }
+    .field-unit { color: var(--color-text-dim); min-width: 18px; }
+
+    .color-control {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: var(--space-xs);
+      align-items: center;
+    }
+    .color-control input[type="color"] {
+      width: 42px;
+      height: 34px;
+      padding: 2px;
+      cursor: pointer;
+    }
+    .color-control select { grid-column: 1 / -1; }
+    .colors-control { display: flex; flex-direction: column; gap: var(--space-sm); }
+    .colors-toolbar { display: flex; gap: var(--space-xs); }
+    .colors-toolbar select { flex: 1; }
+    .color-list { display: flex; flex-direction: column; gap: var(--space-sm); }
+    .color-list-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: var(--space-xs);
+      align-items: start;
+      padding-bottom: var(--space-sm);
+      border-bottom: 1px solid var(--color-rule);
+    }
+    .color-remove { height: 34px; padding-inline: var(--space-sm); }
+    button:disabled { opacity: 0.35; cursor: default; }
+
+    button {
+      background: var(--color-bg-widget);
+      border: 1px solid var(--color-gold-dim);
+      color: var(--color-gold);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--color-gold); }
+
+    .preset-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+      padding: var(--space-sm);
+      margin-bottom: var(--space-xs);
+      border: var(--border-rule);
+      border-left: var(--border-gold);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg-panel);
+    }
+    .preset-row .preset-load {
+      flex: 1;
+      text-align: left;
+      border: none;
+      background: none;
+      color: var(--color-text-primary);
+      padding: 2px 0;
+    }
+    .preset-row .preset-load:hover { color: var(--color-gold); }
+    .preset-row .preset-delete {
+      border: none;
+      background: none;
+      color: var(--color-text-dim);
+      padding: 2px 4px;
+    }
+    .preset-row .preset-delete:hover { color: #C86A6A; }
+    .preset-meta {
+      flex-basis: 100%;
+      color: var(--color-text-dim);
+      font-size: var(--text-base);
+      padding-left: calc(var(--space-xs) / 2);
+    }
+    .preset-action { padding: var(--space-xs) var(--space-sm); }
+    .preset-edit { display: flex; width: 100%; gap: var(--space-sm); }
+    .preset-edit input { flex: 1; }
+    .library-tools { display: flex; gap: var(--space-sm); margin: var(--space-md) 0; }
+    .library-tools input { flex: 1; }
+    .preset-empty { color: var(--color-text-dim); font-size: var(--text-base); padding: var(--space-sm) 0; }
+
+    /* Confirmation de suppression inline — remplace le confirm() natif */
+    .preset-row .confirm-label { flex: 1; color: #C86A6A; }
+    .preset-row .confirm-yes { border-color: #C86A6A; color: #C86A6A; }
+    .preset-row .confirm-yes:hover { border-color: #C86A6A; }
+    .preset-row .confirm-no { color: var(--color-text-mid); border-color: var(--color-rule); }
+
+    .save-row { display: flex; gap: 8px; margin-top: 8px; }
+    .save-row input { flex: 1; }
+
+    .runtime-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: end;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--color-rule);
+    }
+    .runtime-row label { margin-top: 0; }
+    #runtime-status { color: var(--color-text-dim); white-space: nowrap; padding-bottom: 7px; }
+
+    #server-status { color: var(--color-text-dim); margin-top: 20px; }
+    #server-status.error { color: #C86A6A; }
+  </style>
+</head>
+<body>
+  <div id="bg-layer"></div>
+
+  <aside id="sidebar">
+    <h1>Tuner — Fond</h1>
+
+    <div class="runtime-row">
+      <div>
+        <label for="quality-select">Qualité de rendu</label>
+        <select id="quality-select">
+          <option value="auto">Auto</option>
+          <option value="performance">Performance OBS</option>
+        </select>
+      </div>
+      <span id="runtime-status">FPS —</span>
+    </div>
+
+    <label for="effect-select">Effet</label>
+    <select id="effect-select"></select>
+
+    <div id="fields"></div>
+
+    <div class="library-tools">
+      <input id="preset-search" type="search" placeholder="chercher nom, effet ou tag">
+    </div>
+
+    <h2>Bibliothèque Atelier</h2>
+    <div id="builtin-list"></div>
+
+    <h2>Mes presets</h2>
+    <div class="library-tools">
+      <button id="preset-export">Exporter</button>
+      <button id="preset-import-trigger">Importer</button>
+      <input id="preset-import" type="file" accept="application/json,.json" hidden>
+    </div>
+    <div id="preset-list"></div>
+    <div class="save-row">
+      <input id="preset-name" type="text" placeholder="nom du preset" maxlength="60">
+      <button id="preset-save">Créer</button>
+      <button id="preset-new" title="Créer un nouveau preset">Nouveau</button>
+    </div>
+    <div class="save-row">
+      <input id="preset-tags" type="text" placeholder="tags séparés par des virgules">
+    </div>
+
+    <div id="server-status"></div>
+  </aside>
+  <button id="sidebar-toggle" title="Replier / déplier">◀</button>
+
+  <script type="module">
+    import { createBackgroundMount } from '../background-mount.js';
+    import { backgroundPresetUrl } from '../background-selection.js';
+    import { BACKGROUND_FIELD_SCHEMAS, BACKGROUND_COMPONENT_NAMES, backgroundEffectLabel } from './component-field-schemas.js';
+    import { DESIGN_TOKENS, tokenLabel } from './design-tokens.js';
+    import { isHexColor, normalizeColorPalette } from './color-palette-format.js';
+    import { BUILTIN_BACKGROUND_PRESETS } from './builtin-background-presets.js';
+    import { buildNumericFieldControl } from './numeric-field-control.js';
+    import {
+      createBackgroundPresetBundle,
+      filterBackgroundPresets,
+      findImportedActivePreset,
+      parseBackgroundPresetBundle,
+    } from './background-preset-library.js';
+
+    const STATE_SERVER = 'http://localhost:4462';
+    const NONE_VALUE = '__none__';
+    const CUSTOM_TOKEN_VALUE = '__custom__';
+
+    const mount = createBackgroundMount(document.getElementById('bg-layer'));
+    mount.setPaused(document.hidden);
+    const effectSelect = document.getElementById('effect-select');
+    const fieldsContainer = document.getElementById('fields');
+    const presetList = document.getElementById('preset-list');
+    const builtinList = document.getElementById('builtin-list');
+    const presetNameInput = document.getElementById('preset-name');
+    const presetTagsInput = document.getElementById('preset-tags');
+    const presetSearch = document.getElementById('preset-search');
+    const presetExport = document.getElementById('preset-export');
+    const presetImport = document.getElementById('preset-import');
+    const presetSave = document.getElementById('preset-save');
+    const qualitySelect = document.getElementById('quality-select');
+    const runtimeStatus = document.getElementById('runtime-status');
+    const serverStatus = document.getElementById('server-status');
+
+    /** État courant local — miroir de `current` côté serveur. */
+    let current = { component: null, options: {} };
+    let activePresetId = null;
+    let cachedPresets = [];
+    let presetQuery = '';
+    /** Palette normalisée depuis components/color-palette.json. */
+    let colorPalette = { colors: [], gradients: [] };
+
+    // ── Sidebar rétractable ──────────────────────────────────
+    const sidebar = document.getElementById('sidebar');
+    const toggle = document.getElementById('sidebar-toggle');
+    toggle.onclick = () => {
+      sidebar.classList.toggle('collapsed');
+      toggle.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
+    };
+
+    // ── Profil runtime ──────────────────────────────────────
+    const pageParams = new URLSearchParams(location.search);
+    qualitySelect.value = pageParams.get('quality') === 'performance' ? 'performance' : 'auto';
+    qualitySelect.onchange = () => {
+      const next = new URL(location.href);
+      if (qualitySelect.value === 'performance') next.searchParams.set('quality', 'performance');
+      else next.searchParams.delete('quality');
+      location.replace(next);
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      mount.setPaused(document.hidden);
+      if (document.hidden) runtimeStatus.textContent = 'en pause';
+    });
+
+    let fpsFrames = 0;
+    let fpsSince = performance.now();
+    function measureFps(now) {
+      fpsFrames += 1;
+      if (now - fpsSince >= 1000) {
+        const fps = Math.round((fpsFrames * 1000) / (now - fpsSince));
+        runtimeStatus.textContent = document.hidden ? 'en pause' : `${fps} FPS · DPR ${qualitySelect.value === 'performance' ? '1' : Math.min(devicePixelRatio || 1, 2)}`;
+        fpsFrames = 0;
+        fpsSince = now;
+      }
+      requestAnimationFrame(measureFps);
+    }
+    requestAnimationFrame(measureFps);
+
+    // ── Communication serveur ────────────────────────────────
+    function reportServerError(message) {
+      serverStatus.textContent = message;
+      serverStatus.classList.add('error');
+    }
+    function reportServerOk(message = 'connecté au serveur d\'état (4462)') {
+      serverStatus.textContent = message;
+      serverStatus.classList.remove('error');
+    }
+
+    async function post(path, body) {
+      try {
+        const response = await fetch(`${STATE_SERVER}${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!response.ok) {
+          const { error } = await response.json();
+          reportServerError(`${path} : ${error}`);
+          return false;
+        }
+        reportServerOk();
+        return true;
+      } catch (err) {
+        reportServerError(`serveur d'état injoignable — lancer start-dev/start-stream (${err.message})`);
+        return false;
+      }
+    }
+
+    let postTimer = 0;
+    /** Débounce 150 ms — un slider glissé vite ne spamme pas le serveur. */
+    function schedulePostState() {
+      clearTimeout(postTimer);
+      postTimer = setTimeout(() => post('/state', { current }), 150);
+    }
+
+    // ── Formulaire généré ────────────────────────────────────
+    function defaultOptionsFor(component) {
+      const options = {};
+      for (const field of BACKGROUND_FIELD_SCHEMAS[component]) options[field.key] = field.default;
+      return options;
+    }
+
+    function onOptionChange(key, value) {
+      current.options[key] = value;
+      mount.apply(current);
+      schedulePostState();
+    }
+
+    function buildTokenField(field, value) {
+      const wrapper = document.createElement('div');
+      const select = document.createElement('select');
+      const tokens = DESIGN_TOKENS[field.tokenCategory];
+      for (const token of tokens) {
+        const option = new Option(tokenLabel(token), token, false, token === value);
+        select.appendChild(option);
+      }
+      select.appendChild(new Option('Personnalisé…', CUSTOM_TOKEN_VALUE, false, !tokens.includes(value)));
+
+      const customInput = document.createElement('input');
+      customInput.type = 'text';
+      customInput.value = tokens.includes(value) ? '' : String(value);
+      customInput.placeholder = '#hex, rgb(...), var(--...)';
+      customInput.style.marginTop = '4px';
+      customInput.hidden = tokens.includes(value);
+
+      select.onchange = () => {
+        const isCustom = select.value === CUSTOM_TOKEN_VALUE;
+        customInput.hidden = !isCustom;
+        if (isCustom) customInput.focus();
+        else onOptionChange(field.key, select.value);
+      };
+      customInput.oninput = () => onOptionChange(field.key, customInput.value);
+
+      wrapper.append(select, customInput);
+      return wrapper;
+    }
+
+    function paletteColorFor(value) {
+      const normalized = String(value).toLowerCase();
+      return colorPalette.colors.find((color) =>
+        [color.value, color.hex, color.oklch]
+          .filter(Boolean)
+          .some((candidate) => candidate.toLowerCase() === normalized),
+      );
+    }
+
+    function buildColorControl(value, onChange) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'color-control';
+
+      const picker = document.createElement('input');
+      picker.type = 'color';
+      picker.title = 'Choisir visuellement';
+
+      const text = document.createElement('input');
+      text.type = 'text';
+      text.placeholder = '#hex, rgb(...), oklch(...), var(--...)';
+
+      const paletteSelect = document.createElement('select');
+      paletteSelect.appendChild(new Option('Couleur nommée…', ''));
+      for (const color of colorPalette.colors) {
+        paletteSelect.appendChild(new Option(`${color.name} — ${color.value}`, color.value));
+      }
+
+      function reflect(next) {
+        const stringValue = String(next);
+        text.value = stringValue;
+        if (isHexColor(stringValue)) picker.value = stringValue;
+        paletteSelect.value = paletteColorFor(stringValue)?.value ?? '';
+      }
+
+      picker.oninput = () => {
+        reflect(picker.value);
+        onChange(picker.value);
+      };
+      text.oninput = () => {
+        const next = text.value;
+        if (isHexColor(next)) picker.value = next;
+        paletteSelect.value = paletteColorFor(next)?.value ?? '';
+        onChange(next);
+      };
+      paletteSelect.onchange = () => {
+        if (paletteSelect.value === '') return;
+        reflect(paletteSelect.value);
+        onChange(paletteSelect.value);
+      };
+
+      reflect(value);
+      wrapper.append(picker, text, paletteSelect);
+      return wrapper;
+    }
+
+    function buildColorsField(field, value) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'colors-control';
+      let values = Array.isArray(value) && value.length > 0 ? [...value] : ['#C8B97A'];
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'colors-toolbar';
+
+      const gradientSelect = document.createElement('select');
+      gradientSelect.appendChild(new Option('Appliquer un gradient…', ''));
+      for (const gradient of colorPalette.gradients) {
+        gradientSelect.appendChild(new Option(`${gradient.name} — ${gradient.colors.length} couleurs`, gradient.name));
+      }
+
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.textContent = '+ Couleur';
+
+      const list = document.createElement('div');
+      list.className = 'color-list';
+
+      function publish() {
+        onOptionChange(field.key, [...values]);
+      }
+
+      function renderRows() {
+        list.replaceChildren();
+        values.forEach((colorValue, index) => {
+          const row = document.createElement('div');
+          row.className = 'color-list-row';
+          row.appendChild(buildColorControl(colorValue, (next) => {
+            values[index] = next;
+            publish();
+          }));
+
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'color-remove';
+          remove.textContent = '−';
+          remove.title = 'Retirer cette couleur';
+          remove.disabled = values.length === 1;
+          remove.onclick = () => {
+            values.splice(index, 1);
+            renderRows();
+            publish();
+          };
+          row.appendChild(remove);
+          list.appendChild(row);
+        });
+      }
+
+      gradientSelect.onchange = () => {
+        const gradient = colorPalette.gradients.find(({ name }) => name === gradientSelect.value);
+        if (!gradient) return;
+        values = [...gradient.colors];
+        gradientSelect.value = '';
+        renderRows();
+        publish();
+      };
+      add.onclick = () => {
+        values.push('#C8B97A');
+        renderRows();
+        publish();
+      };
+
+      toolbar.append(gradientSelect, add);
+      wrapper.append(toolbar, list);
+      renderRows();
+      return wrapper;
+    }
+
+    function buildField(field, value) {
+      if (field.type === 'token') return buildTokenField(field, value);
+      if (field.type === 'color') return buildColorControl(value, (next) => onOptionChange(field.key, next));
+      if (field.type === 'colors') return buildColorsField(field, value);
+
+      if (field.type === 'select') {
+        const select = document.createElement('select');
+        for (const choice of field.choices) select.appendChild(new Option(choice, choice, false, choice === value));
+        select.onchange = () => onOptionChange(field.key, select.value);
+        return select;
+      }
+
+      if (field.type === 'textarea') {
+        const textarea = document.createElement('textarea');
+        textarea.value = Array.isArray(value) ? value.join('\n') : '';
+        textarea.oninput = () => onOptionChange(field.key, textarea.value.split('\n').filter((line) => line.length > 0));
+        return textarea;
+      }
+
+      if (field.type === 'number') {
+        return buildNumericFieldControl(field, value, (next) => onOptionChange(field.key, next));
+      }
+
+      const input = document.createElement('input');
+      {
+        input.type = 'text';
+        input.value = String(value ?? '');
+        input.oninput = () => onOptionChange(field.key, input.value);
+      }
+      return input;
+    }
+
+    function renderFields() {
+      fieldsContainer.replaceChildren();
+      if (current.component === null) return;
+      for (const field of BACKGROUND_FIELD_SCHEMAS[current.component]) {
+        const label = document.createElement('label');
+        label.textContent = field.label;
+        fieldsContainer.append(label, buildField(field, current.options[field.key] ?? field.default));
+        if (field.description) {
+          const help = document.createElement('p');
+          help.className = 'field-help';
+          help.textContent = field.description;
+          fieldsContainer.appendChild(help);
+        }
+      }
+    }
+
+    // ── Dropdown des effets ──────────────────────────────────
+    effectSelect.appendChild(new Option('(aucun)', NONE_VALUE));
+    for (const name of BACKGROUND_COMPONENT_NAMES) effectSelect.appendChild(new Option(backgroundEffectLabel(name), name));
+
+    effectSelect.onchange = () => {
+      const component = effectSelect.value === NONE_VALUE ? null : effectSelect.value;
+      current = { component, options: component === null ? {} : defaultOptionsFor(component) };
+      activePresetId = null;
+      presetNameInput.value = '';
+      presetTagsInput.value = '';
+      presetSave.textContent = 'Créer';
+      mount.apply(current);
+      renderFields();
+      schedulePostState();
+    };
+
+    /** Reflète un état (chargé, preset, ou reçu du WS) dans l'UI + le rendu, sans POST. */
+    function setCurrent(next, presetId = null) {
+      current = { component: next.component, options: { ...next.options } };
+      activePresetId = presetId;
+      presetSave.textContent = activePresetId === null ? 'Créer' : 'Mettre à jour';
+      presetTagsInput.value = Array.isArray(next.tags) ? next.tags.join(', ') : '';
+      effectSelect.value = next.component ?? NONE_VALUE;
+      mount.apply(current);
+      renderFields();
+    }
+
+    // ── Presets ──────────────────────────────────────────────
+    function appendEmptyState(container) {
+      const empty = document.createElement('p');
+      empty.className = 'preset-empty';
+      empty.textContent = 'Aucun preset ne correspond à cette recherche.';
+      container.appendChild(empty);
+    }
+
+    function renderPresets(presets) {
+      cachedPresets = presets;
+      presetExport.disabled = presets.length === 0;
+      presetList.replaceChildren();
+      const visiblePresets = filterBackgroundPresets(presets, presetQuery);
+      if (visiblePresets.length === 0) appendEmptyState(presetList);
+      for (const preset of visiblePresets) {
+        const row = document.createElement('div');
+        row.className = 'preset-row';
+
+        const load = document.createElement('button');
+        load.className = 'preset-load';
+        load.textContent = `${preset.name} — ${backgroundEffectLabel(preset.component)}`;
+        load.onclick = () => {
+          setCurrent(preset, preset.id);
+          presetNameInput.value = preset.name;
+          schedulePostState();
+        };
+
+        const copyUrl = document.createElement('button');
+        copyUrl.className = 'preset-action';
+        copyUrl.textContent = 'URL';
+        copyUrl.title = `Copier l'URL OBS stable du preset « ${preset.name} »`;
+        copyUrl.onclick = async () => {
+          const url = backgroundPresetUrl(
+            preset.id,
+            new URL('../background.html', location.href).href,
+            { performance: qualitySelect.value === 'performance' },
+          );
+          await navigator.clipboard.writeText(url);
+          copyUrl.textContent = '✓';
+          setTimeout(() => { copyUrl.textContent = 'URL'; }, 1200);
+        };
+
+        const rename = document.createElement('button');
+        rename.className = 'preset-action';
+        rename.textContent = '✎';
+        rename.title = 'Renommer sans modifier l’URL OBS';
+        rename.onclick = () => {
+          const edit = document.createElement('div');
+          edit.className = 'preset-edit';
+          const input = document.createElement('input');
+          input.value = preset.name;
+          input.maxLength = 60;
+          const save = document.createElement('button');
+          save.textContent = 'Valider';
+          save.onclick = async () => {
+            if (await post('/rename-preset', { id: preset.id, name: input.value.trim() })) refreshPresets();
+          };
+          const cancel = document.createElement('button');
+          cancel.textContent = 'Annuler';
+          cancel.onclick = () => renderPresets(cachedPresets);
+          edit.append(input, save, cancel);
+          row.replaceChildren(edit);
+          input.focus();
+        };
+
+        const duplicate = document.createElement('button');
+        duplicate.className = 'preset-action';
+        duplicate.textContent = '⧉';
+        duplicate.title = 'Dupliquer';
+        duplicate.onclick = async () => {
+          if (await post('/duplicate-preset', { id: preset.id })) refreshPresets();
+        };
+
+        const remove = document.createElement('button');
+        remove.className = 'preset-delete';
+        remove.textContent = '✕';
+        remove.onclick = () => {
+          // Confirmation inline : la ligne devient « Supprimer "nom" ? Oui / Non »
+          const label = document.createElement('span');
+          label.className = 'confirm-label';
+          label.textContent = `Supprimer « ${preset.name} » ?`;
+
+          const yes = document.createElement('button');
+          yes.className = 'confirm-yes';
+          yes.textContent = 'Oui';
+          yes.onclick = async () => {
+            if (await post('/delete-preset', { id: preset.id })) {
+              if (activePresetId === preset.id) {
+                activePresetId = null;
+                presetSave.textContent = 'Créer';
+              }
+              refreshPresets();
+            }
+          };
+
+          const no = document.createElement('button');
+          no.className = 'confirm-no';
+          no.textContent = 'Non';
+          no.onclick = () => renderPresets(cachedPresets);
+
+          row.replaceChildren(label, yes, no);
+        };
+
+        row.append(load, copyUrl, rename, duplicate, remove);
+        const meta = document.createElement('span');
+        meta.className = 'preset-meta';
+        meta.textContent = [`#${preset.id}`, ...(preset.tags ?? [])].join(' · ');
+        row.appendChild(meta);
+        presetList.appendChild(row);
+      }
+    }
+
+    function uniquePresetName(base) {
+      const names = new Set(cachedPresets.map(({ name }) => name));
+      if (!names.has(base)) return base;
+      for (let suffix = 2; ; suffix += 1) {
+        const ending = ` ${suffix}`;
+        const candidate = `${base.slice(0, 60 - ending.length).trimEnd()}${ending}`;
+        if (!names.has(candidate)) return candidate;
+      }
+    }
+
+    function renderBuiltinPresets() {
+      builtinList.replaceChildren();
+      const visiblePresets = filterBackgroundPresets(BUILTIN_BACKGROUND_PRESETS, presetQuery);
+      if (visiblePresets.length === 0) appendEmptyState(builtinList);
+      for (const preset of visiblePresets) {
+        const row = document.createElement('div');
+        row.className = 'preset-row';
+        const apply = document.createElement('button');
+        apply.className = 'preset-load';
+        apply.textContent = `${preset.name} — ${backgroundEffectLabel(preset.component)}`;
+        apply.onclick = () => {
+          setCurrent(preset);
+          presetNameInput.value = preset.name;
+          schedulePostState();
+        };
+        const add = document.createElement('button');
+        add.className = 'preset-action';
+        add.textContent = 'Ajouter';
+        add.onclick = async () => {
+          const name = uniquePresetName(`${preset.name} — perso`);
+          if (await post('/save-preset', { name, component: preset.component, options: preset.options, tags: preset.tags })) refreshPresets();
+        };
+        const meta = document.createElement('span');
+        meta.className = 'preset-meta';
+        meta.textContent = preset.tags.join(' · ');
+        row.append(apply, add, meta);
+        builtinList.appendChild(row);
+      }
+    }
+
+    async function refreshPresets() {
+      try {
+        const response = await fetch(`${STATE_SERVER}/state`);
+        if (!response.ok) throw new Error(`GET /state → ${response.status}`);
+        const { presets } = await response.json();
+        renderPresets(presets);
+        return presets;
+      } catch (err) {
+        reportServerError(`lecture des presets impossible : ${err.message}`);
+        return [];
+      }
+    }
+
+    presetSave.onclick = async () => {
+      const name = presetNameInput.value.trim();
+      const tags = [...new Set(presetTagsInput.value.split(',').map((tag) => tag.trim()).filter(Boolean))];
+      if (current.component === null) {
+        reportServerError('rien à sauvegarder — aucun effet sélectionné');
+        return;
+      }
+      const saved = await post('/save-preset', { id: activePresetId ?? undefined, name, component: current.component, options: current.options, tags });
+      if (saved) {
+        const presets = await refreshPresets();
+        const savedPreset = presets.find((preset) => preset.name === name);
+        if (savedPreset) {
+          activePresetId = savedPreset.id;
+          presetSave.textContent = 'Mettre à jour';
+        }
+      }
+    };
+
+    document.getElementById('preset-new').onclick = () => {
+      activePresetId = null;
+      presetNameInput.value = '';
+      presetTagsInput.value = '';
+      presetSave.textContent = 'Créer';
+      presetNameInput.focus();
+    };
+
+    presetSearch.oninput = () => {
+      presetQuery = presetSearch.value;
+      renderBuiltinPresets();
+      renderPresets(cachedPresets);
+    };
+
+    presetExport.onclick = () => {
+      const content = `${JSON.stringify(createBackgroundPresetBundle(cachedPresets), null, 2)}\n`;
+      const url = URL.createObjectURL(new Blob([content], { type: 'application/json' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'overlay-background-presets.json';
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      reportServerOk(`${cachedPresets.length} preset(s) exporté(s)`);
+    };
+
+    document.getElementById('preset-import-trigger').onclick = () => presetImport.click();
+    presetImport.onchange = async () => {
+      const file = presetImport.files?.[0];
+      if (!file) return;
+      try {
+        const content = await file.text();
+        const parsed = parseBackgroundPresetBundle(content);
+        if (!parsed.ok) {
+          reportServerError(`import impossible : ${parsed.errors.join(' ; ')}`);
+          return;
+        }
+        if (await post('/import-presets', { bundle: content })) {
+          const presets = await refreshPresets();
+          const refreshedActivePreset = findImportedActivePreset(presets, parsed.presets, activePresetId);
+          let activePresetSynced = true;
+          if (refreshedActivePreset !== null) {
+            setCurrent(refreshedActivePreset, refreshedActivePreset.id);
+            presetNameInput.value = refreshedActivePreset.name;
+            activePresetSynced = await post('/state', { current });
+          }
+          if (activePresetSynced) reportServerOk(`${parsed.presets.length} preset(s) importé(s)`);
+        }
+      } catch (err) {
+        reportServerError(`import impossible : ${err.message}`);
+      } finally {
+        presetImport.value = '';
+      }
+    };
+
+    // ── Initialisation + synchro WS ──────────────────────────
+    async function loadInitialState() {
+      try {
+        const response = await fetch(`${STATE_SERVER}/state`);
+        if (!response.ok) {
+          const { error } = await response.json();
+          reportServerError(`GET /state : ${error}`);
+          return;
+        }
+        const file = await response.json();
+        setCurrent(file.current);
+        renderPresets(file.presets);
+        reportServerOk();
+      } catch (err) {
+        reportServerError(`serveur d'état injoignable — lancer start-dev/start-stream (${err.message})`);
+      }
+    }
+
+    async function loadColorPalette() {
+      try {
+        const response = await fetch('../components/color-palette.json');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        colorPalette = normalizeColorPalette(await response.json());
+      } catch (err) {
+        console.warn('[background-tuner] palette indisponible, saisie libre conservée :', err);
+      }
+    }
+
+    /** Synchro si un autre onglet modifie l'état — aucun POST ici (pas de boucle). L'écho de nos
+        propres POST est ignoré (état identique) : re-rendre le formulaire pendant une saisie
+        ferait perdre le focus du champ en cours d'édition. */
+    function connectStateWs(delayMs = 1000) {
+      const ws = new WebSocket('ws://localhost:4462/state-ws');
+      ws.onopen = () => { delayMs = 1000; };
+      ws.onmessage = (event) => {
+        const incoming = JSON.parse(event.data);
+        if (JSON.stringify(incoming) === JSON.stringify(current)) return;
+        setCurrent(incoming);
+      };
+      ws.onclose = () => setTimeout(() => connectStateWs(Math.min(delayMs * 2, 30000)), delayMs);
+    }
+
+    function connectPresetsWs(delayMs = 1000) {
+      const ws = new WebSocket('ws://localhost:4462/presets-ws');
+      ws.onopen = () => { delayMs = 1000; };
+      ws.onmessage = refreshPresets;
+      ws.onclose = () => setTimeout(() => connectPresetsWs(Math.min(delayMs * 2, 30000)), delayMs);
+    }
+
+    async function init() {
+      await loadColorPalette();
+      await loadInitialState();
+      renderBuiltinPresets();
+      connectStateWs();
+      connectPresetsWs();
+    }
+
+    init();
+  </script>
+</body>
+</html>

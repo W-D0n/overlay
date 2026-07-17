@@ -35,3 +35,45 @@ export function isPortFree(port) {
 export function findBusyPorts(targets) {
   return targets.filter((t) => !isPortFree(t.port));
 }
+
+/**
+ * Trouve le PID qui écoute sur un port TCP donné (Windows, via `netstat -ano`).
+ * @param {number} port
+ * @returns {number | null}
+ */
+function findPidOnPort(port) {
+  const result = Bun.spawnSync(['netstat', '-ano', '-p', 'TCP']);
+  const output = result.stdout.toString();
+  for (const line of output.split('\n')) {
+    const match = line.match(/^\s*TCP\s+\S*:(\d+)\s+\S+\s+LISTENING\s+(\d+)/);
+    if (match && Number(match[1]) === port) return Number(match[2]);
+  }
+  return null;
+}
+
+/**
+ * @param {number} pid
+ * @returns {boolean} true si le process portant ce PID est bun.exe
+ */
+function isBunProcess(pid) {
+  const result = Bun.spawnSync(['tasklist', '/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH']);
+  return result.stdout.toString().toLowerCase().startsWith('"bun.exe"');
+}
+
+/**
+ * Tue les process `bun.exe` zombies occupant les ports ciblés — jamais un process d'un autre nom
+ * (sécurité : ne libère que ce que nos propres serveurs auraient pu laisser tourner).
+ * @param {{ name: string, port: number }[]} targets
+ * @returns {{ name: string, port: number }[]} ceux effectivement libérés
+ */
+export function freeStaleBunPorts(targets) {
+  const freed = [];
+  for (const target of targets) {
+    if (isPortFree(target.port)) continue;
+    const pid = findPidOnPort(target.port);
+    if (pid === null || !isBunProcess(pid)) continue;
+    Bun.spawnSync(['taskkill', '/F', '/PID', String(pid)]);
+    freed.push(target);
+  }
+  return freed;
+}

@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "overlay",
-      "runtimeExecutable": "bunx",
-      "runtimeArgs": ["serve", "-l", "5500", "."],
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["dev/start-dev.js"],
       "port": 5500
     }
   ]

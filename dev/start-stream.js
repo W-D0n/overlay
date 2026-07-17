@@ -1,7 +1,12 @@
 // @ts-check
 /**
- * dev/start-stream.js — Lance le serveur statique + le relais OBS en un seul process
+ * dev/start-stream.js — Lance les serveurs du live en un seul process
  * (remplace start-stream.bat multi-fenêtres, 2026-07-10).
+ *
+ * Restreint au strict nécessaire du mode background-only (owner, 2026-07-14) : statique
+ * (sert background.html à la Browser Source) + background-state (état du fond, suivi live).
+ * Le relais OBS (relay/server.js) appartient au moteur de scènes, mis de côté — le relancer
+ * individuellement si un retour aux scènes l'exige.
  *
  * Même architecture que dev/start-dev.js : un seul process Bun, sortie préfixée par serveur,
  * enfants liés au Job Object Windows du parent — fermeture du terminal (X ou Ctrl+C) tue les
@@ -11,22 +16,17 @@
  *
  * Lancement : `bun dev/start-stream.js` (ou double-clic sur start-stream.bat).
  */
-import { existsSync } from 'node:fs';
 import { findBusyPorts } from './port-check.js';
 
 const ROOT = `${import.meta.dir}/..`;
 
-if (!existsSync(`${ROOT}/.env`)) {
-  console.error('[start-stream] ERREUR : fichier .env manquant.');
-  console.error('Copier .env.example en .env et renseigner OBS_WS_PASSWORD + OVERLAY_RELAY_SECRET.');
-  console.error('Voir docs/obs-setup.md pour les instructions complètes.');
-  process.exit(1);
-}
-
 /** @type {{ name: string, cmd: string[], port: number }[]} */
 const SERVERS = [
-  { name: 'statique', cmd: ['bun', 'dev/static-server.js'], port: Number(process.env.STATIC_PORT ?? 5500) },
-  { name: 'relais',   cmd: ['bun', 'relay/server.js'],      port: Number(process.env.RELAY_PORT ?? 4456) },
+  { name: 'statique',         cmd: ['bun', 'dev/static-server.js'],           port: Number(process.env.STATIC_PORT ?? 5500) },
+  // background-state en live : background.html (Browser Source fond seul) charge son état et suit
+  // les réglages du tuner en direct. N'écrit qu'un JSON d'état, jamais de code source
+  // (docs/specs/background-standalone.md §Intégration lancement).
+  { name: 'background-state', cmd: ['bun', 'dev/background-state-server.js'], port: Number(process.env.BACKGROUND_STATE_PORT ?? 4462) },
 ];
 
 const busy = findBusyPorts(SERVERS);
@@ -78,4 +78,4 @@ function shutdown() {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-console.log('[start-stream] serveur statique + relais lancés dans ce terminal — Ctrl+C ici les arrête tous proprement.');
+console.log('[start-stream] serveur statique + état du fond lancés dans ce terminal — Ctrl+C ici les arrête tous proprement.');

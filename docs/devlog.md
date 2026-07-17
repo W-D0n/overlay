@@ -2,6 +2,60 @@
 
 > Décisions structurantes, par session. Mis à jour en clôture (`/done`).
 
+## 2026-07-17 — Stabilisation effets + URL OBS par preset
+
+**Ce qui a été fait :**
+- Refus de `WaterRippleBackground` reproduit contre le vrai `/state` (HTTP 400) : le serveur actif
+  avait chargé le schéma avant l'ajout de l'effet. Instance redémarrée et `start-dev.js` passe le
+  serveur d'état en mode watch pour recharger ses imports lors des prochains ajouts.
+- `BubbleBackground` attribue à chaque bulle un trajet aléatoire avant éclatement ; bornes de
+  trajet, durée et expansion de l'anneau sont réglables dans le tuner.
+- `MatrixGridBackground` abandonne les deux plans CSS 3D/WAA instables dans CEF au profit d'un
+  Canvas 2D au delta-temps. Les lignes naissent en fondu à l'horizon puis sortent du canvas sans
+  fondu de bord ; les lignes de fuite atteignent exactement les extrémités haute et basse. Fond,
+  opacité, halo, plans, horizon, point de fuite, perspective, épaisseur et fondu sont configurables.
+  Correctif visuel complémentaire : les traverses suivent les limites trapézoïdales de la grille
+  au lieu de couvrir arbitrairement toute la largeur du viewport. Le plan déborde désormais
+  automatiquement et asymétriquement hors cadre selon le point de fuite ; les traverses encore
+  trop proches de l'horizon pour couvrir les deux côtés restent masquées.
+- `background.html?preset=...&transparent=1` fixe une Browser Source sur un preset. Le tuner copie
+  cette URL avec « URL OBS » et `/presets-ws` propage les resauvegardes du preset.
+- Nettoyage sans modification des rendus : suppression du proxy `placement-server.js` (le panneau
+  appelle directement le propriétaire des scènes), des artefacts Playwright et des anciens
+  handoffs/kickoff. `start-dev` ouvre désormais fonds, éditeur et preview avec quatre serveurs utiles.
+
+**Vérification :**
+- `bun test` : 261/261 verts.
+- WaterRipple accepté par le vrai serveur après redémarrage ; canal WebSocket des presets vérifié
+  par sauvegarde/suppression temporaire sans résidu.
+- Tuner et URL de preset vérifiés à 1920×1080 dans Chromium, sans erreur console. MatrixGrid reste
+  à confirmer dans la Browser Source CEF d'OBS, seule capable de valider définitivement le flicker.
+
+## 2026-07-16 — Harmonisation background-only + traitement du backlog effets
+
+**Ce qui a été fait :**
+- Documentation réalignée sur le pivot du 14 juillet : `README.md`, `docs/overview.md`,
+  `docs/MAP.md`, `docs/inbox.md`, spec standalone, guides et skill local distinguent désormais le
+  flux actif background-only du moteur de scènes historique mis en pause.
+- Tuner couleur enrichi : types déclaratifs `color`/`colors`, picker natif, 15 couleurs nommées,
+  saisie CSS libre, listes ajout/retrait et gradient depuis `components/color-palette.json`.
+- Correctifs : OrbitingShapes applique min/max en direct et expose l'opacité ; Rain couvre le cadre
+  aux angles forts et garde sa densité.
+- Écart de vitesse OBS/navigateur reproduit par test 30/60 fps : les canvas avançaient par frame.
+  `animation-time.js` migre Rain, Bubble, Fireflies, FloatingSymbols et ColorDrops au delta-temps.
+- ShapeMorph devient un pattern distribué ; GeometricPattern remplace `angled` par `chevrons` et
+  expose direction/orientation/échelle ; DotGrid expose couleurs noise, glow, taille, battement,
+  orientation et réactions automatiques.
+- Nouvel effet `WaterRippleBackground` livré dans les trois pièces du contrat
+  (factory + registre + schéma).
+
+**Vérification :**
+- `bun test` : 246/246 verts.
+- Scripts modules des trois pages HTML parsés avec succès.
+- Smoke HTTP réel : pages, modules, palette et serveur d'état répondent 200 ; aucun état persistant
+  modifié.
+- Validation esthétique dans une vraie Browser Source OBS encore attendue de l'owner.
+
 ## 2026-07-10 — Couche 4 DotGrid : réactions aux alertes stream (3 sessions atomiques)
 
 **Ce qui a été fait :**

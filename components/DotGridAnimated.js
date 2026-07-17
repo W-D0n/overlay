@@ -1,14 +1,14 @@
 // @ts-check
 import { simplex2 } from './simplex.js';
-import { buildHueShiftLUT } from './color-utils.js';
+import { resolveColor } from './color-utils.js';
+import { canvasPixelRatio } from './canvas-runtime.js';
 
-/** Fréquences/amplitude de la variabilité de couleur par bruit (LAC-02) — indépendantes du
- * tuning `MODE_PARAMS` (couche 2, opacité) : décorrélées pour éviter que la couleur et l'opacité
- * pulsent en phase au même endroit. Constantes fixes, pas encore de besoin concret de les exposer
- * par mode (zero preemptive code — à extraire vers `MODE_PARAMS` si un tuning par scène est demandé). */
+/** Fréquences de la variabilité de couleur par bruit — indépendantes de `MODE_PARAMS` (opacité)
+ * pour éviter que couleur et intensité pulsent en phase. Les deux extrémités de la rampe sont
+ * réglables ; la fréquence reste fixe tant qu'aucun besoin de tuning n'est exprimé. */
 const COLOR_NOISE_FREQ = 0.012;
 const COLOR_NOISE_TIME_FREQ = 0.05;
-const COLOR_NOISE_MAX_DEG = 30;
+const COLOR_NOISE_STEPS = 64;
 
 /**
  * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|'starting'} GridMode
@@ -97,6 +97,26 @@ export function degToLUTIndex(deg, maxDeg) {
 }
 
 /**
+ * Rampe RGB précalculée entre les deux couleurs du mode `noise`. Évite trois interpolations par
+ * point et par frame ; reconstruite uniquement quand l'une des couleurs change.
+ * @param {[number, number, number]} from
+ * @param {[number, number, number]} to
+ * @param {number} halfSteps
+ * @returns {[number, number, number][]}
+ */
+export function buildColorRamp(from, to, halfSteps) {
+  const count = halfSteps * 2 + 1;
+  return Array.from({ length: count }, (_, index) => {
+    const progress = count === 1 ? 0 : index / (count - 1);
+    return [
+      Math.round(lerp(from[0], to[0], progress)),
+      Math.round(lerp(from[1], to[1], progress)),
+      Math.round(lerp(from[2], to[2], progress)),
+    ];
+  });
+}
+
+/**
  * Types de réaction Couche 4 valides — clés de `REACTION_DURATIONS` (source unique), un par
  * `AlertEvent.type` existant (`types.js`). `docs/specs/dotgrid-event-triggers.md`.
  * @type {readonly ('follow'|'sub'|'raid'|'bits')[]}
@@ -118,6 +138,11 @@ const FOLLOW_BAND_HALF_WIDTH = 40;
  */
 export function isValidReactionType(type) {
   return typeof type === 'string' && /** @type {readonly string[]} */ (REACTION_TYPES).includes(type);
+}
+
+/** @param {unknown} value @returns {value is 'none'|'ambient'|'follow'|'sub'|'raid'|'bits'} */
+function isAutoReactionMode(value) {
+  return value === 'none' || value === 'ambient' || isValidReactionType(value);
 }
 
 /**
@@ -222,8 +247,16 @@ export function lerpModeParams(from, to, progress) {
  *   spacing?: number,
  *   dotRadius?: number,
  *   baseColor?: [number, number, number],
+ *   colorA?: string,
+ *   colorB?: string,
  *   baseOpacity?: number,
- *   colorMode?: 'flat' | 'noise',
+ *   colorMode?: 'flat' | 'noise' | 'glow',
+ *   glowIntensity?: number,
+ *   pulseSpeed?: number,
+ *   angle?: number,
+ *   reactionMode?: 'none'|'ambient'|'follow'|'sub'|'raid'|'bits',
+ *   reactionInterval?: number,
+ *   reactionIntensity?: number,
  * }} [options]
  * @returns {{
  *   el: HTMLCanvasElement,
@@ -235,22 +268,36 @@ export function lerpModeParams(from, to, progress) {
  * }}
  */
 export function DotGridAnimated(options = {}) {
-  const spacing     = options.spacing     ?? 20;
-  const dotRadius   = options.dotRadius   ?? 2.15;
-  const baseColor   = options.baseColor   ?? /** @type {[number,number,number]} */ ([200, 185, 122]);
-  const baseOpacity = options.baseOpacity ?? 0.26;
+  let spacing = options.spacing ?? 20;
+  let dotRadius = options.dotRadius ?? 2.15;
+  let baseOpacity = options.baseOpacity ?? 0.26;
+  let pulseSpeed = options.pulseSpeed ?? 1;
+  let angle = options.angle ?? 0;
+  let glowIntensity = Math.max(0, options.glowIntensity ?? 1);
+  let reactionMode = isAutoReactionMode(options.reactionMode) ? options.reactionMode : 'ambient';
+  let reactionInterval = Math.max(1, options.reactionInterval ?? 60);
+  let reactionIntensity = Math.max(0, options.reactionIntensity ?? 1);
+
+  /** `baseColor` reste accepté pour les anciennes configs de scène. */
+  let colorA = typeof options.colorA === 'string'
+    ? resolveColor(options.colorA)
+    : options.baseColor ?? /** @type {[number,number,number]} */ ([200, 185, 122]);
+  let colorB = typeof options.colorB === 'string'
+    ? resolveColor(options.colorB)
+    : /** @type {[number,number,number]} */ ([155, 240, 225]);
 
   /** @type {GridMode} */
   let currentMode = resolveMode(options.mode);
 
   /** Variabilité de couleur par bruit Simplex (LAC-02) — `'flat'` = couleur unique (défaut,
    * comportement historique inchangé), `'noise'` = teinte de chaque point modulée par bruit. */
-  let colorMode = options.colorMode === 'noise' ? 'noise' : 'flat';
+  let colorMode = options.colorMode === 'noise' || options.colorMode === 'glow'
+    ? options.colorMode
+    : 'flat';
 
-  /** Table précalculée `hueShiftRgb(baseColor, deg)` par degré entier — `baseColor` ne change
-   * jamais après l'init (voir `buildHueShiftLUT`), un seul calcul suffit pour toute la durée de
-   * vie du composant, quel que soit `colorMode` (coût négligeable : 61 entrées, une fois). */
-  const colorLUT = buildHueShiftLUT(baseColor, COLOR_NOISE_MAX_DEG);
+  /** Rampe précalculée entre `colorA` et `colorB`, reconstruite uniquement quand une couleur
+   * change — jamais d'interpolation RGB dans la boucle de milliers de points. */
+  let colorLUT = buildColorRamp(colorA, colorB, COLOR_NOISE_STEPS);
 
   /**
    * Morph en cours (Couche 3, S9/Track A) — interpole `MODE_PARAMS` de `fromParams` vers
@@ -286,14 +333,19 @@ export function DotGridAnimated(options = {}) {
     };
   }
 
-  /** Réarme le minuteur `ambient` avec un délai aléatoire 45-90s (AC-07). */
-  function scheduleAmbient() {
+  /** Réarme la réaction automatique choisie dans le tuner. */
+  function scheduleAutoReaction() {
+    clearTimeout(ambientTimerId);
+    if (reactionMode === 'none') return;
     ambientTimerId = setTimeout(() => {
-      startReaction(REACTION_TYPES[Math.floor(Math.random() * REACTION_TYPES.length)]);
-      scheduleAmbient();
-    }, computeAmbientDelay(Math.random()));
+      const type = reactionMode === 'ambient'
+        ? REACTION_TYPES[Math.floor(Math.random() * REACTION_TYPES.length)]
+        : reactionMode;
+      startReaction(type);
+      scheduleAutoReaction();
+    }, reactionInterval * 1000);
   }
-  scheduleAmbient();
+  scheduleAutoReaction();
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = [
@@ -306,6 +358,34 @@ export function DotGridAnimated(options = {}) {
   ].join(';');
 
   const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
+  const glowCanvas = document.createElement('canvas');
+  const glowCtx = /** @type {CanvasRenderingContext2D} */ (glowCanvas.getContext('2d'));
+  let glowHalfSize = 0;
+
+  /** Sprite radial précalculé : un `drawImage` par point, aucun gradient créé dans la boucle. */
+  function rebuildGlowSprite() {
+    const outerRadius = Math.max(2, dotRadius * (3 + glowIntensity * 2));
+    const size = Math.ceil(outerRadius * 2);
+    glowCanvas.width = size;
+    glowCanvas.height = size;
+    glowHalfSize = size / 2;
+    const gradient = glowCtx.createRadialGradient(
+      glowHalfSize,
+      glowHalfSize,
+      0,
+      glowHalfSize,
+      glowHalfSize,
+      glowHalfSize,
+    );
+    const [r, g, b] = colorA;
+    gradient.addColorStop(0, `rgba(${r},${g},${b},${Math.min(1, 0.45 + glowIntensity * 0.18)})`);
+    gradient.addColorStop(0.28, `rgba(${r},${g},${b},${Math.min(0.65, 0.16 + glowIntensity * 0.12)})`);
+    gradient.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    glowCtx.clearRect(0, 0, size, size);
+    glowCtx.fillStyle = gradient;
+    glowCtx.fillRect(0, 0, size, size);
+  }
+  rebuildGlowSprite();
 
   // ── Données points — SoA (Structure of Arrays) ────────────────────────────
   // Trois Float32Array parallèles indexés par numéro de point.
@@ -325,7 +405,7 @@ export function DotGridAnimated(options = {}) {
   // ── Resize ────────────────────────────────────────────────────────────────
 
   function handleResize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasPixelRatio();
     const w   = canvas.offsetWidth;
     const h   = canvas.offsetHeight;
 
@@ -394,7 +474,12 @@ export function DotGridAnimated(options = {}) {
         resolve();
       }
     }
-    const [r, g, b] = baseColor;
+    const [r, g, b] = colorA;
+    const angleRad = angle * Math.PI / 180;
+    const angleCos = Math.cos(angleRad);
+    const angleSin = Math.sin(angleRad);
+    const centerX = cssW / 2;
+    const centerY = cssH / 2;
 
     // Couche 4 — réaction active (alerte/ambient), progression [0,1] calculée une fois par frame.
     let reactionProgress = 0;
@@ -408,16 +493,22 @@ export function DotGridAnimated(options = {}) {
       const y = pointsY[i];
 
       // Couche 1 — oscillation sinusoïdale individuelle (signée)
-      const c1 = Math.sin(t * speeds[i] + phases[i]) * amplitudes[i];
+      const c1 = Math.sin(t * speeds[i] * pulseSpeed + phases[i]) * amplitudes[i];
 
       // Couche 2 — Simplex ambiant, paramétré par mode (signé)
+      const centeredX = x - centerX;
+      const centeredY = y - centerY;
+      const noiseX = centeredX * angleCos - centeredY * angleSin;
+      const noiseY = centeredX * angleSin + centeredY * angleCos;
       const c2 = simplex2(
-        x * mode.freqX,
-        y * mode.freqY + t * mode.freqT,
+        noiseX * mode.freqX,
+        noiseY * mode.freqY + t * mode.freqT,
       ) * mode.amplitude;
 
       // Couche 4 — boost d'opacité de la réaction active, le cas échéant
-      const c3 = activeReaction !== null ? reactionDelta(activeReaction, i, x, y, cssW, cssH, reactionProgress) : 0;
+      const c3 = activeReaction !== null
+        ? reactionDelta(activeReaction, i, x, y, cssW, cssH, reactionProgress) * reactionIntensity
+        : 0;
 
       // Opacité finale : base + C1 + C2 + C3, clampée [0.04, 1]
       const opacity = Math.min(1, Math.max(0.04, baseOpacity + c1 + c2 + c3));
@@ -426,12 +517,16 @@ export function DotGridAnimated(options = {}) {
         const deg = simplex2(
           x * COLOR_NOISE_FREQ,
           y * COLOR_NOISE_FREQ + t * COLOR_NOISE_TIME_FREQ,
-        ) * COLOR_NOISE_MAX_DEG;
-        // Lecture LUT (arrondi au degré entier) au lieu de recalculer hueShiftRgb par point/frame.
-        const [nr, ng, nb] = colorLUT[degToLUTIndex(deg, COLOR_NOISE_MAX_DEG)];
+        ) * COLOR_NOISE_STEPS;
+        const [nr, ng, nb] = colorLUT[degToLUTIndex(deg, COLOR_NOISE_STEPS)];
         ctx.fillStyle = `rgba(${nr},${ng},${nb},${opacity.toFixed(3)})`;
       } else {
         ctx.fillStyle = `rgba(${r},${g},${b},${opacity.toFixed(3)})`;
+      }
+      if (colorMode === 'glow') {
+        ctx.globalAlpha = opacity;
+        ctx.drawImage(glowCanvas, x - glowHalfSize, y - glowHalfSize);
+        ctx.globalAlpha = 1;
       }
       ctx.beginPath();
       ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
@@ -469,9 +564,64 @@ export function DotGridAnimated(options = {}) {
      * @param {unknown} newOptions
      */
     update(newOptions) {
-      const opts = /** @type {{mode?: unknown, colorMode?: unknown} | null | undefined} */ (newOptions);
-      this.setMode(opts?.mode);
-      colorMode = opts?.colorMode === 'noise' ? 'noise' : 'flat';
+      const opts = /** @type {Record<string, unknown>} */ (
+        typeof newOptions === 'object' && newOptions !== null ? newOptions : {}
+      );
+      let layoutStale = false;
+      let colorsStale = false;
+      let glowStale = false;
+      let scheduleStale = false;
+
+      if ('mode' in opts) this.setMode(opts.mode);
+      if (opts.colorMode === 'flat' || opts.colorMode === 'noise' || opts.colorMode === 'glow') {
+        colorMode = opts.colorMode;
+      }
+      if (typeof opts.spacing === 'number' && opts.spacing > 0 && opts.spacing !== spacing) {
+        spacing = opts.spacing;
+        layoutStale = true;
+      }
+      if (typeof opts.dotRadius === 'number' && opts.dotRadius > 0 && opts.dotRadius !== dotRadius) {
+        dotRadius = opts.dotRadius;
+        glowStale = true;
+      }
+      if (typeof opts.baseOpacity === 'number') {
+        baseOpacity = Math.min(1, Math.max(0, opts.baseOpacity));
+      }
+      if (typeof opts.pulseSpeed === 'number') pulseSpeed = Math.max(0, opts.pulseSpeed);
+      if (typeof opts.angle === 'number') angle = opts.angle;
+      if (typeof opts.glowIntensity === 'number' && opts.glowIntensity !== glowIntensity) {
+        glowIntensity = Math.max(0, opts.glowIntensity);
+        glowStale = true;
+      }
+      if (typeof opts.colorA === 'string') {
+        colorA = resolveColor(opts.colorA);
+        colorsStale = true;
+        glowStale = true;
+      }
+      if (typeof opts.colorB === 'string') {
+        colorB = resolveColor(opts.colorB);
+        colorsStale = true;
+      }
+      if (isAutoReactionMode(opts.reactionMode) && opts.reactionMode !== reactionMode) {
+        reactionMode = opts.reactionMode;
+        scheduleStale = true;
+      }
+      if (
+        typeof opts.reactionInterval === 'number'
+        && opts.reactionInterval > 0
+        && opts.reactionInterval !== reactionInterval
+      ) {
+        reactionInterval = Math.max(1, opts.reactionInterval);
+        scheduleStale = true;
+      }
+      if (typeof opts.reactionIntensity === 'number') {
+        reactionIntensity = Math.max(0, opts.reactionIntensity);
+      }
+
+      if (colorsStale) colorLUT = buildColorRamp(colorA, colorB, COLOR_NOISE_STEPS);
+      if (glowStale) rebuildGlowSprite();
+      if (layoutStale) handleResize();
+      if (scheduleStale) scheduleAutoReaction();
     },
 
     /**

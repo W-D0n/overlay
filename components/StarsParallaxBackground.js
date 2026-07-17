@@ -1,5 +1,6 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
+import { canvasPixelRatio } from './canvas-runtime.js';
 
 /**
  * StarsParallaxBackground.js — Champ d'étoiles en parallaxe, 3 couches (Track B, session B6).
@@ -45,7 +46,7 @@ export function StarsParallaxBackground(options = {}) {
   }
 
   function handleResize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasPixelRatio();
     const w = canvas.offsetWidth;
     const h = canvas.offsetHeight;
     if (w === 0 || h === 0) return;

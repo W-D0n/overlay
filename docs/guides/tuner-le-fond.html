@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guide — Fond seul dans OBS et page de tuning</title>
+<link rel="stylesheet" href="guide.css">
+</head>
+<body>
+
+<nav class="crumbs">docs/guides/ — <a href="utiliser-le-panneau.html">Utiliser le panneau</a> · <a href="creer-un-composant.html">Créer un composant</a> · <a href="harmoniser-scenes-obs.html">Harmoniser OBS</a></nav>
+
+<h1>Fond seul dans OBS et page de tuning</h1>
+
+<div class="callout">
+  Ce guide couvre le mode <strong>background-only</strong> : une URL OBS qui ne rend que
+  l'animation de fond, réglée en direct depuis la page de tuning. Le moteur de scènes complet
+  (<code>index.html</code>) n'est pas concerné ici.
+</div>
+
+<h2>Vue d'ensemble</h2>
+<p>Quatre pièces communiquent :</p>
+<ul>
+  <li><code>background.html</code> — la page à mettre dans OBS. Elle ne fait qu'une chose :
+      afficher l'effet de fond courant.</li>
+  <li><code>dev/studio.html</code> — l'entrée de création commune aux fonds et aux scènes.</li>
+  <li><code>dev/background-tuner.html</code> — la page de tuning. Aperçu plein écran +
+      barre latérale rétractable avec la liste des effets, leurs paramètres et les presets.</li>
+  <li>Le <strong>serveur d'état</strong> (port 4462, lancé automatiquement) — retient le dernier
+      réglage dans <code>dev/data/background-state.json</code> et pousse chaque changement en
+      direct vers OBS.</li>
+</ul>
+<p>Concrètement : tu bouges un curseur dans le tuner → l'aperçu change immédiatement → OBS suit
+dans la seconde → et au prochain démarrage, OBS recharge le dernier état sauvegardé tout seul.</p>
+
+<h2>Mettre le fond dans OBS</h2>
+<ol>
+  <li>Lancer <code>start-stream.bat</code> (ou <code>start-dev.bat</code> pour bricoler).</li>
+  <li>Dans OBS : Source → <strong>Navigateur</strong> (Browser Source).</li>
+  <li>URL : <code>http://localhost:5500/background.html</code></li>
+  <li>Largeur <code>1920</code>, hauteur <code>1080</code>.</li>
+</ol>
+<p>Laisser le champ <strong>CSS personnalisé</strong> vide. OBS injecte ce CSS après celui de la
+page : une règle ajoutée ici peut forcer un fond, masquer un élément ou changer une taille, mais
+crée alors une différence entre le tuner et OBS. Pour superposer l'animation sur une capture,
+utiliser <code>http://localhost:5500/background.html?transparent=1</code> plutôt qu'une surcharge
+CSS.</p>
+<div class="callout">
+  Si le serveur n'est pas encore lancé quand OBS charge la page, ce n'est pas grave : la page
+  attend et se reconnecte toute seule (1 s → 30 s max entre les tentatives).
+</div>
+
+<h2>La page de tuning</h2>
+<p>Ouvrir <code>http://localhost:5500/dev/studio.html</code> (s'ouvre automatiquement avec
+<code>start-dev.bat</code>), puis choisir <strong>Fonds &amp; presets</strong>. L'URL directe
+<code>dev/background-tuner.html</code> reste disponible pour le diagnostic.</p>
+<ul>
+  <li><strong>La barre latérale se rétracte</strong> avec le bouton <code>◀</code> / <code>▶</code>
+      sur son bord — pratique pour juger le rendu plein écran.</li>
+  <li><strong>Effet</strong> : le menu déroulant liste toutes les animations disponibles
+      (+ « (aucun) » pour couper le fond).</li>
+  <li><strong>Paramètres</strong> : chaque nombre dispose d'un curseur borné, d'une valeur précise et
+      de son unité. Chaque changement est appliqué en direct.</li>
+  <li><strong>Bibliothèque Atelier</strong> : appliquer teste une ambiance ; Ajouter en crée une
+      copie personnelle.</li>
+  <li><strong>Recherche</strong> : le champ commun filtre les deux bibliothèques par nom, effet ou
+      tag, sans dépendre des accents ni des majuscules.</li>
+  <li><strong>Mes presets</strong> : Créer enregistre le réglage courant. <strong>URL</strong> copie
+      l'adresse stable ; <code>✎</code> renomme sans la casser ; <code>⧉</code> duplique ;
+      <code>✕</code> supprime avec confirmation. Le champ inférieur accepte des tags séparés par
+      des virgules. <strong>Nouveau</strong> quitte le mode de mise à jour du preset chargé.</li>
+  <li><strong>Sauvegarde portable</strong> : Exporter télécharge la bibliothèque personnelle dans
+      un JSON versionné. Importer valide tout le fichier avant écriture, conserve les identifiants
+      connus et suffixe les conflits de nom sans écraser un autre preset. Un fichier invalide ne
+      modifie rien.</li>
+  <li><strong>Qualité de rendu</strong> : Auto plafonne le DPR à 2 ; Performance OBS le limite à 1.
+      La ligne voisine affiche FPS et DPR.</li>
+</ul>
+<p>La ligne de statut en bas de la barre indique si le serveur d'état répond. Si elle est rouge,
+lancer <code>start-dev.bat</code> ou <code>start-stream.bat</code>.</p>
+
+<h2>Couleurs, palettes et scènes</h2>
+<ul>
+  <li><code>tokens.css</code> contient les couleurs de l'identité Atelier utilisées par
+      l'interface.</li>
+  <li>Les couleurs des effets acceptent une valeur CSS libre : hex, <code>rgb(...)</code>,
+      <code>oklch(...)</code> ou <code>var(--nom-du-token)</code>.</li>
+  <li><code>components/color-palette.json</code> contient les couleurs nommées et les gradients de
+      travail destinés au tuner.</li>
+</ul>
+<p>Deux modes sont disponibles :</p>
+<ul>
+  <li><code>background.html</code> suit l'état courant du tuner ; toutes les sources utilisant cette
+      URL affichent le même effet.</li>
+  <li><code>background.html?preset=identifiant-stable&amp;transparent=1</code> reste attachée à ce
+      preset, même après renommage. Les anciennes URL par nom restent compatibles.</li>
+</ul>
+<p>Pour avoir un fond différent par scène, créer les presets, utiliser leur bouton
+<strong>URL</strong>, puis ajouter une source Navigateur par URL dans OBS. Activer
+<strong>Arrêter la source lorsqu'elle n'est pas visible</strong> pour ne laisser tourner que la
+scène affichée.</p>
+
+<h2>Ajouter une nouvelle animation — sans agent</h2>
+<p>Le tuner et l'URL OBS n'ont <strong>jamais</strong> besoin d'être modifiés : ils lisent tout
+depuis trois déclarations. Ajouter une animation = créer un fichier et ajouter trois lignes.</p>
+
+<h3>1. Le composant — <code>components/MonEffetBackground.js</code></h3>
+<p>Une fonction qui retourne <code>{ el, update, destroy }</code>. Squelette minimal fonctionnel :</p>
+<pre><code>// @ts-check
+/**
+ * MonEffetBackground.js — description de l'effet.
+ * @param {{ speed?: number, color?: string }} [options]
+ * @returns {import('../types.js').ComponentInstance}
+ */
+export function MonEffetBackground(options = {}) {
+  let speed = options.speed ?? 1;
+
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
+  const ctx = canvas.getContext('2d');
+
+  let rafId = 0;
+  function tick() {
+    rafId = requestAnimationFrame(tick);
+    // ... dessiner une frame ici ...
+  }
+  rafId = requestAnimationFrame(tick);
+
+  return {
+    el: canvas,
+    update(newOptions) {
+      // appliquer les nouvelles options sans recréer le canvas
+      if (typeof newOptions?.speed === 'number') speed = newOptions.speed;
+    },
+    destroy() {
+      cancelAnimationFrame(rafId); // OBLIGATOIRE — sinon l'animation continue en fantôme
+    },
+  };
+}</code></pre>
+<p>Le plus simple est de partir d'une copie d'un effet existant proche
+(<code>components/RainBackground.js</code> est un bon modèle : canvas, resize, couleurs via
+tokens). Détail complet du contrat dans <a href="creer-un-composant.html">Créer un composant</a>.</p>
+
+<h3>2. Le registre — deux fichiers, une ligne chacun</h3>
+<pre><code>// component-names.js — ajouter le nom dans la liste :
+'MonEffetBackground',
+
+// component-registry.js — importer + ajouter au registry :
+import { MonEffetBackground } from './components/MonEffetBackground.js';
+...
+MonEffetBackground,</code></pre>
+
+<h3>3. Le schéma de champs — <code>dev/component-field-schemas.js</code></h3>
+<p>Une entrée dans <code>BACKGROUND_FIELD_SCHEMAS</code> décrivant les paramètres réglables.
+C'est elle qui génère le formulaire du tuner :</p>
+<pre><code>MonEffetBackground: [
+  { key: 'speed', label: 'Vitesse', type: 'number', min: 0, max: 5, step: 0.05,
+    unit: '×', control: 'slider', default: 1 },
+  { key: 'color', label: 'Couleur', type: 'color', default: '#C8B97A' },
+],</code></pre>
+<p>Types disponibles : <code>'text'</code>, <code>'number'</code>, <code>'select'</code>
+(+ <code>choices</code>), <code>'textarea'</code>, <code>'color'</code> (picker + palette + CSS
+libre) et <code>'colors'</code> (liste ajout/retrait + gradients).</p>
+<p>Tout champ numérique doit déclarer <code>min</code>, <code>max</code>, <code>step</code> et
+<code>control: 'slider'</code>. Les profils communs vivent dans
+<code>NUMBER_FIELD_GUIDANCE</code>.</p>
+
+<h3>4. Vérifier</h3>
+<pre><code>bun test</code></pre>
+<p>Les tests de cohérence existants attrapent les oublis : un nom déclaré sans factory, une
+factory sans schéma, etc. Ensuite, recharger le tuner — le nouvel effet est dans le menu
+déroulant, avec son formulaire, ses presets, et l'URL OBS le prend en charge sans rien toucher.</p>
+
+<h2>Performance et cycle de vie</h2>
+<p>Les canvas utilisent <code>components/canvas-runtime.js</code> : DPR 2 maximum en Auto, DPR 1
+avec <code>?quality=performance</code>. Le tuner et <code>background.html</code> démontent l'effet
+quand leur page devient invisible, puis remontent le dernier état à la reprise. Dans OBS, conserver
+également <strong>Arrêter la source lorsqu'elle n'est pas visible</strong>.</p>
+
+<div class="callout">
+  <strong>Récap :</strong> 1 fichier créé (le composant) + 3 lignes (nom, registry, schéma).
+  Rien d'autre à modifier — ni <code>background.html</code>, ni le tuner, ni le serveur.
+</div>
+
+</body>
+</html>

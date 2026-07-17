@@ -1,6 +1,11 @@
 {
   "id": "brb",
-  "background": { "component": "DotGridBackground", "options": { "mode": "brb" } },
+  "background": {
+    "component": "DotGridBackground",
+    "options": {
+      "mode": "brb"
+    }
+  },
   "transition": {
     "type": "crossfade",
     "duration": 600,
@@ -35,11 +40,22 @@
       "components": [
         {
           "component": "Divider",
-          "options": { "orientation": "vertical" },
-          "placement": { "x": 1140, "y": 40, "width": 1, "height": 940 }
+          "options": {
+            "orientation": "vertical"
+          },
+          "placement": {
+            "x": 1514,
+            "y": 40,
+            "width": 1,
+            "height": 940
+          }
         }
       ],
-      "visibility": { "full": true, "minimal": true, "hidden": false }
+      "visibility": {
+        "full": true,
+        "minimal": true,
+        "hidden": false
+      }
     },
     {
       "name": "message",
@@ -50,7 +66,10 @@
             "text": "— Pause —",
             "className": "brb-tag label-mono wide"
           },
-          "placement": { "x": 0, "y": 0 }
+          "placement": {
+            "x": 0,
+            "y": 0
+          }
         },
         {
           "component": "TextLabel",
@@ -58,14 +77,21 @@
             "text": "D0n",
             "className": "brb-name heading-serif"
           },
-          "placement": { "x": 0, "y": 47 }
+          "placement": {
+            "x": 0,
+            "y": 47
+          }
         },
         {
           "component": "Divider",
           "options": {
             "className": "brb-rule-gold rule-h-gold"
           },
-          "placement": { "x": 0, "y": 179, "width": 1020 }
+          "placement": {
+            "x": 0,
+            "y": 179,
+            "width": 1020
+          }
         },
         {
           "component": "TextLabel",
@@ -73,7 +99,10 @@
             "text": "Retour dans quelques minutes.",
             "className": "brb-message value-serif"
           },
-          "placement": { "x": 0, "y": 212 }
+          "placement": {
+            "x": 0,
+            "y": 212
+          }
         },
         {
           "component": "TextLabel",
@@ -81,7 +110,10 @@
             "text": "On était en train de travailler",
             "className": "brb-message value-serif"
           },
-          "placement": { "x": 0, "y": 273 }
+          "placement": {
+            "x": 0,
+            "y": 273
+          }
         },
         {
           "component": "TextLabel",
@@ -89,7 +121,10 @@
             "text": "sur l'atelier.",
             "className": "brb-activity value-serif gold"
           },
-          "placement": { "x": 0, "y": 334 },
+          "placement": {
+            "x": 0,
+            "y": 334
+          },
           "role": "activity"
         },
         {
@@ -97,7 +132,11 @@
           "options": {
             "className": "brb-divider rule-h"
           },
-          "placement": { "x": 0, "y": 419, "width": 1020 }
+          "placement": {
+            "x": 0,
+            "y": 419,
+            "width": 1020
+          }
         },
         {
           "component": "TextLabel",
@@ -105,15 +144,24 @@
             "text": "En ce moment",
             "className": "brb-song-label label-mono"
           },
-          "placement": { "x": 0, "y": 452 }
+          "placement": {
+            "x": 0,
+            "y": 452
+          }
         },
         {
           "component": "TextLabel",
           "options": {
-            "text": { "$bind": "currentSong", "$default": "—" },
+            "text": {
+              "$bind": "currentSong",
+              "$default": "—"
+            },
             "className": "brb-song value-mono-gold"
           },
-          "placement": { "x": 0, "y": 477 }
+          "placement": {
+            "x": 0,
+            "y": 477
+          }
         }
       ],
       "visibility": {
@@ -172,7 +220,9 @@
           "component": "StatBlock",
           "options": {
             "label": "DURÉE",
-            "value": { "$bind": "duration" },
+            "value": {
+              "$bind": "duration"
+            },
             "valueColor": "#C8B97A"
           }
         }
@@ -182,7 +232,10 @@
         "minimal": false,
         "hidden": false
       },
-      "placement": { "x": 1174, "y": 886 }
+      "placement": {
+        "x": 1174,
+        "y": 886
+      }
     },
     {
       "name": "next-stream",
@@ -198,7 +251,10 @@
         {
           "component": "TextLabel",
           "options": {
-            "text": { "$bind": "nextStream", "$default": "À venir" },
+            "text": {
+              "$bind": "nextStream",
+              "$default": "À venir"
+            },
             "className": "next-info value-serif",
             "tag": "span"
           }
@@ -206,7 +262,10 @@
         {
           "component": "TextLabel",
           "options": {
-            "text": { "$bind": "nextStreamTopic", "$default": "" },
+            "text": {
+              "$bind": "nextStreamTopic",
+              "$default": ""
+            },
             "className": "next-topic value-serif gold",
             "tag": "span"
           }
@@ -225,7 +284,12 @@
         "minimal": false,
         "hidden": false
       },
-      "placement": { "x": 0, "y": 992, "width": 1920, "height": 88 }
+      "placement": {
+        "x": 0,
+        "y": 992,
+        "width": 1920,
+        "height": 88
+      }
     }
   ]
 }

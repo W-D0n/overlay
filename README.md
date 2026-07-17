@@ -1,182 +1,155 @@
 # Overlay Atelier — D0n / Mozaïk
 
-Habillage stream complet pour OBS Browser Source.  
-Direction artistique : **Atelier** — noir profond, or patiné, grille de points, typographie serif + mono.
+Habillage de stream pour OBS Browser Source, en HTML/CSS/JS natif, sans build ni dépendance.
+Direction artistique **Atelier** : noir profond, or patiné, typographie serif + monospace.
 
----
+## Focus actuel : les fonds autonomes
 
-## Structure
+Le flux principal ne rend qu'une animation de fond :
 
+- `background.html` — URL à utiliser dans OBS ;
+- `dev/studio.html` — entrée unique vers les fonds autonomes et les scènes complètes ;
+- `dev/background-tuner.html` — aperçu plein écran, réglages guidés, bibliothèque Atelier et presets ;
+- `dev/background-state-server.js` — persistance JSON et synchronisation WebSocket.
+
+Le moteur de scènes complet (`index.html`, `scene-runtime.js`, `dev/overlay-setting.html`) reste
+dans le dépôt et fonctionne toujours. Le Studio donne accès à son éditeur afin de
+préserver la création et les neuf rendus existants, même si le fond autonome reste le flux live.
+
+## Démarrage rapide
+
+### Régler un fond
+
+Double-cliquer sur `start-dev.bat`. Le script lance l'environnement de création et ouvre notamment :
+
+`http://localhost:5500/dev/studio.html`
+
+L'onglet **Fonds & presets** permet de choisir parmi les **12 effets**, de les régler avec des
+curseurs bornés, d'appliquer les ambiances Atelier et de gérer ses presets. La recherche couvre
+le nom, l'effet et les tags ; **Exporter** et **Importer** rendent la bibliothèque personnelle
+portable entre deux installations. L'onglet **Scènes
+complètes** conserve l'éditeur et les neuf rendus existants.
+
+### Utiliser le fond dans OBS
+
+1. Double-cliquer sur `start-stream.bat`.
+2. Ajouter une source **Navigateur** dans OBS.
+3. URL : `http://localhost:5500/background.html`
+4. Dimensions : `1920 × 1080`.
+5. Laisser le champ **CSS personnalisé** vide.
+
+Pour superposer uniquement l'animation au-dessus d'une capture, utiliser :
+
+`http://localhost:5500/background.html?transparent=1`
+
+### Utiliser un fond différent par scène
+
+Chaque preset possède un bouton **URL**. Son adresse utilise un identifiant stable : elle reste
+valide après un renommage et reste attachée au preset, même
+si le tuner pilote un autre effet :
+
+`http://localhost:5500/background.html?preset=discussion-calme&transparent=1`
+
+Créer une source Navigateur par preset utile, puis placer la bonne source dans chaque scène OBS.
+Activer **Arrêter la source lorsqu'elle n'est pas visible** pour que les scènes masquées ne
+consomment pas de ressources.
+
+Le profil **Performance OBS** limite aussi la densité des canvas à DPR 1. L'URL copiée depuis le
+tuner conserve ce choix avec `quality=performance`. Les animations se mettent automatiquement en
+pause lorsque leur page devient invisible.
+
+Le serveur d'état doit rester ouvert pendant le live. Il ne modifie que
+`dev/data/background-state.json`, jamais le code source.
+
+## Structure active
+
+```text
+background.html
+background-mount.js
+background-selection.js
+component-names.js
+component-registry.js
+tokens.css
+
+components/
+  *Background.js
+  color-utils.js
+  color-palette.json
+
+dev/
+  studio.html
+  studio.config.js
+  background-tuner.html
+  builtin-background-presets.js
+  background-preset-library.js
+  background-state-server.js
+  background-state-format.js
+  component-field-schemas.js
+  numeric-field-control.js
+  start-dev.js
+  start-stream.js
+
+docs/
+  guides/tuner-le-fond.md
+  specs/background-standalone.md
+  specs/background-effects-library.md
 ```
-(racine du repo)
-├── index.html            ← Page unique (runtime S3) — scènes migrées : discussion / brb / codage
-├── scene-runtime.js      ← Orchestrateur DOM : montage des couches, transitions, visibilité
-├── scene-resolve.js      ← Helpers purs : résolution transition / visibilité / mode DotGrid
-├── component-registry.js ← ComponentName → factory
-├── protocol.js           ← Logique pure du protocole { type, data }
-├── store.js              ← État global — WebSocket + fallback statique
-├── tokens.css            ← Toutes les variables de design (couleurs, typo, espacements)
-├── types.js              ← Types JSDoc (documentation des données, autocomplétion VS Code)
-├── components/
-│   ├── index.js          ← Composants : GoldBar, StatBlock, ChatFeed, PomodoroBar, AlertBanner (+ DotGrid legacy)
-│   ├── DotGridAnimated.js ← Fond animé (Simplex par mode), monté dans #bg-layer
-│   └── simplex.js        ← Bruit Simplex 2D (zéro dépendance)
-└── scenes/
-    ├── registry.js                       ← SceneId → config + wire (3 scènes de référence)
-    ├── {discussion,brb,codage}.config.js ← configs des scènes migrées
-    ├── {discussion,brb,codage}.wire.js   ← câblage composants ↔ store (AD-6)
-    ├── Jeu.html          ← (non migrée → S3b) Session de jeu (fond transparent)
-    ├── Interview.html    ← (non migrée → S3b) Interview invité
-    ├── React.html        ← (non migrée → S3b) React à des vidéos
-    ├── Creation3D.html   ← (non migrée → S3b) Création 3D / Dessin (?mode=A ou ?mode=B)
-    └── FinStream.html    ← (non migrée → S3b) Fin de stream
-```
 
-> **Modèle page-unique (S3).** Les scènes `discussion`, `brb` et `codage` vivent désormais dans
-> `index.html` : **une seule** Browser Source OBS. Le changement de scène et le niveau de visibilité
-> sont pilotés par messages (`overlay:scene-change`, `overlay:visibility-change`), pas par fichier.
-> Les 5 scènes restantes sont encore des fichiers `.html` autonomes jusqu'à leur migration (S3b).
-
----
-
-## Configuration OBS
-
-### Ajouter une scène
-
-1. Dans OBS : **Sources → + → Browser Source**
-2. Cocher **Local file**
-3. Sélectionner le fichier : `index.html` pour `discussion`/`brb`/`codage` (page unique, scène pilotée par message), ou le `.html` de scène pour les 5 non migrées
-4. Dimensions : **1920 × 1080**
-5. Décocher **Interact with page** (pointer events désactivés)
-6. Laisser **Custom CSS** vide
-
-### Ordre des sources dans OBS (par scène)
-
-Pour chaque scène OBS, empilez les sources dans cet ordre (bas → haut) :
-
-```
-[Capture jeu / IDE / logiciel]   ← source principale
-[Webcam]                          ← positionnée manuellement dans la zone "cam"
-[scenes/NomScene.html]            ← Browser Source par-dessus
-```
-
-### Scène Jeu spécifiquement
-
-`Jeu.html` a un **fond transparent** (`body { background: transparent }`).  
-Le jeu apparaît à travers l'overlay — seule la barre HUD basse et la cam mini sont opaques.
-
-### Scène Création 3D — deux variantes
-
-- `Creation3D.html` → Variante A (capture + colonne widgets)  
-- `Creation3D.html?mode=B` → Variante B (capture + panneau référence + widgets réduits)
-
-Créez deux Browser Sources pointant sur la même URL avec des paramètres différents.
-
----
-
-## Connecter les données (WebSocket)
-
-Modifier dans `store.js` :
+Chaque effet respecte le contrat :
 
 ```js
-// Ligne 13
-const WS_URL = 'ws://localhost:4455'; // OBS WebSocket v5
-```
-
-### Protocole de messages attendus
-
-Le store écoute ces événements :
-
-| Type | Données | Description |
-|---|---|---|
-| `stream.stats` | `{ viewers, duration }` | Stats temps réel |
-| `chat.message` | `{ username, text, timestamp }` | Nouveau message chat |
-| `alert.follow` | `{ username, timestamp }` | Nouveau follow |
-| `alert.sub` | `{ username, timestamp, amount }` | Nouveau sub |
-| `alert.raid` | `{ username, timestamp, amount }` | Raid entrant |
-| `alert.bits` | `{ username, timestamp, amount }` | Bits |
-| `poll.update` | `{ question, yesRatio, totalVotes }` | Vote en cours |
-| `poll.end` | — | Fin du vote |
-| `pomodoro.tick` | `PomodoroState` | Tick du timer |
-| `context.update` | `{ activity, file, branch, tool, subject, song }` | Contexte activité |
-| `session.start` | `{ id }` | Début de session |
-
-### Mode statique (sans WebSocket)
-
-Sans WebSocket, le store utilise les valeurs de `STATIC_FALLBACK` (ligne ~40 de `store.js`).  
-Le minuteur de durée démarre automatiquement en local.  
-Modifier `STATIC_FALLBACK` pour personnaliser l'affichage hors-ligne.
-
----
-
-## Personnaliser le design
-
-Tout est dans `tokens.css`. Un seul fichier à modifier pour propager les changements à toutes les scènes.
-
-### Changements fréquents
-
-```css
-/* Changer la couleur d'accent */
---color-gold: #C8B97A;
-
-/* Changer la typo des titres */
---font-serif: 'Playfair Display', Georgia, serif;
-
-/* Changer la taille de la grille de points */
---dot-spacing: 20px;  /* espacement */
---dot-opacity: 0.18;  /* opacité */
-```
-
-### Charger une Google Font dans les scènes
-
-Ajouter dans chaque `<head>` avant `tokens.css` :
-```html
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-```
-
----
-
-## Ajouter un widget
-
-Dans `components/index.js`, suivre le pattern :
-
-```js
-export function MonWidget(options) {
-  const el = document.createElement('div');
-  // ... construire el
-
-  return {
-    el,
-    update(data) {
-      // ... mettre à jour el
-    },
-  };
+{
+  el,
+  update(options),
+  destroy(),
 }
 ```
 
-Dans une scène :
-```html
-<div id="mon-widget"></div>
-<script type="module">
-  import { onStateChange } from '../store.js';
-  import { MonWidget }     from '../components/index.js';
+Son formulaire est déclaré dans `BACKGROUND_FIELD_SCHEMAS`. Le tuner et l'URL OBS utilisent la
+même factory via `background-mount.js`, ce qui évite toute différence de logique entre l'aperçu et
+le rendu live.
 
-  const widget = MonWidget();
-  document.getElementById('mon-widget').appendChild(widget.el);
+## Couleurs et design
 
-  onStateChange((state) => {
-    widget.update(state.quelqueChose);
-  });
-</script>
+- `tokens.css` est la source de vérité de l'identité Atelier.
+- Les couleurs réglables des effets acceptent une valeur CSS libre : hex, `rgb(...)`,
+  `oklch(...)` ou `var(--nom-du-token)`.
+- `components/color-palette.json` contient la palette de travail et les gradients nommés.
+
+Les styles des guides HTML vivent dans `docs/guides/guide.css` parce qu'ils appartiennent à la
+documentation, pas au rendu OBS.
+
+## Moteur de scènes conservé
+
+Le sous-système historique comprend :
+
+- neuf scènes dans `scenes/data/*.scene.json` ;
+- un runtime page unique dans `index.html` / `scene-runtime.js` ;
+- le protocole abstrait `{ type, data }` dans `protocol.js` / `store.js` ;
+- le relais OBS WebSocket dans `relay/` ;
+- l'éditeur de scènes dans `dev/overlay-setting.html`.
+
+Il n'est pas supprimé, mais les nouvelles améliorations visuelles ciblent le mode fond autonome
+sauf demande explicite de retour aux scènes.
+
+## Contraintes
+
+- résolution fixe `1920 × 1080` ;
+- `pointer-events: none` dans le rendu OBS ;
+- zéro framework, zéro paquet npm, zéro CDN requis ;
+- composants sous forme de factories `{ el, update?, destroy? }` ;
+- toute boucle `requestAnimationFrame`, observation ou minuterie doit être nettoyée dans
+  `destroy()`.
+
+## Vérifier
+
+```text
+bun test
 ```
 
----
+Documentation détaillée :
 
-## Notes techniques
-
-- **Pas de build step** — HTML/CSS/JS natif, ES modules. OBS Browser Source supporte les modules.
-- **Pas de framework** — volontaire, pour éviter une dépendance dans un contexte live.
-- **Résolution fixe 1920×1080** — définie dans `body` via `tokens.css`. Ne pas modifier sans adapter les positions dans les scènes.
-- **Police de secours** — si Times New Roman n'est pas disponible (Linux), Georgia prend le relais. Pour une rendu exact, charger Playfair Display via Google Fonts.
-- **WebSocket v5** — OBS 28+ utilise le protocole WebSocket v5. Si vous utilisez une version plus ancienne, adapter `store.js` au protocole v4.
+- `docs/guides/tuner-le-fond.md`
+- `docs/guides/creer-un-composant.md`
+- `docs/specs/background-standalone.md`
+- `docs/overview.md`

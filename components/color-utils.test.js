@@ -4,7 +4,7 @@
  * `resolveColor` nécessite un DOM (probe + getComputedStyle), non testable ici (AD-1).
  */
 import { test, expect } from 'bun:test';
-import { hueShiftRgb, buildHueShiftLUT } from './color-utils.js';
+import { hueShiftRgb, buildHueShiftLUT, oklchToRgb, parseCssColor } from './color-utils.js';
 
 test('hueShiftRgb delta 0 → couleur inchangée (à l\'arrondi près)', () => {
   const [r, g, b] = hueShiftRgb([200, 185, 122], 0);
@@ -55,4 +55,27 @@ test('hueShiftRgb retourne des canaux dans [0,255]', () => {
       expect(c).toBeLessThanOrEqual(255);
     }
   }
+});
+
+test('parseCssColor lit hex, rgb moderne et pourcentages', () => {
+  expect(parseCssColor('#C8B97A')).toEqual([200, 185, 122]);
+  expect(parseCssColor('#fff')).toEqual([255, 255, 255]);
+  expect(parseCssColor('rgb(10 20 30 / 0.5)')).toEqual([10, 20, 30]);
+  expect(parseCssColor('rgb(100%, 50%, 0%)')).toEqual([255, 127, 0]);
+});
+
+test('oklchToRgb retrouve les équivalents hex de la palette à l’arrondi près', () => {
+  const gold = oklchToRgb(0.886771, 0.182186, 95.3305);
+  const aquamarine = oklchToRgb(0.8967, 0.0853, 181.93);
+  for (let channel = 0; channel < 3; channel++) {
+    expect(gold[channel]).toBeCloseTo([255, 215, 0][channel], -0);
+    expect(aquamarine[channel]).toBeCloseTo([155, 240, 225][channel], -0);
+  }
+});
+
+test('parseCssColor accepte OKLCH décimal/pourcentage et color(srgb)', () => {
+  expect(parseCssColor('oklch(100% 0 0)')).toEqual([255, 255, 255]);
+  expect(parseCssColor('oklch(0 0 0 / 50%)')).toEqual([0, 0, 0]);
+  expect(parseCssColor('color(srgb 1 0.5 0)')).toEqual([255, 128, 0]);
+  expect(parseCssColor('not-a-color')).toBeNull();
 });

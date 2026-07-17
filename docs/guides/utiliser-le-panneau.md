@@ -11,9 +11,29 @@
 bun dev/start-dev.js
 ```
 (ou double-clic sur `start-dev.bat`). **Jamais pendant un live** — ces serveurs écrivent sur disque.
-Ouvre automatiquement 3 onglets : preview auto-reload, `dotgrid-tuner.html`, `overlay-setting.html`.
+Ouvre automatiquement 2 onglets, 2 secondes après le lancement des serveurs : le Studio de
+création et la preview auto-reload.
 
-## `dev/overlay-setting.html` — l'outil principal
+Si l'ouverture automatique échoue (rien ne s'ouvre), ouvrir manuellement dans le navigateur une fois
+les serveurs lancés :
+- `http://localhost:5500/dev/studio.html` — entrée unique, onglets **Fonds & presets** et
+  **Scènes complètes**
+- `http://localhost:5500/index.html?livereload=1` — preview de l'overlay complet
+
+Les deux outils restent aussi accessibles directement via `dev/background-tuner.html` et
+`dev/overlay-setting.html` pour le diagnostic.
+
+## Studio → Fonds & presets
+
+C'est l'outil principal pour le flux OBS `background.html` : choix d'un effet, réglages live,
+presets et copie de l'URL OBS dédiée. Les valeurs numériques utilisent des curseurs bornés avec
+valeur exacte ; la bibliothèque Atelier fournit des points de départ par usage. Le profil
+**Performance OBS** et l'indicateur FPS permettent de vérifier le coût avant le live. Cet outil ne
+modifie jamais le code source. La recherche filtre les presets par nom, effet ou tag ; les boutons
+**Exporter** et **Importer** permettent de déplacer toute la bibliothèque personnelle via un JSON
+validé avant écriture.
+
+## Studio → Scènes complètes
 
 C'est l'éditeur visuel de l'overlay. Une scène à la fois (menu déroulant en haut), le rendu réel
 est affiché dans le panneau de gauche.
@@ -28,7 +48,7 @@ Chaque couche listée à droite affiche ses composants actuels. Pour une couche 
   connecter à une valeur d'état live (ex : `state.viewers`) — bouton bascule à côté du champ.
 - **Retirer** : bouton "×" sur le composant.
 - Les changements de composition (ajout/retrait) sont sauvegardés **immédiatement**. Les éditions de
-  champ attendent le bouton "Enregistrer".
+  champ sont sauvegardées au changement validé (perte de focus ou sélection).
 
 ### Changer/tweaker l'effet de fond d'une scène
 
@@ -60,12 +80,13 @@ vraiment — `scenes/data/archived/<id>.scene.json`, récupérable).
   `docs/obs-setup.md`).
 - **"Renommer les scènes OBS"** — voir `docs/guides/harmoniser-scenes-obs.md`.
 
-## `dev/dotgrid-tuner.html` — réglage fin du DotGrid
+## `dev/dotgrid-tuner.html` — réglage avancé du DotGrid
 
 Sliders live sur les paramètres Simplex par mode (`freqX`/`freqY`/`freqT`/`amplitude`) +
 `baseOpacity`/`dotRadius` globaux. Bouton "Sauvegarder" réécrit directement
 `components/DotGridAnimated.js` (mêmes constantes `MODE_PARAMS` que documentées dans le fichier).
-Bouton "Copier" en secours si le serveur d'écriture (`dev/tuner-server.js`) n'est pas lancé.
+Cet outil développeur n'est pas ouvert par défaut : lancer `bun dev/tuner-server.js` avant de
+l'utiliser. Le bouton "Copier" reste disponible en secours.
 
 `colorMode: 'noise'` (variabilité de couleur par bruit) se règle depuis `overlay-setting.html`
 §Fond → `DotGridBackground`, pas depuis le tuner (qui ne couvre que les 4 params Simplex + 2 globaux

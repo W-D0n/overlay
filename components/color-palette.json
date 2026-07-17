@@ -1,0 +1,96 @@
+{
+    "Gold": {
+        "hex": "#FFD700",
+        "oklch": "oklch(0.886771 0.182186 95.3305)"
+    },
+    "SoftPink": {
+        "hex": "#C86A6A",
+        "oklch": "oklch(0.6325 0.1196 21)"
+    },
+    "EnglishBlack": {
+        "hex": "#040910",
+        "oklch": "oklch(0.137 0.0189 250.86)"
+    },
+    "Honeycomb": {
+        "hex": "#ffc641",
+        "oklch": "oklch(0.8559 0.1554 84.29)"
+    },
+    "IceMilk": {
+        "hex": "#FFFFFF",
+        "oklch": "oklch(1 0 0)"
+    },
+    "EvenGray": {
+        "hex": "#54575C",
+        "oklch": "oklch(0.4558 0.009 260.73)"
+    },
+    "GreenMarathon": {
+        "hex": "#c0fe04",
+        "oklch": "oklch(0.9209 0.2325 125.54)"
+    },
+    "KleinBlue": {
+        "hex": "#4100f5",
+        "oklch": "oklch(0.4622 0.2906 274.95)"
+    },
+    "Citric": {
+        "hex": "#cdf564",
+        "oklch": "oklch(0.9138 0.176 122.92)"
+    },
+    "Aquamarine": {
+        "hex": "#9bf0e1",
+        "oklch": "oklch(0.8967 0.0853 181.93)"
+    },
+    "Fushia": {
+        "hex": "#f037a5",
+        "oklch": "oklch(0.6528 0.2378 349.59)"
+    },
+    "Tangerine": {
+        "hex": "#ff4632",
+        "oklch": "oklch(0.6634 0.2239 30.14)"
+    },
+    "Storm": {
+        "hex": "#a4bfd0",
+        "oklch": "oklch(0.79 0.0381 235.62)"
+    },
+    "BlackMetal": {
+        "hex": "#191414",
+        "oklch": "oklch(0.1974 0.0082 17.87)"
+    },
+    "Factory": {
+        "hex": "#c2ef94",
+        "oklch": "oklch(0.8995 0.1267 130.04)"
+    },
+    "Gradient1": {
+        "color1": {
+            "hex": "",
+            "oklch": ""
+        },
+        "color2": {
+            "hex": "",
+            "oklch": ""
+        },
+        "color3": {
+            "hex": "",
+            "oklch": ""
+        },
+        "color4": {
+            "hex": "",
+            "oklch": ""
+        },
+        "color5": {
+            "hex": "",
+            "oklch": ""
+        }
+    },
+    "Gradient2": {
+        "color1": "Aquamarine",
+        "color2": "Factory",
+        "color3": {
+            "hex": "#f9e82c",
+            "oklch": "oklch(0.9165 0.1846 103.78)"
+        },
+        "color4": "Tangerine",
+        "color5": "BlackMetal",
+        "color6": "KleinBlue",
+        "color7": "Storm"
+    }
+}

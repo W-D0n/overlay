@@ -1,47 +1,45 @@
 // @ts-check
 /**
- * dev/start-dev.js — Lance les 5 serveurs de dev en un seul process (remplace l'ancien
+ * dev/start-dev.js — Lance les serveurs de dev en un seul process (remplace l'ancien
  * start-dev.bat multi-fenêtres, 2026-07-05).
  *
- * Un seul terminal, sortie préfixée par serveur, tous les enfants tués proprement à la fermeture
- * (Ctrl+C). L'ancien script (`start "titre" cmd /k ...` × 5) ouvrait 5 fenêtres détachées, aucune
- * liée au processus parent : fermer/perdre de vue la fenêtre du `.bat` ne tuait rien, laissant des
- * process orphelins tourner pendant des heures, connectés en silence au relais (root cause d'un
- * bug production, voir docs/inbox.md) — cette architecture à process unique élimine la classe
- * entière de problème, pas seulement le symptôme observé.
+ * Lance le Studio qui réunit les deux surfaces de création : fonds autonomes et scènes complètes.
+ * Le relais OBS et le tuner DotGrid qui réécrit le code source restent optionnels et se lancent
+ * séparément. Le live utilise `start-stream.js`, volontairement plus réduit.
  *
- * NE JAMAIS lancer pendant un live — écrit sur disque (tuner-server.js, placement-server.js,
- * scene-data-server.js). Pour streamer, utiliser start-stream.bat.
+ * Un seul terminal, sortie préfixée par serveur, tous les enfants tués proprement à la fermeture
+ * (Ctrl+C). L'ancien script (`start "titre" cmd /k ...` multi-fenêtres) ouvrait des fenêtres
+ * détachées, aucune liée au processus parent : fermer/perdre de vue la fenêtre du `.bat` ne tuait
+ * rien, laissant des process orphelins tourner pendant des heures (root cause d'un bug production,
+ * voir docs/inbox.md) — cette architecture à process unique élimine la classe entière de problème.
  *
  * Lancement : `bun dev/start-dev.js` (ou double-clic sur start-dev.bat).
  */
-import { existsSync } from 'node:fs';
-import { findBusyPorts } from './port-check.js';
+import { findBusyPorts, freeStaleBunPorts } from './port-check.js';
 
 const ROOT = `${import.meta.dir}/..`;
 
-if (!existsSync(`${ROOT}/.env`)) {
-  console.error('[start-dev] ERREUR : fichier .env manquant.');
-  console.error('Copier .env.example en .env et renseigner OBS_WS_PASSWORD + OVERLAY_RELAY_SECRET.');
-  console.error('Voir docs/obs-setup.md pour les instructions complètes.');
-  process.exit(1);
-}
-
 /** @type {{ name: string, cmd: string[], port: number }[]} */
 const SERVERS = [
-  { name: 'statique',   cmd: ['bun', 'dev/static-server.js'],      port: Number(process.env.STATIC_PORT ?? 5500) },
-  { name: 'relais',     cmd: ['bun', 'relay/server.js'],           port: Number(process.env.RELAY_PORT ?? 4456) },
-  { name: 'tuner',      cmd: ['bun', 'dev/tuner-server.js'],       port: Number(process.env.TUNER_PORT ?? 4458) },
-  { name: 'placement',  cmd: ['bun', 'dev/placement-server.js'],   port: Number(process.env.PLACEMENT_PORT ?? 4459) },
-  { name: 'scene-data', cmd: ['bun', 'dev/scene-data-server.js'],  port: Number(process.env.SCENE_DATA_PORT ?? 4460) },
-  { name: 'obs-scene-map', cmd: ['bun', 'dev/obs-scene-map-server.js'], port: Number(process.env.OBS_SCENE_MAP_PORT ?? 4461) },
+  { name: 'statique',         cmd: ['bun', 'dev/static-server.js'],           port: Number(process.env.STATIC_PORT ?? 5500) },
+  // Recharge les imports du validateur quand un nouvel effet rejoint le schéma. Sans `--watch`,
+  // un tuner frais pouvait proposer un effet refusé par un vieux process encore en mémoire.
+  { name: 'background-state', cmd: ['bun', '--watch', 'dev/background-state-server.js'], port: Number(process.env.BACKGROUND_STATE_PORT ?? 4462) },
+  { name: 'scene-data',       cmd: ['bun', 'dev/scene-data-server.js'],       port: Number(process.env.SCENE_DATA_PORT ?? 4460) },
+  { name: 'obs-scene-map',    cmd: ['bun', 'dev/obs-scene-map-server.js'],    port: Number(process.env.OBS_SCENE_MAP_PORT ?? 4461) },
 ];
+
+const freed = freeStaleBunPorts(SERVERS);
+if (freed.length > 0) {
+  console.log('[start-dev] instance précédente détectée — port(s) libéré(s) automatiquement :');
+  for (const s of freed) console.log(`  - ${s.name} (port ${s.port})`);
+}
 
 const busy = findBusyPorts(SERVERS);
 if (busy.length > 0) {
-  console.error('[start-dev] ERREUR : port(s) déjà occupé(s) — une instance précédente tourne probablement encore :');
+  console.error('[start-dev] ERREUR : port(s) occupé(s) par un process qui n\'est pas un de nos serveurs (bun.exe) :');
   for (const s of busy) console.error(`  - ${s.name} (port ${s.port})`);
-  console.error('Ferme la fenêtre/l\'instance précédente avant de relancer (ou vérifie les process bun.exe restants dans le Gestionnaire des tâches).');
+  console.error('Ferme le process qui utilise ce port avant de relancer.');
   process.exit(1);
 }
 
@@ -88,11 +86,10 @@ process.on('SIGTERM', shutdown);
 
 setTimeout(() => {
   const urls = [
-    'http://localhost:5500/?livereload=1',
-    'http://localhost:5500/dev/dotgrid-tuner.html',
-    'http://localhost:5500/dev/overlay-setting.html',
+    'http://localhost:5500/dev/studio.html',
+    'http://localhost:5500/index.html?livereload=1',
   ];
-  for (const url of urls) Bun.spawn(['cmd', '/c', 'start', '""', url]);
+  for (const url of urls) Bun.spawn(['rundll32.exe', 'url.dll,FileProtocolHandler', url]);
 }, 2000);
 
-console.log('[start-dev] 5 serveurs lancés dans ce terminal — Ctrl+C ici les arrête tous proprement.');
+console.log('[start-dev] serveurs lancés dans ce terminal — Ctrl+C ici les arrête tous proprement.');

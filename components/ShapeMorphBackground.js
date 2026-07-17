@@ -1,6 +1,7 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
 import { easeProgress } from './DotGridAnimated.js';
+import { canvasPixelRatio } from './canvas-runtime.js';
 
 /**
  * ShapeMorphBackground.js — Cycle de silhouettes qui morphent (Track B, session B8, idée
@@ -22,10 +23,15 @@ import { easeProgress } from './DotGridAnimated.js';
  *
  * @param {{
  *   shape?: 'pizza' | 'ninjaStar' | 'helmet' | 'shell' | 'batmanMask',
- *   size?: number,          - rayon de base en px (défaut 140)
+ *   count?: number,         - nombre de formes dans le pattern (défaut 12)
+ *   spread?: number,        - étendue du pattern, fraction 0-1 (défaut 0.82)
+ *   size?: number,          - rayon de base en px (défaut 72)
  *   color?: string,         - couleur de la silhouette, token CSS ou valeur brute (défaut var(--color-gold))
- *   x?: number,             - position horizontale, fraction 0-1 du canvas (défaut 0.5)
- *   y?: number,             - position verticale, fraction 0-1 du canvas (défaut 0.5)
+ *   opacity?: number,       - opacité globale, 0-1 (défaut 0.45)
+ *   style?: 'outline' | 'fill' | 'mixed', - traitement visuel (défaut 'mixed')
+ *   rotationSpeed?: number, - vitesse de rotation alternée (défaut 0.08)
+ *   x?: number,             - centre horizontal du pattern, fraction 0-1 (défaut 0.5)
+ *   y?: number,             - centre vertical du pattern, fraction 0-1 (défaut 0.5)
  *   morphDuration?: number, - durée du morph entre deux formes, ms (défaut 700)
  *   morphEasing?: import('../types.js').TransitionEasing, - (défaut 'easeInOut')
  * }} [options]
@@ -33,8 +39,13 @@ import { easeProgress } from './DotGridAnimated.js';
  */
 export function ShapeMorphBackground(options = {}) {
   let shapeName = options.shape ?? 'pizza';
-  let size = options.size ?? 140;
+  let count = Math.max(1, Math.round(options.count ?? 12));
+  let spread = clamp(options.spread ?? 0.82, 0, 1);
+  let size = options.size ?? 72;
   let color = options.color ?? 'var(--color-gold)';
+  let opacity = clamp(options.opacity ?? 0.45, 0, 1);
+  let style = isDrawStyle(options.style) ? options.style : 'mixed';
+  let rotationSpeed = options.rotationSpeed ?? 0.08;
   let posX = options.x ?? 0.5;
   let posY = options.y ?? 0.5;
   let morphDuration = options.morphDuration ?? 700;
@@ -50,11 +61,12 @@ export function ShapeMorphBackground(options = {}) {
   let rgb = resolveColor(color);
 
   let currentRadii = computeRadii(shapeName);
+  let layout = buildPatternLayout(count, spread);
   /** @type {{ from: Float32Array, to: Float32Array, startTime: number } | null} */
   let morphState = null;
 
   function handleResize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasPixelRatio();
     const w = canvas.offsetWidth;
     const h = canvas.offsetHeight;
     if (w === 0 || h === 0) return;
@@ -83,21 +95,38 @@ export function ShapeMorphBackground(options = {}) {
 
     ctx.clearRect(0, 0, cssW, cssH);
     const [r, g, b] = rgb;
-    const cx = cssW * posX;
-    const cy = cssH * posY;
 
-    ctx.beginPath();
-    for (let i = 0; i < SAMPLES; i++) {
-      const theta = (i / SAMPLES) * Math.PI * 2;
-      const radius = radii[i] * size;
-      const x = cx + Math.cos(theta) * radius;
-      const y = cy + Math.sin(theta) * radius;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+    for (const item of layout) {
+      const cx = cssW * (posX + item.x);
+      const cy = cssH * (posY + item.y);
+      const rotation = item.rotation + timestamp * 0.001 * rotationSpeed * item.direction;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(rotation);
+      ctx.beginPath();
+      for (let i = 0; i < SAMPLES; i++) {
+        const theta = (i / SAMPLES) * Math.PI * 2;
+        const radius = radii[i] * size * item.scale;
+        const x = Math.cos(theta) * radius;
+        const y = Math.sin(theta) * radius;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+
+      if (style === 'fill' || style === 'mixed') {
+        const fillAlpha = style === 'fill' ? opacity : opacity * 0.22;
+        ctx.fillStyle = `rgba(${r},${g},${b},${fillAlpha.toFixed(3)})`;
+        ctx.fill();
+      }
+      if (style === 'outline' || style === 'mixed') {
+        ctx.strokeStyle = `rgba(${r},${g},${b},${opacity.toFixed(3)})`;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+      ctx.restore();
     }
-    ctx.closePath();
-    ctx.fillStyle = `rgba(${r},${g},${b},0.9)`;
-    ctx.fill();
   }
 
   const observer = new ResizeObserver(handleResize);
@@ -108,12 +137,25 @@ export function ShapeMorphBackground(options = {}) {
     /** @param {unknown} newOptions */
     update(newOptions) {
       const o = /** @type {Record<string, unknown>} */ (newOptions ?? {});
+      let layoutStale = false;
+      if (typeof o.count === 'number' && Math.round(o.count) !== count) {
+        count = Math.max(1, Math.round(o.count));
+        layoutStale = true;
+      }
+      if (typeof o.spread === 'number' && o.spread !== spread) {
+        spread = clamp(o.spread, 0, 1);
+        layoutStale = true;
+      }
       if (typeof o.size === 'number') size = o.size;
+      if (typeof o.opacity === 'number') opacity = clamp(o.opacity, 0, 1);
+      if (isDrawStyle(o.style)) style = o.style;
+      if (typeof o.rotationSpeed === 'number') rotationSpeed = o.rotationSpeed;
       if (typeof o.x === 'number') posX = o.x;
       if (typeof o.y === 'number') posY = o.y;
       if (typeof o.morphDuration === 'number') morphDuration = o.morphDuration;
       if (typeof o.morphEasing === 'string') morphEasing = /** @type {*} */ (o.morphEasing);
       if (typeof o.color === 'string' && o.color !== color) { color = o.color; rgb = resolveColor(color); }
+      if (layoutStale) layout = buildPatternLayout(count, spread);
 
       if (isValidShape(o.shape) && o.shape !== shapeName) {
         const from = morphState ? lerpRadii(morphState.from, morphState.to, 0) : currentRadii;
@@ -133,6 +175,7 @@ export const SAMPLES = 48;
 
 /** Noms de silhouettes valides — déclenchement manuel v1 (owner choisit via `shape`, pas de cycle auto). */
 export const SHAPE_NAMES = /** @type {const} */ (['pizza', 'ninjaStar', 'helmet', 'shell', 'batmanMask']);
+const DRAW_STYLES = /** @type {const} */ (['outline', 'fill', 'mixed']);
 
 /**
  * @param {unknown} value
@@ -140,6 +183,43 @@ export const SHAPE_NAMES = /** @type {const} */ (['pizza', 'ninjaStar', 'helmet'
  */
 function isValidShape(value) {
   return typeof value === 'string' && /** @type {readonly string[]} */ (SHAPE_NAMES).includes(value);
+}
+
+/** @param {unknown} value @returns {value is typeof DRAW_STYLES[number]} */
+function isDrawStyle(value) {
+  return typeof value === 'string' && /** @type {readonly string[]} */ (DRAW_STYLES).includes(value);
+}
+
+/**
+ * Distribution en grille centrée, stable et indépendante de la taille du canvas. La dernière ligne
+ * incomplète est recentrée au lieu de rester collée à gauche.
+ * @param {number} requestedCount
+ * @param {number} requestedSpread
+ * @returns {{x:number,y:number,scale:number,rotation:number,direction:1|-1}[]}
+ */
+export function buildPatternLayout(requestedCount, requestedSpread) {
+  const safeCount = Math.max(1, Math.round(requestedCount));
+  const safeSpread = clamp(requestedSpread, 0, 1);
+  const columns = Math.max(1, Math.ceil(Math.sqrt(safeCount * 16 / 9)));
+  const rows = Math.ceil(safeCount / columns);
+  const layout = [];
+
+  for (let index = 0; index < safeCount; index++) {
+    const row = Math.floor(index / columns);
+    const column = index % columns;
+    const itemsInRow = Math.min(columns, safeCount - row * columns);
+    const centeredColumn = column + (columns - itemsInRow) / 2;
+    const x = columns === 1 ? 0 : (centeredColumn / (columns - 1) - 0.5) * safeSpread;
+    const y = rows === 1 ? 0 : (row / (rows - 1) - 0.5) * safeSpread;
+    layout.push({
+      x,
+      y,
+      scale: 0.76 + ((index * 37) % 9) * 0.045,
+      rotation: (index * 2.399963) % (Math.PI * 2),
+      direction: /** @type {1|-1} */ (index % 2 === 0 ? 1 : -1),
+    });
+  }
+  return layout;
 }
 
 /** Différence angulaire signée dans [-π, π]. @param {number} a @param {number} b */
@@ -254,4 +334,9 @@ export function lerpRadii(from, to, progress) {
     out[i] = from[i] + (to[i] - from[i]) * progress;
   }
   return out;
+}
+
+/** @param {number} value @param {number} min @param {number} max */
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }

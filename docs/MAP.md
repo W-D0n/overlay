@@ -4,33 +4,33 @@
 
 ## Focus actuel
 
-**S1→S8, Track A (transitions) et Track B (effets de fond) livrées — 150 tests verts (2026-07-07).**
+**Pivot background-only validé le 2026-07-14.**
 
-- **Moteur page-unique** (S3, spec `docs/specs/scene-runtime-engine.md`, 41 AC) + **migration complète**
-  (S3b) : `index.html` porte les **9 scènes** overlay (`discussion`, `codage`, `brb`, `jeu`,
-  `interview`, `react`, `creation`, `fin`, `starting`), chacune `<template>` + `*.config.js` +
-  `*.wire.js` + entrée `scenes/registry.js`. `creation` ne porte que sa variante A (panneau
-  référence B abandonné, page-unique = 1 seule Browser Source, voir `docs/inbox.md`).
-- **Relais Bun** (S4, `relay/server.js`, spec `docs/specs/relay-bun-s4.md`) : client OBS WebSocket v5
-  (auth SHA256) traduit les changements de scène OBS en `scene.set` ; serveur WS + `POST /emit`
-  (secret partagé, rate-limité 20 req/10s/IP). `docs/security.md` consolide le modèle de menace.
-- **Mapping OBS réel complet** (`relay/obs-scene-map.js`) : les 9 scènes OBS de D0n (`Just Chatting`,
-  `Coding`, `BRB`, `Gaming`, `Interview`, `FullScreen`, `Creation`, `Ending`, `Starting`) sont
-  chacune reliées à leur scène overlay.
-- **Validé bout en bout par l'owner en conditions réelles** : auth OBS OK, changement de scène OBS →
-  overlay affiché en direct dans une vraie Browser Source OBS, confirmé fonctionnel sur les 9 scènes.
-- **Lancement automatisé** : `.env` (chargé automatiquement par Bun) + `start-stream.bat` (double-clic
-  lance serveur statique + relais en une fois) — voir `docs/obs-setup.md` §0.
-- **Retours visuels de l'owner traités** : `--text-xs` 7px→13px (`tokens.css`, bug de lisibilité
-  systémique), compteur de viewers retiré de tout l'overlay (métrique jugée stressante), DotGrid
-  retuning visibilité/rythme (`components/DotGridAnimated.js`).
-- **Outil de dev** `dev/dotgrid-tuner.html` — sliders live sur les paramètres Simplex par mode +
-  baseOpacity/dotRadius, pas de persistance automatique (décision d'architecture en attente,
-  voir `docs/inbox.md`).
+- `background.html` est désormais l'URL OBS principale : elle rend un seul effet de fond, sans
+  widgets ni moteur de scènes.
+- `dev/studio.html` est l'entrée de création unique ; son onglet Fonds fournit l'aperçu plein écran, le choix parmi les **12 effets**, les
+  formulaires générés et les presets.
+- `dev/background-state-server.js` persiste `{ current, presets }` et synchronise le tuner avec OBS
+  par WebSocket.
+- `start-stream.bat` ne lance que le serveur statique et l'état du fond. `start-dev.bat` garde aussi
+  l'éditeur et la preview des scènes afin de préserver la création d'overlay.
+- Le moteur de scènes, l'éditeur et le relais OBS restent dans le dépôt mais sont **mis en pause**.
+  Les lignes S1→S8 et Track A/B ci-dessous documentent ce socle livré ; elles ne constituent plus
+  la priorité courante.
+- Le backlog actif est centralisé en tête de `docs/inbox.md` : tooling couleur, défauts de rendu des
+  effets et écart de vitesse entre navigateur et OBS.
+- Lot du 2026-07-16 : tooling couleur/palettes/gradients, correctifs OrbitingShapes et Rain,
+  animations canvas indépendantes du framerate, refonte ShapeMorph/GeometricPattern/DotGrid et
+  nouvel effet `WaterRippleBackground`.
+- Lot du 2026-07-17 : serveur de développement auto-rechargé, éclatement aléatoire de Bubble,
+  MatrixGrid réécrit en Canvas 2D stable, grille étendue jusqu'aux bords du viewport, réglages étendus
+  et URL OBS liée à chaque preset. Nettoyage des artefacts et anciens handoffs, suppression du proxy
+  de placement, sans modification des neuf rendus de scène.
+- Lot produit du 2026-07-17 : Studio unifié, contrôles bornés, presets à identifiant stable,
+  renommage/duplication/tags, six ambiances Atelier, profil performance DPR/FPS/pause, recherche
+  nom/effet/tag et export/import versionné de la bibliothèque personnelle.
 
-**bun test : 76 tests verts.** Prêt pour un premier live. Backlog restant (non bloquant) :
-S5 (panneau de contrôle unique) et S6 (contrôle OBS programmatique, priorisé par l'owner), voir
-§Découpage des sessions.
+État après le lot du 2026-07-17 : **286 tests verts**.
 
 ## Découpage des sessions
 
@@ -94,7 +94,7 @@ déposer par poignée dédiée. Placement par composant individuel reste hors sc
 | Épopée | Éditeur complet au-delà de S6/S8 (export/import config, skill recherche graphique) | ⬜ hors scope |
 | Track A | Bibliothèque de transitions de scène (`slide`/`wipe`/`morph`) — besoin concret exprimé par l'owner (2026-07-06), sorti de l'épopée. `direction` (slide/wipe) et `color` (wipe) configurables dès la v1. 4 sessions atomiques, spec `docs/specs/scene-transition-library.md`. A1 (spec, 2026-07-06), A2 (`slide`/`wipe`), A3 (`morph` via `DotGridAnimated.morphTo()`, interpolation Simplex entre modes, dégradation en fondu d'opacité si un seul côté a un fond — LAC-01 tranchée) et A4 (UI panneau) **livrées** (2026-07-07, commit `deacfa5`). | ✅ fait (4/4) |
 | Track B | Bibliothèque de 11 effets de fond indépendants (élargie depuis le cycle de formes original suite à recherche CodePen, 2026-07-07) — remplacent `DotGridBackground` sur `#bg-layer`, devenu polymorphe (`SceneConfig.background: ComponentMount`). 8 sessions atomiques, spec `docs/specs/background-effects-library.md`. B1 (spec) → B2 (fondation polymorphe, migration `DotGridBackground` sans régression) → B3-B7 (Rain, MatrixGrid, Bubble+éclatement, Fireflies, FloatingSymbols, GeometricPattern, ColorDrops, StarsParallax, OrbitingShapes — chacun avec sa section de fine-tuning dans `dev/overlay-setting.html`) → B8 (`ShapeMorphBackground`, cycle pizza/étoile ninja/casque/carapace/masque Batman par interpolation radiale) **toutes livrées** (2026-07-07, commit `deacfa5`). LAC-01 (renommage panneau) tranchée : conservé tel quel. LAC-02 (variabilité couleur DotGrid par bruit) et LAC-03 (positions procédurales `StarsParallaxBackground`) tranchées avec l'owner (2026-07-10, voir §Durcissement ci-dessous). | ✅ fait (8/8) |
-| Couche 4 DotGrid | Réactions visuelles aux alertes stream (`follow`/`sub`/`raid`/`bits`) + déclenchement `ambient` périodique — dernier gap de `HANDOFF_overlay_dotgrid.md` (couche 3 devenue obsolète, remplacée par `ShapeMorphBackground`/Track B). 3 sessions atomiques, spec `docs/specs/dotgrid-event-triggers.md`. Session 1 (spec), 2 (`DotGridAnimated.trigger()`, 4 comportements + minuteur ambient, vérifié visuellement par échantillonnage pixel) et 3 (câblage `applyBackgroundReactions` dans `scene-runtime.js` — pas de fichier wire touché, LAC-01 de la spec : évite une dépendance circulaire) **livrées** (2026-07-10). Vérifié bout en bout via `/emit` réel sur un relais de test (OBS non sollicité). `/code-review` : 2 races mineures (fenêtre de chargement de page) documentées LAC-02 de la spec, acceptées telles quelles (owner). | ✅ fait (3/3) |
+| Couche 4 DotGrid | Réactions visuelles aux alertes stream (`follow`/`sub`/`raid`/`bits`) + déclenchement `ambient` périodique — dernier gap du cadrage DotGrid initial (couche 3 devenue obsolète, remplacée par `ShapeMorphBackground`/Track B). 3 sessions atomiques, spec `docs/specs/dotgrid-event-triggers.md`. Session 1 (spec), 2 (`DotGridAnimated.trigger()`, 4 comportements + minuteur ambient, vérifié visuellement par échantillonnage pixel) et 3 (câblage `applyBackgroundReactions` dans `scene-runtime.js` — pas de fichier wire touché, LAC-01 de la spec : évite une dépendance circulaire) **livrées** (2026-07-10). Vérifié bout en bout via `/emit` réel sur un relais de test (OBS non sollicité). `/code-review` : 2 races mineures (fenêtre de chargement de page) documentées LAC-02 de la spec, acceptées telles quelles (owner). | ✅ fait (3/3) |
 
 ## Détail S1 (livré)
 

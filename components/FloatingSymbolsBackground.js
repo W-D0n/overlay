@@ -1,5 +1,7 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
+import { frameDeltaSeconds } from './animation-time.js';
+import { canvasPixelRatio } from './canvas-runtime.js';
 
 /**
  * FloatingSymbolsBackground.js — Glyphes/emoji flottants configurables (Track B, session B5).
@@ -35,6 +37,8 @@ export function FloatingSymbolsBackground(options = {}) {
   let cssW = 0;
   let cssH = 0;
   let rafId = 0;
+  /** @type {number | null} */
+  let previousTimestamp = null;
   let rgb = resolveColor(color);
 
   /** @typedef {{x:number,y:number,size:number,font:string,vy:number,rotPhase:number,rotSpeed:number,opacity:number}} Sym */
@@ -49,9 +53,9 @@ export function FloatingSymbolsBackground(options = {}) {
       y: randomY ? Math.random() * cssH : -maxSize,
       size,
       font: `${size}px sans-serif`, // précalculé une fois — `size` fixe pour la durée de vie du symbole, jamais recalculé par frame (voir tick)
-      vy: (0.3 + Math.random() * 0.5) * speed,
+      vy: (0.3 + Math.random() * 0.5) * 60,
       rotPhase: Math.random() * Math.PI * 2,
-      rotSpeed: (Math.random() - 0.5) * 0.02,
+      rotSpeed: (Math.random() - 0.5) * 0.02 * 60,
       opacity: 0.15 + Math.random() * 0.25,
     };
   }
@@ -61,7 +65,7 @@ export function FloatingSymbolsBackground(options = {}) {
   }
 
   function handleResize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasPixelRatio();
     const w = canvas.offsetWidth;
     const h = canvas.offsetHeight;
     if (w === 0 || h === 0) return;
@@ -71,12 +75,15 @@ export function FloatingSymbolsBackground(options = {}) {
     canvas.height = h * dpr;
     ctx.scale(dpr, dpr);
     seed();
+    previousTimestamp = null;
     if (rafId !== 0) cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(tick);
   }
 
-  function tick() {
+  function tick(timestamp) {
     rafId = requestAnimationFrame(tick);
+    const delta = frameDeltaSeconds(previousTimestamp, timestamp);
+    previousTimestamp = timestamp;
     ctx.clearRect(0, 0, cssW, cssH);
     const [r, g, b] = rgb;
 
@@ -92,8 +99,8 @@ export function FloatingSymbolsBackground(options = {}) {
       ctx.fillText(symbol, 0, 0);
       ctx.restore();
 
-      s.y += s.vy;
-      s.rotPhase += s.rotSpeed;
+      s.y += s.vy * speed * delta;
+      s.rotPhase += s.rotSpeed * speed * delta;
       if (s.y - s.size > cssH) symbols[i] = spawn(false);
     }
   }

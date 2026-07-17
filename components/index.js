@@ -1,4 +1,5 @@
 // @ts-check
+import { canvasPixelRatio } from './canvas-runtime.js';
 /**
  * components/index.js — Composants UI réutilisables
  *
@@ -42,7 +43,7 @@ export function DotGrid() {
 
   /** Dessiner la grille sur le canvas. */
   function draw() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasPixelRatio();
     const w   = canvas.offsetWidth;
     const h   = canvas.offsetHeight;
 

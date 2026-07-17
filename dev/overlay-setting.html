@@ -10,8 +10,9 @@
     en rectangles déplaçables à la souris. Les couches sans `placement` (CSS scopé existant) sont
     affichées mais non déplaçables — hors scope V1 (pas d'insertion de placement, seulement
     déplacement d'un placement existant).
-    Persistance placement (S7) : bouton "Sauvegarder" -> POST vers dev/placement-server.js
-    (bun dev/placement-server.js, outil de dev séparé, jamais lancé en live).
+    Persistance placement (S7) : bouton "Sauvegarder" -> POST direct vers
+    dev/scene-data-server.js. Ce serveur est l'unique propriétaire des fichiers de scène et de
+    leur historique ; l'ancien proxy placement-server.js a été supprimé en 2026-07-17.
 
     Composition (S8 session 5/6) : ajouter/retirer/éditer les ComponentMount d'une couche, un
     formulaire par type (dev/component-field-schemas.js) -> POST vers dev/scene-data-server.js
@@ -28,9 +29,9 @@
     (perte de focus/validation, pas à chaque frappe). Plus de confirmation navigateur sur retrait de
     couche/composant — l'historique (section dédiée, "Restaurer" par version horodatée) remplace la
     confirmation comme filet de sécurité pour ces actions courantes et réversibles. L'historique est
-    partagé (dev/scene-history-store.js) entre scene-data-server.js (composition/création/suppression)
-    ET placement-server.js (drag & drop) — un déplacement de couche est donc aussi annulable via la
-    section Historique, pas seulement les changements de composition.
+    géré par dev/scene-history-store.js derrière scene-data-server.js pour la composition, la
+    création, la suppression et le drag & drop. Un déplacement de couche est donc aussi annulable
+    via la section Historique, pas seulement les changements de composition.
 
     Gestion des couches (2026-07-05) : renommer (input inline, invariants V6/goldbar respectés),
     réordonner (boutons ↑/↓ + glisser-déposer via poignée dédiée) — modifie l'empilement visuel des
@@ -219,6 +220,10 @@
     .field-row { display: flex; align-items: center; gap: 6px; }
     .field-row label { flex: 0 0 auto; font-size: 11px; color: var(--color-text-mid); min-width: 90px; }
     .field-row input, .field-row select, .field-row textarea { flex: 1; }
+    .numeric-control { flex: 1; display: grid; grid-template-columns: minmax(90px, 1fr) 72px auto; gap: 6px; align-items: center; }
+    .numeric-control input[type="range"] { padding: 0; accent-color: var(--color-gold); }
+    .numeric-control input[type="number"] { min-width: 0; text-align: right; }
+    .numeric-control .field-unit { color: var(--color-text-dim); font-size: 10px; min-width: 18px; }
     .bind-toggle { flex: 0 0 auto; padding: 4px 6px; font-size: 10px; }
     .add-component-row { display: flex; gap: 6px; margin-top: 4px; }
     .add-component-row select { flex: 1; }
@@ -324,7 +329,8 @@
     import { SCENE_CONFIGS, loadDynamicScenes } from '../scenes/registry.js';
     import { OBS_SCENE_MAP } from '../relay/obs-scene-map.js';
     import { DEFAULT_TRANSITION } from '../protocol.js';
-    import { COMPONENT_FIELD_SCHEMAS, COMPOSABLE_COMPONENT_NAMES, BACKGROUND_FIELD_SCHEMAS, BACKGROUND_COMPONENT_NAMES, validateFieldSchemas } from './component-field-schemas.js';
+    import { COMPONENT_FIELD_SCHEMAS, COMPOSABLE_COMPONENT_NAMES, BACKGROUND_FIELD_SCHEMAS, BACKGROUND_COMPONENT_NAMES, backgroundEffectLabel, validateFieldSchemas } from './component-field-schemas.js';
+    import { buildNumericFieldControl } from './numeric-field-control.js';
     import { DESIGN_TOKENS, tokenLabel } from './design-tokens.js';
     // Montage réel des composants dans la preview (2026-07-05) — component-registry.js et
     // scene-definition-resolve.js sont sûrs à importer ici : aucun des deux n'importe store.js
@@ -333,7 +339,7 @@
     import { COMPONENT_REGISTRY } from '../component-registry.js';
     import { resolveBoundOptions } from '../scene-definition-resolve.js';
 
-    const PLACEMENT_SERVER_URL = 'http://localhost:4459/save-placement';
+    const SCENE_DATA_PLACEMENT_URL = 'http://localhost:4460/save-placement';
     const SCENE_DATA_SERVER_URL = 'http://localhost:4460/update-scene';
     const SCENE_DATA_CREATE_URL = 'http://localhost:4460/create-scene';
     const SCENE_DATA_DELETE_URL = 'http://localhost:4460/delete-scene';
@@ -343,7 +349,7 @@
     const ARCHIVED_SCENES_URL = 'http://localhost:4460/archived-scenes';
     const RESTORE_ARCHIVED_URL = 'http://localhost:4460/restore-archived-scene';
     // Contrôle OBS (S6, 2026-07-06, voir docs/specs/obs-scene-control.md) — routes exposées par
-    // relay/server.js, pas scene-data-server.js/placement-server.js (relais = seul process tournant
+    // relay/server.js, pas scene-data-server.js (relais = seul process tournant
     // pendant le live, propriétaire unique de la connexion OBS WS v5).
     const OBS_LIST_SCENES_URL = 'http://localhost:4456/obs/list-scenes';
     const OBS_CREATE_SCENE_URL = 'http://localhost:4456/obs/create-scene';
@@ -845,7 +851,7 @@
       BACKGROUND_COMPONENT_NAMES.forEach((name) => {
         const opt = document.createElement('option');
         opt.value = name;
-        opt.textContent = name;
+        opt.textContent = backgroundEffectLabel(name);
         componentSelect.appendChild(opt);
       });
       componentSelect.value = config.background?.component ?? NONE;
@@ -1615,7 +1621,7 @@
     async function saveLayerPlacement(layerName) {
       statusEl.textContent = 'Sauvegarde en cours...';
       try {
-        const response = await fetch(PLACEMENT_SERVER_URL, {
+        const response = await fetch(SCENE_DATA_PLACEMENT_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sceneId: currentSceneId, layerName, placement: livePlacements[layerName] }),
@@ -1632,7 +1638,7 @@
           statusEl.textContent = `Échec (${response.status})`;
         }
       } catch {
-        statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/placement-server.js"';
+        statusEl.textContent = 'Serveur de dev injoignable — lancer "bun dev/scene-data-server.js"';
       }
     }
 
@@ -1661,7 +1667,7 @@
     }
 
     /**
-     * Construit l'élément d'entrée adapté à `field.type` (select/token/textarea/number/text) —
+     * Construit l'élément d'entrée adapté à `field.type` (select/token/textarea/colors/number/color/text) —
      * factorisé du bloc composant de couche (S8) et de la section Fond (Track B B7) pour éviter de
      * dupliquer les 5 branches de type à deux endroits.
      * @param {import('./component-field-schemas.js').FieldSchema} field
@@ -1725,19 +1731,14 @@
         wrapper.appendChild(customInput);
         return wrapper;
       }
-      if (field.type === 'textarea') {
+      if (field.type === 'textarea' || field.type === 'colors') {
         const textarea = document.createElement('textarea');
         textarea.value = Array.isArray(currentValue) ? currentValue.join('\n') : '';
-        textarea.addEventListener('change', () => onChange(textarea.value.split('\n')));
+        textarea.addEventListener('change', () => onChange(textarea.value.split('\n').filter((line) => line.length > 0)));
         return textarea;
       }
       if (field.type === 'number') {
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.step = 'any';
-        input.value = String(currentValue);
-        input.addEventListener('change', () => onChange(Number(input.value)));
-        return input;
+        return buildNumericFieldControl(field, currentValue, onChange, { exactEvent: 'change' });
       }
       const input = document.createElement('input');
       input.type = 'text';

@@ -16,9 +16,13 @@ obs-config.local.js
 Thumbs.db
 .vscode/
 .idea/
+.claude/settings.local.json
 
 # Artefacts de vérification visuelle (Playwright MCP)
 .playwright-mcp/
 
 # Historique de sauvegardes de l'éditeur (dev/scene-history-store.js) — généré, pas versionné
 scenes/data/.history/
+
+# État runtime du fond standalone (background-state-server) — local, jamais versionné
+dev/data/

@@ -3,7 +3,7 @@
  * dev/scene-data-server.js — Serveur d'écriture des scènes dynamiques (S8 session 4/6, dev-only).
  *
  * NE JAMAIS lancer pendant le live — écrit sur disque dans `scenes/data/`, séparé du relais de
- * production (`relay/server.js`). Même pattern que `dev/placement-server.js` (S7).
+ * production (`relay/server.js`). Il possède aussi le placement : aucun proxy intermédiaire.
  *
  * Routes :
  *   POST /create-scene — `{ sceneConfig }`, crée `scenes/data/<id>.scene.json` + ajoute l'id au
@@ -15,15 +15,14 @@
  *                         S8 session 6/6) + retire l'id du manifeste. Rejette un id absent du
  *                         manifeste.
  *   WS   /reload-ws     — diffuse `reload` à chaque sauvegarde réussie (create/update/delete), même
- *                         mécanisme que `tuner-server.js`/`placement-server.js`. `index.html?livereload=1`
+ *                         mécanisme que `tuner-server.js`. `index.html?livereload=1`
  *                         s'y connecte automatiquement (LAC-03 résolu, 2026-07-05).
  *   GET  /scene-history?sceneId=X — liste des versions passées d'une scène (`[]` si aucune).
  *   POST /save-placement — `{ sceneId, layerName, placement }`, réécrit uniquement la valeur
  *                         `placement` de la couche ciblée + ajoute une entrée d'historique, les deux
- *                         dans la même opération sérialisée. Seule route qui permet à
- *                         `placement-server.js` (process séparé, drag & drop) de faire évoluer une
- *                         scène — ce process reste l'unique écrivain de `scenes/data/*.scene.json`
- *                         ET de son historique (2026-07-06, voir
+ *                         dans la même opération sérialisée. Le panneau l'appelle directement :
+ *                         ce process reste l'unique écrivain de `scenes/data/*.scene.json` ET de
+ *                         son historique (2026-07-06, voir
  *                         docs/specs/scene-history-protocol.md §Concurrence d'accès — élimine la
  *                         race entre deux process Bun distincts écrivant le même fichier).
  *   POST /restore-scene — `{ sceneId, timestamp }`, réécrit la scène active avec le contenu de
@@ -192,9 +191,9 @@ async function handleGetSceneHistory(req) {
 
 /**
  * POST /save-placement — `{ sceneId, layerName, placement }`. Voir
- * docs/specs/scene-history-protocol.md §Concurrence d'accès — seule route qui permet à un autre
- * process (`placement-server.js`, drag & drop) de faire évoluer une scène. Lecture, application du
- * placement et écriture (fichier de scène + historique) dans une seule opération sérialisée : un
+ * docs/specs/scene-history-protocol.md §Concurrence d'accès. Le panneau de drag & drop appelle
+ * directement cette route. Lecture, application du placement et écriture (fichier de scène +
+ * historique) dans une seule opération sérialisée : un
  * read-modify-write non protégé ici causait une perte silencieuse de placement sous requêtes
  * concurrentes (trouvé en vérification visuelle, 2026-07-06).
  * @param {Request} req

@@ -1,5 +1,7 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
+import { chanceForDelta, frameDeltaSeconds } from './animation-time.js';
+import { canvasPixelRatio } from './canvas-runtime.js';
 
 /**
  * FirefliesBackground.js — Particules lumineuses dérivantes, avec flash (Track B, session B4).
@@ -30,9 +32,11 @@ export function FirefliesBackground(options = {}) {
   let cssW = 0;
   let cssH = 0;
   let rafId = 0;
+  /** @type {number | null} */
+  let previousTimestamp = null;
   let rgb = resolveColor(color);
 
-  const FLASH_FRAMES = 40;
+  const FLASH_DURATION = 40 / 60;
 
   /** @typedef {{cx:number,cy:number,radiusX:number,radiusY:number,freqX:number,freqY:number,phase:number,baseOpacity:number,flashT:number}} Firefly */
   /** @type {Firefly[]} */
@@ -58,7 +62,7 @@ export function FirefliesBackground(options = {}) {
   }
 
   function handleResize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasPixelRatio();
     const w = canvas.offsetWidth;
     const h = canvas.offsetHeight;
     if (w === 0 || h === 0) return;
@@ -68,12 +72,15 @@ export function FirefliesBackground(options = {}) {
     canvas.height = h * dpr;
     ctx.scale(dpr, dpr);
     seed();
+    previousTimestamp = null;
     if (rafId !== 0) cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(tick);
   }
 
   function tick(timestamp) {
     rafId = requestAnimationFrame(tick);
+    const delta = frameDeltaSeconds(previousTimestamp, timestamp);
+    previousTimestamp = timestamp;
     ctx.clearRect(0, 0, cssW, cssH);
     const t = timestamp * 0.001 * speed;
     const [r, g, b] = rgb;
@@ -82,15 +89,17 @@ export function FirefliesBackground(options = {}) {
       const x = fly.cx + Math.sin(t * fly.freqX + fly.phase) * fly.radiusX;
       const y = fly.cy + Math.cos(t * fly.freqY + fly.phase) * fly.radiusY;
 
-      if (fly.flashT === 0 && Math.random() < flashChance) fly.flashT = FLASH_FRAMES;
+      if (fly.flashT === 0 && Math.random() < chanceForDelta(flashChance, delta)) {
+        fly.flashT = FLASH_DURATION;
+      }
 
       let opacity = fly.baseOpacity;
       let glowRadius = 2;
       if (fly.flashT > 0) {
-        const progress = fly.flashT / FLASH_FRAMES;
+        const progress = fly.flashT / FLASH_DURATION;
         opacity = fly.baseOpacity + 0.85 * Math.sin(progress * Math.PI); // monte puis redescend
         glowRadius = 2 + 6 * Math.sin(progress * Math.PI);
-        fly.flashT -= 1;
+        fly.flashT = Math.max(0, fly.flashT - delta);
       }
 
       ctx.fillStyle = `rgba(${r},${g},${b},${Math.min(1, opacity).toFixed(3)})`;
@@ -122,4 +131,3 @@ export function FirefliesBackground(options = {}) {
     },
   };
 }
-

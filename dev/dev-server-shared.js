@@ -2,10 +2,9 @@
 /**
  * dev/dev-server-shared.js — CORS et réponse d'erreur JSON, partagés par les serveurs de dev HTTP.
  *
- * `CORS_HEADERS` et la réponse d'erreur étaient dupliqués à l'identique dans scene-data-server.js,
- * placement-server.js, tuner-server.js et obs-scene-map-server.js (review architecture, 2026-07-10)
- * — trois d'entre eux renvoyaient en plus du texte brut au lieu de JSON sur erreur, forme
- * incohérente avec scene-data-server.js. Extrait ici, une seule fois.
+ * `CORS_HEADERS` et la réponse d'erreur étaient dupliqués entre les serveurs d'édition. Extraits
+ * ici pour scene-data-server.js, tuner-server.js, obs-scene-map-server.js et le serveur d'état du
+ * fond. L'ancien proxy placement-server.js a été supprimé : scene-data-server possède sa route.
  */
 
 /** CORS permissif — outil de dev local uniquement, jamais exposé. */

@@ -26,6 +26,7 @@ import { ColorDropsBackground } from './components/ColorDropsBackground.js';
 import { StarsParallaxBackground } from './components/StarsParallaxBackground.js';
 import { OrbitingShapesBackground } from './components/OrbitingShapesBackground.js';
 import { ShapeMorphBackground } from './components/ShapeMorphBackground.js';
+import { WaterRippleBackground } from './components/WaterRippleBackground.js';
 
 /**
  * Les factories ont des signatures hétérogènes ; le registry expose la vue unifiée
@@ -46,6 +47,7 @@ export const COMPONENT_REGISTRY = /** @type {*} */ ({
   StarsParallaxBackground,
   OrbitingShapesBackground,
   ShapeMorphBackground,
+  WaterRippleBackground,
 });
 
 /**

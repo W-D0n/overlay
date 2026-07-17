@@ -17,10 +17,100 @@ export function resolveColor(value) {
   const probe = document.createElement('div');
   probe.style.cssText = `position:absolute;visibility:hidden;color:${value};`;
   document.body.appendChild(probe);
-  const rgb = getComputedStyle(probe).color;
+  const resolved = getComputedStyle(probe).color;
   probe.remove();
-  const m = rgb.match(/\d+/g) ?? ['200', '185', '122'];
-  return [Number(m[0]), Number(m[1]), Number(m[2])];
+  return parseCssColor(resolved) ?? parseCssColor(value) ?? [200, 185, 122];
+}
+
+/**
+ * Parse les sérialisations utiles au tuner/canvas. Chromium peut conserver `oklch(...)` dans le
+ * style calculé au lieu de le convertir en `rgb(...)` : le parser explicite évite de lire L/C/H
+ * comme si c'étaient des canaux RGB.
+ * @param {string} value
+ * @returns {[number, number, number] | null}
+ */
+export function parseCssColor(value) {
+  const input = value.trim();
+
+  const hex = input.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (hex) {
+    const expanded = hex[1].length === 3
+      ? [...hex[1]].map((char) => char + char).join('')
+      : hex[1];
+    return [
+      Number.parseInt(expanded.slice(0, 2), 16),
+      Number.parseInt(expanded.slice(2, 4), 16),
+      Number.parseInt(expanded.slice(4, 6), 16),
+    ];
+  }
+
+  const rgb = input.match(/^rgba?\((.+)\)$/i);
+  if (rgb) {
+    const channels = rgb[1].split(/[,\s/]+/).filter(Boolean).slice(0, 3);
+    if (channels.length === 3) {
+      const parsed = channels.map((channel) => channel.endsWith('%')
+        ? Number.parseFloat(channel) * 2.55
+        : Number.parseFloat(channel));
+      if (parsed.every(Number.isFinite)) return /** @type {[number,number,number]} */ (parsed.map(toByte));
+    }
+  }
+
+  const oklch = input.match(
+    /^oklch\(\s*([+-]?(?:\d+\.?\d*|\.\d+)%?)\s+([+-]?(?:\d+\.?\d*|\.\d+))\s+([+-]?(?:\d+\.?\d*|\.\d+))(?:deg)?(?:\s*\/[^)]+)?\s*\)$/i,
+  );
+  if (oklch) {
+    const lightness = oklch[1].endsWith('%')
+      ? Number.parseFloat(oklch[1]) / 100
+      : Number.parseFloat(oklch[1]);
+    return oklchToRgb(lightness, Number.parseFloat(oklch[2]), Number.parseFloat(oklch[3]));
+  }
+
+  const srgb = input.match(/^color\(\s*srgb\s+([^\s]+)\s+([^\s]+)\s+([^\s/)]+)/i);
+  if (srgb) {
+    const channels = [Number(srgb[1]), Number(srgb[2]), Number(srgb[3])];
+    if (channels.every(Number.isFinite)) {
+      return /** @type {[number,number,number]} */ (channels.map((channel) => toByte(channel * 255)));
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Conversion OKLCH → sRGB selon les matrices de référence OKLab, avec clamp dans le gamut sRGB.
+ * @param {number} lightness
+ * @param {number} chroma
+ * @param {number} hueDeg
+ * @returns {[number, number, number]}
+ */
+export function oklchToRgb(lightness, chroma, hueDeg) {
+  const hue = hueDeg * Math.PI / 180;
+  const a = chroma * Math.cos(hue);
+  const b = chroma * Math.sin(hue);
+
+  const lPrime = lightness + 0.3963377774 * a + 0.2158037573 * b;
+  const mPrime = lightness - 0.1055613458 * a - 0.0638541728 * b;
+  const sPrime = lightness - 0.0894841775 * a - 1.291485548 * b;
+  const l = lPrime ** 3;
+  const m = mPrime ** 3;
+  const s = sPrime ** 3;
+
+  const linear = [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+  ];
+  return /** @type {[number,number,number]} */ (linear.map((channel) => {
+    const encoded = channel <= 0.0031308
+      ? 12.92 * channel
+      : 1.055 * channel ** (1 / 2.4) - 0.055;
+    return toByte(encoded * 255);
+  }));
+}
+
+/** @param {number} value */
+function toByte(value) {
+  return Math.round(Math.min(255, Math.max(0, value)));
 }
 
 /**

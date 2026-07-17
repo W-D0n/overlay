@@ -10,3 +10,4 @@
 | [scene-transition-library](scene-transition-library.md) | Fait | 2026-07-06 | Track A (4/4) |
 | [background-effects-library](background-effects-library.md) | Fait | 2026-07-07 | Track B (8/8) |
 | [dotgrid-event-triggers](dotgrid-event-triggers.md) | Draft | 2026-07-10 | Session 1/3 |
+| [background-standalone](background-standalone.md) | Fait | 2026-07-14 | — |

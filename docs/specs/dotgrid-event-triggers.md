@@ -9,7 +9,8 @@ status: draft
 
 ## Contexte
 
-`docs/handoffs/HANDOFF_overlay_dotgrid.md` (juin 2026) posait une architecture à 4 couches pour
+Le cadrage DotGrid initial de juin 2026 (désormais conservé par l'historique Git) posait une
+architecture à 4 couches pour
 `DotGridAnimated.js`. Couches 1+2 (base aléatoire + bruit Simplex ambiant) livrées en S1. Couche 3
 (morphisme de forme, bitmap/SDF/IA) est **obsolète** : Track B (`docs/specs/background-effects-library.md`,
 AD-B1) a résolu ce besoin autrement et mieux — `ShapeMorphBackground` est un composant de fond

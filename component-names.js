@@ -15,7 +15,7 @@ export const COMPONENT_NAMES = [
   'DotGridBackground', 'RainBackground', 'MatrixGridBackground', 'BubbleBackground',
   'FirefliesBackground', 'FloatingSymbolsBackground', 'GeometricPatternBackground',
   'ColorDropsBackground', 'StarsParallaxBackground', 'OrbitingShapesBackground',
-  'ShapeMorphBackground',
+  'ShapeMorphBackground', 'WaterRippleBackground',
 ];
 
 /**

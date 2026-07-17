@@ -1,96 +1,39 @@
-**Handoff — 2026-07-03**
+**Handoff — 2026-07-17**
 
-Session : **S3b, S4 clôturées + extensions post-livraison** — pipeline de lancement stream complet,
-validé de bout en bout par l'owner avec son vrai OBS. 9 scènes overlay opérationnelles, relais
-OBS↔overlay temps réel, sécurité de base, lancement automatisé. `bun test` : 76 tests verts.
+Focus courant : **mode background-only**. Le moteur de scènes, l'éditeur et le relais OBS restent
+dans le dépôt mais sont mis en pause.
 
----
+## Flux actif
 
-**Ce qui a été fait cette session (dans l'ordre)**
+- OBS live : `http://localhost:5500/background.html`
+- OBS par preset : `http://localhost:5500/background.html?preset=Nom&transparent=1`
+- Tuner : `http://localhost:5500/dev/background-tuner.html`
+- État live/presets : `dev/background-state-server.js`, port 4462
+- 12 effets enregistrés, un seul actif à la fois
 
-| Livrable | État |
-|----------|------|
-| S3b : scènes `interview`, `react`, `creation` (variante A), `fin` migrées page-unique | ✅ |
-| Décision : variante B de `creation` (panneau référence) abandonnée — incompatible page-unique | ✅ |
-| Vérification visuelle S3b (preview navigateur puis Browser Source OBS réelle) | ✅ |
-| S4 : relais Bun (`relay/server.js`) — client OBS WS v5 (auth SHA256) + serveur WS/`emit` pour l'overlay | ✅ |
-| Doc `docs/obs-setup.md` (setup OBS + relais) créée | ✅ |
-| Relais testé bout en bout avec l'OBS réel de l'owner (auth OK, changement de scène live confirmé) | ✅ |
-| Rate-limiting `/emit` (20 req/10s/IP) + `docs/security.md` (FRIC-S2-04) | ✅ |
-| Fix `--text-xs` 7px→13px (`tokens.css`) — bug de lisibilité systémique (feedback owner) | ✅ |
-| DotGrid retuning visibilité/rythme (`baseOpacity`, `dotRadius`, `MODE_PARAMS`) | ✅ |
-| Outil `dev/dotgrid-tuner.html` — sliders live, pas de persistance (décision différée) | ✅ |
-| Fix back-off exponentiel + logging one-shot reconnexion WS (`store.js`) | ✅ |
-| Retrait du compteur de viewers de tout l'overlay, y compris post-stream (feedback owner) | ✅ |
-| Mapping complet des 9 scènes OBS réelles de D0n (`relay/obs-scene-map.js`) | ✅ |
-| 9e scène `starting` créée (écran d'attente pré-live, scène OBS découverte en cours de session) | ✅ |
-| Lancement automatisé : `.env` (auto-chargé par Bun) + `start-stream.bat` (double-clic) | ✅ |
-| S5/S6 formalisées dans la roadmap (panneau de contrôle + OBS programmatique, priorisé owner) | ✅ |
+## Dernier lot
 
----
+- WaterRipple accepté après redémarrage du serveur obsolète ; serveur d'état auto-rechargé en dev.
+- Bubble : éclatement aléatoire réparti dans le viewport et réglages associés.
+- MatrixGrid : Canvas 2D continu à la place des plans CSS 3D, 13 réglages exposés et traverses
+  bornées par le trapèze de perspective ; débordement latéral automatique selon le point de fuite.
+  Le fondu est limité à l'horizon et les lignes de fuite atteignent les bords haut/bas du viewport.
+- URL OBS par preset + bouton de copie et synchronisation `/presets-ws`.
+- Nettoyage : neuf rendus de scène conservés ; proxy de placement et archives de session obsolètes
+  retirés ; `start-dev` recentré sur une seule session de création fonds + scènes.
 
-**Incident sécurité mineur, résolu en session**
+## Vérification
 
-L'owner a collé son mot de passe OBS WebSocket en clair dans la conversation. Recommandation faite
-de le régénérer côté OBS. Le secret overlay↔relais (`RELAY_TOKEN`/`OVERLAY_RELAY_SECRET`) a été
-généré séparément et écrit directement dans les fichiers de config locale (jamais affiché dans la
-conversation). Process orphelins de smoke-test (ports 4456, 4457, 5500) identifiés et nettoyés
-proprement (confirmation owner avant kill quand pertinent).
+- `bun test` : **261/261 verts**.
+- WaterRipple accepté par le POST `/state` réel ; événement de preset vérifié en WebSocket.
+- Tuner, MatrixGrid et URL de preset vérifiés dans Chromium à 1920×1080, sans erreur console.
 
----
+## Restant
 
-**Décisions de scope notables**
+1. Validation visuelle owner de MatrixGrid dans une vraie Browser Source OBS/CEF.
+2. Retour détaillé sur ColorDrops.
+3. Décider plus tard si l'automatisation OBS WebSocket apporte quelque chose au-delà des URL par
+   preset désormais disponibles.
 
-- **`creation`** : seule la variante A (capture + colonne widgets) portée — variante B (panneau
-  référence) abandonnée, options de reprise tracées dans `docs/inbox.md`.
-- **Viewers retirés partout**, y compris le récap post-stream `VIEWERS MAX` de `fin` — décision
-  explicite de cohérence totale de l'owner (pas seulement en direct).
-- **`dotgrid-tuner` reste sans persistance automatique** — décision d'architecture différée
-  (serveur de dev séparé vs. extension du relais vs. `localStorage`), tracée dans `docs/inbox.md`.
-- **Contrôle OBS programmatique (S6)** priorisé par l'owner mais pas implémenté — dépend de S5
-  (panneau de contrôle) qui n'existe pas encore. Question ouverte : étendre le relais existant ou
-  process séparé — tracée dans `docs/inbox.md`.
-
----
-
-**Gaps connus (non bloquants)**
-
-- Aucune scène OBS réelle pour l'instant ne manque — les 9 scènes overlay ont toutes une
-  correspondance OBS chez l'owner.
-- Rotation du mot de passe OBS collé en chat : recommandée à l'owner, **pas vérifiée** que c'est fait.
-- Pas de test automatisé contre une vraie instance OBS (logique pure testée, orchestration réseau
-  vérifiée manuellement + validée par l'owner en conditions réelles, mais aucun test `bun test` ne
-  simule un serveur OBS WS v5).
-
----
-
-**Prochaine action recommandée**
-
-1. **Streamer** — le pipeline est prêt (`start-stream.bat` + Browser Source OBS déjà configurée).
-2. **S5** — panneau de contrôle unique (jalon 1 éditeur : placement drag/offset + persistance
-   `dotgrid-tuner`), voir `docs/MAP.md` §Découpage des sessions.
-3. **S6** — contrôle OBS programmatique branché sur S5, voir `docs/inbox.md` §Contrôle OBS centralisé
-   pour la question d'architecture à trancher avant de coder le premier `CreateScene`.
-
----
-
-**Fichiers créés/modifiés cette session (résumé, voir `git log` pour le détail commit par commit)**
-
-```
-scenes/{interview,react,creation,fin,starting}.{config,wire}.js  ← nouveau
-scenes/{Interview,React,Creation3D,FinStream}.html               ← supprimées
-index.html                                                        ← +5 <template> + CSS scopé
-scenes/registry.js                                                ← 9 scènes enregistrées
-relay/{server,obs-auth,obs-scene-map,rate-limiter}.js + tests     ← nouveau (S4)
-obs-config.example.js / obs-config.local.js (gitignoré)           ← nouveau
-.env.example / .env (gitignoré)                                   ← nouveau
-start-stream.bat                                                  ← nouveau
-docs/obs-setup.md, docs/security.md                                ← nouveau
-docs/specs/relay-bun-s4.md                                         ← nouveau
-dev/dotgrid-tuner.html                                             ← nouveau
-tokens.css                                                         ← --text-xs 7px→13px
-components/DotGridAnimated.js                                      ← retuning + export MODE_PARAMS + mode starting
-store.js                                                            ← back-off exponentiel, pointe sur le relais
-types.js, protocol.js                                               ← SceneId/DotGridMode + starting
-docs/MAP.md, docs/inbox.md                                          ← mis à jour en continu
-```
+Le worktree contient des changements owner antérieurs et le lot courant non committé : ne pas
+nettoyer ni restaurer globalement les fichiers.

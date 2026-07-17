@@ -4,6 +4,107 @@ Capture d'idées et questions ouvertes. Trier via `/inbox-triage`.
 
 ---
 
+## Backlog actif — tuner et effets de fond
+
+### Lot implémenté le 2026-07-16 — validation visuelle owner attendue
+
+- **Vitesse OBS / navigateur** — Rain, Bubble, Fireflies, FloatingSymbols et ColorDrops utilisent
+  maintenant un delta-temps ; le test 30/60 fps donne le même déplacement sur une seconde.
+- **Tooling couleur** — picker visuel, 15 couleurs nommées, saisie CSS libre, listes
+  ajout/retrait et application du gradient valide de `components/color-palette.json`.
+- **OrbitingShapes** — taille min/max appliquée en direct sans reseed ; opacité globale ajoutée.
+- **ShapeMorph** — distribution en pattern, quantité, étendue, style, opacité et rotation ajoutés.
+  La qualité des cinq contours reste à confirmer visuellement.
+- **DotGrid** — `Mode ambiant` renommé `Profil de mouvement`, couleurs `noise` configurables,
+  mode `glow`, espacement/rayon/opacité/battement/orientation et réactions automatiques exposés.
+- **Rain** — domaine de spawn adapté à l'angle, densité compensée et vitesse temps-réel.
+- **GeometricPattern** — `angled` remplacé par `chevrons` (`angled` reste relu dans les anciens
+  presets), avec direction, orientation et échelle explicites.
+- **WaterRipple** — nouvel effet chute + impact + propagation, avec forme, fréquence, amplitude,
+  vitesse, couleur, rayon et épaisseur.
+
+### Encore ouvert
+
+- **ColorDrops** — retour détaillé encore à recueillir.
+- **OBS réel** — confirmer visuellement que les vitesses et nouveaux contrôles correspondent au
+  rendu attendu dans la Browser Source native.
+- **Preset par scène — V2 optionnelle** — les URL par preset couvrent maintenant le besoin sans
+  relais. Décider plus tard si une association automatique via OBS WebSocket apporte encore assez
+  de valeur.
+- **Miniatures de presets** — les identifiants, tags, renommage et duplication sont livrés ; une
+  vignette capturée reste une amélioration possible si la bibliothèque devient volumineuse.
+
+### Nettoyage du 2026-07-17
+
+- Les neuf scènes, leurs configurations et leur rendu sont conservés comme surface produit.
+- Le panneau appelle désormais directement `scene-data-server.js` pour le drag & drop ; le proxy
+  `placement-server.js`, sans logique propre, a été supprimé.
+- `start-dev.bat` ouvre le Studio unifié et la preview dans une seule session.
+- Les artefacts de vérification locale, handoffs superseded et notes externes au projet ont été retirés.
+
+### Questions clarifiées
+
+- **Fonds différents par scène** — livré via
+  `background.html?preset=identifiant-stable&transparent=1` et le bouton « URL » de chaque preset.
+  Une source Navigateur par preset/scène reste indépendante de l'état global du tuner.
+- **CSS personnalisé OBS** — surcharge CSS injectée par OBS après la page. Le laisser vide pour ce
+  projet ; utiliser `background.html?transparent=1` pour la transparence.
+- **Variables de couleur** — identité Atelier dans `tokens.css`, palette de travail dans
+  `components/color-palette.json`.
+- **`docs/guides/guide.css`** — feuille de style des pages de documentation HTML, sans effet sur
+  l'overlay ni OBS ; son emplacement dans `docs/guides/` est volontaire.
+
+### Lot produit livré le 2026-07-17
+
+1. **Studio unique V1** — `dev/studio.html` réunit `Fonds & presets` et `Scènes complètes` dans une
+   seule navigation, sans retirer les accès directs de diagnostic.
+2. **Contrôles guidés** — `FieldSchema` porte `min`, `max`, `step`, `unit` et `control`; le tuner et
+   l'éditeur de scènes rendent un slider et une valeur précise.
+3. **Presets robustes** — identifiant stable, migration automatique de l'ancien format,
+   renommage, duplication, tags et URL indépendante du nom affiché. Les miniatures restent ouvertes.
+4. **Profil performance OBS** — pause hors visibilité, DPR plafonné à 2/1 et indicateur FPS.
+5. **Bibliothèque éditoriale** — six presets Atelier par usage, applicables ou copiables dans la
+   bibliothèque personnelle.
+6. **Bibliothèque portable** — recherche commune par nom, effet ou tag ; export JSON versionné et
+   import atomique. Les identifiants connus restent stables et les conflits de nom n'écrasent rien.
+
+Le **binding OBS automatique** reste volontairement optionnel : attendre le retour d'usage sur les
+URL stables avant d'ajouter une table scène OBS → preset.
+
+---
+
+> Les sections suivantes constituent l'historique des décisions et livraisons. Une mention ancienne
+> de « futur éditeur », de « stub » ou de « prochaine session » ne prévaut pas sur le focus
+> background-only ni sur le code actuel.
+
+## Ouverture navigateur + libération des ports — résolu (2026-07-12)
+
+Quatre items liés à `start-dev.bat`/`start-dev.js` :
+- Doc sur l'accès manuel à la preview → section ajoutée dans `docs/guides/utiliser-le-panneau.md`
+  (URLs des 3 onglets, à utiliser si l'ouverture auto échoue).
+- Le rendu visuel ne s'ouvrait pas au lancement → `dev/start-dev.js` utilisait
+  `Bun.spawn(['cmd', '/c', 'start', '""', url])`, technique fragile (parsing du titre vide par
+  `start`) qui échouait silencieusement (exit code 0, aucune fenêtre) dans l'environnement de test.
+  Premier remplacement par `explorer.exe` : ouvrait bien un navigateur, mais le `?livereload=1` de
+  la première URL était interprété comme un chemin/filtre par Explorer, qui retombait sur le dossier
+  Documents au lieu de lancer le navigateur pour cette URL. Remplacé par
+  `Bun.spawn(['rundll32.exe', 'url.dll,FileProtocolHandler', url])` — appelle directement le handler
+  de protocole URL, insensible au contenu de l'URL. **Confirmé fonctionnel par l'owner (2026-07-12)**,
+  les 3 onglets s'ouvrent correctement.
+- Port occupé au second lancement / process qui survivent à la fermeture → `dev/port-check.js`
+  ajoute `freeStaleBunPorts()` : détecte le PID qui écoute sur chaque port cible (`netstat -ano`),
+  vérifie que c'est bien un `bun.exe` (jamais un process d'un autre nom — sécurité), le tue, puis
+  relance le check. `start-dev.js` appelle cette libération automatique avant le check bloquant ;
+  l'erreur ne s'affiche plus que si le port est occupé par un process qui n'est pas un des nôtres.
+  Testé : lancement à froid OK, relance avec port pré-occupé par un `bun.exe` orphelin → libéré et
+  relancé automatiquement, arrêt (SIGTERM) propre sans résidu dans les 3 cas.
+  Le cas "fermeture violente du parent" (crash/Gestionnaire des tâches) n'a pas pu être testé de
+  façon fiable dans cet environnement (PID du job shell ≠ PID Windows réel) — repose sur le Job
+  Object Windows que Bun 1.3.4 attache déjà à `Bun.spawn` (tue les enfants si le parent meurt),
+  mécanisme existant non modifié ici.
+
+---
+
 ## Résolu — process orphelins des scripts de lancement (2026-07-05)
 
 Deux bugs distincts causaient des serveurs de dev/stream qui restaient vivants pendant des heures
@@ -131,26 +232,21 @@ tracée ici, pas anticipée.
 
 ---
 
-## Système multi-animations de fond (confirmé par l'owner, 2026-07-04)
+## Système multi-animations de fond — résolu puis recadré (2026-07-14)
 
-L'owner compte avoir **plusieurs animations de fond** à terme (DotGrid + au moins une autre) — pas
-juste une hypothèse, un besoin réel exprimé. Un système de coordination entre plusieurs animations
-de fond sera donc nécessaire.
+Track B a livré **11 effets interchangeables** sous le même contrat de composant. `WaterRipple`
+porte le total courant à **12 effets**. Le pivot
+background-only a ensuite extrait leur montage dans `background-mount.js` et ajouté le tuner,
+l'état persistant et les presets.
 
-**Non construit maintenant** : `docs/overview.md` §Couche de fond DotGrid pose le garde-fou "on ne
-construit pas de système générique tant qu'une seule animation existe" — toujours valable, une
-seule anim (DotGrid) existe à ce jour. `docs/specs/scene-definition-v2.md` (S8) fait un premier pas
-cohérent : DotGrid rejoint le modèle de composant standard (`component-registry.js`), ce qui
-facilitera l'ajout d'une coordination multi-animations le jour où la 2e animation existe (elle
-suivra le même contrat, pas un cas spécial à réconcilier après coup).
-
-**À faire quand la 2e animation existe** : cadrer une session dédiée (mécanisme de switch/coexistence
-entre plusieurs animations de fond, potentiellement lié à `dotgridMode` généralisé ou à un nouveau
-concept de "background layer" pluriel).
+La décision courante est plus précise que la demande initiale : plusieurs effets sont disponibles,
+mais **un seul est actif à la fois**. La superposition simultanée de plusieurs effets reste hors
+scope ; si une composition visuelle en a besoin, ses couches internes appartiennent à un seul
+composant.
 
 ---
 
-## Extensions du système de placement (voulues par l'owner à terme, 2026-07-04)
+## Extensions du système de placement — moteur de scènes en pause
 
 Écartées de `docs/specs/scene-placement-protocol.md` (session 1/5 du panneau de contrôle S6) par
 zero-preemptive-code — pas de besoin concret au moment de la spec. **Confirmé par l'owner : ce sont
@@ -189,9 +285,10 @@ pas une réécriture.
   fixes — rien à repositionner indépendamment, donc le placement par composant n'apporterait aucun
   bénéfice et introduirait une régression visuelle (espace vide ou troncature superflue) à chaque
   changement de texte live. Le flex adaptatif est le bon design ici, pas une limitation à lever.
-- **Repositionnement dynamique en cours de scène** (ex. une alerte qui glisse à l'écran via un
+- **Seul reste ouvert : repositionnement dynamique en cours de scène** (ex. une alerte qui glisse à l'écran via un
   événement) — `placement` actuel s'applique une seule fois au montage. Une version dynamique
-  écouterait des changements d'état et réappliquerait le style à chaud.
+  écouterait des changements d'état et réappliquerait le style à chaud. Différé tant que le moteur
+  de scènes reste mis en pause.
 
 ---
 
@@ -204,7 +301,10 @@ extraite en module pur testé (`dev/dotgrid-params-format.js`). Bouton "Sauvegar
 
 ---
 
-## Éditeur d'overlay — un seul outil construit par incréments
+## Éditeur d'overlay — historique livré, désormais en pause
+
+> Les jalons décrits ci-dessous ont été livrés par S7/S8, puis le moteur de scènes a été mis de côté
+> le 2026-07-14. Cette section conserve la chronologie de conception ; elle n'est plus un backlog.
 
 **Décision (grill-me session A) :** il n'y a **pas** deux artefacts ("toolset de dev" + "éditeur").
 Il y a **un seul outil — l'éditeur — construit par jalons successifs**. Le "toolset modeste" initial
@@ -318,14 +418,6 @@ skill) plutôt que l'esquisse initiale ci-dessous. Les 5 contraintes (output=con
 `docs/guides/creer-un-composant.md`/`utiliser-le-panneau.md` plutôt que dupliquer leur contenu, et
 un déroulé de session en 5 étapes (comprendre le besoin → regarder l'existant → extraire la
 technique d'une inspiration externe → livrer en config → signaler les écarts explicitement).
-
----
-
-## Tâche externe — MyVault : rejeu grill-me sur spec
-
-Ajouter dans MyVault un mécanisme qui **rejoue les questions du grill-me** sur une spec existante
-pour détecter les trous non couverts. (Variante active, pas simple cross-check.)
-N'appartient pas à ce projet — à reporter dans l'inbox de MyVault.
 
 ---
 

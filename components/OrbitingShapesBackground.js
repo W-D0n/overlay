@@ -1,5 +1,6 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
+import { canvasPixelRatio } from './canvas-runtime.js';
 
 /**
  * OrbitingShapesBackground.js — Formes en orbite pseudo-3D (Track B, session B7).
@@ -17,6 +18,7 @@ import { resolveColor } from './color-utils.js';
  *   color?: string,     - couleur des formes, token CSS ou valeur brute (défaut var(--color-gold))
  *   minSize?: number,   - taille minimum en px, à profondeur maximale (défaut 8)
  *   maxSize?: number,   - taille maximum en px, au plus proche (défaut 28)
+ *   opacity?: number,   - opacité globale, 0-1 (défaut 1)
  * }} [options]
  * @returns {import('../types.js').ComponentInstance}
  */
@@ -27,6 +29,7 @@ export function OrbitingShapesBackground(options = {}) {
   let color = options.color ?? 'var(--color-gold)';
   let minSize = options.minSize ?? 8;
   let maxSize = options.maxSize ?? 28;
+  let opacity = clamp(options.opacity ?? 1, 0, 1);
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
@@ -37,7 +40,7 @@ export function OrbitingShapesBackground(options = {}) {
   let rafId = 0;
   let rgb = resolveColor(color);
 
-  /** @typedef {{cx:number,cy:number,radiusX:number,radiusY:number,phase:number,angularSpeed:number,baseSize:number}} Orbiter */
+  /** @typedef {{cx:number,cy:number,radiusX:number,radiusY:number,phase:number,angularSpeed:number,sizeRatio:number}} Orbiter */
   /** @type {Orbiter[]} */
   let orbiters = [];
 
@@ -50,7 +53,9 @@ export function OrbitingShapesBackground(options = {}) {
       radiusY: 20 + Math.random() * 80,
       phase: Math.random() * Math.PI * 2,
       angularSpeed: 0.3 + Math.random() * 0.5,
-      baseSize: minSize + Math.random() * (maxSize - minSize),
+      // Conserver le ratio aléatoire, pas la taille calculée : modifier minSize/maxSize dans le
+      // tuner redimensionne ainsi les formes existantes sans reseed ni saut de position.
+      sizeRatio: Math.random(),
     };
   }
 
@@ -59,7 +64,7 @@ export function OrbitingShapesBackground(options = {}) {
   }
 
   function handleResize() {
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = canvasPixelRatio();
     const w = canvas.offsetWidth;
     const h = canvas.offsetHeight;
     if (w === 0 || h === 0) return;
@@ -104,10 +109,11 @@ export function OrbitingShapesBackground(options = {}) {
       const depth = (Math.sin(angle) + 1) / 2; // 0 = fond, 1 = premier plan
       const x = o.cx + Math.cos(angle) * o.radiusX;
       const y = o.cy + Math.sin(angle) * o.radiusY;
-      const size = o.baseSize * (0.4 + 0.6 * depth);
-      const opacity = 0.15 + 0.55 * depth;
+      const baseSize = minSize + o.sizeRatio * (maxSize - minSize);
+      const size = baseSize * (0.4 + 0.6 * depth);
+      const shapeOpacity = (0.15 + 0.55 * depth) * opacity;
 
-      ctx.fillStyle = `rgba(${r},${g},${b},${opacity.toFixed(3)})`;
+      ctx.fillStyle = `rgba(${r},${g},${b},${shapeOpacity.toFixed(3)})`;
       drawShape(x, y, size, angle);
     }
   }
@@ -124,6 +130,7 @@ export function OrbitingShapesBackground(options = {}) {
       if (typeof o.speed === 'number') speed = o.speed;
       if (typeof o.minSize === 'number') minSize = o.minSize;
       if (typeof o.maxSize === 'number') maxSize = o.maxSize;
+      if (typeof o.opacity === 'number') opacity = clamp(o.opacity, 0, 1);
       if (typeof o.color === 'string' && o.color !== color) { color = o.color; rgb = resolveColor(color); }
       if (typeof o.count === 'number' && Math.round(o.count) !== count) {
         count = Math.max(1, Math.round(o.count));
@@ -135,4 +142,9 @@ export function OrbitingShapesBackground(options = {}) {
       observer.disconnect();
     },
   };
+}
+
+/** @param {number} value @param {number} min @param {number} max */
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }

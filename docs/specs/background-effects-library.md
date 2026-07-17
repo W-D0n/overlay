@@ -98,6 +98,9 @@ composant lui-même (repli interne sur un mode par défaut si `mode` est invalid
 
 ## Inventaire des effets (11)
 
+> Inventaire historique du Track B. `WaterRippleBackground` a été ajouté après ce track, le
+> 2026-07-16, via le contrat standalone ; le registre courant contient donc 12 effets.
+
 Chaque effet est un composant `components/*.js` exposant `{ el, update(options), destroy, morphTo? }`
 (contrat `ComponentInstance` existant), enregistré dans `component-registry.js`. Le nom devient une
 valeur de `ComponentName` (extension, comme S8 a ajouté `Box`/`Divider`/etc.).
@@ -198,12 +201,11 @@ bruit qui fait varier la teinte des points), candidat naturel car le moteur simp
 - [x] **LAC-01** — Tranchée en session B7 : **conservé tel quel** (`dev/overlay-setting.html`),
       pas de renommage. Avec la section Fond effectivement ajoutée (10 effets, ~70 lignes) sous les
       yeux, le renommage reste disproportionné par rapport au bénéfice : 11 fichiers référencent le
-      nom actuel (`dev/component-field-schemas.js`, `dev/placement-server.js`, `dev/start-dev.js`,
+      nom actuel (`dev/component-field-schemas.js`, `dev/start-dev.js`,
       `scenes/registry.js`, et 4 specs historiques — `docs/specs/scene-placement-protocol.md`,
       `scene-definition-v2.md`, `scene-history-protocol.md`, `obs-scene-control.md` — qui
-      documentent un état passé, pas à réécrire pour un renommage cosmétique). `dev/placement-server.js`
-      reste un concern distinct et légitimement nommé (proxy des sauvegardes de placement, pas le
-      panneau lui-même). Le placement/composition reste la majorité fonctionnelle du fichier (Fond
+      documentent un état passé, pas à réécrire pour un renommage cosmétique). Le
+      placement/composition reste la majorité fonctionnelle du fichier (Fond
       + Transition ensemble ~10 % des lignes) — pas une redéfinition de son rôle central, une
       extension incrémentale d'un outil de dev interne (jamais user-facing).
 - [x] **LAC-02** — Tranchée (owner, 2026-07-10) : implémentée. `DotGridAnimated.js` gagne

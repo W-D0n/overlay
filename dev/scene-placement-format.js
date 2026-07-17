@@ -8,7 +8,7 @@
  * déjà un objet, plus besoin de la traiter comme du texte à motif.
  * N'écrit QUE la valeur `placement` d'une couche déjà migrée (même portée qu'en S7 : déplacer,
  * pas migrer) — la couche doit déjà avoir un `placement` existant. Aucun effet de bord (pas de
- * lecture/écriture disque ici — géré par `placement-server.js`).
+ * lecture/écriture disque ici — géré par `scene-data-server.js`).
  */
 
 /**

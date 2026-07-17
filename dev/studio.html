@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overlay Studio</title>
+  <link rel="stylesheet" href="../tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: var(--color-bg-deep); }
+    body { display: grid; grid-template-rows: 54px minmax(0, 1fr); font-family: var(--font-mono); }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--color-rule);
+      background: rgba(10, 10, 12, 0.98);
+      color: var(--color-text-primary);
+    }
+    .brand { color: var(--color-gold); letter-spacing: 1.5px; text-transform: uppercase; margin-right: 12px; }
+    nav { display: flex; gap: 6px; }
+    button, a {
+      border: 1px solid var(--color-rule);
+      border-radius: 3px;
+      padding: 7px 12px;
+      background: var(--color-bg-widget);
+      color: var(--color-text-mid);
+      font: inherit;
+      font-size: 12px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    button:hover, a:hover, button.active { border-color: var(--color-gold-dim); color: var(--color-gold); }
+    .spacer { flex: 1; }
+    .hint { color: var(--color-text-dim); font-size: 11px; }
+    iframe { width: 100%; height: 100%; border: 0; background: var(--color-bg-deep); }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">Overlay Studio</span>
+    <nav id="studio-navigation" aria-label="Outils de création"></nav>
+    <span class="spacer"></span>
+    <span class="hint">Une entrée, deux niveaux de composition</span>
+    <a href="../index.html?livereload=1" target="_blank" rel="noopener">Ouvrir le rendu complet</a>
+  </header>
+  <iframe id="workspace" title="Espace de création de l’overlay" allow="clipboard-write"></iframe>
+
+  <script type="module">
+    import { STUDIO_VIEWS } from './studio.config.js';
+
+    const navigation = document.getElementById('studio-navigation');
+    const workspace = document.getElementById('workspace');
+    const buttons = STUDIO_VIEWS.map((view) => {
+      const button = document.createElement('button');
+      button.dataset.view = view.id;
+      button.textContent = view.label;
+      navigation.appendChild(button);
+      return button;
+    });
+
+    function show(view, push = true) {
+      const selectedView = STUDIO_VIEWS.find(({ id }) => id === view) ?? STUDIO_VIEWS[0];
+      const selected = selectedView.id;
+      workspace.src = selectedView.src;
+      for (const button of buttons) button.classList.toggle('active', button.dataset.view === selected);
+      if (push) {
+        const url = new URL(location.href);
+        url.searchParams.set('view', selected);
+        history.pushState({ view: selected }, '', url);
+      }
+    }
+
+    for (const button of buttons) button.onclick = () => show(button.dataset.view);
+    addEventListener('popstate', () => show(new URLSearchParams(location.search).get('view'), false));
+    show(new URLSearchParams(location.search).get('view'), false);
+  </script>
+</body>
+</html>

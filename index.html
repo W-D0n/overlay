@@ -253,14 +253,13 @@
   <!--
     Auto-reload dev (opt-in, jamais actif dans OBS) : ouvrir l'onglet de preview sur
     "http://localhost:<port>/?livereload=1" pour qu'il se recharge automatiquement à chaque
-    sauvegarde depuis dev/tuner-server.js (dotgrid-tuner.html), dev/placement-server.js (placement)
-    ou dev/scene-data-server.js (composition/création/suppression de scène, LAC-03 résolu
-    2026-07-05). Sans le paramètre, ce bloc ne fait rien — zéro impact sur la Browser Source OBS
-    (URL sans paramètre dans docs/obs-setup.md).
+    sauvegarde depuis dev/tuner-server.js (tuner DotGrid avancé) ou dev/scene-data-server.js
+    (placement, composition, création et suppression de scène). Sans le paramètre, ce bloc ne fait
+    rien — zéro impact sur la Browser Source OBS (URL sans paramètre dans docs/obs-setup.md).
   -->
   <script type="module">
     if (new URLSearchParams(location.search).get('livereload') === '1') {
-      const ports = [4458, 4459, 4460]; // tuner-server (DotGrid), placement-server, scene-data-server
+      const ports = [4458, 4460]; // tuner DotGrid avancé + serveur unique des scènes
       ports.forEach((port) => {
         try {
           new WebSocket(`ws://localhost:${port}/reload-ws`).onmessage = () => location.reload();
