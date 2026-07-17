@@ -15,7 +15,8 @@
  *   POST /save-preset   — `{ id?, name, component, options, tags? }`, crée ou met à jour.
  *   POST /rename-preset — `{ id, name }`, renomme sans casser l'URL OBS.
  *   POST /duplicate-preset — `{ id }`, crée une copie autonome.
- *   POST /import-presets — `{ bundle }`, valide puis fusionne atomiquement un export versionné.
+ *   POST /preview-import — `{ bundle }`, calcule le plan et la révision sans écrire.
+ *   POST /import-presets — `{ bundle, expectedRevision }`, fusionne si la révision est inchangée.
  *   POST /delete-preset — `{ id }`, supprime (404 si absent).
  *   WS   /state-ws      — diffuse le JSON de `current` à chaque POST /state réussi.
  *   WS   /presets-ws    — diffuse `{ id, name, action }` après chaque mutation de preset.
@@ -40,7 +41,11 @@ import {
 } from './background-state-format.js';
 import { createKeyedLock } from './keyed-lock.js';
 import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
-import { mergeBackgroundPresetImport, parseBackgroundPresetBundle } from './background-preset-library.js';
+import {
+  backgroundPresetRevision,
+  mergeBackgroundPresetImport,
+  parseBackgroundPresetBundle,
+} from './background-preset-library.js';
 
 const PORT = Number(process.env.BACKGROUND_STATE_PORT ?? 4462);
 const STATE_FILE = process.env.BACKGROUND_STATE_FILE ?? `${import.meta.dir}/data/background-state.json`;
@@ -111,6 +116,18 @@ function withStateUpdate(fn) {
 
     await writeStateFile(result);
     return new Response('ok', { headers: CORS_HEADERS });
+  });
+}
+
+/**
+ * Lecture sérialisée avec les écritures afin que la révision décrive un instant cohérent.
+ * @param {(file: import('./background-state-format.js').BackgroundFile) => Response} fn
+ */
+function withStateRead(fn) {
+  return withStateLock(STATE_LOCK_KEY, async () => {
+    const read = await readStateFile();
+    if (!read.ok) return jsonError(`fichier d'état invalide : ${read.errors.join(' ; ')}`, 500);
+    return fn(read.file);
   });
 }
 
@@ -219,14 +236,35 @@ async function handleDuplicatePreset(req) {
 }
 
 /** @param {Request} req @returns {Promise<Response>} */
-async function handleImportPresets(req) {
+async function handlePreviewImport(req) {
   const body = /** @type {*} */ (await req.json());
   const parsed = parseBackgroundPresetBundle(body?.bundle);
   if (!parsed.ok) return jsonError(parsed.errors.join(' ; '), 400);
 
+  return withStateRead((file) => {
+    const plan = mergeBackgroundPresetImport(file.presets, parsed.presets);
+    return new Response(JSON.stringify({
+      revision: backgroundPresetRevision(file.presets),
+      created: plan.created,
+      updated: plan.updated,
+      renamed: plan.renamed,
+    }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+  });
+}
+
+/** @param {Request} req @returns {Promise<Response>} */
+async function handleImportPresets(req) {
+  const body = /** @type {*} */ (await req.json());
+  const parsed = parseBackgroundPresetBundle(body?.bundle);
+  if (!parsed.ok) return jsonError(parsed.errors.join(' ; '), 400);
+  if (typeof body?.expectedRevision !== 'string') return jsonError('révision de presets manquante', 400);
+
   /** @type {import('./background-state-format.js').BackgroundPreset[]} */
   let importedPresets = [];
   const response = await withStateUpdate((file) => {
+    if (backgroundPresetRevision(file.presets) !== body.expectedRevision) {
+      return jsonError('bibliothèque modifiée depuis l’aperçu — recalcul nécessaire', 409);
+    }
     const merged = mergeBackgroundPresetImport(file.presets, parsed.presets);
     const importedIds = new Set(parsed.presets.map(({ id }) => id));
     importedPresets = merged.presets.filter(({ id }) => importedIds.has(id));
@@ -259,6 +297,7 @@ const POST_ROUTES = {
   '/save-preset': handleSavePreset,
   '/rename-preset': handleRenamePreset,
   '/duplicate-preset': handleDuplicatePreset,
+  '/preview-import': handlePreviewImport,
   '/import-presets': handleImportPresets,
   '/delete-preset': handleDeletePreset,
 };

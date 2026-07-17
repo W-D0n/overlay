@@ -34,6 +34,8 @@ Décisions validées (AskUserQuestion, 2026-07-14) :
 | `background-selection.js` (racine) | Résout soit l'état courant, soit un preset fixé par `?preset=...`, et construit les URL OBS dédiées. Logique pure testée. |
 | `dev/background-state-format.js` | Logique pure : validation, migration des anciens presets, identifiants stables, création/mise à jour/renommage/duplication/suppression. Testée (`.test.js`). |
 | `dev/background-preset-library.js` | Recherche commune, format d'échange versionné et fusion atomique des imports. Logique pure testée. |
+| `dev/background-preset-import-flow.js` | État pur de confirmation : seule l'action confirmée produit une commande d'import. |
+| `dev/background-preset-presenter.js` | Formate le plan métier pour l'interface, sans polluer la bibliothèque de domaine. |
 | `dev/background-state-server.js` | Serveur Bun (port 4462, `BACKGROUND_STATE_PORT`). Persiste `dev/data/background-state.json`. Écritures sérialisées (`keyed-lock`). |
 | `dev/studio.html` / `dev/studio.config.js` | Entrée unique vers le tuner de fonds et l'éditeur des scènes complètes ; navigation déclarée hors de la page. |
 | `dev/background-tuner.html` | Page de tuning : rendu plein écran, contrôles guidés, profil performance, bibliothèque Atelier et presets personnels. |
@@ -83,7 +85,8 @@ importé reçoit le suffixe `— import` (puis un numéro si nécessaire).
 | `POST /save-preset` | `{ id?, name, component, options, tags? }` | Sans `id`, crée un identifiant unique ; avec `id`, met à jour le preset. |
 | `POST /rename-preset` | `{ id, name }` | Renomme sans modifier l'identifiant ni l'URL. |
 | `POST /duplicate-preset` | `{ id }` | Crée une copie autonome au nom et à l'identifiant uniques. |
-| `POST /import-presets` | `{ bundle }` | Valide puis fusionne atomiquement un export versionné. |
+| `POST /preview-import` | `{ bundle }` | Calcule `{ revision, created, updated, renamed }` sans écrire. |
+| `POST /import-presets` | `{ bundle, expectedRevision }` | Fusionne atomiquement si la révision est inchangée ; sinon 409 sans écriture. |
 | `POST /delete-preset` | `{ id }` | Supprime. 404 si absent. |
 | `WS /state-ws` | — | Diffuse le JSON de `current` à chaque `POST /state` réussi. |
 | `WS /presets-ws` | — | Diffuse `{ id, name, action }` après une mutation de preset. |
@@ -111,8 +114,8 @@ Toutes les écritures passent par un `keyed-lock` (clé unique) — même motif 
 - Chaque changement : rendu local immédiat + POST `/state` (débounce 150 ms).
 - Presets : création/mise à jour avec tags éditables, renommage sans casser l'URL, duplication,
   suppression et copie de l'URL. La recherche couvre nom, effet et tags. Export/import rend la
-  bibliothèque personnelle portable. Six presets Atelier fournissent des points de départ sans
-  polluer l'état utilisateur.
+  bibliothèque personnelle portable ; le plan d'import est résumé puis confirmé avant écriture.
+  Six presets Atelier fournissent des points de départ sans polluer l'état utilisateur.
 - Profil performance : indicateur FPS, DPR 1 ; le mode auto plafonne le DPR à 2.
 - `background.html` et le tuner appellent `setPaused(document.hidden)` à chaque changement de
   visibilité afin qu'un canvas invisible ne continue pas sa boucle.
@@ -147,7 +150,9 @@ couvre pause/reprise ; `components/canvas-runtime.test.js` couvre les deux profi
 `dev/builtin-background-presets.test.js` valide la bibliothèque Atelier ;
 `dev/background-preset-library.test.js` couvre recherche, échange versionné, rejet atomique et
 fusion sans écrasement. `dev/background-state-server.test.js` vérifie par HTTP qu'un import invalide
-n'écrit pas le fichier et ne diffuse aucun événement WebSocket.
+n'écrit pas le fichier, qu'une révision périmée est refusée et qu'aucun événement WebSocket indu
+n'est diffusé. `dev/background-preset-import-flow.test.js` garantit qu'aucune commande réseau
+n'existe avant confirmation ; le présentateur possède son test de libellé séparé.
 
 ## Hors scope
 

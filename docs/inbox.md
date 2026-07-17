@@ -67,6 +67,9 @@ Capture d'idées et questions ouvertes. Trier via `/inbox-triage`.
    bibliothèque personnelle.
 6. **Bibliothèque portable** — recherche commune par nom, effet ou tag ; export JSON versionné et
    import atomique. Les identifiants connus restent stables et les conflits de nom n'écrasent rien.
+7. **Import contrôlable** — le tuner résume créations, mises à jour et renommages puis attend une
+   confirmation explicite. Une révision serveur refuse un résumé devenu obsolète et force son
+   recalcul. Les cartes Atelier et personnelles partagent désormais la même structure.
 
 Le **binding OBS automatique** reste volontairement optionnel : attendre le retour d'usage sur les
 URL stables avant d'ajouter une table scène OBS → preset.

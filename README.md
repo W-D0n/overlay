@@ -81,7 +81,9 @@ dev/
   studio.config.js
   background-tuner.html
   builtin-background-presets.js
+  background-preset-import-flow.js
   background-preset-library.js
+  background-preset-presenter.js
   background-state-server.js
   background-state-format.js
   component-field-schemas.js
@@ -146,6 +148,13 @@ sauf demande explicite de retour aux scènes.
 ```text
 bun test
 ```
+
+### Contrôler une branche avant fusion
+
+1. Ouvrir la comparaison GitHub `main...nom-de-la-branche` et lire l'onglet **Files changed**.
+2. Lancer `start-dev.bat`, puis vérifier dans le Studio les effets, les presets et les neuf scènes.
+3. Lancer `bun test` : aucune fusion ne doit être faite si un test échoue.
+4. Fusionner seulement après ce contrôle. Une branche poussée ne modifie pas `main` à elle seule.
 
 Documentation détaillée :
 

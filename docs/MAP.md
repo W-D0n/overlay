@@ -28,9 +28,9 @@
   de placement, sans modification des neuf rendus de scène.
 - Lot produit du 2026-07-17 : Studio unifié, contrôles bornés, presets à identifiant stable,
   renommage/duplication/tags, six ambiances Atelier, profil performance DPR/FPS/pause, recherche
-  nom/effet/tag et export/import versionné de la bibliothèque personnelle.
+  nom/effet/tag, export/import versionné et confirmation résumée avant import.
 
-État après le lot du 2026-07-17 : **286 tests verts**.
+État après le lot du 2026-07-17 : **289 tests verts**.
 
 ## Découpage des sessions
 

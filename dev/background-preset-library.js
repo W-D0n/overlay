@@ -46,6 +46,20 @@ function clonePreset(preset) {
 }
 
 /**
+ * Empreinte courte du contenu courant, utilisée comme verrou optimiste entre aperçu et import.
+ * @param {import('./background-state-format.js').BackgroundPreset[]} presets
+ */
+export function backgroundPresetRevision(presets) {
+  const serialized = JSON.stringify(presets);
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < serialized.length; index += 1) {
+    hash ^= serialized.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(16).padStart(8, '0');
+}
+
+/**
  * @param {import('./background-state-format.js').BackgroundPreset[]} presets
  * @returns {BackgroundPresetBundle}
  */

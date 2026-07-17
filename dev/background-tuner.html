@@ -186,6 +186,16 @@
     .library-tools { display: flex; gap: var(--space-sm); margin: var(--space-md) 0; }
     .library-tools input { flex: 1; }
     .preset-empty { color: var(--color-text-dim); font-size: var(--text-base); padding: var(--space-sm) 0; }
+    .preset-import-review {
+      margin-bottom: var(--space-md);
+      padding: var(--space-sm);
+      border: var(--border-gold);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg-panel);
+    }
+    .preset-import-review[hidden] { display: none; }
+    .preset-import-review p { margin: 0 0 var(--space-sm); color: var(--color-text-primary); }
+    .preset-import-actions { display: flex; gap: var(--space-sm); }
 
     /* Confirmation de suppression inline — remplace le confirm() natif */
     .preset-row .confirm-label { flex: 1; color: #C86A6A; }
@@ -246,6 +256,13 @@
       <button id="preset-import-trigger">Importer</button>
       <input id="preset-import" type="file" accept="application/json,.json" hidden>
     </div>
+    <div id="preset-import-review" class="preset-import-review" hidden>
+      <p id="preset-import-summary"></p>
+      <div class="preset-import-actions">
+        <button id="preset-import-confirm">Confirmer l'import</button>
+        <button id="preset-import-cancel">Annuler</button>
+      </div>
+    </div>
     <div id="preset-list"></div>
     <div class="save-row">
       <input id="preset-name" type="text" placeholder="nom du preset" maxlength="60">
@@ -274,6 +291,11 @@
       findImportedActivePreset,
       parseBackgroundPresetBundle,
     } from './background-preset-library.js';
+    import { formatBackgroundPresetImportSummary } from './background-preset-presenter.js';
+    import {
+      createBackgroundPresetImportReview,
+      reduceBackgroundPresetImportReview,
+    } from './background-preset-import-flow.js';
 
     const STATE_SERVER = 'http://localhost:4462';
     const NONE_VALUE = '__none__';
@@ -289,7 +311,12 @@
     const presetTagsInput = document.getElementById('preset-tags');
     const presetSearch = document.getElementById('preset-search');
     const presetExport = document.getElementById('preset-export');
+    const presetImportTrigger = document.getElementById('preset-import-trigger');
     const presetImport = document.getElementById('preset-import');
+    const presetImportReview = document.getElementById('preset-import-review');
+    const presetImportSummary = document.getElementById('preset-import-summary');
+    const presetImportConfirm = document.getElementById('preset-import-confirm');
+    const presetImportCancel = document.getElementById('preset-import-cancel');
     const presetSave = document.getElementById('preset-save');
     const qualitySelect = document.getElementById('quality-select');
     const runtimeStatus = document.getElementById('runtime-status');
@@ -300,6 +327,7 @@
     let activePresetId = null;
     let cachedPresets = [];
     let presetQuery = '';
+    let importReviewState = createBackgroundPresetImportReview();
     /** Palette normalisée depuis components/color-palette.json. */
     let colorPalette = { colors: [], gradients: [] };
 
@@ -628,6 +656,18 @@
       container.appendChild(empty);
     }
 
+    function createPresetRowShell(preset, metaText) {
+      const row = document.createElement('div');
+      row.className = 'preset-row';
+      const load = document.createElement('button');
+      load.className = 'preset-load';
+      load.textContent = `${preset.name} — ${backgroundEffectLabel(preset.component)}`;
+      const meta = document.createElement('span');
+      meta.className = 'preset-meta';
+      meta.textContent = metaText;
+      return { row, load, meta };
+    }
+
     function renderPresets(presets) {
       cachedPresets = presets;
       presetExport.disabled = presets.length === 0;
@@ -635,12 +675,10 @@
       const visiblePresets = filterBackgroundPresets(presets, presetQuery);
       if (visiblePresets.length === 0) appendEmptyState(presetList);
       for (const preset of visiblePresets) {
-        const row = document.createElement('div');
-        row.className = 'preset-row';
-
-        const load = document.createElement('button');
-        load.className = 'preset-load';
-        load.textContent = `${preset.name} — ${backgroundEffectLabel(preset.component)}`;
+        const { row, load, meta } = createPresetRowShell(
+          preset,
+          [`#${preset.id}`, ...(preset.tags ?? [])].join(' · '),
+        );
         load.onclick = () => {
           setCurrent(preset, preset.id);
           presetNameInput.value = preset.name;
@@ -724,9 +762,6 @@
         };
 
         row.append(load, copyUrl, rename, duplicate, remove);
-        const meta = document.createElement('span');
-        meta.className = 'preset-meta';
-        meta.textContent = [`#${preset.id}`, ...(preset.tags ?? [])].join(' · ');
         row.appendChild(meta);
         presetList.appendChild(row);
       }
@@ -747,11 +782,7 @@
       const visiblePresets = filterBackgroundPresets(BUILTIN_BACKGROUND_PRESETS, presetQuery);
       if (visiblePresets.length === 0) appendEmptyState(builtinList);
       for (const preset of visiblePresets) {
-        const row = document.createElement('div');
-        row.className = 'preset-row';
-        const apply = document.createElement('button');
-        apply.className = 'preset-load';
-        apply.textContent = `${preset.name} — ${backgroundEffectLabel(preset.component)}`;
+        const { row, load: apply, meta } = createPresetRowShell(preset, preset.tags.join(' · '));
         apply.onclick = () => {
           setCurrent(preset);
           presetNameInput.value = preset.name;
@@ -764,9 +795,6 @@
           const name = uniquePresetName(`${preset.name} — perso`);
           if (await post('/save-preset', { name, component: preset.component, options: preset.options, tags: preset.tags })) refreshPresets();
         };
-        const meta = document.createElement('span');
-        meta.className = 'preset-meta';
-        meta.textContent = preset.tags.join(' · ');
         row.append(apply, add, meta);
         builtinList.appendChild(row);
       }
@@ -781,7 +809,7 @@
         return presets;
       } catch (err) {
         reportServerError(`lecture des presets impossible : ${err.message}`);
-        return [];
+        return null;
       }
     }
 
@@ -795,7 +823,7 @@
       const saved = await post('/save-preset', { id: activePresetId ?? undefined, name, component: current.component, options: current.options, tags });
       if (saved) {
         const presets = await refreshPresets();
-        const savedPreset = presets.find((preset) => preset.name === name);
+        const savedPreset = presets?.find((preset) => preset.name === name);
         if (savedPreset) {
           activePresetId = savedPreset.id;
           presetSave.textContent = 'Mettre à jour';
@@ -828,10 +856,59 @@
       reportServerOk(`${cachedPresets.length} preset(s) exporté(s)`);
     };
 
-    document.getElementById('preset-import-trigger').onclick = () => presetImport.click();
+    function renderImportReview() {
+      const pending = importReviewState.pending;
+      presetImportReview.hidden = pending === null;
+      presetImportSummary.textContent = pending === null
+        ? ''
+        : `Vérifier l'import : ${formatBackgroundPresetImportSummary(pending.plan)}`;
+      presetImportConfirm.disabled = importReviewState.importing;
+      presetImportCancel.disabled = importReviewState.importing;
+      presetImportTrigger.disabled = importReviewState.importing;
+    }
+
+    function transitionImportReview(event) {
+      const transition = reduceBackgroundPresetImportReview(importReviewState, event);
+      importReviewState = transition.state;
+      renderImportReview();
+      return transition.command;
+    }
+
+    function clearPendingPresetImport() {
+      transitionImportReview({ type: 'cancelled' });
+      presetImport.value = '';
+    }
+
+    async function requestPresetImportPreview(content, parsed) {
+      try {
+        const response = await fetch(`${STATE_SERVER}/preview-import`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bundle: content }),
+        });
+        if (!response.ok) {
+          const { error } = await response.json();
+          reportServerError(`/preview-import : ${error}`);
+          return null;
+        }
+        const preview = await response.json();
+        return {
+          content,
+          parsed,
+          revision: preview.revision,
+          plan: { created: preview.created, updated: preview.updated, renamed: preview.renamed },
+        };
+      } catch (err) {
+        reportServerError(`aperçu d'import impossible : ${err.message}`);
+        return null;
+      }
+    }
+
+    presetImportTrigger.onclick = () => presetImport.click();
     presetImport.onchange = async () => {
       const file = presetImport.files?.[0];
       if (!file) return;
+      clearPendingPresetImport();
       try {
         const content = await file.text();
         const parsed = parseBackgroundPresetBundle(content);
@@ -839,21 +916,64 @@
           reportServerError(`import impossible : ${parsed.errors.join(' ; ')}`);
           return;
         }
-        if (await post('/import-presets', { bundle: content })) {
-          const presets = await refreshPresets();
-          const refreshedActivePreset = findImportedActivePreset(presets, parsed.presets, activePresetId);
-          let activePresetSynced = true;
-          if (refreshedActivePreset !== null) {
-            setCurrent(refreshedActivePreset, refreshedActivePreset.id);
-            presetNameInput.value = refreshedActivePreset.name;
-            activePresetSynced = await post('/state', { current });
-          }
-          if (activePresetSynced) reportServerOk(`${parsed.presets.length} preset(s) importé(s)`);
-        }
+        const pending = await requestPresetImportPreview(content, parsed);
+        if (pending === null) return;
+        transitionImportReview({ type: 'selected', pending });
+        reportServerOk('import prêt — confirmer ou annuler');
       } catch (err) {
         reportServerError(`import impossible : ${err.message}`);
       } finally {
         presetImport.value = '';
+      }
+    };
+
+    presetImportCancel.onclick = clearPendingPresetImport;
+    presetImportConfirm.onclick = async () => {
+      const command = transitionImportReview({ type: 'confirmed' });
+      if (command === null) return;
+      const { pending } = command;
+      try {
+        const response = await fetch(`${STATE_SERVER}/import-presets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bundle: pending.content, expectedRevision: pending.revision }),
+        });
+        if (response.status === 409) {
+          transitionImportReview({ type: 'failed' });
+          const refreshed = await requestPresetImportPreview(pending.content, pending.parsed);
+          if (refreshed === null) {
+            transitionImportReview({ type: 'cancelled' });
+            return;
+          }
+          transitionImportReview({ type: 'selected', pending: refreshed });
+          reportServerError('bibliothèque modifiée — résumé actualisé, confirmer à nouveau');
+          return;
+        }
+        if (!response.ok) {
+          const { error } = await response.json();
+          transitionImportReview({ type: 'failed' });
+          reportServerError(`/import-presets : ${error}`);
+          return;
+        }
+        const summary = formatBackgroundPresetImportSummary(pending.plan);
+        transitionImportReview({ type: 'completed' });
+        presetImport.value = '';
+        const presets = await refreshPresets();
+        if (presets === null) {
+          reportServerError(`import appliqué (${summary}), mais relecture impossible — rafraîchir le tuner`);
+          return;
+        }
+        const refreshedActivePreset = findImportedActivePreset(presets, pending.parsed.presets, activePresetId);
+        let activePresetSynced = true;
+        if (refreshedActivePreset !== null) {
+          setCurrent(refreshedActivePreset, refreshedActivePreset.id);
+          presetNameInput.value = refreshedActivePreset.name;
+          activePresetSynced = await post('/state', { current });
+        }
+        if (activePresetSynced) reportServerOk(`import terminé · ${summary}`);
+      } catch (err) {
+        transitionImportReview({ type: 'failed' });
+        reportServerError(`import impossible : ${err.message}`);
       }
     };
 

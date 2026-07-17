@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import {
   createBackgroundPresetBundle,
+  backgroundPresetRevision,
   filterBackgroundPresets,
   findImportedActivePreset,
   mergeBackgroundPresetImport,
@@ -75,4 +76,14 @@ test('le preset actif est resynchronisé seulement si son id faisait partie de l
   expect(findImportedActivePreset(merged, [{ id: 'pluie' }], 'pluie')).toEqual(merged[0]);
   expect(findImportedActivePreset(merged, [{ id: 'ondes' }], 'pluie')).toBeNull();
   expect(findImportedActivePreset(merged, [{ id: 'pluie' }], null)).toBeNull();
+});
+
+test('la révision de bibliothèque reste stable à contenu égal et change avec un preset', () => {
+  const revision = backgroundPresetRevision(presets);
+  expect(backgroundPresetRevision(structuredClone(presets))).toBe(revision);
+  expect(backgroundPresetRevision([
+    { ...presets[0], options: { amplitude: 2 } },
+    presets[1],
+  ])).not.toBe(revision);
+  expect(revision).toMatch(/^[0-9a-f]{8}$/);
 });
