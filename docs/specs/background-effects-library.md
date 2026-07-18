@@ -96,10 +96,11 @@ composant lui-même (repli interne sur un mode par défaut si `mode` est invalid
 - Éclatement de bulles sur `BubbleBackground` : **inclus** en B-batch dédié (voir inventaire),
   demande explicite owner, pas une extension différée.
 
-## Inventaire des effets (11)
+## Inventaire actuel des effets issus du Track B (10)
 
 > Inventaire historique du Track B. `WaterRippleBackground` a été ajouté après ce track, le
-> 2026-07-16, via le contrat standalone ; le registre courant contient donc 12 effets.
+> 2026-07-16, via le contrat standalone ; le retrait de l'effet MatrixGrid en 2026-07-18
+> ramène le registre courant à 11 effets.
 
 Chaque effet est un composant `components/*.js` exposant `{ el, update(options), destroy, morphTo? }`
 (contrat `ComponentInstance` existant), enregistré dans `component-registry.js`. Le nom devient une
@@ -109,15 +110,14 @@ valeur de `ComponentName` (extension, comme S8 a ajouté `Box`/`Divider`/etc.).
 |---|---|---|---|---|
 | 1 | `DotGridBackground` | existant | Canvas + simplex noise | B2 (migration) |
 | 2 | `RainBackground` | vishwaoffl | CSS `@property --angle`, gouttes | B3 |
-| 3 | `MatrixGridBackground` | wheatup | grille 3D `perspective`/`rotateX`, ambiance Tron/Cyberpunk | B3 |
-| 4 | `BubbleBackground` | diyorbek0309 | bulles montantes + **éclatement** (ajout demandé) | B4 |
-| 5 | `FirefliesBackground` | mikegolus | particules dérivantes + flash lumineux | B4 |
-| 6 | `FloatingSymbolsBackground` | wakana-k (généralisé) | glyphe/emoji flottant configurable (`symbol`), sans texture externe | B5 |
-| 7 | `GeometricPatternBackground` | hexagoncircle, t_afif ×2, Cancepto | `conic-gradient`/`linear-gradient` animés, param `pattern`: `diamonds｜dots｜eyes｜angled` | B5 |
-| 8 | `ColorDropsBackground` | nefejames (color-drip), natewiley (color-drops) | gouttes de couleur tombantes | B6 |
-| 9 | `StarsParallaxBackground` | sarazond | 3 couches de points `box-shadow` générés en JS (pas codés en dur), vitesses différentes | B6 |
-| 10 | `OrbitingShapesBackground` | nefejames (balls), robdimarzo, natewiley (tri-travelers) | formes en orbite 3D, param `shape`: `circle｜triangle` | B7 |
-| 11 | `ShapeMorphBackground` | idée originale Track B | cycle pizza↔étoile↔casque↔carapace↔masque, SVG `<animate>` ou path morph JS, déclenchement manuel | B8 |
+| 3 | `BubbleBackground` | diyorbek0309 | bulles montantes + **éclatement** (ajout demandé) | B4 |
+| 4 | `FirefliesBackground` | mikegolus | particules dérivantes + flash lumineux | B4 |
+| 5 | `FloatingSymbolsBackground` | wakana-k (généralisé) | glyphe/emoji flottant configurable (`symbol`), sans texture externe | B5 |
+| 6 | `GeometricPatternBackground` | hexagoncircle, t_afif ×2, Cancepto | `conic-gradient`/`linear-gradient` animés, param `pattern`: `diamonds｜dots｜eyes｜angled` | B5 |
+| 7 | `ColorDropsBackground` | nefejames (color-drip), natewiley (color-drops) | gouttes de couleur tombantes | B6 |
+| 8 | `StarsParallaxBackground` | sarazond | 3 couches de points `box-shadow` générés en JS (pas codés en dur), vitesses différentes | B6 |
+| 9 | `OrbitingShapesBackground` | nefejames (balls), robdimarzo, natewiley (tri-travelers) | formes en orbite 3D, param `shape`: `circle｜triangle` | B7 |
+| 10 | `ShapeMorphBackground` | idée originale Track B | cycle pizza↔étoile↔casque↔carapace↔masque, SVG `<animate>` ou path morph JS, déclenchement manuel | B8 |
 
 `DotGridBackground` enrichi en option (pas une session dédiée, ajout mineur dans B2 si le temps le
 permet, sinon différé) : variabilité de couleur pilotée par bruit (inspiration jh3y — masque de
@@ -226,7 +226,7 @@ bruit qui fait varier la teinte des points), candidat naturel car le moteur simp
 1. **B1 — spec** (cette session, faite).
 2. **B2 — fondation polymorphe** : `background` remplace `dotgridMode`, runtime générique,
    migration `DotGridBackground` sans régression (AC-01→08). **Bloquant pour B3-B8.**
-3. **B3 — Rain + Matrix Grid** (ambiance orageuse / Tron-Cyberpunk).
+3. **B3 — Rain** (ambiance orageuse).
 4. **B4 — Bubbles (+ éclatement) + Fireflies**.
 5. **B5 — Floating Symbols + Geometric Pattern**.
 6. **B6 — Color Drops + Stars Parallax**.

@@ -11,7 +11,7 @@ status: validated
 Changement de direction : le moteur de scènes (scènes, transitions, panneau, relay de scènes)
 est **mis de côté** — il reste dans le repo mais n'évolue plus. Le focus devient :
 
-1. Une **URL OBS dédiée** ne rendant QUE les animations de fond (12 effets enregistrés).
+1. Une **URL OBS dédiée** ne rendant QUE les animations de fond (11 effets enregistrés).
 2. Une **page de tuning** avec barre latérale rétractable : dropdown des effets disponibles +
    formulaire de paramètres généré, avec aperçu plein écran intégré (même moteur de rendu).
 
@@ -40,7 +40,7 @@ Décisions validées (AskUserQuestion, 2026-07-14) :
 | `dev/background-state-client.js` | Interface unique du protocole HTTP/WS du tuner : lectures, commandes de preset, import et reconnexion des deux flux temps réel. |
 | `dev/background-field-renderer.js` | Rend tous les types de `FieldSchema`, la palette et les contrôles numériques derrière `render(component, options)`. |
 | `dev/background-preview-controller.js` / `background-preview-session.js` | Orchestrent l'effet courant, le preset actif, les options par défaut, le montage, la persistance débouncée, la qualité et la mesure FPS. La session en mémoire est testée sans DOM. |
-| `dev/background-preset-controller.js` | Porte la bibliothèque personnelle et Atelier, la recherche et les actions CRUD des presets. |
+| `dev/background-preset-controller.js` | Porte les points de départ, la bibliothèque personnelle, la recherche et les actions CRUD des presets. |
 | `dev/background-preset-transfer-controller.js` | Isole l'export et le parcours d'import prévisualisé puis confirmé ; son câblage est testé sans navigateur. |
 | `dev/background-readiness-controller.js` | Rend et relance le diagnostic pré-live ; rejoue la révélation progressive des résultats en respectant la réduction de mouvement. |
 | `dev/background-tuner-runtime.js` | Point d'entrée d'orchestration : câble les contrôleurs, charge l'état et la palette, puis démarre les abonnements. |
@@ -124,11 +124,11 @@ Toutes les écritures passent par un `keyed-lock` (clé unique) — même motif 
   suppression et copie de l'URL. La recherche couvre nom, effet et tags. Export/import rend la
   bibliothèque personnelle portable ; le plan d'import résume créations, mises à jour, noms
   ajustés et presets ignorés, puis détaille les valeurs utiles par preset dans une liste scrollable
-  avant confirmation. Six presets Atelier fournissent des points de départ sans polluer l'état
-  utilisateur.
+  avant confirmation. Cinq points de départ fournissent des ambiances prêtes à essayer sans
+  polluer l’état utilisateur.
 - Profil performance : indicateur FPS, DPR 1 ; le mode auto plafonne le DPR à 2.
-- Le bloc « Prêt pour le live » vérifie en lecture seule l'état, la sélection, l'URL OBS, la mesure
-  locale et le relais optionnel. Il distingue prêt, attention et bloquant, avec une action guidée
+- Le volet repliable « Avant le live » vérifie en lecture seule l’état, la sélection, l’URL OBS,
+  la mesure locale et le relais optionnel. Il distingue prêt, attention et bloquant, avec une action guidée
   par ligne. « Revérifier » rejoue les résultats dans leur ordre ; `prefers-reduced-motion` retire
   ce mouvement. Aucun seuil FPS arbitraire n'est présenté comme une certification OBS.
 - `background.html` et le tuner appellent `setPaused(document.hidden)` à chaque changement de
@@ -161,7 +161,7 @@ toucher à `background.html`, au tuner ni au serveur. Détail pas-à-pas (y comp
 `dev/background-state-format.test.js` couvre validation, migration, collisions d'identifiants,
 création/mise à jour, renommage, duplication, suppression et non-mutation. `background-mount.test.js`
 couvre pause/reprise ; `components/canvas-runtime.test.js` couvre les deux profils DPR ;
-`dev/builtin-background-presets.test.js` valide la bibliothèque Atelier ;
+`dev/builtin-background-presets.test.js` valide les points de départ intégrés ;
 `dev/background-preset-library.test.js` couvre recherche, échange versionné, rejet atomique,
 création, mise à jour, renommage, conflit, absence de changement et fusion sans écrasement.
 `dev/background-state-server.test.js` vérifie par HTTP qu'un import invalide
@@ -189,10 +189,10 @@ la page.
 - `color` / `colors` dans `FieldSchema` : picker visuel, couleurs nommées, saisie CSS libre,
   listes dynamiques et gradients issus de `components/color-palette.json`.
 - `dev/color-palette-format.js` : normalisation pure et testée des couleurs/gradients.
-- `WaterRippleBackground` : douzième effet, livré via factory + registre + schéma.
+- `WaterRippleBackground` : effet ajouté après le Track B via factory + registre + schéma.
 - Horloge canvas partagée `components/animation-time.js` : vitesse indépendante du framerate pour
   Rain, Bubble, Fireflies, FloatingSymbols et ColorDrops.
-- Studio V1, contrôles numériques guidés, presets à identifiant stable, bibliothèque Atelier et
+- Studio V1, contrôles numériques guidés, presets à identifiant stable, points de départ et
   profil performance livrés le 2026-07-17.
 - Recherche nom/effet/tag et export/import versionné de la bibliothèque personnelle livrés le
   2026-07-17.

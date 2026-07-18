@@ -74,7 +74,7 @@ export function hasBoundOptions(options) {
 
 /**
  * Rôles requis par un `*.wire.js` (`SceneWire.REQUIRED_ROLES`) mais absents de `componentsByRole` —
- * détermine si `scene-runtime.js` doit sauter le wiring de la scène (dégradé, voir docs/inbox.md).
+ * détermine si `scene-runtime.js` doit sauter le wiring de la scène (dégradé, voir docs/backlog-history.md).
  * Vide = tous les rôles requis sont satisfaits.
  * @param {string[]} requiredRoles
  * @param {Record<string, *>} componentsByRole

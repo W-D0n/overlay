@@ -90,5 +90,6 @@ L'indépendance repose sur des protocoles locaux explicites :
 - `docs/specs/background-standalone.md` — architecture active ;
 - `docs/specs/background-effects-library.md` — contrat et inventaire des effets ;
 - `docs/guides/tuner-le-fond.md` — utilisation quotidienne ;
-- `docs/inbox.md` — backlog actif puis historique ;
+- `docs/inbox.md` — notes et items qui restent à traiter ;
+- `docs/backlog-history.md` — décisions et lots sortis du backlog actif ;
 - `docs/MAP.md` — feuille de route et livraisons.

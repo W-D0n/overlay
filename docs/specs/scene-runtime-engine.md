@@ -46,7 +46,7 @@ réseau pour la structure : tout vit dans une page chargée en une fois (contrai
 
 ### AD-6 — Liaison données : module de câblage par scène (`scenes/[id].wire.js`)
 
-`SceneConfig` ne porte **pas** de data-binding (ce sera un jalon de l'éditeur, voir `docs/inbox.md`).
+`SceneConfig` ne porte **pas** de data-binding (ce sera un jalon de l'éditeur, voir `docs/backlog-history.md`).
 Le câblage composant ↔ état live (ex : `StatBlock` VIEWERS → `state.viewers`) vit dans un module
 dédié par scène : `scenes/[id].wire.js`. Il reçoit les instances de composants montées (groupées par
 couche) et les abonne au store via `onStateChange`, puis retourne une fonction de nettoyage. Raison :

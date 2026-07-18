@@ -188,14 +188,33 @@ export function createBackgroundPresetController(input) {
     const visiblePresets = filterBackgroundPresets(BUILTIN_BACKGROUND_PRESETS, presetQuery);
     if (visiblePresets.length === 0) appendEmptyState(elements.builtinList);
     for (const preset of visiblePresets) {
-      const { row, load: apply, meta } = createPresetRowShell(preset, preset.tags.join(' · '));
+      const row = documentRef.createElement('article');
+      row.className = 'preset-row preset-row-builtin';
+
+      const copy = documentRef.createElement('div');
+      copy.className = 'preset-copy';
+      const title = documentRef.createElement('strong');
+      title.className = 'preset-title';
+      title.textContent = `${preset.name} — ${backgroundEffectLabel(preset.component)}`;
+      const meta = documentRef.createElement('span');
+      meta.className = 'preset-meta';
+      meta.textContent = preset.tags.join(' · ');
+      copy.append(title, meta);
+
+      const actions = documentRef.createElement('div');
+      actions.className = 'preset-actions';
+      const apply = documentRef.createElement('button');
+      apply.className = 'preset-action preset-try';
+      apply.type = 'button';
+      apply.textContent = 'Essayer';
       apply.onclick = () => {
         input.preview.apply(preset, null, true);
         elements.name.value = preset.name;
       };
       const add = documentRef.createElement('button');
-      add.className = 'preset-action';
-      add.textContent = 'Ajouter';
+      add.className = 'preset-action preset-add';
+      add.type = 'button';
+      add.textContent = 'Ajouter à mes presets';
       add.onclick = async () => {
         const name = uniquePresetName(`${preset.name} — perso`);
         try {
@@ -211,7 +230,8 @@ export function createBackgroundPresetController(input) {
           reportClientError('save-preset', error);
         }
       };
-      row.append(apply, add, meta);
+      actions.append(apply, add);
+      row.append(copy, actions);
       elements.builtinList.appendChild(row);
     }
   }

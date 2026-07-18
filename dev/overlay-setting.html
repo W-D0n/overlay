@@ -73,7 +73,7 @@
     .component-handle.dragging { outline-color: #fff; }
     .component-handle-label { color: #7BC8A4; }
     /* Poignée de redimensionnement (coin bas-droit) — extension du système de placement,
-       docs/inbox.md §Extensions, demande owner 2026-07-04. Couleur or par défaut (couche), overridée
+       docs/backlog-history.md §Extensions, demande owner 2026-07-04. Couleur or par défaut (couche), overridée
        en vert si l'élément est aussi .component-handle (composant individuel). */
     .resize-handle {
       position: absolute; right: -5px; bottom: -5px; width: 10px; height: 10px;
@@ -85,7 +85,7 @@
 
     #panel {
       width: 440px; flex-shrink: 0; padding: 0; overflow-y: auto;
-      border-left: var(--border-rule); display: flex; flex-direction: column;
+      border-right: var(--border-rule); display: flex; flex-direction: column;
       background: var(--color-bg);
     }
 
@@ -231,8 +231,6 @@
   </style>
 </head>
 <body>
-  <div id="preview"><div id="preview-surface"></div></div>
-
   <div id="panel">
     <div class="panel-header">
       <h1>Overlay Setting</h1>
@@ -324,6 +322,8 @@
       <div id="layer-list" style="margin-top: 12px;"></div>
     </section>
   </div>
+
+  <div id="preview"><div id="preview-surface"></div></div>
 
   <script type="module">
     import { SCENE_CONFIGS, loadDynamicScenes } from '../scenes/registry.js';
@@ -1289,7 +1289,7 @@
     /**
      * Poignée de redimensionnement (coin bas-droit) — extension du système de placement (couches
      * ET composants individuels partagent cette mécanique, seule la lecture/écriture/persistance de
-     * la donnée diffère via les callbacks). docs/inbox.md §Extensions du système de placement,
+     * la donnée diffère via les callbacks). docs/backlog-history.md §Extensions du système de placement,
      * demande owner 2026-07-04.
      * @param {HTMLElement} el
      * @param {() => import('../types.js').Placement} getPlacement
@@ -1534,7 +1534,7 @@
         tag.textContent = layer.placement ? 'déplaçable' : 'CSS fixe';
         tag.title = layer.placement
           ? 'Position/taille modifiables par glisser-déposer'
-          : 'Position fixée par le CSS de la scène — non déplaçable (couche composite ou jamais migrée, voir docs/inbox.md)';
+          : 'Position fixée par le CSS de la scène — non déplaçable (couche composite ou jamais migrée, voir docs/backlog-history.md)';
         nameGroup.appendChild(tag);
         head.appendChild(nameGroup);
 

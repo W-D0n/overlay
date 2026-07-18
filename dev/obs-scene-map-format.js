@@ -6,7 +6,7 @@
  * incompatible navigateur sans attribut d'import). `formatObsSceneMapDataFile` régénère le fichier
  * ENTIER à partir d'un template (`JSON.stringify` produit une syntaxe objet valide identique en
  * JS/JSON pour ce cas `Record<string,string>`) — jamais une édition regex d'un fichier existant,
- * même précédent que `dev/scene-placement-format.js` (S8, docs/inbox.md §Décision tranchée). La
+ * même précédent que `dev/scene-placement-format.js` (S8, docs/backlog-history.md §Décision tranchée). La
  * donnée est isolée dans son propre fichier (`obs-scene-map-data.js`), séparée de la logique
  * (`obs-scene-map.js`, jamais régénérée) — réécrire la donnée ne risque jamais de dupliquer/écraser
  * du code.

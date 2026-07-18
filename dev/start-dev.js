@@ -11,7 +11,7 @@
  * (Ctrl+C). L'ancien script (`start "titre" cmd /k ...` multi-fenêtres) ouvrait des fenêtres
  * détachées, aucune liée au processus parent : fermer/perdre de vue la fenêtre du `.bat` ne tuait
  * rien, laissant des process orphelins tourner pendant des heures (root cause d'un bug production,
- * voir docs/inbox.md) — cette architecture à process unique élimine la classe entière de problème.
+ * voir docs/backlog-history.md) — cette architecture à process unique élimine la classe entière de problème.
  *
  * Lancement : `bun dev/start-dev.js` (ou double-clic sur start-dev.bat).
  */

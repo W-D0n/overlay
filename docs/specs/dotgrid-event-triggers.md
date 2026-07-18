@@ -25,7 +25,7 @@ Décidé avec l'owner (2026-07-10) :
 - Garder le déclenchement `ambient` automatique du handoff de juin (respiration périodique).
 - Câblage **impératif**, pas via le mécanisme déclaratif `ComponentMount.trigger` — ce mécanisme
   existe (`scene-runtime.js`, S8) mais n'est éprouvé par aucune scène en production (voir
-  `docs/inbox.md` §Migration `jeu`, décision de ne pas le roder sur une feature secondaire). Cohérent
+  `docs/backlog-history.md` §Migration `jeu`, décision de ne pas le roder sur une feature secondaire). Cohérent
   avec le câblage actuel d'`AlertBanner`, qui est lui aussi impératif.
 
 ## Périmètre

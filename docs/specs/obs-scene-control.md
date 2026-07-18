@@ -11,7 +11,7 @@ status: draft
 
 L'owner a exprimé le besoin de piloter OBS entièrement depuis le panneau de contrôle unique (S5/S7,
 `dev/overlay-setting.html`), sans repasser par l'UI native d'OBS : créer une scène OBS, l'activer,
-positionner/masquer ses sources — voir `docs/inbox.md` §Contrôle OBS centralisé (demande explicite,
+positionner/masquer ses sources — voir `docs/backlog-history.md` §Contrôle OBS centralisé (demande explicite,
 2026-07-03, priorisée). S8 (moteur de scène de l'éditeur) et S7 (panneau) sont livrés — ce chantier
 était bloqué sur leur achèvement, débloqué maintenant.
 

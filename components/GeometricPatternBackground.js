@@ -10,8 +10,8 @@
  * - `eyes`      (t_afif)        — grille de disques concentriques avec un jitter de position.
  *
  * CSS pur (`background-image` en dégradés) + Web Animations API pour l'animation de
- * `backgroundPositionX`/`filter` — pas de `@keyframes` global à injecter dans `<head>`, cohérent
- * avec `MatrixGridBackground.js`.
+ * `backgroundPositionX`/`filter` — pas de `@keyframes` global à injecter dans `<head>` ;
+ * le composant reste autonome.
  *
  * @param {{
  *   pattern?: 'diamonds' | 'dots' | 'chevrons' | 'eyes',

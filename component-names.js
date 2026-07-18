@@ -12,7 +12,7 @@
 export const COMPONENT_NAMES = [
   'GoldBar', 'StatBlock', 'ChatFeed', 'PomodoroBar', 'AlertBanner',
   'Box', 'Divider', 'TextLabel', 'TextList', 'PollBar', 'Badge', 'Image',
-  'DotGridBackground', 'RainBackground', 'MatrixGridBackground', 'BubbleBackground',
+  'DotGridBackground', 'RainBackground', 'BubbleBackground',
   'FirefliesBackground', 'FloatingSymbolsBackground', 'GeometricPatternBackground',
   'ColorDropsBackground', 'StarsParallaxBackground', 'OrbitingShapesBackground',
   'ShapeMorphBackground', 'WaterRippleBackground',

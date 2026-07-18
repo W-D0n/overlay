@@ -18,6 +18,10 @@ function element(overrides = {}) {
   };
 }
 
+function allText(root) {
+  return [root.textContent, ...root.children.flatMap(allText)].filter(Boolean);
+}
+
 test('initialise le parcours d’import avec son panneau de détails', () => {
   const elements = {
     list: element(),
@@ -57,4 +61,33 @@ test('initialise le parcours d’import avec son panneau de détails', () => {
   expect(elements.importInput.onchange).toBeFunction();
   expect(elements.importReview.hidden).toBeTrue();
   expect(elements.importDetails.children).toEqual([]);
+});
+
+test('présente les points de départ avec deux actions explicites', () => {
+  const elements = {
+    list: element(), builtinList: element(), name: element(), tags: element(), search: element(),
+    exportButton: element(), importTrigger: element(), importInput: element(), importReview: element(),
+    importSummary: element(), importDetails: element(), importConfirm: element(), importCancel: element(),
+    save: element(), createNew: element(),
+  };
+  const controller = createBackgroundPresetController({
+    elements,
+    client: {},
+    preview: {
+      apply() {}, persistNow: async () => true, quality: () => 'auto', setActivePresetId() {},
+      snapshot: () => ({ activePresetId: null, current: { component: null, options: {} } }),
+    },
+    report: { ok() {}, error() {} },
+    backgroundPageUrl: 'http://localhost:5500/background.html',
+    documentRef: { createElement: () => element() },
+    navigatorRef: { clipboard: { writeText: async () => {} } },
+    windowRef: { setTimeout: () => 1 },
+  });
+
+  controller.initialize();
+
+  const labels = allText(elements.builtinList);
+  expect(labels).toContain('Essayer');
+  expect(labels).toContain('Ajouter à mes presets');
+  expect(labels.some((label) => label.startsWith('Atelier —'))).toBe(false);
 });

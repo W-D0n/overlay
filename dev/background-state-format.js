@@ -17,6 +17,7 @@ import { BACKGROUND_COMPONENT_NAMES } from './component-field-schemas.js';
 export const PRESET_NAME_MAX_LENGTH = 60;
 export const PRESET_ID_MAX_LENGTH = 80;
 const PRESET_ID_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/;
+const RETIRED_BACKGROUND_COMPONENT = 'MatrixGridBackground';
 
 /** @returns {BackgroundFile} */
 export function defaultBackgroundFile() {
@@ -53,28 +54,37 @@ export function createPresetId(name, presets = []) {
 }
 
 /**
- * Migration explicite du format historique sans `id`. Les autres erreurs restent intactes et
- * seront signalées par `validateBackgroundFile` : seule l'absence d'identifiant est réparée.
+ * Migration explicite du format historique sans `id` et des effets retirés. Les autres erreurs
+ * restent intactes et seront signalées par `validateBackgroundFile`.
  * @param {unknown} raw
  * @returns {{ file: any, migrated: boolean }}
  */
 export function migrateBackgroundFile(raw) {
   if (!isPlainObject(raw) || !Array.isArray(raw.presets)) return { file: raw, migrated: false };
 
-  const used = raw.presets
+  let migrated = false;
+  const survivingPresets = raw.presets.filter((preset) => {
+    const retired = isPlainObject(preset) && preset.component === RETIRED_BACKGROUND_COMPONENT;
+    if (retired) migrated = true;
+    return !retired;
+  });
+  const used = survivingPresets
     .filter(isPlainObject)
     .map((preset) => preset.id)
     .filter((id) => typeof id === 'string')
     .map((id) => ({ id: /** @type {string} */ (id) }));
-  let migrated = false;
-  const presets = raw.presets.map((preset) => {
+  const presets = survivingPresets.map((preset) => {
     if (!isPlainObject(preset) || preset.id !== undefined || typeof preset.name !== 'string' || preset.name.length === 0) return preset;
     const id = createPresetId(preset.name, used);
     used.push({ id });
     migrated = true;
     return { id, ...preset };
   });
-  return { file: migrated ? { ...raw, presets } : raw, migrated };
+  const retireCurrent = isPlainObject(raw.current)
+    && raw.current.component === RETIRED_BACKGROUND_COMPONENT;
+  if (retireCurrent) migrated = true;
+  const current = retireCurrent ? { component: null, options: {} } : raw.current;
+  return { file: migrated ? { ...raw, current, presets } : raw, migrated };
 }
 
 /**

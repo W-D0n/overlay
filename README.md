@@ -9,7 +9,7 @@ Le flux principal ne rend qu'une animation de fond :
 
 - `background.html` — URL à utiliser dans OBS ;
 - `dev/studio.html` — entrée unique vers les fonds autonomes et les scènes complètes ;
-- `dev/background-tuner.html` — aperçu plein écran, réglages guidés, bibliothèque Atelier et presets ;
+- `dev/background-tuner.html` — aperçu plein écran, points de départ, réglages guidés et presets ;
 - `dev/background-state-server.js` — persistance JSON et synchronisation WebSocket.
 
 Le moteur de scènes complet (`index.html`, `scene-runtime.js`, `dev/overlay-setting.html`) reste
@@ -24,8 +24,8 @@ Double-cliquer sur `start-dev.bat`. Le script lance l'environnement de création
 
 `http://localhost:5500/dev/studio.html`
 
-L'onglet **Fonds & presets** permet de choisir parmi les **12 effets**, de les régler avec des
-curseurs bornés, d'appliquer les ambiances Atelier et de gérer ses presets. La recherche couvre
+L'onglet **Fonds & presets** permet de choisir parmi les **11 effets**, de les régler avec des
+curseurs bornés, d'essayer les points de départ et de gérer ses presets. La recherche couvre
 le nom, l'effet et les tags ; **Exporter** et **Importer** rendent la bibliothèque personnelle
 portable entre deux installations. L'onglet **Scènes
 complètes** conserve l'éditeur et les neuf rendus existants.

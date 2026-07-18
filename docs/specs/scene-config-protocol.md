@@ -14,7 +14,7 @@ des scènes dynamiquement sans connaître leur contenu à l'avance, chaque scèn
 ses couches et ses composants dans un **objet sérialisable**.
 
 Ce format est aussi le format qu'un futur éditeur de scènes écrira — on adopte la structure
-maintenant sans construire l'éditeur (voir `docs/inbox.md`).
+maintenant sans construire l'éditeur (voir `docs/backlog-history.md`).
 
 **Intention d'évolution :** si un éditeur de scènes web est développé un jour, il sera un projet
 **séparé avec son propre build step** (donc en TypeScript). Le format `SceneConfig` défini ici reste

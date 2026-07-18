@@ -124,7 +124,7 @@ délibérément laissé de côté pour cette raison (textures externes, jQuery, 
    quelle ambiance (calme, énergique, thématique) ? Un effet de fond est strictement ambiant :
    pas d'interaction souris (Browser Source OBS, `pointer-events: none`).
 2. **Regarder l'existant d'abord** — les `components/*Background.js` couvrent déjà beaucoup de
-   terrain (12 effets). Une nouvelle demande est souvent une variation de réglages d'un effet
+   terrain (11 effets). Une nouvelle demande est souvent une variation de réglages d'un effet
    existant — dans ce cas la livraison est un preset (options exactes à saisir dans
    `dev/background-tuner.html`), pas un nouveau composant.
 3. **Si une vraie inspiration externe est utile** (CodePen, capture, description), l'analyser pour

@@ -42,13 +42,13 @@ Ouvrir `http://localhost:5500/dev/studio.html` (s'ouvre aussi automatiquement av
 `http://localhost:5500/dev/background-tuner.html` reste utilisable.
 
 - **La barre latérale se rétracte** avec le bouton `◀` / `▶` sur son bord.
-- **Effet** : le menu déroulant liste toutes les animations disponibles (+ « (aucun) »).
-- **Paramètres** : chaque valeur numérique dispose d'un curseur borné, d'une saisie précise et de
-  son unité ; le formulaire reste généré selon l'effet choisi et s'applique en direct.
-- **Bibliothèque Atelier** : **appliquer** teste une ambiance sans la sauvegarder ; **Ajouter** en
-  crée une copie personnelle modifiable.
-- **Recherche** : le champ au-dessus des bibliothèques filtre à la fois les presets Atelier et
-  personnels par nom, effet ou tag, sans dépendre des accents ni des majuscules.
+- **Points de départ** : **Essayer** charge une ambiance sans la sauvegarder ; **Ajouter à mes
+  presets** en crée une copie personnelle modifiable.
+- **Recherche** : le champ filtre les points de départ et les presets personnels par nom, effet ou
+  tag, sans dépendre des accents ni des majuscules.
+- **Réglages de l’effet** : le menu liste toutes les animations disponibles (+ « (aucun) »). Chaque
+  nombre dispose d’un curseur borné, d’une saisie précise et de son unité ; les changements
+  s’appliquent en direct.
 - **Mes presets** : **Créer** enregistre le réglage courant ; cliquer sur un preset le recharge
   (OBS suit) ; **URL** copie son adresse dédiée ; `✎` renomme sans casser cette adresse ; `⧉`
   duplique ; `✕` supprime avec confirmation. **Nouveau** quitte le mode de mise à jour du preset

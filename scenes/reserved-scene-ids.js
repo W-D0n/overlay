@@ -2,7 +2,7 @@
 /**
  * scenes/reserved-scene-ids.js — Ids de scène jamais fusionnables/écrasables par une scène
  * dynamique (S8, défense en profondeur — vide aujourd'hui, aucune scène n'est protégée contre
- * suppression/écrasement, décision owner 2026-07-04, voir docs/inbox.md).
+ * suppression/écrasement, décision owner 2026-07-04, voir docs/backlog-history.md).
  *
  * Module séparé de `scenes/registry.js` à dessein (fix production, 2026-07-05) : `registry.js`
  * importe les 9 `*.wire.js` (pour `SCENE_WIRES`), qui importent tous `store.js`, dont le chargement

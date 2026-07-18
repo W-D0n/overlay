@@ -7,7 +7,7 @@
  * `ComponentMount` déclaratifs (scenes/data/jeu.scene.json) : PollBar reçoit ses valeurs via `$bind`
  * (résolu automatiquement par `applyBindings`, scene-runtime.js — ce fichier n'a plus besoin de les
  * pousser à la main), et AlertBanner gère son propre minuteur d'auto-masquage en interne (fini le
- * `setTimeout`/`clearTimeout` dupliqué à la main, voir docs/inbox.md).
+ * `setTimeout`/`clearTimeout` dupliqué à la main, voir docs/backlog-history.md).
  *
  * Seule la visibilité du PollBar (masqué hors vote actif) reste gérée ici — `$bind` ne sait pas
  * exprimer "masquer si null" (voir docs/specs/scene-definition-v2.md).

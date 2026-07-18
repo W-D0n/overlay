@@ -156,6 +156,25 @@ test('migrateBackgroundFile adds deterministic ids to legacy presets without alt
   expect(result.file.presets[0].options).toEqual({ intensity: 0.3 });
 });
 
+test('migrateBackgroundFile retires MatrixGrid safely without mutating persisted input', () => {
+  const persisted = {
+    current: { component: 'MatrixGridBackground', options: { speed: 0.7 } },
+    presets: [
+      { id: 'horizon-neon', name: 'Horizon néon', component: 'MatrixGridBackground', options: { density: 18 } },
+      { name: 'Pluie douce', component: 'RainBackground', options: { intensity: 0.3 } },
+    ],
+  };
+  const before = structuredClone(persisted);
+
+  const result = migrateBackgroundFile(persisted);
+
+  expect(result.migrated).toBe(true);
+  expect(result.file.current).toEqual({ component: null, options: {} });
+  expect(result.file.presets).toEqual([
+    { id: 'pluie-douce', name: 'Pluie douce', component: 'RainBackground', options: { intensity: 0.3 } },
+  ]);
+  expect(persisted).toEqual(before);
+});
 test('createPresetId generates a unique slug while preserving existing stable ids', () => {
   expect(createPresetId('Émission spéciale', [preset({ id: 'emission-speciale' })])).toBe('emission-speciale-2');
 });

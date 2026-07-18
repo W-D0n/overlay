@@ -172,7 +172,7 @@ function formatDuration(s) {
  *
  * Back-off exponentiel (3s → 6s → 12s… plafonné à 30s) + logging one-shot : l'indisponibilité et
  * la fermeture ne sont loggées qu'au premier passage dans cet état, pas à chaque tentative — sinon
- * ça spamme la console tant qu'OBS/le relais est éteint (voir docs/inbox.md).
+ * ça spamme la console tant qu'OBS/le relais est éteint (voir docs/backlog-history.md).
  */
 function connectWebSocket() {
   // Timeout : si pas de connexion dans WS_TIMEOUT ms → fallback

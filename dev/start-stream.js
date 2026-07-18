@@ -12,7 +12,7 @@
  * enfants liés au Job Object Windows du parent — fermeture du terminal (X ou Ctrl+C) tue les
  * enfants proprement, plus de port orphelin. `start "titre" cmd /k ...` (ancien start-stream.bat)
  * ouvrait des fenêtres détachées hors du Job Object, laissant `bun.exe` tourner après fermeture
- * (root cause de l'orphelin sur le port 5500 constaté le 2026-07-10, voir docs/inbox.md).
+ * (root cause de l'orphelin sur le port 5500 constaté le 2026-07-10, voir docs/backlog-history.md).
  *
  * Lancement : `bun dev/start-stream.js` (ou double-clic sur start-stream.bat).
  */

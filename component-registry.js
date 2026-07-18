@@ -17,7 +17,6 @@ import {
 import { COMPONENT_NAMES } from './component-names.js';
 import { DotGridAnimated } from './components/DotGridAnimated.js';
 import { RainBackground } from './components/RainBackground.js';
-import { MatrixGridBackground } from './components/MatrixGridBackground.js';
 import { BubbleBackground } from './components/BubbleBackground.js';
 import { FirefliesBackground } from './components/FirefliesBackground.js';
 import { FloatingSymbolsBackground } from './components/FloatingSymbolsBackground.js';
@@ -38,7 +37,6 @@ export const COMPONENT_REGISTRY = /** @type {*} */ ({
   Box, Divider, TextLabel, TextList, PollBar, Badge, Image,
   DotGridBackground: DotGridAnimated,
   RainBackground,
-  MatrixGridBackground,
   BubbleBackground,
   FirefliesBackground,
   FloatingSymbolsBackground,

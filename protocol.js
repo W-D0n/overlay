@@ -360,7 +360,7 @@ export function validateSceneConfig(config) {
     });
   }
 
-  // V12 — `role` unique par scène (optionnel, seam wire.js ↔ scene.json, voir docs/inbox.md)
+  // V12 — `role` unique par scène (optionnel, seam wire.js ↔ scene.json, voir docs/backlog-history.md)
   const seenRoles = new Set();
   for (const l of layers) {
     for (const c of l.components) {

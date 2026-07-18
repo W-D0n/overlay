@@ -324,7 +324,7 @@
  * `REQUIRED_ROLES` (optionnel, propriété statique sur la fonction) déclare les `role` que ce wire
  * lit dans `mounted.componentsByRole` — `scene-runtime.js` vérifie leur présence avant d'appeler
  * `wire()` ; si un rôle manque, le wiring de la scène est sauté entièrement (dégradé : la mise en
- * page s'affiche, l'interactivité de ce wire non — voir docs/inbox.md).
+ * page s'affiche, l'interactivité de ce wire non — voir docs/backlog-history.md).
  * @typedef {{ (mounted: MountedScene): () => void, REQUIRED_ROLES?: string[] }} SceneWire
  */
 

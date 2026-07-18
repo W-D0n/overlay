@@ -212,28 +212,6 @@ const BACKGROUND_FIELD_DEFINITIONS = {
     { key: 'color', label: 'Couleur', type: 'color', default: '#C8B97A' },
     { key: 'angle', label: 'Angle du vent (degrés)', type: 'number', default: 8 },
   ],
-  MatrixGridBackground: [
-    { key: 'color', label: 'Couleur', type: 'color', default: '#00ff66' },
-    { key: 'backgroundColor', label: 'Couleur du fond', type: 'color', default: '#000000' },
-    { key: 'backgroundOpacity', label: 'Opacité du fond (0-1)', type: 'number', default: 1 },
-    { key: 'speed', label: 'Vitesse', type: 'number', default: 1 },
-    { key: 'gridSize', label: 'Taille des cellules proches (px)', type: 'number', default: 100 },
-    { key: 'lineWidth', label: 'Épaisseur des lignes (px)', type: 'number', default: 1.5 },
-    { key: 'opacity', label: 'Opacité de la grille (0-1)', type: 'number', default: 0.72 },
-    { key: 'glow', label: 'Halo (0-1)', type: 'number', default: 0.35 },
-    { key: 'planes', label: 'Plans visibles', type: 'select', choices: ['both', 'floor', 'ceiling'], default: 'both' },
-    { key: 'horizon', label: "Hauteur de l'horizon (0-1)", type: 'number', default: 0.5 },
-    { key: 'vanishingX', label: 'Point de fuite horizontal (0-1)', type: 'number', default: 0.5 },
-    { key: 'perspective', label: 'Profondeur de perspective', type: 'number', default: 1.6 },
-    {
-      key: 'fade',
-      label: "Fondu à l'horizon (0-0.49)",
-      description:
-        "Adoucit la naissance des lignes près du point de fuite sans couper les bords du viewport.",
-      type: 'number',
-      default: 0.15,
-    },
-  ],
   BubbleBackground: [
     { key: 'count', label: 'Nombre de bulles', type: 'number', default: 15 },
     { key: 'speed', label: 'Vitesse', type: 'number', default: 1 },

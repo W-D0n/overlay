@@ -38,7 +38,7 @@ function cssTimeToMs(value) {
 
 /**
  * @param {{
- *   root: HTMLElement,
+ *   root: HTMLDetailsElement,
  *   title: HTMLElement,
  *   summary: HTMLElement,
  *   checks: HTMLElement,
@@ -80,6 +80,7 @@ export function createBackgroundReadinessController(input) {
   function render(report) {
     const copy = READINESS_COPY[report.status];
     input.root.dataset.status = report.status;
+    if (report.status === 'blocking') input.root.open = true;
     input.title.textContent = copy.title;
     input.summary.textContent = copy.summary;
     input.checks.replaceChildren();

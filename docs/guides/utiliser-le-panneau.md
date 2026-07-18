@@ -36,11 +36,11 @@ validé avant écriture.
 ## Studio → Scènes complètes
 
 C'est l'éditeur visuel de l'overlay. Une scène à la fois (menu déroulant en haut), le rendu réel
-est affiché dans le panneau de gauche.
+est affiché à droite du panneau de configuration.
 
 ### Ajouter/retirer/configurer un composant dans une couche
 
-Chaque couche listée à droite affiche ses composants actuels. Pour une couche donnée :
+Chaque couche listée à gauche affiche ses composants actuels. Pour une couche donnée :
 - **Ajouter** : menu déroulant "+ composant" → choisir un type (`StatBlock`, `TextLabel`, `Badge`,
   etc. — tout ce qui est dans `COMPOSABLE_COMPONENT_NAMES`) → un formulaire apparaît avec les champs
   propres à ce type.
@@ -53,7 +53,7 @@ Chaque couche listée à droite affiche ses composants actuels. Pour une couche 
 ### Changer/tweaker l'effet de fond d'une scène
 
 Section "Fond" en haut du panneau — menu déroulant pour choisir le composant de fond
-(`DotGridBackground`, `RainBackground`, `MatrixGridBackground`, etc., voir
+(`DotGridBackground`, `RainBackground`, `BubbleBackground`, etc., voir
 `dev/component-field-schemas.js` §`BACKGROUND_FIELD_SCHEMAS` pour la liste + les paramètres de
 chacun). Chaque effet a son propre formulaire (intensité, couleur, vitesse...).
 
@@ -66,7 +66,7 @@ les couches, certaines restent en CSS flex, voir `docs/specs/scene-placement-pro
 
 "+ couche" pour en ajouter une entièrement vide. Renommage (input inline, couche `goldbar` protégée)
 et réordonnancement (boutons ↑/↓ + glisser-déposer par poignée dédiée) des couches existantes :
-livré (2026-07-05), voir `docs/inbox.md` §Gestion des couches.
+livré (2026-07-05), voir `docs/backlog-history.md` §Gestion des couches.
 
 ### Créer / supprimer une scène entière
 
@@ -96,7 +96,7 @@ historiques).
 
 - Deux calques restent en CSS flex plutôt qu'en placement par composant, par choix assumé (texte
   dynamique collé à ses voisins, pas des widgets à repositionner séparément) : `next-stream`(brb) et
-  `source-credit`(react) — voir `docs/inbox.md` §Extensions du système de placement.
+  `source-credit`(react) — voir `docs/backlog-history.md` §Extensions du système de placement.
 - Comportements de la Couche 4 DotGrid (`follow`/`sub`/`raid`/`bits`/`ambient`,
   `docs/specs/dotgrid-event-triggers.md`) — durées/amplitudes en constantes dans
   `components/DotGridAnimated.js`, pas de formulaire dédié (zero preemptive code, pas de demande

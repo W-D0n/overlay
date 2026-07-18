@@ -5,11 +5,11 @@
  * `SCENE_CONFIGS` ne contient plus aucune config au chargement du module : les 9 scènes
  * historiques ET les scènes créées par l'éditeur sont désormais chargées uniformément par
  * `loadDynamicScenes()` (`scenes/data/*.scene.json`) — un seul mécanisme d'écriture pour l'éditeur
- * (décision owner, 2026-07-04, voir docs/inbox.md). `*.wire.js` reste du JS statique importé ici :
+ * (décision owner, 2026-07-04, voir docs/backlog-history.md). `*.wire.js` reste du JS statique importé ici :
  * seul le format `SceneConfig` a migré, le câblage impératif des scènes historiques est inchangé.
  *
  * Aucune protection contre suppression/écrasement (risque accepté, owner 2026-07-04, voir
- * docs/inbox.md) : `STATIC_SCENE_IDS` reste vide tant qu'aucune scène n'est réservée.
+ * docs/backlog-history.md) : `STATIC_SCENE_IDS` reste vide tant qu'aucune scène n'est réservée.
  */
 import { wire as wireDiscussion }    from './discussion.wire.js';
 import { wire as wireBrb }           from './brb.wire.js';

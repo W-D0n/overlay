@@ -2,6 +2,27 @@
 
 > Décisions structurantes, par session. Mis à jour en clôture (`/done`).
 
+## 2026-07-18 — UX Studio et retrait de MatrixGrid
+
+**Ce qui a été fait :**
+- Le tuner suit désormais le parcours « Points de départ → Réglages de l’effet → Mes presets ».
+  Les cinq ambiances intégrées ont des noms simples et deux actions explicites : « Essayer » et
+  « Ajouter à mes presets ».
+- « Avant le live » devient un volet repliable, fermé par défaut et ouvert automatiquement seulement
+  quand le diagnostic trouve un point bloquant.
+- Le panneau de configuration de « Scènes complètes » reste à gauche, comme celui des fonds.
+- `MatrixGridBackground` et son test ont été supprimés du registre, des schémas et des presets
+  intégrés. La migration retire les anciens presets Matrix et désactive un Matrix actif vers
+  « aucun fond », sans rendre le fichier d’état invalide.
+- `docs/inbox.md` ne conserve plus que les items réellement ouverts ; l’historique détaillé est
+  archivé dans `docs/backlog-history.md` et les clôtures récentes restent dans ce devlog.
+
+**Vérification :**
+- `bun test` : 320/320 verts.
+- QA Chromium isolée à 1920×1080 : cinq points de départ, onze effets sans MatrixGrid, volet
+  repliable fonctionnel, panneau scènes à gauche et aperçu à droite. Le seul appel indisponible est
+  le relais OBS optionnel sur le port 4456, non lancé pendant la vérification.
+
 ## 2026-07-17 — Stabilisation effets + URL OBS par preset
 
 **Ce qui a été fait :**

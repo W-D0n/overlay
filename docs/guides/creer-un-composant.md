@@ -52,9 +52,8 @@ composant" du panneau — aucun autre câblage nécessaire.
 Regarde un effet existant proche de ce que tu veux comme point de départ :
 - **Particules/formes qui bougent** (canvas + `requestAnimationFrame`) : `RainBackground.js`,
   `FirefliesBackground.js`, `BubbleBackground.js` — tous suivent le même squelette.
-- **Motif CSS répétitif animé** (pas de canvas, juste CSS + Web Animations API) :
-  `GeometricPatternBackground.js`, `MatrixGridBackground.js` — moins cher en CPU si ton effet s'y
-  prête (dégradés, grilles, motifs géométriques).
+- **Motif CSS répétitif animé** (sans canvas) : `GeometricPatternBackground.js`, adapté aux
+  dégradés et motifs géométriques.
 
 **Squelette canvas/rAF minimal (copie-le et adapte) :**
 

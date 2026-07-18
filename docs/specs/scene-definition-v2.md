@@ -11,7 +11,7 @@ status: draft
 
 ## Contexte
 
-Jalon 2 de l'éditeur (`docs/inbox.md`) : l'owner veut composer/modifier les composants de chaque
+Jalon 2 de l'éditeur (`docs/backlog-history.md`) : l'owner veut composer/modifier les composants de chaque
 scène et créer/modifier/supprimer des scènes entières, **à la manière de Figma** — une collection de
 composants qu'on ajoute/positionne/retire individuellement, pas des blocs de CSS/HTML bespoke par
 scène.
@@ -272,7 +272,7 @@ export function resolveBoundOptions(options, state) {
       `AlertBanner.show()`. D'autres comportements impératifs complexes (ex : le minuteur
       d'affichage HUD de `jeu`, actuellement géré à la main dans `jeu.wire.js` avec
       `setTimeout`/`clearTimeout`) ne sont pas couverts par cette spec — migration tracée dans
-      `docs/inbox.md`, décidée **après** la session 4/6 (owner, 2026-07-04), pas pendant.
+      `docs/backlog-history.md`, décidée **après** la session 4/6 (owner, 2026-07-04), pas pendant.
 
 ---
 
@@ -412,7 +412,7 @@ entièrement par `applyBindings` (`$bind`/`trigger`).
 ### Contexte
 
 Étend `dev/overlay-setting.html` (jalon 1 de l'éditeur, "un seul outil construit par jalons
-successifs", voir `docs/inbox.md`) : ajouter/retirer/éditer les `ComponentMount` d'une couche, avec
+successifs", voir `docs/backlog-history.md`) : ajouter/retirer/éditer les `ComponentMount` d'une couche, avec
 un formulaire dédié par type de composant. Les 9 scènes sont désormais des scènes dynamiques (S8,
 migration précédente) — `/update-scene` (session 4/6) accepte déjà n'importe laquelle d'entre elles.
 
@@ -432,7 +432,7 @@ migration précédente) — `/update-scene` (session 4/6) accepte déjà n'impor
   chacun des 12 types composables, ses champs éditables (clé, libellé, type d'input, valeur par
   défaut) — pattern "configuration hors composant" (`CLAUDE.md`).
 
-**Exclu (owner, 2026-07-05, voir `docs/inbox.md`) :**
+**Exclu (owner, 2026-07-05, voir `docs/backlog-history.md`) :**
 - Gestion des couches (ajouter/renommer/réordonner/supprimer une couche entière) — extension future.
 - Placement individuel d'un composant ajouté (`ComponentMount.placement`) — le panneau S7 ne drague
   que des couches entières ; extension future.
@@ -501,7 +501,7 @@ l'owner (2026-07-05) au-delà du texte original de la spec :
 - **Gestion minimale des couches** (ajouter/supprimer une couche) — sans ça, une scène créée ne
   contiendrait que sa couche `goldbar` obligatoire (`validateSceneConfig` V4/V9) et resterait une
   coquille vide inutilisable tant qu'une session "gestion des couches" dédiée n'existe pas
-  (voir `docs/inbox.md`). Renommage/réordonnancement des couches restent hors scope (non demandés).
+  (voir `docs/backlog-history.md`). Renommage/réordonnancement des couches restent hors scope (non demandés).
 
 ### Périmètre
 

@@ -11,7 +11,7 @@ status: reviewed
 
 AD-2 (S2) a mis le placement des scènes dans le CSS/HTML (`index.html`, sélecteurs
 `.scene[data-scene="X"] .foo`), pas dans `SceneConfig` — décision zero-preemptive-code à l'époque,
-aucun besoin concret de donnée de position. `docs/inbox.md` §Éditeur envisageait depuis le début un
+aucun besoin concret de donnée de position. `docs/backlog-history.md` §Éditeur envisageait depuis le début un
 jalon 1 "placement" (drag & drop, lecture des valeurs de position) mais supposait un système
 `anchor`+`offset` jamais construit.
 
@@ -49,7 +49,7 @@ le runtime prouvé).
   `dev/tuner-server.js` (S5), session séparée après le panneau.
 
 **Exclu de cette spec, mais confirmé comme besoin réel par l'owner (2026-07-04, tracé dans
-`docs/inbox.md` §Extensions du système de placement) — à réintégrer dans une session future :**
+`docs/backlog-history.md` §Extensions du système de placement) — à réintégrer dans une session future :**
 - Redimensionnement par drag (le panneau V1 ne fait que déplacer, pas redimensionner — `width`/
   `height` restent fixés à la migration, pas éditables en live).
 - Composition interne d'une couche à plusieurs éléments positionnés indépendamment (ex : `interview`

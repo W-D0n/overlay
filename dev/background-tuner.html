@@ -181,6 +181,22 @@
       padding-left: calc(var(--space-xs) / 2);
     }
     .preset-action { padding: var(--space-xs) var(--space-sm); }
+    .preset-row-builtin {
+      display: grid;
+      align-items: stretch;
+      gap: var(--space-md);
+    }
+    .preset-copy { display: grid; gap: var(--space-xs); }
+    .preset-title { color: var(--color-text-primary); font-size: var(--text-md); font-weight: 400; }
+    .preset-row-builtin .preset-meta { padding-left: 0; }
+    .preset-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+    .preset-actions .preset-add { flex: 1; }
+    .section-intro {
+      margin: calc(-1 * var(--space-xs)) 0 var(--space-md);
+      color: var(--color-text-dim);
+      font-size: var(--text-base);
+      line-height: 1.45;
+    }
     .preset-edit { display: flex; width: 100%; gap: var(--space-sm); }
     .preset-edit input { flex: 1; }
     .library-tools { display: flex; gap: var(--space-sm); margin: var(--space-md) 0; }
@@ -252,8 +268,7 @@
     #runtime-status { color: var(--color-text-dim); white-space: nowrap; padding-bottom: 7px; }
 
     .live-readiness {
-      margin: var(--space-md) 0 var(--space-lg);
-      padding: var(--space-md);
+      margin: var(--space-md) 0 var(--space-xl);
       border: var(--border-rule-mid);
       border-left: 2px solid var(--color-rule-mid);
       border-radius: var(--radius-sm);
@@ -262,24 +277,36 @@
     .live-readiness[data-status="ready"] { border-left-color: var(--color-gold); }
     .live-readiness[data-status="attention"] { border-left-color: var(--color-text-mid); }
     .live-readiness[data-status="blocking"] { border-left-color: var(--color-danger); }
-    .live-readiness-head {
-      display: flex;
+    .live-readiness > summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto;
       align-items: center;
-      justify-content: space-between;
       gap: var(--space-sm);
+      padding: var(--space-md);
+      cursor: pointer;
+      list-style: none;
     }
-    .live-readiness-kicker {
-      display: block;
-      margin-bottom: 2px;
+    .live-readiness > summary::-webkit-details-marker { display: none; }
+    .live-readiness > summary::after {
+      content: '▾';
       color: var(--color-text-dim);
+      font-size: var(--text-base);
+    }
+    .live-readiness[open] > summary::after { content: '▴'; }
+    .live-readiness-kicker {
+      color: var(--color-text-mid);
       font-size: var(--text-base);
       letter-spacing: var(--tracking-label);
       text-transform: uppercase;
     }
-    #live-readiness-title { color: var(--color-text-primary); font-size: var(--text-md); font-weight: 400; }
-    #live-readiness-run { flex: none; }
+    #live-readiness-title { color: var(--color-text-primary); font-size: var(--text-base); font-weight: 400; }
+    .live-readiness-body {
+      padding: 0 var(--space-md) var(--space-md);
+      border-top: var(--border-rule);
+    }
+    #live-readiness-run { margin-top: var(--space-sm); }
     #live-readiness-summary {
-      margin: var(--space-sm) 0 0;
+      margin: var(--space-md) 0 0;
       color: var(--color-text-mid);
       font-size: var(--text-base);
       line-height: 1.45;
@@ -350,29 +377,29 @@
       <span id="runtime-status">FPS —</span>
     </div>
 
-    <section id="live-readiness" class="live-readiness" data-status="idle" aria-live="polite">
-      <div class="live-readiness-head">
-        <div>
-          <span class="live-readiness-kicker">Avant le live</span>
-          <strong id="live-readiness-title">À vérifier</strong>
-        </div>
-        <button id="live-readiness-run" type="button">Vérifier</button>
+    <details id="live-readiness" class="live-readiness" data-status="idle" aria-live="polite">
+      <summary>
+        <span class="live-readiness-kicker">Avant le live</span>
+        <strong id="live-readiness-title">À vérifier</strong>
+      </summary>
+      <div class="live-readiness-body">
+        <p id="live-readiness-summary">Contrôle l’effet, l’URL OBS et les services sans rien modifier.</p>
+        <button id="live-readiness-run" type="button">Vérifier maintenant</button>
+        <div id="live-readiness-checks" class="live-readiness-checks"></div>
       </div>
-      <p id="live-readiness-summary">Contrôle l’effet, l’URL OBS et les services sans rien modifier.</p>
-      <div id="live-readiness-checks" class="live-readiness-checks"></div>
-    </section>
+    </details>
 
+    <h2>Points de départ</h2>
+    <p class="section-intro">Essaie une ambiance, puis ajuste-la dans les réglages ci-dessous.</p>
+    <div class="library-tools">
+      <input id="preset-search" type="search" aria-label="Rechercher dans les points de départ et les presets" placeholder="chercher par nom, effet ou tag">
+    </div>
+    <div id="builtin-list"></div>
+
+    <h2>Réglages de l’effet</h2>
     <label for="effect-select">Effet</label>
     <select id="effect-select"></select>
-
     <div id="fields"></div>
-
-    <div class="library-tools">
-      <input id="preset-search" type="search" placeholder="chercher nom, effet ou tag">
-    </div>
-
-    <h2>Bibliothèque Atelier</h2>
-    <div id="builtin-list"></div>
 
     <h2>Mes presets</h2>
     <div class="library-tools">
