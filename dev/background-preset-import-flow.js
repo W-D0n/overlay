@@ -5,7 +5,7 @@
  * @property {string} content
  * @property {{presets:{id:string}[]}} parsed
  * @property {string} revision
- * @property {{created:number,updated:number,renamed:number}} plan
+ * @property {import('./background-preset-library.js').BackgroundPresetImportPreview} plan
  */
 
 /** @returns {{pending:BackgroundPresetImportPending|null,importing:boolean}} */

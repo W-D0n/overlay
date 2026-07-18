@@ -44,6 +44,141 @@ test('un import rejette entièrement un bundle invalide', () => {
   expect(parsed.errors.join(' ')).toContain('effet de fond inconnu');
 });
 
+test('le plan d’import décrit les valeurs utiles d’une création', () => {
+  const imported = [{
+    id: 'brume',
+    name: 'Brume',
+    component: 'FirefliesBackground',
+    options: { count: 18 },
+    tags: ['calme'],
+  }];
+
+  expect(mergeBackgroundPresetImport([], imported)).toMatchObject({
+    created: 1,
+    updated: 0,
+    renamed: 0,
+    unchanged: 0,
+    changes: [{
+      id: 'brume',
+      operation: 'created',
+      name: 'Brume',
+      component: 'FirefliesBackground',
+      requestedName: 'Brume',
+      renamed: false,
+      conflict: null,
+      differences: [
+        { field: 'component', after: 'FirefliesBackground' },
+        { field: 'tags', after: ['calme'] },
+        { field: 'option', key: 'count', after: 18 },
+      ],
+    }],
+  });
+});
+
+test('le plan d’import limite une mise à jour aux valeurs réellement modifiées', () => {
+  const existing = [{
+    id: 'pluie',
+    name: 'Pluie lente',
+    component: 'RainBackground',
+    options: { speed: 1, color: '#ffffff', angle: 8 },
+    tags: ['coding', 'calme'],
+  }];
+  const imported = [{
+    id: 'pluie',
+    name: 'Pluie vive',
+    component: 'BubbleBackground',
+    options: { speed: 2, color: '#ffffff', count: 12 },
+    tags: ['dynamique'],
+  }];
+
+  expect(mergeBackgroundPresetImport(existing, imported)).toMatchObject({
+    created: 0,
+    updated: 1,
+    renamed: 0,
+    unchanged: 0,
+    changes: [{
+      id: 'pluie',
+      operation: 'updated',
+      name: 'Pluie vive',
+      requestedName: 'Pluie vive',
+      renamed: false,
+      conflict: null,
+      differences: [
+        { field: 'name', before: 'Pluie lente', after: 'Pluie vive' },
+        { field: 'component', before: 'RainBackground', after: 'BubbleBackground' },
+        { field: 'tags', before: ['coding', 'calme'], after: ['dynamique'] },
+        { field: 'option', key: 'speed', before: 1, after: 2 },
+        { field: 'option', key: 'angle', before: 8 },
+        { field: 'option', key: 'count', after: 12 },
+      ],
+    }],
+  });
+});
+
+test('le plan d’import marque un preset identique comme ignoré', () => {
+  const existing = [{
+    id: 'pluie',
+    name: 'Pluie calme',
+    component: 'RainBackground',
+    options: { speed: 1, color: '#ffffff' },
+    tags: ['calme'],
+  }];
+  const imported = [{
+    ...existing[0],
+    options: { color: '#ffffff', speed: 1 },
+  }];
+
+  expect(mergeBackgroundPresetImport(existing, imported)).toMatchObject({
+    created: 0,
+    updated: 0,
+    renamed: 0,
+    unchanged: 1,
+    changes: [{
+      id: 'pluie',
+      operation: 'unchanged',
+      name: 'Pluie calme',
+      requestedName: 'Pluie calme',
+      renamed: false,
+      conflict: null,
+      differences: [],
+    }],
+  });
+});
+
+test('le plan d’import explique le renommage causé par un conflit de nom', () => {
+  const existing = [{
+    id: 'ondes',
+    name: 'Ondes',
+    component: 'WaterRippleBackground',
+    options: {},
+  }];
+  const imported = [{
+    id: 'nouveau',
+    name: 'Ondes',
+    component: 'BubbleBackground',
+    options: {},
+  }];
+
+  expect(mergeBackgroundPresetImport(existing, imported)).toMatchObject({
+    created: 1,
+    updated: 0,
+    renamed: 1,
+    unchanged: 0,
+    changes: [{
+      id: 'nouveau',
+      operation: 'created',
+      name: 'Ondes — import',
+      requestedName: 'Ondes',
+      renamed: true,
+      conflict: { id: 'ondes', name: 'Ondes' },
+      differences: [
+        { field: 'name', before: 'Ondes', after: 'Ondes — import' },
+        { field: 'component', after: 'BubbleBackground' },
+      ],
+    }],
+  });
+});
+
 test('la fusion met à jour les ids connus et renomme une collision de nom sans écraser un autre preset', () => {
   const existing = [
     { id: 'pluie', name: 'Pluie lente', component: 'RainBackground', options: { speed: 1 } },
@@ -54,7 +189,7 @@ test('la fusion met à jour les ids connus et renomme une collision de nom sans 
     { id: 'nouveau', name: 'Ondes', component: 'BubbleBackground', options: {} },
   ];
 
-  expect(mergeBackgroundPresetImport(existing, imported)).toEqual({
+  expect(mergeBackgroundPresetImport(existing, imported)).toMatchObject({
     presets: [
       { id: 'pluie', name: 'Pluie mise à jour', component: 'RainBackground', options: { speed: 2 } },
       { id: 'ondes', name: 'Ondes', component: 'WaterRippleBackground', options: {} },

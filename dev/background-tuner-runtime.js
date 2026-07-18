@@ -78,6 +78,7 @@ export async function startBackgroundTuner(environment = {}) {
       importInput: byId('preset-import'),
       importReview: byId('preset-import-review'),
       importSummary: byId('preset-import-summary'),
+      importDetails: byId('preset-import-details'),
       importConfirm: byId('preset-import-confirm'),
       importCancel: byId('preset-import-cancel'),
       save: byId('preset-save'),

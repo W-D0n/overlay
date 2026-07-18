@@ -8,7 +8,10 @@ import {
   createBackgroundPresetImportReview,
   reduceBackgroundPresetImportReview,
 } from './background-preset-import-flow.js';
-import { formatBackgroundPresetImportSummary } from './background-preset-presenter.js';
+import {
+  formatBackgroundPresetImportChange,
+  formatBackgroundPresetImportSummary,
+} from './background-preset-presenter.js';
 
 /**
  * Parcours autonome d’export et d’import confirmé de la bibliothèque de presets.
@@ -20,6 +23,7 @@ import { formatBackgroundPresetImportSummary } from './background-preset-present
  *     importInput: HTMLInputElement,
  *     importReview: HTMLElement,
  *     importSummary: HTMLElement,
+ *     importDetails: HTMLElement,
  *     importConfirm: HTMLButtonElement,
  *     importCancel: HTMLButtonElement,
  *     presetName: HTMLInputElement,
@@ -43,12 +47,50 @@ export function createBackgroundPresetTransferController(input) {
   const elements = input.elements;
   let reviewState = createBackgroundPresetImportReview();
 
+  /** @param {import('./background-preset-library.js').BackgroundPresetImportChange[]} changes */
+  function renderImportDetails(changes) {
+    const cards = changes.map((change) => {
+      const view = formatBackgroundPresetImportChange(change);
+      const card = documentRef.createElement('article');
+      card.className = 'preset-import-change';
+
+      const heading = documentRef.createElement('div');
+      heading.className = 'preset-import-change-heading';
+      const operation = documentRef.createElement('span');
+      operation.className = `preset-import-operation preset-import-operation--${change.operation}`;
+      operation.textContent = view.operationLabel;
+      const title = documentRef.createElement('strong');
+      title.textContent = view.title;
+      heading.append(operation, title);
+      card.append(heading);
+
+      if (view.note !== '') {
+        const note = documentRef.createElement('p');
+        note.className = 'preset-import-change-note';
+        note.textContent = view.note;
+        card.append(note);
+      }
+      if (view.details.length > 0) {
+        const list = documentRef.createElement('ul');
+        for (const detail of view.details) {
+          const item = documentRef.createElement('li');
+          item.textContent = detail;
+          list.append(item);
+        }
+        card.append(list);
+      }
+      return card;
+    });
+    elements.importDetails.replaceChildren(...cards);
+  }
+
   function renderReview() {
     const pending = reviewState.pending;
     elements.importReview.hidden = pending === null;
     elements.importSummary.textContent = pending === null
       ? ''
       : `Vérifier l'import : ${formatBackgroundPresetImportSummary(pending.plan)}`;
+    renderImportDetails(pending?.plan.changes ?? []);
     elements.importConfirm.disabled = reviewState.importing;
     elements.importCancel.disabled = reviewState.importing;
     elements.importTrigger.disabled = reviewState.importing;
@@ -73,7 +115,13 @@ export function createBackgroundPresetTransferController(input) {
         content,
         parsed,
         revision: preview.revision,
-        plan: { created: preview.created, updated: preview.updated, renamed: preview.renamed },
+        plan: {
+          created: preview.created,
+          updated: preview.updated,
+          renamed: preview.renamed,
+          unchanged: preview.unchanged,
+          changes: preview.changes,
+        },
       };
     } catch (error) {
       input.report.error(`aperçu d’import impossible : ${error.message}`);

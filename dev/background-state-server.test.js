@@ -80,7 +80,23 @@ test('l’import est prévisualisé sans écriture puis protégé par sa révisi
     });
     expect(previewResponse.ok).toBe(true);
     const preview = await previewResponse.json();
-    expect(preview).toEqual({ revision: expect.stringMatching(/^[0-9a-f]{8}$/), created: 1, updated: 0, renamed: 0 });
+    expect(preview).toEqual({
+      revision: expect.stringMatching(/^[0-9a-f]{8}$/),
+      created: 1,
+      updated: 0,
+      renamed: 0,
+      unchanged: 0,
+      changes: [{
+        id: 'beta',
+        operation: 'created',
+        name: 'Beta',
+        component: 'BubbleBackground',
+        requestedName: 'Beta',
+        renamed: false,
+        conflict: null,
+        differences: [{ field: 'component', after: 'BubbleBackground' }],
+      }],
+    });
     expect(readFileSync(stateFile, 'utf8')).toBe(before);
 
     const concurrentSave = await fetch(`${baseUrl}/save-preset`, {

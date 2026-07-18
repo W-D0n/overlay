@@ -248,6 +248,8 @@ async function handlePreviewImport(req) {
       created: plan.created,
       updated: plan.updated,
       renamed: plan.renamed,
+      unchanged: plan.unchanged,
+      changes: plan.changes,
     }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
   });
 }

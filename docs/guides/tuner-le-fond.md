@@ -56,11 +56,14 @@ Ouvrir `http://localhost:5500/dev/studio.html` (s'ouvre aussi automatiquement av
 - **Sauvegarde portable** : **Exporter** télécharge toute la bibliothèque personnelle dans un JSON
   versionné. **Importer** valide d'abord le fichier entier : un identifiant déjà connu est mis à
   jour en conservant son URL OBS ; un nouveau est ajouté ; un conflit de nom est suffixé au lieu
-  d'écraser silencieusement un autre preset. Avant l'écriture, le tuner affiche combien de presets
-  seront créés, mis à jour ou renommés et attend **Confirmer l'import**. **Annuler** ne modifie rien ;
-  un fichier invalide ne modifie rien non plus. Si la bibliothèque change dans un autre onglet
-  entre l'aperçu et la confirmation, le serveur refuse l'ancienne révision, recalcule le résumé et
-  demande une nouvelle confirmation.
+  d'écraser silencieusement un autre preset. Avant l'écriture, le tuner résume les créations, mises
+  à jour, noms ajustés et presets ignorés, puis détaille chaque preset : opération, effet, tags et
+  réglages ajoutés, retirés ou modifiés. Un conflit indique le nom demandé, le preset qui le porte
+  déjà et le nom finalement attribué. La liste défile indépendamment pour garder
+  **Confirmer l'import** et **Annuler** accessibles sur un gros fichier. Rien n'est écrit avant la
+  confirmation ; un fichier invalide ne modifie rien non plus. Si la bibliothèque change dans un
+  autre onglet entre l'aperçu et la confirmation, le serveur refuse l'ancienne révision, recalcule
+  tout le détail et demande une nouvelle confirmation.
 - **Qualité de rendu** : **Auto** plafonne le DPR à 2 ; **Performance OBS** le limite à 1. La
   ligne voisine affiche les FPS mesurés et la densité active.
 

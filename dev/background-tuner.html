@@ -195,6 +195,40 @@
     }
     .preset-import-review[hidden] { display: none; }
     .preset-import-review p { margin: 0 0 var(--space-sm); color: var(--color-text-primary); }
+    .preset-import-details {
+      display: grid;
+      gap: var(--space-sm);
+      max-height: var(--preset-import-details-max-height);
+      margin-bottom: var(--space-sm);
+      padding-right: var(--space-xs);
+      overflow-y: auto;
+    }
+    .preset-import-change {
+      padding: var(--space-sm);
+      border: var(--border-rule-mid);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg-widget);
+    }
+    .preset-import-change-heading { display: flex; align-items: baseline; gap: var(--space-sm); }
+    .preset-import-change-heading strong { color: var(--color-text-primary); font-weight: 400; }
+    .preset-import-operation {
+      color: var(--color-gold);
+      font-size: var(--text-sm);
+      letter-spacing: var(--tracking-label);
+      text-transform: uppercase;
+    }
+    .preset-import-operation--unchanged { color: var(--color-text-dim); }
+    .preset-import-review .preset-import-change-note {
+      margin: var(--space-xs) 0 0;
+      color: var(--color-text-mid);
+    }
+    .preset-import-change ul {
+      display: grid;
+      gap: var(--space-xs);
+      margin-top: var(--space-sm);
+      padding-left: var(--space-lg);
+      color: var(--color-text-mid);
+    }
     .preset-import-actions { display: flex; gap: var(--space-sm); }
 
     /* Confirmation de suppression inline — remplace le confirm() natif */
@@ -348,6 +382,7 @@
     </div>
     <div id="preset-import-review" class="preset-import-review" hidden>
       <p id="preset-import-summary"></p>
+      <div id="preset-import-details" class="preset-import-details" aria-label="Détail des changements"></div>
       <div class="preset-import-actions">
         <button id="preset-import-confirm">Confirmer l'import</button>
         <button id="preset-import-cancel">Annuler</button>

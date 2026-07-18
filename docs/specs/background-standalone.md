@@ -93,7 +93,7 @@ importé reçoit le suffixe `— import` (puis un numéro si nécessaire).
 | `POST /save-preset` | `{ id?, name, component, options, tags? }` | Sans `id`, crée un identifiant unique ; avec `id`, met à jour le preset. |
 | `POST /rename-preset` | `{ id, name }` | Renomme sans modifier l'identifiant ni l'URL. |
 | `POST /duplicate-preset` | `{ id }` | Crée une copie autonome au nom et à l'identifiant uniques. |
-| `POST /preview-import` | `{ bundle }` | Calcule `{ revision, created, updated, renamed }` sans écrire. |
+| `POST /preview-import` | `{ bundle }` | Calcule `{ revision, created, updated, renamed, unchanged, changes }` sans écrire ; `changes` décrit l'opération et les valeurs utiles de chaque preset. |
 | `POST /import-presets` | `{ bundle, expectedRevision }` | Fusionne atomiquement si la révision est inchangée ; sinon 409 sans écriture. |
 | `POST /delete-preset` | `{ id }` | Supprime. 404 si absent. |
 | `WS /state-ws` | — | Diffuse le JSON de `current` à chaque `POST /state` réussi. |
@@ -122,8 +122,10 @@ Toutes les écritures passent par un `keyed-lock` (clé unique) — même motif 
 - Chaque changement : rendu local immédiat + POST `/state` (débounce 150 ms).
 - Presets : création/mise à jour avec tags éditables, renommage sans casser l'URL, duplication,
   suppression et copie de l'URL. La recherche couvre nom, effet et tags. Export/import rend la
-  bibliothèque personnelle portable ; le plan d'import est résumé puis confirmé avant écriture.
-  Six presets Atelier fournissent des points de départ sans polluer l'état utilisateur.
+  bibliothèque personnelle portable ; le plan d'import résume créations, mises à jour, noms
+  ajustés et presets ignorés, puis détaille les valeurs utiles par preset dans une liste scrollable
+  avant confirmation. Six presets Atelier fournissent des points de départ sans polluer l'état
+  utilisateur.
 - Profil performance : indicateur FPS, DPR 1 ; le mode auto plafonne le DPR à 2.
 - Le bloc « Prêt pour le live » vérifie en lecture seule l'état, la sélection, l'URL OBS, la mesure
   locale et le relais optionnel. Il distingue prêt, attention et bloquant, avec une action guidée
@@ -160,8 +162,9 @@ toucher à `background.html`, au tuner ni au serveur. Détail pas-à-pas (y comp
 création/mise à jour, renommage, duplication, suppression et non-mutation. `background-mount.test.js`
 couvre pause/reprise ; `components/canvas-runtime.test.js` couvre les deux profils DPR ;
 `dev/builtin-background-presets.test.js` valide la bibliothèque Atelier ;
-`dev/background-preset-library.test.js` couvre recherche, échange versionné, rejet atomique et
-fusion sans écrasement. `dev/background-state-server.test.js` vérifie par HTTP qu'un import invalide
+`dev/background-preset-library.test.js` couvre recherche, échange versionné, rejet atomique,
+création, mise à jour, renommage, conflit, absence de changement et fusion sans écrasement.
+`dev/background-state-server.test.js` vérifie par HTTP qu'un import invalide
 n'écrit pas le fichier, qu'une révision périmée est refusée et qu'aucun événement WebSocket indu
 n'est diffusé. `dev/background-preset-import-flow.test.js` garantit qu'aucune commande réseau
 n'existe avant confirmation ; le présentateur possède son test de libellé séparé.

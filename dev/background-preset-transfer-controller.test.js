@@ -16,11 +16,19 @@ function element(overrides = {}) {
     hidden: true,
     value: '',
     textContent: '',
+    className: '',
+    children: [],
     files: null,
     clicks: 0,
     click() { this.clicks += 1; },
+    append(...children) { this.children.push(...children); },
+    replaceChildren(...children) { this.children = [...children]; },
     ...overrides,
   };
+}
+
+function visibleText(node) {
+  return [node.textContent, ...node.children.map(visibleText)].filter(Boolean).join(' ');
 }
 
 function createHarness(overrides = {}) {
@@ -30,6 +38,7 @@ function createHarness(overrides = {}) {
     importInput: element(),
     importReview: element(),
     importSummary: element(),
+    importDetails: element(),
     importConfirm: element(),
     importCancel: element(),
     presetName: element(),
@@ -40,7 +49,27 @@ function createHarness(overrides = {}) {
   const revoked = [];
   const imported = [];
   const client = {
-    previewPresetImport: async () => ({ revision: 'rev-1', created: 1, updated: 0, renamed: 0 }),
+    previewPresetImport: async () => ({
+      revision: 'rev-1',
+      created: 1,
+      updated: 0,
+      renamed: 0,
+      unchanged: 0,
+      changes: [{
+        id: preset.id,
+        operation: 'created',
+        name: preset.name,
+        component: preset.component,
+        requestedName: preset.name,
+        renamed: false,
+        conflict: null,
+        differences: [
+          { field: 'component', after: preset.component },
+          { field: 'tags', after: preset.tags },
+          { field: 'option', key: 'speed', after: 1 },
+        ],
+      }],
+    }),
     importPresets: async (content, revision) => imported.push({ content, revision }),
   };
   const preview = {
@@ -103,9 +132,87 @@ describe('transfert de presets du tuner', () => {
     expect(harness.imported).toEqual([]);
     expect(harness.elements.importReview.hidden).toBeFalse();
     expect(harness.elements.importSummary.textContent).toContain('1 nouveau');
+    expect(harness.elements.importSummary.textContent).toContain('0 ignoré');
+    expect(visibleText(harness.elements.importDetails)).toContain('Création Pluie calme');
+    expect(visibleText(harness.elements.importDetails)).toContain('Vitesse : 1');
     await harness.elements.importConfirm.onclick();
     expect(harness.imported).toEqual([{ content, revision: 'rev-1' }]);
     expect(harness.elements.importReview.hidden).toBeTrue();
     expect(harness.reports.at(-1)[0]).toBe('ok');
+  });
+
+  test('recalcule un aperçu obsolète et exige une nouvelle confirmation', async () => {
+    const previews = [
+      {
+        revision: 'rev-1',
+        created: 1,
+        updated: 0,
+        renamed: 0,
+        unchanged: 0,
+        changes: [{
+          id: preset.id,
+          operation: 'created',
+          name: preset.name,
+          component: preset.component,
+          requestedName: preset.name,
+          renamed: false,
+          conflict: null,
+          differences: [{ field: 'component', after: preset.component }],
+        }],
+      },
+      {
+        revision: 'rev-2',
+        created: 0,
+        updated: 0,
+        renamed: 0,
+        unchanged: 1,
+        changes: [{
+          id: preset.id,
+          operation: 'unchanged',
+          name: preset.name,
+          component: preset.component,
+          requestedName: preset.name,
+          renamed: false,
+          conflict: null,
+          differences: [],
+        }],
+      },
+    ];
+    const attempts = [];
+    const client = {
+      previewPresetImport: async () => previews.shift(),
+      importPresets: async (content, revision) => {
+        attempts.push({ content, revision });
+        if (attempts.length === 1) {
+          const error = new Error('révision obsolète');
+          error.status = 409;
+          throw error;
+        }
+      },
+    };
+    const harness = createHarness({ client });
+    const content = JSON.stringify(createBackgroundPresetBundle([preset]));
+    harness.elements.importInput.files = [{ text: async () => content }];
+
+    await harness.elements.importInput.onchange();
+    await harness.elements.importConfirm.onclick();
+
+    expect(attempts).toEqual([{ content, revision: 'rev-1' }]);
+    expect(harness.elements.importReview.hidden).toBeFalse();
+    expect(harness.elements.importSummary.textContent).toContain('1 ignoré');
+    expect(visibleText(harness.elements.importDetails)).toContain(
+      'Aucun changement : ce preset sera ignoré.',
+    );
+    expect(harness.reports.at(-1)).toEqual([
+      'error',
+      'bibliothèque modifiée — résumé actualisé, confirmer à nouveau',
+    ]);
+
+    await harness.elements.importConfirm.onclick();
+    expect(attempts).toEqual([
+      { content, revision: 'rev-1' },
+      { content, revision: 'rev-2' },
+    ]);
+    expect(harness.elements.importReview.hidden).toBeTrue();
   });
 });
