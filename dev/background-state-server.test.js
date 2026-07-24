@@ -142,3 +142,53 @@ test('l’import est prévisualisé sans écriture puis protégé par sa révisi
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('POST /event valide diffuse une fois sans toucher le fichier ; invalide → 400 sans diffusion', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-background-event-'));
+  const stateFile = join(directory, 'state.json');
+  const port = 43000 + (process.pid % 10000);
+  const baseUrl = `http://localhost:${port}`;
+  const child = Bun.spawn(['bun', 'dev/background-state-server.js'], {
+    cwd: join(import.meta.dir, '..'),
+    env: { ...process.env, BACKGROUND_STATE_PORT: String(port), BACKGROUND_STATE_FILE: stateFile },
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+
+  try {
+    await waitForServer(baseUrl);
+    const before = await (await fetch(`${baseUrl}/state`)).text();
+
+    const messages = [];
+    const socket = new WebSocket(`ws://localhost:${port}/event-ws`);
+    socket.onmessage = (event) => messages.push(event.data);
+    await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject; });
+
+    const invalid = await fetch(`${baseUrl}/event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'donation' }),
+    });
+    expect(invalid.status).toBe(400);
+    await delay(60);
+    expect(messages).toEqual([]);
+
+    const valid = await fetch(`${baseUrl}/event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'raid', username: 'z' }),
+    });
+    expect(valid.ok).toBe(true);
+    await delay(60);
+    expect(messages).toHaveLength(1);
+    expect(JSON.parse(messages[0])).toEqual({ type: 'raid', username: 'z' });
+
+    const after = await (await fetch(`${baseUrl}/state`)).text();
+    expect(after).toBe(before);
+    socket.close();
+  } finally {
+    child.kill();
+    await child.exited;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

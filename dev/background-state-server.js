@@ -41,6 +41,7 @@ import {
 } from './background-state-format.js';
 import { createKeyedLock } from './keyed-lock.js';
 import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
+import { validateBackgroundEvent } from './background-event-format.js';
 import {
   backgroundPresetRevision,
   mergeBackgroundPresetImport,
@@ -53,12 +54,20 @@ const STATE_FILE = process.env.BACKGROUND_STATE_FILE ?? `${import.meta.dir}/data
 const withStateLock = createKeyedLock();
 const STATE_LOCK_KEY = 'background-state';
 
-/** @typedef {{ channel: 'state'|'presets' }} BackgroundSocketData */
+/** @typedef {{ channel: 'state'|'presets'|'event' }} BackgroundSocketData */
 
 /** @type {Set<import('bun').ServerWebSocket<BackgroundSocketData>>} */
 const stateClients = new Set();
 /** @type {Set<import('bun').ServerWebSocket<BackgroundSocketData>>} */
 const presetClients = new Set();
+/** @type {Set<import('bun').ServerWebSocket<BackgroundSocketData>>} */
+const eventClients = new Set();
+
+/** @param {Record<string, unknown>} event */
+function broadcastEvent(event) {
+  const payload = JSON.stringify(event);
+  eventClients.forEach((client) => client.send(payload));
+}
 
 /** @param {import('./background-state-format.js').BackgroundCurrent} current */
 function broadcastCurrent(current) {
@@ -293,6 +302,19 @@ async function handleDeletePreset(req) {
   return response;
 }
 
+/**
+ * POST /event — événement de réaction éphémère : validé puis diffusé, jamais persisté.
+ * @param {Request} req
+ * @returns {Promise<Response>}
+ */
+async function handlePostEvent(req) {
+  const body = /** @type {*} */ (await req.json());
+  const validation = validateBackgroundEvent(body);
+  if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
+  broadcastEvent(body);
+  return new Response('ok', { headers: CORS_HEADERS });
+}
+
 /** @type {Record<string, (req: Request) => Promise<Response>>} */
 const POST_ROUTES = {
   '/state': handlePostState,
@@ -302,6 +324,7 @@ const POST_ROUTES = {
   '/preview-import': handlePreviewImport,
   '/import-presets': handleImportPresets,
   '/delete-preset': handleDeletePreset,
+  '/event': handlePostEvent,
 };
 
 Bun.serve({
@@ -311,8 +334,8 @@ Bun.serve({
 
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
 
-    if (url.pathname === '/state-ws' || url.pathname === '/presets-ws') {
-      const channel = url.pathname === '/state-ws' ? 'state' : 'presets';
+    if (url.pathname === '/state-ws' || url.pathname === '/presets-ws' || url.pathname === '/event-ws') {
+      const channel = url.pathname === '/state-ws' ? 'state' : url.pathname === '/presets-ws' ? 'presets' : 'event';
       const upgraded = server.upgrade(req, { data: { channel } });
       return upgraded ? undefined : new Response('upgrade failed', { status: 500 });
     }
@@ -332,11 +355,13 @@ Bun.serve({
   websocket: {
     open(ws) {
       if (ws.data.channel === 'state') stateClients.add(ws);
-      else presetClients.add(ws);
+      else if (ws.data.channel === 'presets') presetClients.add(ws);
+      else eventClients.add(ws);
     },
     close(ws) {
       stateClients.delete(ws);
       presetClients.delete(ws);
+      eventClients.delete(ws);
     },
     message() {},
   },
