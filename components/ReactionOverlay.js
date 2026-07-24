@@ -32,6 +32,13 @@ export function raidBandCenter(progress, cssW, bandWidth) { return -bandWidth + 
 export function bitsCount(random = Math.random) { return 18 + Math.floor(random() * 15); }
 
 /**
+ * Style du canvas d'overlay. Le `z-index` est structurel : l'effet de fond est (ré)appendu au
+ * conteneur à chaque montage, donc après l'overlay dans l'ordre DOM ; sans z-index, la réaction
+ * passerait derrière l'effet (bug trouvé en vérification live 2026-07-24).
+ */
+export const OVERLAY_CANVAS_STYLE = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;';
+
+/**
  * État pur d'une réaction unique active à la fois.
  * @returns {{ trigger(type: string, now: number): boolean, sample(now: number): { type: string, progress: number } | null, readonly isActive: boolean }}
  */
@@ -98,7 +105,7 @@ export function ReactionOverlay(options = {}) {
   const rgb = resolveColor(options.color ?? 'var(--color-gold)');
 
   const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
+  canvas.style.cssText = OVERLAY_CANVAS_STYLE;
   const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
 
   let cssW = 0;

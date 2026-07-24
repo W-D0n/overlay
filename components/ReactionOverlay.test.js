@@ -1,8 +1,13 @@
 import { expect, test } from 'bun:test';
 import {
   reactionDuration, followRadius, pulseAlpha, raidBandCenter, bitsCount,
-  createReactionScheduler, createReactionLoop,
+  createReactionScheduler, createReactionLoop, OVERLAY_CANVAS_STYLE,
 } from './ReactionOverlay.js';
+
+test('[OVERLAY_CANVAS_STYLE] déclare un z-index pour passer au-dessus de l’effet', () => {
+  expect(OVERLAY_CANVAS_STYLE).toContain('z-index:1');
+  expect(OVERLAY_CANVAS_STYLE).toContain('pointer-events:none');
+});
 
 test('[reactionDuration] durée par type, null si inconnu', () => {
   expect(reactionDuration('follow')).toBe(1800);

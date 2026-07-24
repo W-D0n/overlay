@@ -5,6 +5,15 @@ import { tmpdir } from 'node:os';
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+async function waitFor(predicate, timeoutMs = 2000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (predicate()) return;
+    await delay(10);
+  }
+  throw new Error('condition non atteinte dans le délai imparti');
+}
+
 async function waitForServer(baseUrl) {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     try {
@@ -179,8 +188,7 @@ test('POST /event valide diffuse une fois sans toucher le fichier ; invalide →
       body: JSON.stringify({ type: 'raid', username: 'z' }),
     });
     expect(valid.ok).toBe(true);
-    await delay(60);
-    expect(messages).toHaveLength(1);
+    await waitFor(() => messages.length === 1);
     expect(JSON.parse(messages[0])).toEqual({ type: 'raid', username: 'z' });
 
     const after = await (await fetch(`${baseUrl}/state`)).text();
