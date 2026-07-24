@@ -26,25 +26,24 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 3. **Source de vérité design** — toutes les variables visuelles dans `tokens.css`. Jamais de valeur
    hardcodée dans un composant si un token existe.
 4. **Pattern composant** — chaque composant est une fonction retournant
-   `{ el, update?(data), destroy?() }`. Voir `components/index.js`.
-5. **Configuration hors composant** — données statiques qui pilotent un composant (couches d'une
-   scène, items de nav, options) → fichier `*.config.js` dédié, jamais en dur dans le composant.
-6. **Communication par messages `{ type, data }`** — le store consomme un protocole abstrait, sans
-   connaître la source. Indépendance = protocole, pas absence de connexion. Voir `{overview}`.
-7. **Transparence dynamique** — la visibilité (full / minimal / hidden) est un état orthogonal à la
-   scène, géré via couches nommées (`data-layer`). Voir `{overview}`.
+   `{ el, update?(data), destroy?() }`. Voir `components/*Background.js`.
+5. **Configuration hors composant** — données statiques qui pilotent un composant (schémas de
+   champs, items de nav, options) → fichier `*.config.js` dédié, jamais en dur dans le composant.
+6. **Protocoles locaux explicites** — l'état du fond (`{ component, options }`) et les événements de
+   réaction (`{ type, username?, amount? }`) sont consommés sans connaître leur source.
+   Indépendance = protocole, pas absence de connexion. Voir `{overview}`.
 
 ---
 
 ## Shared surfaces — à vérifier avant tout changement
 
-- `tokens.css` — touché par toutes les scènes
-- `store.js` — protocole `{ type, data }` consommé par toutes les scènes
+- `tokens.css` — touché par tous les effets et toutes les surfaces de dev
 - `types.js` — types JSDoc partagés
-- `components/index.js` — composants réutilisés
-- Le **format de config de scène** — spécifié dans `docs/specs/scene-config-protocol.md`
+- `component-names.js` / `component-registry.js` — vocabulaire et factories des effets de fond
+- `dev/component-field-schemas.js` — formulaires générés du tuner
+- Le **format d'état du fond** — spécifié dans `docs/specs/background-standalone.md`
 
-Modifier l'une de ces surfaces impacte plusieurs scènes : vérifier en aval avant d'éditer.
+Modifier l'une de ces surfaces impacte tous les effets : vérifier en aval avant d'éditer.
 
 ---
 

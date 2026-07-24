@@ -1,12 +1,11 @@
 # Dépendances
 node_modules/
 
-# Secrets & env (relais OBS — jamais commiter)
+# Secrets & env (jamais commiter)
 .env
 .env.*
 !.env.example
 *.local.js
-obs-config.local.js
 
 # Artefacts produits hors versionnement
 *.zip
@@ -20,9 +19,6 @@ Thumbs.db
 
 # Artefacts de vérification visuelle (Playwright MCP)
 .playwright-mcp/
-
-# Historique de sauvegardes de l'éditeur (dev/scene-history-store.js) — généré, pas versionné
-scenes/data/.history/
 
 # État runtime du fond standalone (background-state-server) — local, jamais versionné
 dev/data/

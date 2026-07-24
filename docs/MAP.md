@@ -8,15 +8,16 @@
 
 - `background.html` est désormais l'URL OBS principale : elle rend un seul effet de fond, sans
   widgets ni moteur de scènes.
-- `dev/studio.html` est l'entrée de création unique ; son onglet Fonds fournit l'aperçu plein écran, le choix parmi les **11 effets**, les
-  formulaires générés et les presets.
+- `dev/studio.html` est l'entrée de création unique : aperçu plein écran, choix parmi les **11
+  effets**, formulaires générés et presets.
 - `dev/background-state-server.js` persiste `{ current, presets }` et synchronise le tuner avec OBS
   par WebSocket.
-- `start-stream.bat` ne lance que le serveur statique et l'état du fond. `start-dev.bat` garde aussi
-  l'éditeur et la preview des scènes afin de préserver la création d'overlay.
-- Le moteur de scènes, l'éditeur et le relais OBS restent dans le dépôt mais sont **mis en pause**.
-  Les lignes S1→S8 et Track A/B ci-dessous documentent ce socle livré ; elles ne constituent plus
-  la priorité courante.
+- `start-stream.bat` et `start-dev.bat` lancent le serveur statique et l'état du fond ; `start-dev`
+  ouvre en plus le Studio et le rendu OBS.
+- Le moteur de scènes, l'éditeur et le relais OBS ont été **archivés le 2026-07-25** : retirés du
+  working tree, restaurables via le tag git `scene-engine-v1`, specs déplacées dans
+  `docs/specs/archive/`. Les lignes S1→S8 et Track A ci-dessous restent l'historique de ce socle,
+  plus une description du dépôt actuel.
 - Le backlog actif est centralisé dans `docs/inbox.md` : validations ShapeMorph/ColorDrops/OBS native,
   puis décisions éventuelles sur le preset par scène, les miniatures et le placement dynamique.
 - Lot du 2026-07-16 : tooling couleur/palettes/gradients, correctifs OrbitingShapes et Rain,
@@ -30,8 +31,14 @@
   nom/effet/tag, export/import versionné et confirmation résumée avant import.
 - Lot du 2026-07-18 : retrait de MatrixGrid et migration sûre des anciens états, points de départ
   avant les réglages, contrôle « Avant le live » repliable et panneau des scènes fixé à gauche.
+- Lot du 2026-07-24 : ① fonds réactifs (`POST /event`, `WS /event-ws`, `ReactionOverlay`,
+  routage natif/overlay via `background-reactions.js`, boutons de test dans le tuner).
+- Lot du 2026-07-25 : ⑦ archivage du moteur de scènes — registre scindé sur les seuls effets de
+  fond, `types.js` réduit, Studio à une entrée, `start-dev` limité aux serveurs statique et fond,
+  tuner DotGrid nettoyé de sa partie relais OBS.
 
-État après le lot du 2026-07-18 : **320 tests verts**.
+État après l'archivage du 2026-07-25 : **193 tests verts** (341 avant retrait des tests du moteur
+de scènes).
 
 ## Découpage des sessions
 

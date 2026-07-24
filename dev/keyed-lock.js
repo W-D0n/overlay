@@ -7,14 +7,11 @@
  * qui traverse un `await` (lecture disque) peut être interléavé par une autre requête sur la MÊME
  * ressource. Une chaîne de promesses par clé résout ça sans verrou fichier.
  *
- * Extrait ici (2026-07-06, voir docs/specs/scene-history-protocol.md §Concurrence d'accès) après
- * 3 occurrences indépendantes du même motif : `manifest.json` (scene-data-server.js), historique de
- * scène (scene-history-store.js), fichier de scène (scene-data-server.js `/save-placement`),
+ * Deux écrivains actuels : `dev/data/background-state.json` (background-state-server.js) et
  * `components/DotGridAnimated.js` (tuner-server.js).
  *
  * Ne protège PAS deux process Bun distincts écrivant le même fichier — pour ce cas, la solution est
- * un unique process propriétaire de la ressource (voir docs/specs/scene-history-protocol.md), pas ce
- * module.
+ * un unique process propriétaire de la ressource, pas ce module.
  */
 
 /**

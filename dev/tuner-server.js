@@ -1,18 +1,17 @@
 // @ts-check
 /**
- * dev/tuner-server.js — Serveur d'écriture pour dotgrid-tuner.html (S5, dev-only).
+ * dev/tuner-server.js — Serveur d'écriture pour dotgrid-tuner.html (dev-only).
  *
  * NE JAMAIS lancer pendant le live — c'est un outil de dev qui écrit sur disque
- * (`components/DotGridAnimated.js`), séparé du relais de production (`relay/server.js`).
+ * (`components/DotGridAnimated.js`), séparé des serveurs du live (dev/start-stream.js).
  *
  * Routes :
  *   POST /save     — reçoit les paramètres courants du tuner, réécrit le fichier source. Sérialisé
- *                      via `withSaveLock` (dev/keyed-lock.js, 2026-07-06, voir
- *                      docs/specs/scene-history-protocol.md §Concurrence d'accès) — sans ça, deux
+ *                      via `withSaveLock` (dev/keyed-lock.js) — sans ça, deux
  *                      sauvegardes rapprochées (double-clic, curseur glissé vite) peuvent
  *                      interléaver leur lecture-modification-écriture du même fichier source.
  *   WS   /reload-ws — diffuse un message `reload` à chaque sauvegarde réussie ; un onglet de
- *                      preview (ex. index.html) connecté peut s'auto-rafraîchir dessus (voir
+ *                      preview (ex. background.html) connecté peut s'auto-rafraîchir dessus (voir
  *                      docs/obs-setup.md pour le snippet console à coller dans l'onglet de test).
  * Logique de remplacement testée séparément (AD-1) : voir `dotgrid-params-format.js`.
  *

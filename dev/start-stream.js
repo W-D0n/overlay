@@ -5,8 +5,6 @@
  *
  * Restreint au strict nécessaire du mode background-only (owner, 2026-07-14) : statique
  * (sert background.html à la Browser Source) + background-state (état du fond, suivi live).
- * Le relais OBS (relay/server.js) appartient au moteur de scènes, mis de côté — le relancer
- * individuellement si un retour aux scènes l'exige.
  *
  * Même architecture que dev/start-dev.js : un seul process Bun, sortie préfixée par serveur,
  * enfants liés au Job Object Windows du parent — fermeture du terminal (X ou Ctrl+C) tue les

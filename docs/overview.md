@@ -27,14 +27,14 @@ background.html (OBS)
 ```
 
 - `background.html` rend l'effet courant, ou un preset fixe avec `?preset=...`.
-- `dev/studio.html` réunit la création des fonds et des scènes dans une navigation unique.
+- `dev/studio.html` est l'entrée de création unique.
 - `dev/background-tuner.html` ne porte que le markup et les styles ;
   `dev/background-tuner-runtime.js` orchestre ses modules et utilise le même moteur de montage pour
   l'aperçu.
 - La bibliothèque de presets et son transfert import/export sont séparés : un fichier choisi est
   toujours prévisualisé avant que la confirmation n'autorise son écriture.
 - `dev/background-state-server.js` persiste l'état et le diffuse en direct.
-- Un seul effet est actif à la fois parmi les 12 enregistrés.
+- Un seul effet est actif à la fois parmi les 11 enregistrés.
 - Les presets mémorisent `{ id, name, component, options, tags? }` et exposent une URL OBS stable pour
   affecter des ambiances différentes aux scènes.
 
@@ -61,33 +61,28 @@ sont volontairement libres : hex, `rgb()`, `oklch()` ou `var(--token)`.
 gradients nommés. Elle ne remplace pas les tokens CSS utilisés par l'interface et les composants
 non configurables.
 
-## Moteur de scènes — rendu et création conservés
+## Moteur de scènes — archivé
 
-Le moteur historique reste fonctionnel :
+Le moteur historique (page unique `index.html`, neuf scènes JSON, couches nommées, transitions,
+protocole `{ type, data }`, relais OBS WebSocket, éditeur `dev/overlay-setting.html`) a été retiré
+du working tree le 2026-07-25. Il reste restaurable via le tag git `scene-engine-v1` et ses specs
+sont conservées dans `docs/specs/archive/`.
 
-- page unique `index.html` ;
-- neuf scènes JSON dans `scenes/data/` ;
-- couches nommées et niveaux `full` / `minimal` / `hidden` ;
-- transitions et fonds polymorphes ;
-- protocole `{ type, data }` ;
-- relais OBS WebSocket ;
-- éditeur `dev/overlay-setting.html`.
-
-Ce sous-système n'est plus le flux live principal, mais ses neuf rendus et son éditeur restent
-fonctionnels. `start-dev.bat` ouvre le Studio et la preview ; le nettoyage
-du dépôt ne doit jamais modifier l'apparence d'une scène sans validation visuelle explicite.
+`DotGridAnimated` n'en faisait pas partie : c'est l'effet de fond `DotGridBackground`, toujours
+actif.
 
 ## Principe d'indépendance
 
 L'indépendance repose sur des protocoles locaux explicites :
 
-- le moteur de scènes consomme des messages `{ type, data }` ;
 - le fond autonome consomme un état `{ component, options }` ;
+- les réactions consomment un événement éphémère `{ type, username?, amount? }` (`POST /event`) ;
 - les sources de données et l'UI restent remplaçables tant qu'elles respectent ces contrats.
 
 ## Documents de référence
 
 - `docs/specs/background-standalone.md` — architecture active ;
+- `docs/specs/background-reactive-events.md` — protocole des réactions ;
 - `docs/specs/background-effects-library.md` — contrat et inventaire des effets ;
 - `docs/guides/tuner-le-fond.md` — utilisation quotidienne ;
 - `docs/inbox.md` — notes et items qui restent à traiter ;

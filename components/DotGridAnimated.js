@@ -238,8 +238,7 @@ export function lerpModeParams(from, to, progress) {
  *
  * Couche 1 : oscillation sinusoïdale par point (init aléatoire au chargement).
  * Couche 2 : bruit Simplex 2D ambiant, paramétré par mode scène.
- * Couche 3 : morphisme des paramètres Simplex entre deux modes (`morphTo`, Track A / transition
- * `morph` de `scene-runtime.js`). Couche 4 : réactions visuelles aux alertes stream (`trigger`,
+ * Couche 3 : morphisme des paramètres Simplex entre deux modes (`morphTo`). Couche 4 : réactions visuelles aux alertes stream (`trigger`,
  * `docs/specs/dotgrid-event-triggers.md`) + déclenchement `ambient` périodique automatique.
  *
  * @param {{
@@ -547,7 +546,7 @@ export function DotGridAnimated(options = {}) {
     /**
      * Changer le mode ambiant (swap instantané des paramètres Simplex). Mode invalide/absent →
      * repli interne sur `DEFAULT_MODE` (AD-B4, `docs/specs/background-effects-library.md`) —
-     * jamais un no-op silencieux : l'appelant générique (`scene-runtime.js`) ne valide plus lui-même.
+     * jamais un no-op silencieux : l'appelant générique ne valide pas lui-même.
      * @param {unknown} mode
      */
     setMode(mode) {
@@ -558,9 +557,9 @@ export function DotGridAnimated(options = {}) {
     },
 
     /**
-     * Rafraîchit le composant avec de nouvelles options (contrat `ComponentInstance.update` générique
-     * — Track B, `scene-runtime.js` l'appelle quand le composant de fond reste le même entre deux
-     * scènes mais que ses options changent).
+     * Rafraîchit le composant avec de nouvelles options (contrat `ComponentInstance.update`
+     * générique — `background-mount.js` l'appelle quand l'effet monté reste le même et que seules
+     * ses options changent).
      * @param {unknown} newOptions
      */
     update(newOptions) {
@@ -638,7 +637,7 @@ export function DotGridAnimated(options = {}) {
 
     /**
      * Interpole les paramètres Simplex du mode courant vers `options.mode` sur `options.duration`
-     * ms (Track A / transition `morph`, `scene-runtime.js`). No-op si `mode` est invalide ou déjà
+     * ms. No-op si `mode` est invalide ou déjà
      * le mode courant (rien à interpoler).
      * @param {{ mode: GridMode, duration?: number, easing?: unknown }} options
      * @returns {Promise<void>}

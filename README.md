@@ -8,13 +8,12 @@ Direction artistique **Atelier** : noir profond, or patiné, typographie serif +
 Le flux principal ne rend qu'une animation de fond :
 
 - `background.html` — URL à utiliser dans OBS ;
-- `dev/studio.html` — entrée unique vers les fonds autonomes et les scènes complètes ;
+- `dev/studio.html` — entrée unique de création ;
 - `dev/background-tuner.html` — aperçu plein écran, points de départ, réglages guidés et presets ;
 - `dev/background-state-server.js` — persistance JSON et synchronisation WebSocket.
 
-Le moteur de scènes complet (`index.html`, `scene-runtime.js`, `dev/overlay-setting.html`) reste
-dans le dépôt et fonctionne toujours. Le Studio donne accès à son éditeur afin de
-préserver la création et les neuf rendus existants, même si le fond autonome reste le flux live.
+Le moteur de scènes a été retiré du dépôt le 2026-07-25. Son code reste restaurable via le tag
+git `scene-engine-v1`, et ses specs vivent dans `docs/specs/archive/`.
 
 ## Démarrage rapide
 
@@ -27,8 +26,7 @@ Double-cliquer sur `start-dev.bat`. Le script lance l'environnement de création
 L'onglet **Fonds & presets** permet de choisir parmi les **11 effets**, de les régler avec des
 curseurs bornés, d'essayer les points de départ et de gérer ses presets. La recherche couvre
 le nom, l'effet et les tags ; **Exporter** et **Importer** rendent la bibliothèque personnelle
-portable entre deux installations. L'onglet **Scènes
-complètes** conserve l'éditeur et les neuf rendus existants.
+portable entre deux installations.
 
 ### Utiliser le fond dans OBS
 
@@ -121,19 +119,6 @@ le rendu live.
 Les styles des guides HTML vivent dans `docs/guides/guide.css` parce qu'ils appartiennent à la
 documentation, pas au rendu OBS.
 
-## Moteur de scènes conservé
-
-Le sous-système historique comprend :
-
-- neuf scènes dans `scenes/data/*.scene.json` ;
-- un runtime page unique dans `index.html` / `scene-runtime.js` ;
-- le protocole abstrait `{ type, data }` dans `protocol.js` / `store.js` ;
-- le relais OBS WebSocket dans `relay/` ;
-- l'éditeur de scènes dans `dev/overlay-setting.html`.
-
-Il n'est pas supprimé, mais les nouvelles améliorations visuelles ciblent le mode fond autonome
-sauf demande explicite de retour aux scènes.
-
 ## Contraintes
 
 - résolution fixe `1920 × 1080` ;
@@ -152,7 +137,7 @@ bun test
 ### Contrôler une branche avant fusion
 
 1. Ouvrir la comparaison GitHub `main...nom-de-la-branche` et lire l'onglet **Files changed**.
-2. Lancer `start-dev.bat`, puis vérifier dans le Studio les effets, les presets et les neuf scènes.
+2. Lancer `start-dev.bat`, puis vérifier dans le Studio les effets et les presets.
 3. Lancer `bun test` : aucune fusion ne doit être faite si un test échoue.
 4. Fusionner seulement après ce contrôle. Une branche poussée ne modifie pas `main` à elle seule.
 

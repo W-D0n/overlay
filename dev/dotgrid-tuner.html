@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <title>Dev — DotGrid Tuner</title>
   <!--
-    OUTIL DE DEV — jamais chargé dans OBS, jamais référencé depuis index.html.
+    OUTIL DE DEV — jamais chargé dans OBS, jamais référencé depuis background.html.
     Sliders live sur les paramètres Simplex (couche 2, par mode) + baseOpacity/dotRadius (globaux).
-    Persistance (S5) : bouton "Sauvegarder" -> POST vers dev/tuner-server.js (bun dev/tuner-server.js,
+    Persistance : bouton "Sauvegarder" -> POST vers dev/tuner-server.js (bun dev/tuner-server.js,
     outil de dev séparé, jamais lancé pendant le live) qui réécrit components/DotGridAnimated.js.
     Bouton "Copier" gardé en secours si le serveur de dev n'est pas lancé.
   -->
@@ -110,34 +110,8 @@
 
   <script type="module">
     import { DotGridAnimated, MODE_PARAMS, GRID_MODES } from '../components/DotGridAnimated.js';
-    import { OBS_SCENE_MAP } from '../relay/obs-scene-map.js';
-
-    /** Nom(s) de scène OBS pointant vers chaque mode overlay (inverse de OBS_SCENE_MAP) — pour
-     * affichage seulement, aucun mode n'a de garantie d'avoir une scène OBS correspondante. */
-    const OBS_NAMES_BY_MODE = Object.entries(OBS_SCENE_MAP).reduce((acc, [obsName, sceneId]) => {
-      (acc[sceneId] ??= []).push(obsName);
-      return acc;
-    }, /** @type {Record<string, string[]>} */ ({}));
 
     const TUNER_SERVER_URL = 'http://localhost:4458/save';
-    const RELAY_REFRESH_URL = 'http://localhost:4456/refresh-source';
-
-    const { RELAY_TOKEN } = await import('../obs-config.local.js').catch(() => import('../obs-config.example.js'));
-
-    /** Best-effort : rafraîchit le cache de la Browser Source OBS via le relais (S6, tranche ciblée).
-     * N'échoue jamais bruyamment — le relais peut ne pas tourner en dev pur (pas d'OBS ouvert). */
-    async function refreshObsSource() {
-      if (!RELAY_TOKEN) return { attempted: false };
-      try {
-        const res = await fetch(RELAY_REFRESH_URL, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${RELAY_TOKEN}` },
-        });
-        return { attempted: true, ok: res.ok };
-      } catch {
-        return { attempted: true, ok: false };
-      }
-    }
 
     const surface = document.getElementById('preview-surface');
     const preview = document.getElementById('preview');
@@ -170,8 +144,7 @@
     GRID_MODES.forEach((mode) => {
       const opt = document.createElement('option');
       opt.value = mode;
-      const obsNames = OBS_NAMES_BY_MODE[mode];
-      opt.textContent = obsNames ? `${obsNames.join(', ')} (${mode})` : mode;
+      opt.textContent = mode;
       modeSelect.appendChild(opt);
     });
     modeSelect.value = currentMode;
@@ -270,9 +243,7 @@
           status.textContent = `Échec de la sauvegarde (${response.status})`;
           return;
         }
-        const refresh = await refreshObsSource();
-        status.textContent = 'Sauvegardé dans components/DotGridAnimated.js'
-          + (refresh.attempted ? (refresh.ok ? ' — cache OBS rafraîchi' : ' — rafraîchissement OBS échoué (relais lancé ?)') : '');
+        status.textContent = 'Sauvegardé dans components/DotGridAnimated.js';
       } catch {
         status.textContent = 'Serveur de dev injoignable — lancer "bun dev/tuner-server.js", ou utiliser Copier';
       }

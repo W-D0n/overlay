@@ -3,9 +3,8 @@
  * dev/start-dev.js — Lance les serveurs de dev en un seul process (remplace l'ancien
  * start-dev.bat multi-fenêtres, 2026-07-05).
  *
- * Lance le Studio qui réunit les deux surfaces de création : fonds autonomes et scènes complètes.
- * Le relais OBS et le tuner DotGrid qui réécrit le code source restent optionnels et se lancent
- * séparément. Le live utilise `start-stream.js`, volontairement plus réduit.
+ * Lance le Studio, seule surface de création depuis l'archivage du moteur de scènes. Le tuner
+ * DotGrid qui réécrit le code source reste optionnel et se lance séparément. Le live utilise `start-stream.js`, volontairement plus réduit.
  *
  * Un seul terminal, sortie préfixée par serveur, tous les enfants tués proprement à la fermeture
  * (Ctrl+C). L'ancien script (`start "titre" cmd /k ...` multi-fenêtres) ouvrait des fenêtres
@@ -25,8 +24,6 @@ const SERVERS = [
   // Recharge les imports du validateur quand un nouvel effet rejoint le schéma. Sans `--watch`,
   // un tuner frais pouvait proposer un effet refusé par un vieux process encore en mémoire.
   { name: 'background-state', cmd: ['bun', '--watch', 'dev/background-state-server.js'], port: Number(process.env.BACKGROUND_STATE_PORT ?? 4462) },
-  { name: 'scene-data',       cmd: ['bun', 'dev/scene-data-server.js'],       port: Number(process.env.SCENE_DATA_PORT ?? 4460) },
-  { name: 'obs-scene-map',    cmd: ['bun', 'dev/obs-scene-map-server.js'],    port: Number(process.env.OBS_SCENE_MAP_PORT ?? 4461) },
 ];
 
 const freed = freeStaleBunPorts(SERVERS);
@@ -87,7 +84,7 @@ process.on('SIGTERM', shutdown);
 setTimeout(() => {
   const urls = [
     'http://localhost:5500/dev/studio.html',
-    'http://localhost:5500/index.html?livereload=1',
+    'http://localhost:5500/background.html',
   ];
   for (const url of urls) Bun.spawn(['rundll32.exe', 'url.dll,FileProtocolHandler', url]);
 }, 2000);
