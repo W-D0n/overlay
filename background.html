@@ -33,6 +33,8 @@
   <script type="module">
     import { createBackgroundMount } from './background-mount.js';
     import { selectBackground } from './background-selection.js';
+    import { ReactionOverlay } from './components/ReactionOverlay.js';
+    import { createReactionCoordinator } from './background-reactions.js';
 
     const searchParams = new URLSearchParams(location.search);
     const presetRef = searchParams.get('preset');
@@ -42,9 +44,15 @@
     }
 
     const STATE_SERVER = 'http://localhost:4462';
-    const mount = createBackgroundMount(document.getElementById('bg-layer'));
+    const bgLayer = document.getElementById('bg-layer');
+    const mount = createBackgroundMount(bgLayer);
     mount.setPaused(document.hidden);
     document.addEventListener('visibilitychange', () => mount.setPaused(document.hidden));
+
+    // Réactions : overlay partagé (au-dessus de l'effet) + routage natif/overlay.
+    const overlay = ReactionOverlay();
+    bgLayer.appendChild(overlay.el);
+    const coordinator = createReactionCoordinator({ mount, overlay });
 
     function applySafely(current) {
       try {
@@ -90,7 +98,22 @@
       ws.onclose = () => setTimeout(() => connect(Math.min(delayMs * 2, 30000)), delayMs);
     }
 
+    /** Réactions : canal séparé, actif quel que soit le mode (courant ou preset). */
+    function connectEvents(delayMs = 1000) {
+      const ws = new WebSocket('ws://localhost:4462/event-ws');
+      ws.onopen = () => { delayMs = 1000; };
+      ws.onmessage = (event) => {
+        try {
+          coordinator.handle(JSON.parse(event.data));
+        } catch (err) {
+          console.error('[background] événement invalide :', err);
+        }
+      };
+      ws.onclose = () => setTimeout(() => connectEvents(Math.min(delayMs * 2, 30000)), delayMs);
+    }
+
     connect();
+    connectEvents();
   </script>
 </body>
 </html>
