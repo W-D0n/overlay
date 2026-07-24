@@ -1,5 +1,7 @@
 // @ts-check
 import { createBackgroundMount } from '../background-mount.js';
+import { ReactionOverlay } from '../components/ReactionOverlay.js';
+import { createReactionCoordinator } from '../background-reactions.js';
 import {
   BACKGROUND_COMPONENT_NAMES,
   backgroundEffectLabel,
@@ -31,6 +33,9 @@ export function createBackgroundPreviewController(input) {
   const windowRef = input.windowRef ?? window;
   const now = input.now ?? (() => windowRef.performance.now());
   const mount = createBackgroundMount(input.layer);
+  const overlay = ReactionOverlay();
+  input.layer.appendChild(overlay.el);
+  const reactions = createReactionCoordinator({ mount, overlay });
   const session = createBackgroundPreviewSession();
   let measuredFps = null;
   let postTimer = 0;
@@ -147,6 +152,7 @@ export function createBackgroundPreviewController(input) {
       if (JSON.stringify(next) === JSON.stringify(current)) return;
       apply(next);
     },
+    react: reactions.handle,
     snapshot: session.snapshot,
     /** @param {string | null} presetId */
     setActivePresetId(presetId) {
@@ -175,6 +181,7 @@ export function createBackgroundPreviewController(input) {
       windowRef.clearTimeout(postTimer);
       windowRef.cancelAnimationFrame(frameId);
       documentRef.removeEventListener('visibilitychange', onVisibilityChange);
+      overlay.destroy();
       mount.destroy();
     },
   };

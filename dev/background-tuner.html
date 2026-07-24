@@ -256,6 +256,9 @@
     .save-row { display: flex; gap: 8px; margin-top: 8px; }
     .save-row input { flex: 1; }
 
+    .reaction-buttons { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+    .reaction-buttons button { flex: 1; min-width: 64px; }
+
     .runtime-row {
       display: grid;
       grid-template-columns: 1fr auto;
@@ -400,6 +403,15 @@
     <label for="effect-select">Effet</label>
     <select id="effect-select"></select>
     <div id="fields"></div>
+
+    <h2>Tester une réaction</h2>
+    <p class="section-intro">Simule un événement stream. L’aperçu et l’URL OBS réagissent en direct.</p>
+    <div class="reaction-buttons">
+      <button type="button" data-event="follow">Follow</button>
+      <button type="button" data-event="sub">Sub</button>
+      <button type="button" data-event="raid">Raid</button>
+      <button type="button" data-event="bits">Bits</button>
+    </div>
 
     <h2>Mes presets</h2>
     <div class="library-tools">

@@ -93,6 +93,14 @@ export async function startBackgroundTuner(environment = {}) {
     windowRef,
   });
 
+  for (const button of documentRef.querySelectorAll('[data-event]')) {
+    button.addEventListener('click', () => {
+      client.sendEvent(button.getAttribute('data-event')).catch((error) => {
+        console.warn('[background-tuner] envoi d’événement impossible :', error);
+      });
+    });
+  }
+
   const readiness = createBackgroundReadinessController({
     root: byId('live-readiness'),
     title: byId('live-readiness-title'),
@@ -135,6 +143,7 @@ export async function startBackgroundTuner(environment = {}) {
   const unsubscribe = client.subscribe({
     onCurrent: preview.receive,
     onPresets: presets.refresh,
+    onEvent: preview.react,
     onError(error) {
       console.warn('[background-tuner] message temps réel invalide :', error);
     },
