@@ -103,10 +103,15 @@ export function createBackgroundStateClient(options) {
     importPresets(bundle, expectedRevision) {
       return request('import-presets', { bundle, expectedRevision });
     },
+    /** @param {string} type */
+    sendEvent(type) {
+      return request('event', { type });
+    },
     /**
      * @param {{
      *   onCurrent: (current: unknown) => void,
      *   onPresets: () => void,
+     *   onEvent?: (event: unknown) => void,
      *   onError?: (error: unknown) => void,
      * }} listeners
      */
@@ -147,6 +152,7 @@ export function createBackgroundStateClient(options) {
 
       connect('state-ws', listeners.onCurrent);
       connect('presets-ws', listeners.onPresets);
+      if (listeners.onEvent) connect('event-ws', listeners.onEvent);
 
       return () => {
         stopped = true;
