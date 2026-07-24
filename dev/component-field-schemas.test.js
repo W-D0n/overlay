@@ -1,22 +1,14 @@
 // @ts-check
 import { test, expect } from 'bun:test';
 import {
-  validateFieldSchemas,
-  COMPOSABLE_COMPONENT_NAMES,
-  COMPONENT_FIELD_SCHEMAS,
   BACKGROUND_COMPONENT_NAMES,
   BACKGROUND_FIELD_SCHEMAS,
 } from './component-field-schemas.js';
 import { COMPONENT_NAMES } from '../component-names.js';
 
-test('validateFieldSchemas passes when composable + background schemas cover component-names.js exactly', () => {
-  expect(validateFieldSchemas()).toEqual({ ok: true, errors: [] });
-});
-
-test('COMPOSABLE_COMPONENT_NAMES and BACKGROUND_COMPONENT_NAMES together equal COMPONENT_NAMES, no overlap', () => {
-  const covered = [...COMPOSABLE_COMPONENT_NAMES, ...BACKGROUND_COMPONENT_NAMES];
-  expect(new Set(covered).size).toBe(covered.length);
-  expect(new Set(covered)).toEqual(new Set(COMPONENT_NAMES));
+test('BACKGROUND_COMPONENT_NAMES equals COMPONENT_NAMES, no duplicate', () => {
+  expect(new Set(BACKGROUND_COMPONENT_NAMES).size).toBe(BACKGROUND_COMPONENT_NAMES.length);
+  expect(new Set(BACKGROUND_COMPONENT_NAMES)).toEqual(new Set(COMPONENT_NAMES));
 });
 
 test('les couleurs de fond utilisent les contrôles color/colors du tuner', () => {
@@ -35,7 +27,7 @@ test('DotGrid nomme son mode comme un profil de mouvement et l’explique', () =
 });
 
 test('chaque réglage numérique expose des bornes et un pas utilisables par un contrôle guidé', () => {
-  const schemas = { ...COMPONENT_FIELD_SCHEMAS, ...BACKGROUND_FIELD_SCHEMAS };
+  const schemas = BACKGROUND_FIELD_SCHEMAS;
   for (const [component, fields] of Object.entries(schemas)) {
     for (const field of fields) {
       if (field.type !== 'number') continue;

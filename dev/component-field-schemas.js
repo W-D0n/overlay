@@ -1,16 +1,12 @@
 // @ts-check
 import { GRID_MODES } from '../components/DotGridAnimated.js';
-import { COMPONENT_NAMES } from '../component-names.js';
 
 /**
- * dev/component-field-schemas.js — Schémas de champs éditables par type de composant (S8 session 5/6,
- * étendu Track B session B7 pour les effets de fond).
+ * dev/component-field-schemas.js — Schémas de champs éditables par effet de fond.
  *
- * Configuration statique pilotant le formulaire de `overlay-setting.html` — aucune logique ici
- * (pattern "configuration hors composant", CLAUDE.md). Un schéma par type composable, reflétant
- * exactement la signature de sa factory (`components/index.js`). `DotGridBackground` est exclu de
- * `COMPONENT_FIELD_SCHEMAS` : singleton du fond de page, jamais monté dans une couche de scène (voir
- * scene-runtime.js) — son schéma vit dans `BACKGROUND_FIELD_SCHEMAS` à la place (section Fond).
+ * Configuration statique pilotant le formulaire du tuner (`dev/background-tuner.html`) — aucune
+ * logique ici (pattern "configuration hors composant", CLAUDE.md). Un schéma par effet, reflétant
+ * exactement les options de sa factory `components/*Background.js`.
  *
  * `type` :
  *   - 'text'     : input texte
@@ -44,9 +40,6 @@ const NUMBER_FIELD_GUIDANCE = {
   opacity: { min: 0, max: 1, step: 0.01 },
   baseOpacity: { min: 0, max: 1, step: 0.01 },
   backgroundOpacity: { min: 0, max: 1, step: 0.01 },
-  maxMessages: { min: 1, max: 50, step: 1 },
-  displayDuration: { min: 250, max: 30000, step: 250, unit: 'ms' },
-  yesRatio: { min: 0, max: 1, step: 0.01 },
   spacing: { min: 6, max: 120, step: 1, unit: 'px' },
   dotRadius: { min: 0.5, max: 8, step: 0.05, unit: 'px' },
   pulseSpeed: { min: 0, max: 5, step: 0.05 },
@@ -94,75 +87,9 @@ function withNumberGuidance(definitions) {
   })]));
 }
 
-/** @type {Record<string, FieldSchema[]>} */
-const COMPONENT_FIELD_DEFINITIONS = {
-  GoldBar: [
-    { key: 'position', label: 'Position', type: 'select', choices: ['top', 'bottom'], default: 'top' },
-    { key: 'opacity', label: 'Opacité', type: 'number', default: 1 },
-  ],
-  StatBlock: [
-    { key: 'label', label: 'Libellé', type: 'text', default: 'LABEL' },
-    { key: 'value', label: 'Valeur', type: 'text', default: '—' },
-    { key: 'valueColor', label: 'Couleur de la valeur', type: 'token', tokenCategory: 'color', default: 'var(--color-text-primary)' },
-    { key: 'minWidth', label: 'Largeur minimale', type: 'text', default: 'auto' },
-  ],
-  ChatFeed: [
-    { key: 'maxMessages', label: 'Messages max', type: 'number', default: 8 },
-    { key: 'fontSize', label: 'Taille de police', type: 'text', default: '8px' },
-  ],
-  PomodoroBar: [],
-  AlertBanner: [
-    { key: 'displayDuration', label: "Durée d'affichage (ms)", type: 'number', default: 5000 },
-  ],
-  Box: [
-    { key: 'borderRadius', label: 'Rayon de bordure', type: 'token', tokenCategory: 'radius', default: 'var(--radius-md)' },
-    { key: 'borderColor', label: 'Bordure', type: 'token', tokenCategory: 'border', default: 'var(--border-panel)' },
-    { key: 'background', label: 'Fond', type: 'token', tokenCategory: 'color', default: 'var(--color-bg-panel)' },
-    { key: 'className', label: 'Classe CSS (optionnel)', type: 'text', default: '' },
-  ],
-  Divider: [
-    { key: 'orientation', label: 'Orientation', type: 'select', choices: ['horizontal', 'vertical'], default: 'horizontal' },
-    { key: 'thickness', label: 'Épaisseur', type: 'text', default: '1px' },
-    { key: 'color', label: 'Couleur', type: 'token', tokenCategory: 'color', default: 'var(--color-rule)' },
-    { key: 'className', label: 'Classe CSS (optionnel)', type: 'text', default: '' },
-  ],
-  TextLabel: [
-    { key: 'text', label: 'Texte', type: 'text', default: '' },
-    { key: 'font', label: 'Police', type: 'select', choices: ['serif', 'mono'], default: 'serif' },
-    { key: 'size', label: 'Taille', type: 'text', default: '16px' },
-    { key: 'color', label: 'Couleur', type: 'token', tokenCategory: 'color', default: 'var(--color-text-primary)' },
-    { key: 'weight', label: 'Graisse', type: 'text', default: '400' },
-    { key: 'className', label: 'Classe CSS (optionnel)', type: 'text', default: '' },
-    { key: 'tag', label: 'Balise HTML', type: 'text', default: 'div' },
-  ],
-  TextList: [
-    { key: 'lines', label: 'Lignes (une par ligne)', type: 'textarea', default: [] },
-    { key: 'itemClass', label: 'Classe CSS par ligne', type: 'text', default: '' },
-  ],
-  PollBar: [
-    { key: 'question', label: 'Question', type: 'text', default: '' },
-    { key: 'yesRatio', label: 'Ratio "oui" (0-1)', type: 'number', default: 0 },
-  ],
-  Badge: [
-    { key: 'text', label: 'Texte', type: 'text', default: '' },
-    { key: 'color', label: 'Couleur de fond', type: 'token', tokenCategory: 'color', default: 'var(--color-gold)' },
-  ],
-  Image: [
-    { key: 'src', label: 'Chemin asset local', type: 'text', default: '' },
-    { key: 'width', label: 'Largeur (optionnel)', type: 'text', default: '' },
-    { key: 'height', label: 'Hauteur (optionnel)', type: 'text', default: '' },
-  ],
-};
-
-export const COMPONENT_FIELD_SCHEMAS = withNumberGuidance(COMPONENT_FIELD_DEFINITIONS);
-
-/** Types composables proposés par le sélecteur d'ajout — `DotGridBackground` exclu (singleton). */
-export const COMPOSABLE_COMPONENT_NAMES = Object.keys(COMPONENT_FIELD_SCHEMAS);
-
 /**
- * Schémas des effets de fond (Track B, section Fond de `overlay-setting.html`) — même format que
- * `COMPONENT_FIELD_SCHEMAS`, reflète exactement les options de chaque `components/*Background.js`
- * (JSDoc en tête de chaque fichier, ne pas deviner).
+ * Schémas des effets de fond — reflètent exactement les options de chaque
+ * `components/*Background.js` (JSDoc en tête de chaque fichier, ne pas deviner).
  *
  * Couleurs des effets : `color`/`colors` utilisent `components/color-palette.json`, un picker
  * visuel et une saisie CSS libre (hex/rgb/oklch/var()). Les composants reçoivent toujours de
@@ -300,38 +227,15 @@ const BACKGROUND_FIELD_DEFINITIONS = {
 
 export const BACKGROUND_FIELD_SCHEMAS = withNumberGuidance(BACKGROUND_FIELD_DEFINITIONS);
 
-/** Noms d'effets de fond proposés par le sélecteur de la section Fond (`(aucun)` géré à part). */
+/** Noms d'effets proposés par le sélecteur du tuner (`(aucun)` géré à part). */
 export const BACKGROUND_COMPONENT_NAMES = Object.keys(BACKGROUND_FIELD_SCHEMAS);
 
 /**
  * Libellé affiché d'un effet de fond — le suffixe technique `Background` n'apporte rien à l'écran
  * (owner, 2026-07-14). Le nom complet reste la valeur interne (registry, état, presets).
- * Partagé par tous les sélecteurs d'effets (background-tuner.html, overlay-setting.html).
  * @param {string} name
  * @returns {string}
  */
 export function backgroundEffectLabel(name) {
   return name.replace(/Background$/, '');
-}
-
-/**
- * Vérifie que `COMPOSABLE_COMPONENT_NAMES ∪ BACKGROUND_COMPONENT_NAMES` couvre exactement
- * `component-names.js` — un composant ajouté au registry sans schéma d'édition (ou inversement)
- * serait autrement une lacune silencieuse dans l'éditeur (review architecture 2026-07-11).
- * Ne lève jamais (même convention que `validateSceneConfig`).
- * @returns {import('../types.js').ValidationResult}
- */
-export function validateFieldSchemas() {
-  /** @type {string[]} */
-  const errors = [];
-  const covered = new Set([...COMPOSABLE_COMPONENT_NAMES, ...BACKGROUND_COMPONENT_NAMES]);
-
-  for (const name of COMPONENT_NAMES) {
-    if (!covered.has(name)) errors.push(`composant sans schéma d'édition : ${name}`);
-  }
-  for (const name of covered) {
-    if (!COMPONENT_NAMES.includes(name)) errors.push(`schéma d'édition sans déclaration dans component-names.js : ${name}`);
-  }
-
-  return { ok: errors.length === 0, errors };
 }
