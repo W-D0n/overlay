@@ -13,7 +13,7 @@ import { COMPONENT_REGISTRY } from './component-registry.js';
  *
  * @param {HTMLElement} container - Conteneur plein écran (ex : `#bg-layer`)
  * @param {typeof COMPONENT_REGISTRY} [registry] - Point d'injection pour les tests du cycle de vie.
- * @returns {{ apply(state: { component: string | null, options: Record<string, unknown> }): void, setPaused(paused: boolean): void, destroy(): void }}
+ * @returns {{ apply(state: { component: string | null, options: Record<string, unknown> }): void, react(event: unknown): boolean, setPaused(paused: boolean): void, destroy(): void }}
  */
 export function createBackgroundMount(container, registry = COMPONENT_REGISTRY) {
   /** @type {import('./types.js').ComponentInstance | null} */
@@ -57,6 +57,13 @@ export function createBackgroundMount(container, registry = COMPONENT_REGISTRY) 
     apply(state) {
       latestState = state;
       if (!paused) applyMountedState(state);
+    },
+    react(event) {
+      if (instance !== null && typeof instance.trigger === 'function') {
+        instance.trigger(event);
+        return true;
+      }
+      return false;
     },
     setPaused(nextPaused) {
       if (paused === nextPaused) return;

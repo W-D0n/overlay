@@ -35,3 +35,34 @@ describe('background mount lifecycle', () => {
     expect(events.slice(-2)).toEqual(['create:2', 'append:rain']);
   });
 });
+
+describe('background mount react routing', () => {
+  test('react retourne true et appelle trigger quand l’effet l’expose', () => {
+    const calls = [];
+    const container = { appendChild: () => {} };
+    const registry = {
+      DotGridBackground: () => ({
+        el: { name: 'dot', remove: () => {} },
+        trigger: (event) => calls.push(event.type),
+      }),
+    };
+    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ (registry));
+    mount.apply({ component: 'DotGridBackground', options: {} });
+    expect(mount.react({ type: 'raid' })).toBe(true);
+    expect(calls).toEqual(['raid']);
+  });
+
+  test('react retourne false quand l’effet n’expose pas trigger', () => {
+    const container = { appendChild: () => {} };
+    const registry = { RainBackground: () => ({ el: { name: 'rain', remove: () => {} } }) };
+    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ (registry));
+    mount.apply({ component: 'RainBackground', options: {} });
+    expect(mount.react({ type: 'raid' })).toBe(false);
+  });
+
+  test('react retourne false quand rien n’est monté', () => {
+    const container = { appendChild: () => {} };
+    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ ({}));
+    expect(mount.react({ type: 'raid' })).toBe(false);
+  });
+});
