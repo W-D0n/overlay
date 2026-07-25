@@ -263,3 +263,36 @@ test('une table d’association invalide rend le fichier invalide', () => {
 test('un fichier neuf part avec une table d’association vide', () => {
   expect(defaultBackgroundFile().sceneMap).toEqual({});
 });
+
+test('un preset sans transition reste valide', () => {
+  expect(validateBackgroundPreset({
+    id: 'alpha', name: 'Alpha', component: 'RainBackground', options: {},
+  }).ok).toBe(true);
+});
+
+test('une transition valide est acceptée sur un preset comme sur l’état courant', () => {
+  const transition = { type: 'wipe', durationMs: 400, direction: 'up' };
+  expect(validateBackgroundPreset({
+    id: 'alpha', name: 'Alpha', component: 'RainBackground', options: {}, transition,
+  }).ok).toBe(true);
+  expect(validateBackgroundCurrent({
+    component: 'RainBackground', options: {}, transition,
+  }).ok).toBe(true);
+});
+
+test('une transition fautive rend le preset invalide et nomme le champ', () => {
+  const result = validateBackgroundPreset({
+    id: 'alpha', name: 'Alpha', component: 'RainBackground', options: {},
+    transition: { type: 'morph' },
+  });
+  expect(result.ok).toBe(false);
+  expect(result.errors.join(' ')).toContain('transition.type');
+});
+
+test('une transition fautive rend l’état courant invalide', () => {
+  const result = validateBackgroundCurrent({
+    component: 'RainBackground', options: {}, transition: { durationMs: 9000 },
+  });
+  expect(result.ok).toBe(false);
+  expect(result.errors.join(' ')).toContain('transition.durationMs');
+});

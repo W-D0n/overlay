@@ -1,6 +1,7 @@
 // @ts-check
 import { BACKGROUND_COMPONENT_NAMES } from './component-field-schemas.js';
 import { validateSceneMap } from '../obs-scene-mapping.js';
+import { validateTransition } from '../background-transition.js';
 
 /**
  * dev/background-state-format.js — Logique pure de l'état background standalone (2026-07-14).
@@ -9,8 +10,9 @@ import { validateSceneMap } from '../obs-scene-mapping.js';
  * `background-state-server.js` (voir docs/specs/background-standalone.md). Aucune I/O ici —
  * testable sans serveur (même découpage AD-1 que `scene-data-format.js`).
  *
- * @typedef {{ component: string | null, options: Record<string, unknown> }} BackgroundCurrent
- * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[] }} BackgroundPreset
+ * @typedef {import('../background-transition.js').BackgroundTransition} BackgroundTransition
+ * @typedef {{ component: string | null, options: Record<string, unknown>, transition?: BackgroundTransition }} BackgroundCurrent
+ * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[], transition?: BackgroundTransition }} BackgroundPreset
  * @typedef {{ current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string> }} BackgroundFile
  */
 
@@ -117,6 +119,7 @@ export function validateBackgroundCurrent(current) {
     errors.push(`effet de fond inconnu : ${component}`);
   }
   if (!isPlainObject(options)) errors.push('options : objet attendu');
+  errors.push(...validateTransition(current.transition).errors);
 
   return { ok: errors.length === 0, errors };
 }
@@ -155,6 +158,7 @@ export function validateBackgroundPreset(preset) {
     errors.push(`effet de fond inconnu : ${preset.component}`);
   }
   if (!isPlainObject(preset.options)) errors.push('options : objet attendu');
+  errors.push(...validateTransition(preset.transition).errors);
   if (preset.tags !== undefined && (!Array.isArray(preset.tags)
     || preset.tags.some((tag) => typeof tag !== 'string' || tag.length === 0 || tag !== tag.trim()))) {
     errors.push('tags : tableau de chaînes non vides attendu');
