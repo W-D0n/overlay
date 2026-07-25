@@ -1,13 +1,12 @@
-# Guide — Créer un nouveau composant ou effet de fond
+# Guide — Créer un nouvel effet de fond
 
-> Pour tweaker ce qui existe déjà (composants/effets déjà codés), voir
-> `docs/guides/utiliser-le-panneau.md` — pas besoin d'écrire de code.
-> Ce guide couvre le cas où le type de composant/effet n'existe PAS encore.
+> Pour régler un effet déjà codé, voir `docs/guides/tuner-le-fond.md` — pas besoin d'écrire de code.
+> Ce guide couvre le cas où l'effet n'existe PAS encore.
 
 ## Le contrat commun — `ComponentInstance`
 
-Tout composant (widget de couche OU effet de fond) est une fonction qui prend des `options` et
-retourne un objet avec cette forme (`types.js` §`ComponentInstance`) :
+Tout effet de fond est une fonction qui prend des `options` et retourne un objet de cette forme
+(`types.js` §`ComponentInstance`) :
 
 ```js
 export function MonComposant(options = {}) {
@@ -17,37 +16,18 @@ export function MonComposant(options = {}) {
   return {
     el,                          // obligatoire — élément DOM inséré par le runtime
     update(data) { /* ... */ },  // optionnel — rafraîchit avec de nouvelles données/options
-    show(alert) { /* ... */ },   // optionnel — déclenchement impératif (ex: AlertBanner)
-    morphTo(opts, duration, easing) { /* ... */ }, // optionnel — transition douce (fonds animés)
-    trigger(payload) { /* ... */ }, // optionnel — réaction à un événement discret (DotGrid Couche 4)
+    morphTo(opts, duration, easing) { /* ... */ }, // optionnel — transition douce
+    trigger(payload) { /* ... */ }, // optionnel — réaction à une alerte stream (follow/sub/raid/bits)
+    setAudioLevel(levels) { /* ... */ }, // optionnel — réaction au son (voir plus bas)
     destroy() { /* ... */ },     // optionnel mais fortement recommandé — cleanup (rAF, observers, timers)
   };
 }
 ```
 
-Aucune de ces méthodes optionnelles n'est obligatoire — le runtime les appelle toujours via `?.()`
-(dégradation silencieuse si absente, jamais une erreur).
+Aucune de ces méthodes optionnelles n'est obligatoire — `background-mount.js` vérifie leur présence
+avant d'appeler (dégradation silencieuse si absente, jamais une erreur).
 
-## Cas A — Un widget de couche (ex: un nouveau type de compteur, un badge, une liste)
-
-Regarde `components/index.js` pour des exemples simples (`Badge`, `TextLabel`) avant d'écrire le
-tien — la plupart des besoins courants s'expriment avec `Box`/`Divider`/`TextLabel`/`TextList`
-existants sans code nouveau (juste de la config, voir le guide précédent).
-
-**Fichiers à toucher pour un VRAI nouveau type :**
-
-| Fichier | Action |
-|---|---|
-| `components/index.js` (ou un nouveau fichier `components/MonComposant.js` si substantiel) | Écrire la factory |
-| `component-registry.js` | Importer + ajouter au `COMPONENT_REGISTRY` |
-| `types.js` | Ajouter le nom à `ComponentName` (union type) |
-| `dev/component-field-schemas.js` | Ajouter un schéma dans `COMPONENT_FIELD_SCHEMAS` (les champs éditables depuis le panneau) — voir le format `FieldSchema` documenté en tête de fichier |
-| `components/MonComposant.test.js` | Tester toute logique pure (formatage, calculs) — pas le DOM lui-même (voir plus bas) |
-
-Une fois ces 4 fichiers à jour, le composant apparaît automatiquement dans le sélecteur "+
-composant" du panneau — aucun autre câblage nécessaire.
-
-## Cas B — Un nouvel effet de fond animé (ex: neige, aurore, particules...)
+## Le squelette d'un effet (ex: neige, aurore, particules...)
 
 Regarde un effet existant proche de ce que tu veux comme point de départ :
 - **Particules/formes qui bougent** (canvas + `requestAnimationFrame`) : `RainBackground.js`,
@@ -144,11 +124,39 @@ dans un nouveau composant :
   **pas** testable dans `bun test` (pas de DOM dans Bun) — vérifie-la visuellement en navigateur
   (`bun dev/start-dev.js`, ouvrir l'onglet preview) ou demande une vérification via un agent.
 
-## Effets de fond `trigger()` (Couche 4 DotGrid)
+## Réagir aux alertes — `trigger()`
 
-Si ton composant de fond doit réagir aux alertes stream (follow/sub/raid/bits), implémente
-`trigger(payload)` — reçoit l'objet `AlertEvent` complet (`{type, username, timestamp, amount?}`).
-Voir `components/DotGridAnimated.js` pour l'implémentation de référence (4 comportements +
-minuteur `ambient`). Aucun autre effet de fond ne l'implémente aujourd'hui (zero preemptive code) —
-si tu veux que `RainBackground` réagisse aussi aux alertes par exemple, ajoute `trigger()` dessus,
-rien à changer côté `scene-runtime.js` (déjà générique, voir `applyBackgroundReactions`).
+Pour qu'un effet réagisse aux alertes stream (follow/sub/raid/bits), implémente `trigger(payload)` —
+il reçoit l'événement complet (`{ type, username, timestamp, amount? }`). Référence :
+`components/DotGridAnimated.js` (4 comportements + minuteur `ambient`). Les effets qui ne
+l'implémentent pas sont couverts par l'overlay partagé `components/ReactionOverlay.js`, rien à
+câbler. Voir `docs/specs/background-reactive-events.md`.
+
+## Réagir au son — `setAudioLevel()`
+
+Pour qu'un effet réagisse au micro, implémente `setAudioLevel(levels)` — appelée au plus une fois
+par frame avec `{ level, bass, mid, treble }`, quatre nombres dans `[0, 1]`.
+
+```js
+setAudioLevel(levels) {
+  audioBass = Math.min(1, Math.max(0, levels?.bass ?? 0));
+},
+```
+
+Trois règles qui évitent les pièges déjà rencontrés :
+
+1. **Ne rien posséder** — l'effet reçoit des nombres. Il n'ouvre pas le micro, ne connaît ni
+   `AudioContext` ni `getUserMedia` : `background-audio.js` s'en charge pour toute la page.
+2. **Rester correct sans son** — si les appels s'arrêtent (micro perdu, preset non réactif), l'effet
+   doit revenir à son animation normale, pas figer sur le dernier pic. Remets tes variables audio à
+   zéro quand `update()` reçoit un `audioReactive` différent de `'Oui'`.
+3. **Moduler, ne pas remplacer** — le son multiplie un paramètre existant. À niveau nul, le rendu
+   doit être exactement celui d'un preset non réactif.
+
+Déclare aussi les deux champs `audioReactive` et `audioIntensity` dans le schéma de l'effet
+(`dev/component-field-schemas.js`) : c'est ce réglage, propre à chaque preset, qui autorise
+l'ouverture du micro. Sans lui, `setAudioLevel` ne sera jamais appelée.
+
+Pour une réaction ponctuelle (un impact par pic sonore plutôt qu'une modulation continue), réutilise
+`isAudioPeak(previous, current)` de `audio-levels.js` — voir `BubbleBackground` et
+`WaterRippleBackground`. Détail complet : `docs/specs/background-audio-reactivity.md`.

@@ -36,8 +36,11 @@
 - Lot du 2026-07-25 : ⑦ archivage du moteur de scènes — registre scindé sur les seuls effets de
   fond, `types.js` réduit, Studio à une entrée, `start-dev` limité aux serveurs statique et fond,
   tuner DotGrid nettoyé de sa partie relais OBS.
+- Lot du 2026-07-25 : ② réactivité audio — `setAudioLevel()` ajouté au contrat de composant,
+  session micro paresseuse avec reprise automatique, réglages `audioReactive`/`audioIntensity` par
+  preset, DotGrid/Bubble/WaterRipple réactifs. Guides du moteur de scènes retirés.
 
-État après l'archivage du 2026-07-25 : **193 tests verts** (341 avant retrait des tests du moteur
+État après le lot audio du 2026-07-25 : **230 tests verts** (341 avant retrait des tests du moteur
 de scènes).
 
 ## Découpage des sessions
@@ -211,9 +214,8 @@ déposer par poignée dédiée. Placement par composant individuel reste hors sc
 Documentation utilisateur, distincte des specs (specs = décisions techniques validées pour une
 session ; guides = comment utiliser/étendre l'outil au quotidien) :
 
-- `utiliser-le-panneau.md` — tweaker/composer une scène depuis `dev/overlay-setting.html` sans écrire de code.
-- `creer-un-composant.md` — écrire un nouveau composant/effet de fond from scratch (squelette, checklist de fichiers, leçons de perf).
-- `harmoniser-scenes-obs.md` — faire correspondre tes noms de scènes OBS réels aux scènes overlay (panneau §OBS "Renommer les scènes OBS", `relay/obs-scene-map-data.js`).
+- `tuner-le-fond.md` — régler le fond, gérer les presets et préparer l'URL OBS.
+- `creer-un-composant.md` — écrire un nouvel effet de fond from scratch (squelette, réactions alerte et son, leçons de perf).
 
 ## Reste à faire (hors S1, déjà identifié)
 
@@ -221,6 +223,4 @@ session ; guides = comment utiliser/étendre l'outil au quotidien) :
   `ShapeMorphBackground`, Track B), Couche 4 (événements stream) livrée le 2026-07-10 (voir
   `docs/specs/dotgrid-event-triggers.md`).
 - Intégration Twitch EventSub/chat réelle qui appellerait `/emit` (hors scope S4, voir `docs/specs/relay-bun-s4.md` §Périmètre Exclu).
-- Scènes OBS manquantes pour `interview`/`react`/`creation`/`fin` (créer les scènes côté OBS) —
-  le mapping des noms est désormais éditable sans toucher au code, voir `docs/guides/harmoniser-scenes-obs.md`.
 - ~~Persistance des paramètres `dotgrid-tuner`~~ — résolue en S5 (`dev/tuner-server.js`), voir §Détail S5.

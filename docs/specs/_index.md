@@ -6,7 +6,7 @@
 | [dotgrid-event-triggers](dotgrid-event-triggers.md) | Draft | 2026-07-10 | Session 1/3 |
 | [background-standalone](background-standalone.md) | Fait | 2026-07-14 | — |
 | [background-reactive-events](background-reactive-events.md) | Fait | 2026-07-24 | ① Fonds réactifs |
-| [background-audio-reactivity](background-audio-reactivity.md) | À valider | 2026-07-25 | ② Réactivité audio |
+| [background-audio-reactivity](background-audio-reactivity.md) | Fait | 2026-07-25 | ② Réactivité audio |
 
 ## Archive
 
