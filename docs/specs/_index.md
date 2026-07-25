@@ -8,6 +8,7 @@
 | [background-reactive-events](background-reactive-events.md) | Fait | 2026-07-24 | ① Fonds réactifs |
 | [background-audio-reactivity](background-audio-reactivity.md) | Fait | 2026-07-25 | ② Réactivité audio |
 | [obs-scene-preset-mapping](obs-scene-preset-mapping.md) | Fait | 2026-07-25 | ③ Preset par scène OBS |
+| [background-preset-transitions](background-preset-transitions.md) | À valider | 2026-07-25 | ④ Transition entre presets |
 
 ## Archive
 
