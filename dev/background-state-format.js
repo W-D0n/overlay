@@ -1,5 +1,6 @@
 // @ts-check
 import { BACKGROUND_COMPONENT_NAMES } from './component-field-schemas.js';
+import { validateSceneMap } from '../obs-scene-mapping.js';
 
 /**
  * dev/background-state-format.js — Logique pure de l'état background standalone (2026-07-14).
@@ -10,7 +11,7 @@ import { BACKGROUND_COMPONENT_NAMES } from './component-field-schemas.js';
  *
  * @typedef {{ component: string | null, options: Record<string, unknown> }} BackgroundCurrent
  * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[] }} BackgroundPreset
- * @typedef {{ current: BackgroundCurrent, presets: BackgroundPreset[] }} BackgroundFile
+ * @typedef {{ current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string> }} BackgroundFile
  */
 
 /** Longueur maximale d'un nom de preset — borne UI (liste lisible), pas une contrainte technique. */
@@ -21,7 +22,18 @@ const RETIRED_BACKGROUND_COMPONENT = 'MatrixGridBackground';
 
 /** @returns {BackgroundFile} */
 export function defaultBackgroundFile() {
-  return { current: { component: 'DotGridBackground', options: {} }, presets: [] };
+  return { current: { component: 'DotGridBackground', options: {} }, presets: [], sceneMap: {} };
+}
+
+/**
+ * Table d'association scène OBS → preset d'un fichier d'état. Absente des fichiers écrits avant ③,
+ * elle vaut `{}` : un état déjà sur disque reste valide sans migration.
+ * @param {unknown} file
+ * @returns {Record<string, string>}
+ */
+export function readSceneMap(file) {
+  const raw = isPlainObject(file) ? file.sceneMap : undefined;
+  return raw !== undefined && validateSceneMap(raw).ok ? /** @type {Record<string, string>} */ (raw) : {};
 }
 
 /** @param {unknown} value @returns {value is Record<string, unknown>} */
@@ -162,6 +174,9 @@ export function validateBackgroundFile(raw) {
 
   /** @type {string[]} */
   const errors = [...validateBackgroundCurrent(raw.current).errors];
+  if (raw.sceneMap !== undefined) {
+    for (const err of validateSceneMap(raw.sceneMap).errors) errors.push(`sceneMap : ${err}`);
+  }
   if (!Array.isArray(raw.presets)) errors.push('presets : tableau attendu');
   else {
     raw.presets.forEach((preset, index) => {

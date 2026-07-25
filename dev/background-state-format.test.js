@@ -12,6 +12,7 @@ import {
   renamePreset,
   duplicatePreset,
   removePreset,
+  readSceneMap,
   PRESET_NAME_MAX_LENGTH,
 } from './background-state-format.js';
 
@@ -230,4 +231,35 @@ test('removePreset does not mutate the input array and returns a new reference',
   const result = removePreset(before, 'pluie-douce');
   expect(before).toEqual([preset()]);
   expect(result).not.toBe(before);
+});
+
+test('un fichier écrit avant le mapping OBS reste valide et lit une table vide', () => {
+  const legacy = { current: { component: 'DotGridBackground', options: {} }, presets: [] };
+  expect(validateBackgroundFile(legacy).ok).toBe(true);
+  expect(readSceneMap(legacy)).toEqual({});
+});
+
+test('une table d’association valide est relue telle quelle', () => {
+  const file = {
+    current: { component: 'DotGridBackground', options: {} },
+    presets: [],
+    sceneMap: { Discussion: 'discussion-calme' },
+  };
+  expect(validateBackgroundFile(file).ok).toBe(true);
+  expect(readSceneMap(file)).toEqual({ Discussion: 'discussion-calme' });
+});
+
+test('une table d’association invalide rend le fichier invalide', () => {
+  const file = {
+    current: { component: 'DotGridBackground', options: {} },
+    presets: [],
+    sceneMap: { Discussion: 42 },
+  };
+  const result = validateBackgroundFile(file);
+  expect(result.ok).toBe(false);
+  expect(result.errors.join(' ')).toContain('sceneMap');
+});
+
+test('un fichier neuf part avec une table d’association vide', () => {
+  expect(defaultBackgroundFile().sceneMap).toEqual({});
 });
