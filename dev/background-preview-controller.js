@@ -35,7 +35,7 @@ export function createBackgroundPreviewController(input) {
   const now = input.now ?? (() => windowRef.performance.now());
   /** @type {ReturnType<typeof createBrowserAudioSession> | null} */
   let audio = null;
-  const mount = createBackgroundMount(input.layer, undefined, () => audio?.sync());
+  const mount = createBackgroundMount(input.layer, { onMountChange: () => audio?.sync() });
   audio = createBrowserAudioSession({ mount, onStateChange: input.onAudioStateChange });
   const overlay = ReactionOverlay();
   input.layer.appendChild(overlay.el);

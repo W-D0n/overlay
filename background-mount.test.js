@@ -1,9 +1,44 @@
 import { describe, expect, test } from 'bun:test';
 import { createBackgroundMount } from './background-mount.js';
 
+/** Calque factice : le montage n'a pas besoin d'un vrai DOM pour être testé. */
+function fakeLayer() {
+  const children = [];
+  return {
+    style: {},
+    children,
+    appendChild: (child) => children.push(child),
+    remove() { this.removed = true; },
+    removed: false,
+  };
+}
+
+/** Transition jouée à la main : frames et minuteurs déclenchés explicitement. */
+function manualScheduler() {
+  const frames = [];
+  const timeouts = [];
+  return {
+    frames,
+    timeouts,
+    scheduleFrame: (callback) => frames.push(callback),
+    scheduleTimeout: (callback, delayMs) => timeouts.push({ callback, delayMs }),
+    runFrames() { const pending = frames.splice(0); for (const callback of pending) callback(); },
+    runTimeouts() { const pending = timeouts.splice(0); for (const { callback } of pending) callback(); },
+  };
+}
+
 function setup() {
   const events = [];
-  const container = { appendChild: (el) => events.push(`append:${el.name}`) };
+  // Le conteneur reçoit un calque, le calque reçoit l'effet : c'est cette imbrication qui permet
+  // de superposer l'entrant et le sortant pendant une transition.
+  const container = { appendChild: () => events.push('append:layer') };
+  const trackingLayer = () => {
+    const layer = fakeLayer();
+    const inner = layer.appendChild;
+    layer.appendChild = (child) => { events.push(`layer-append:${child.name}`); inner(child); };
+    layer.remove = () => events.push('remove:layer');
+    return layer;
+  };
   const registry = {
     RainBackground(options) {
       events.push(`create:${options.speed}`);
@@ -14,7 +49,13 @@ function setup() {
       };
     },
   };
-  return { events, mount: createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ (registry)) };
+  return {
+    events,
+    mount: createBackgroundMount(/** @type {*} */ (container), {
+      registry: /** @type {*} */ (registry),
+      createLayer: trackingLayer,
+    }),
+  };
 }
 
 describe('background mount lifecycle', () => {
@@ -23,7 +64,9 @@ describe('background mount lifecycle', () => {
     mount.apply({ component: 'RainBackground', options: { speed: 1 } });
     mount.setPaused(true);
     mount.apply({ component: 'RainBackground', options: { speed: 2 } });
-    expect(events).toEqual(['create:1', 'append:rain', 'destroy:rain', 'remove:rain']);
+    expect(events).toEqual([
+      'create:1', 'layer-append:rain', 'append:layer', 'destroy:rain', 'remove:layer',
+    ]);
   });
 
   test('resuming mounts the latest remembered state exactly once', () => {
@@ -32,7 +75,7 @@ describe('background mount lifecycle', () => {
     mount.setPaused(true);
     mount.apply({ component: 'RainBackground', options: { speed: 2 } });
     mount.setPaused(false);
-    expect(events.slice(-2)).toEqual(['create:2', 'append:rain']);
+    expect(events.slice(-3)).toEqual(['create:2', 'layer-append:rain', 'append:layer']);
   });
 });
 
@@ -46,7 +89,7 @@ describe('background mount react routing', () => {
         trigger: (event) => calls.push(event.type),
       }),
     };
-    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ (registry));
+    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
     mount.apply({ component: 'DotGridBackground', options: {} });
     expect(mount.react({ type: 'raid' })).toBe(true);
     expect(calls).toEqual(['raid']);
@@ -55,14 +98,14 @@ describe('background mount react routing', () => {
   test('react retourne false quand l’effet n’expose pas trigger', () => {
     const container = { appendChild: () => {} };
     const registry = { RainBackground: () => ({ el: { name: 'rain', remove: () => {} } }) };
-    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ (registry));
+    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
     mount.apply({ component: 'RainBackground', options: {} });
     expect(mount.react({ type: 'raid' })).toBe(false);
   });
 
   test('react retourne false quand rien n’est monté', () => {
     const container = { appendChild: () => {} };
-    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ ({}));
+    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ ({}), createLayer: fakeLayer });
     expect(mount.react({ type: 'raid' })).toBe(false);
   });
 });
@@ -73,7 +116,7 @@ describe('background mount audio routing', () => {
   function mountWith(instance, options = { audioReactive: 'Oui' }) {
     const container = { appendChild: () => {} };
     const registry = { RainBackground: () => instance };
-    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ (registry));
+    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
     mount.apply({ component: 'RainBackground', options });
     return mount;
   }
@@ -97,7 +140,7 @@ describe('background mount audio routing', () => {
 
   test('applyAudio ne fait rien quand rien n’est monté', () => {
     const container = { appendChild: () => {} };
-    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ ({}));
+    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ ({}), createLayer: fakeLayer });
     expect(mount.isAudioReactive()).toBe(false);
     expect(mount.applyAudio(levels)).toBe(false);
   });
@@ -122,7 +165,7 @@ describe('background mount audio routing', () => {
     };
     const container = { appendChild: () => {} };
     const registry = { RainBackground: () => instance };
-    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ (registry));
+    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
     mount.apply({ component: 'RainBackground', options: { audioReactive: 'Non' } });
     expect(mount.isAudioReactive()).toBe(false);
     mount.apply({ component: 'RainBackground', options: { audioReactive: 'Oui' } });
@@ -146,11 +189,7 @@ describe('background mount change notification', () => {
     let notifications = 0;
     const container = { appendChild: () => {} };
     const registry = { RainBackground: () => ({ el: { name: 'rain', remove: () => {} } }) };
-    const mount = createBackgroundMount(
-      /** @type {*} */ (container),
-      /** @type {*} */ (registry),
-      () => { notifications += 1; },
-    );
+    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), onMountChange: () => { notifications += 1; }, createLayer: fakeLayer });
     mount.apply({ component: 'RainBackground', options: {} });
     mount.setPaused(true);
     mount.setPaused(false);
@@ -161,12 +200,193 @@ describe('background mount change notification', () => {
   test('une pause identique ne notifie pas deux fois', () => {
     let notifications = 0;
     const container = { appendChild: () => {} };
-    const mount = createBackgroundMount(
-      /** @type {*} */ (container),
-      /** @type {*} */ ({}),
-      () => { notifications += 1; },
-    );
+    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ ({}), onMountChange: () => { notifications += 1; }, createLayer: fakeLayer });
     mount.setPaused(false);
     expect(notifications).toBe(0);
+  });
+});
+
+describe('background mount transitions', () => {
+  function transitionSetup() {
+    const created = [];
+    const container = { appendChild: () => {} };
+    const registry = {
+      RainBackground: (options) => {
+        const instance = {
+          el: { name: 'rain', remove: () => {} },
+          update: () => { instance.updates += 1; },
+          destroy: () => { instance.destroyed += 1; },
+          updates: 0,
+          destroyed: 0,
+          options,
+        };
+        created.push(instance);
+        return instance;
+      },
+      BubbleBackground: (options) => {
+        const instance = {
+          el: { name: 'bubble', remove: () => {} },
+          update: () => { instance.updates += 1; },
+          destroy: () => { instance.destroyed += 1; },
+          updates: 0,
+          destroyed: 0,
+          options,
+        };
+        created.push(instance);
+        return instance;
+      },
+    };
+    const scheduler = manualScheduler();
+    const layers = [];
+    const mount = createBackgroundMount(/** @type {*} */ (container), {
+      registry: /** @type {*} */ (registry),
+      createLayer: () => { const layer = fakeLayer(); layers.push(layer); return layer; },
+      scheduleFrame: scheduler.scheduleFrame,
+      scheduleTimeout: scheduler.scheduleTimeout,
+    });
+    return { mount, created, layers, scheduler };
+  }
+
+  const FADE = { type: 'fade', durationMs: 600, direction: 'right' };
+
+  test('un réglage sans transition met à jour sans créer de calque', () => {
+    const { mount, created, layers } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: { speed: 1 } });
+    mount.apply({ component: 'RainBackground', options: { speed: 2 } });
+
+    expect(created.length).toBe(1);
+    expect(created[0].updates).toBe(1);
+    expect(layers.length).toBe(1);
+    expect(mount.layerCount()).toBe(1);
+  });
+
+  test('une arrivée de preset superpose deux calques puis n’en laisse qu’un', () => {
+    const { mount, created, scheduler } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: {} });
+    mount.apply({ component: 'BubbleBackground', options: {}, transition: FADE });
+
+    expect(mount.layerCount()).toBe(2);
+    expect(created[0].destroyed).toBe(0);
+
+    scheduler.runFrames();
+    scheduler.runTimeouts();
+    expect(mount.layerCount()).toBe(1);
+    expect(created[0].destroyed).toBe(1);
+  });
+
+  test('le calque entrant part de l’état initial puis reçoit l’état final', () => {
+    const { mount, layers, scheduler } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: {} });
+    mount.apply({ component: 'BubbleBackground', options: {}, transition: FADE });
+
+    const incoming = layers[1];
+    expect(incoming.style.opacity).toBe('0');
+
+    scheduler.runFrames();
+    expect(incoming.style.opacity).toBe('1');
+    expect(incoming.style.transition).toBe('opacity 600ms linear');
+  });
+
+  test('un balayage anime clip-path et non l’opacité', () => {
+    const { mount, layers, scheduler } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: {} });
+    mount.apply({
+      component: 'BubbleBackground',
+      options: {},
+      transition: { type: 'wipe', durationMs: 400, direction: 'up' },
+    });
+
+    const incoming = layers[1];
+    expect(incoming.style.clipPath).toBe('inset(100% 0 0 0)');
+    scheduler.runFrames();
+    expect(incoming.style.clipPath).toBe('inset(0 0 0 0)');
+    expect(incoming.style.transition).toBe('clip-path 400ms linear');
+  });
+
+  test('une durée nulle remplace sans animation ni calque résiduel', () => {
+    const { mount, created, scheduler } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: {} });
+    mount.apply({
+      component: 'BubbleBackground',
+      options: {},
+      transition: { type: 'fade', durationMs: 0, direction: 'right' },
+    });
+
+    expect(mount.layerCount()).toBe(1);
+    expect(created[0].destroyed).toBe(1);
+    expect(scheduler.timeouts.length).toBe(0);
+  });
+
+  test('le premier montage n’anime jamais, même avec une transition déclarée', () => {
+    const { mount, layers, scheduler } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: {}, transition: FADE });
+
+    expect(mount.layerCount()).toBe(1);
+    expect(layers[0].style.opacity).toBeUndefined();
+    expect(scheduler.timeouts.length).toBe(0);
+  });
+
+  test('une transition interrompue par une autre ne laisse qu’un calque', () => {
+    const { mount, created, scheduler } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: {} });
+    mount.apply({ component: 'BubbleBackground', options: {}, transition: FADE });
+    mount.apply({ component: 'RainBackground', options: {}, transition: FADE });
+
+    scheduler.runFrames();
+    scheduler.runTimeouts();
+
+    expect(mount.layerCount()).toBe(1);
+    expect(created[0].destroyed).toBe(1);
+    expect(created[1].destroyed).toBe(1);
+    expect(created[2].destroyed).toBe(0);
+  });
+
+  test('deux presets du même effet jouent quand même la transition', () => {
+    const { mount, created, scheduler } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: { speed: 1 } });
+    mount.apply({ component: 'RainBackground', options: { speed: 4 }, transition: FADE });
+
+    expect(created.length).toBe(2);
+    expect(created[0].updates).toBe(0);
+    expect(mount.layerCount()).toBe(2);
+
+    scheduler.runFrames();
+    scheduler.runTimeouts();
+    expect(mount.layerCount()).toBe(1);
+  });
+
+  test('une transition dont la durée dépasse la borne est ramenée à la borne', () => {
+    const { mount, scheduler } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: {} });
+    mount.apply({
+      component: 'BubbleBackground',
+      options: {},
+      transition: { type: 'fade', durationMs: 99999, direction: 'right' },
+    });
+    expect(scheduler.timeouts[0].delayMs).toBe(2000);
+  });
+
+  test('la reprise après pause ne rejoue pas la transition mémorisée', () => {
+    const { mount, scheduler } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: {} });
+    mount.apply({ component: 'BubbleBackground', options: {}, transition: FADE });
+    scheduler.runFrames();
+    scheduler.runTimeouts();
+
+    mount.setPaused(true);
+    mount.setPaused(false);
+    expect(mount.layerCount()).toBe(1);
+    expect(scheduler.timeouts.length).toBe(0);
+  });
+
+  test('destroy retire tous les calques, transition en cours comprise', () => {
+    const { mount, created } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: {} });
+    mount.apply({ component: 'BubbleBackground', options: {}, transition: FADE });
+    mount.destroy();
+
+    expect(mount.layerCount()).toBe(0);
+    expect(created[0].destroyed).toBe(1);
+    expect(created[1].destroyed).toBe(1);
   });
 });

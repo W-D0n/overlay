@@ -426,7 +426,13 @@ async function applySceneMapping(sceneName) {
       return;
     }
 
-    const current = { component: preset.component, options: preset.options };
+    // La transition du preset entrant voyage avec l'état : c'est elle qui dit à la page
+    // d'animer plutôt que de remplacer sèchement (docs/specs/background-preset-transitions.md).
+    const current = {
+      component: preset.component,
+      options: preset.options,
+      ...(preset.transition === undefined ? {} : { transition: preset.transition }),
+    };
     await writeStateFile({ ...read.file, current });
     broadcastCurrent(current);
     console.info(`[background-state-server] scène "${sceneName}" → preset "${preset.name}"`);

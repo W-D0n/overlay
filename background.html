@@ -46,7 +46,7 @@
     // La session audio se resynchronise sur chaque changement d'effet monté : un preset non
     // réactif n'ouvre jamais le micro (docs/specs/background-audio-reactivity.md).
     let audio = null;
-    const mount = createBackgroundMount(bgLayer, undefined, () => audio?.sync());
+    const mount = createBackgroundMount(bgLayer, { onMountChange: () => audio?.sync() });
     audio = createBrowserAudioSession({ mount });
     audio.sync();
     mount.setPaused(document.hidden);
