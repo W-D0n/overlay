@@ -45,8 +45,10 @@ Refacto avant suppression, comme prévu :
 
 ## Restant — dans l'ordre de priorité owner
 
-1. **② Réactivité audio** — prototyper la faisabilité (capture son en Browser Source OBS → source
-   micro la plus fiable) AVANT d'écrire une spec.
+1. **② Réactivité audio** — prototype livré, **verdict OBS en attente de l'owner** :
+   `docs/prototypes/2026-07-25-audio-reactivity.md` décrit le test (relancer OBS avec
+   `--enable-media-stream`, ouvrir `dev/prototype-audio-reactivity.html` en Browser Source, lire le
+   panneau). Pas de spec avant ce verdict.
 2. **③→⑥** — mapping scène OBS→preset, transition entre presets, couche branding, vignettes de
    presets.
 

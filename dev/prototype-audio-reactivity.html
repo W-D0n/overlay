@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>PROTOTYPE — Réactivité audio</title>
+  <!--
+    PROTOTYPE JETABLE — ne pas construire dessus, ne pas charger en live.
+    Question tranchée : une Browser Source OBS peut-elle lire le son du micro, et avec quelle
+    latence/stabilité, sans plugin ni serveur supplémentaire ?
+
+    Ouvrir DEUX fois pour comparer :
+      1. dans un navigateur — http://localhost:5500/dev/prototype-audio-reactivity.html
+      2. dans une Browser Source OBS, MÊME URL, 1920x1080
+
+    OBS doit être lancé avec --enable-media-stream, sinon getUserMedia n'existe pas ou échoue :
+    le panneau affiche alors le nom exact de l'erreur, c'est le résultat qui nous intéresse.
+  -->
+  <link rel="stylesheet" href="../tokens.css">
+  <style>
+    html, body { margin: 0; height: 100%; background: var(--color-bg); overflow: hidden; }
+    body { font-family: var(--font-mono); color: var(--color-text-primary); }
+    #verdict {
+      position: absolute; inset: 24px auto auto 24px;
+      max-width: 720px; font-size: 14px; line-height: 1.6;
+      background: var(--color-bg-panel); border: var(--border-panel);
+      border-radius: var(--radius-md); padding: 16px 20px;
+    }
+    #verdict h1 { font-family: var(--font-serif); font-size: 18px; margin: 0 0 8px; color: var(--color-gold); }
+    .metric { display: flex; gap: 12px; align-items: baseline; }
+    .metric span:first-child { width: 120px; color: var(--color-text-dim); }
+    canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  </style>
+</head>
+<body>
+  <canvas id="scope"></canvas>
+  <div id="verdict"><h1>PROTOTYPE — réactivité audio</h1><div id="status">Demande d'accès au micro…</div></div>
+
+  <script type="module">
+    const statusEl = document.getElementById('status');
+    const canvas = document.getElementById('scope');
+    const context2d = canvas.getContext('2d');
+
+    /** Bandes en Hz — grave/medium/aigu, découpage grossier suffisant pour juger la réactivité. */
+    const BANDS = [
+      { name: 'grave', from: 20, to: 250 },
+      { name: 'medium', from: 250, to: 2000 },
+      { name: 'aigu', from: 2000, to: 8000 },
+    ];
+
+    function report(lines) {
+      statusEl.innerHTML = lines.map(([label, value]) => `<div class="metric"><span>${label}</span><span>${value}</span></div>`).join('');
+    }
+
+    async function start() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        report([['VERDICT', 'getUserMedia ABSENT — OBS lancé sans --enable-media-stream']]);
+        return;
+      }
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      } catch (error) {
+        report([['VERDICT', `getUserMedia REFUSÉ — ${error.name}`], ['détail', error.message]]);
+        return;
+      }
+
+      const track = stream.getAudioTracks()[0];
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.7;
+      audioContext.createMediaStreamSource(stream).connect(analyser);
+
+      const spectrum = new Uint8Array(analyser.frequencyBinCount);
+      const hzPerBin = audioContext.sampleRate / analyser.fftSize;
+
+      let frames = 0;
+      let lastSecond = performance.now();
+      let fps = 0;
+
+      function bandLevel({ from, to }) {
+        const start = Math.floor(from / hzPerBin);
+        const end = Math.min(Math.ceil(to / hzPerBin), spectrum.length);
+        let total = 0;
+        for (let i = start; i < end; i += 1) total += spectrum[i];
+        return total / ((end - start) * 255);
+      }
+
+      function frame() {
+        analyser.getByteFrequencyData(spectrum);
+        const levels = BANDS.map((band) => [band.name, bandLevel(band)]);
+
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        context2d.clearRect(0, 0, canvas.width, canvas.height);
+        levels.forEach(([, level], index) => {
+          const height = level * canvas.height * 0.8;
+          context2d.fillStyle = '#C8B97A';
+          context2d.fillRect(canvas.width * (0.55 + index * 0.13), canvas.height - height, 120, height);
+        });
+
+        frames += 1;
+        const now = performance.now();
+        if (now - lastSecond >= 1000) { fps = frames; frames = 0; lastSecond = now; }
+
+        report([
+          ['VERDICT', 'audio LU — la Browser Source entend le micro'],
+          ['périphérique', track.label || '(label masqué)'],
+          ['échantillonnage', `${audioContext.sampleRate} Hz`],
+          ['état', audioContext.state],
+          ...levels.map(([name, level]) => [name, level.toFixed(3)]),
+          ['fps', String(fps)],
+        ]);
+        requestAnimationFrame(frame);
+      }
+      frame();
+    }
+
+    start();
+  </script>
+</body>
+</html>
