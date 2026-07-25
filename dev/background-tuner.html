@@ -359,6 +359,23 @@
     }
     .readiness-check-action { grid-column: 2; justify-self: start; margin-top: var(--space-xs); }
 
+    #obs-scene-status { font-size: var(--text-base); line-height: 1.4; margin-bottom: var(--space-xs); }
+    #obs-scene-status[data-tone="attention"] { color: var(--color-text-dim); }
+    #obs-scene-status[data-tone="ready"] { color: var(--color-gold); }
+    .obs-scene-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-xs);
+      align-items: center;
+      margin-bottom: var(--space-xs);
+    }
+    .obs-scene-row-name { color: var(--color-text-primary); font-size: var(--text-base); }
+    .obs-scene-row-warning { grid-column: 1 / -1; color: var(--color-danger); font-size: var(--text-base); }
+    .obs-scene-row[data-known="false"] .obs-scene-row-name::after {
+      content: ' (absente d’OBS)';
+      color: var(--color-text-dim);
+    }
+
     #server-status { color: var(--color-text-dim); margin-top: 20px; }
     #server-status.error { color: var(--color-danger); }
   </style>
@@ -435,6 +452,19 @@
     </div>
     <div class="save-row">
       <input id="preset-tags" type="text" placeholder="tags séparés par des virgules">
+    </div>
+
+    <h2>Scènes OBS</h2>
+    <p class="hint">
+      Associe une scène OBS à un preset : changer de scène change le fond automatiquement.
+      L’association reprend la main sur un réglage fait ici. Une URL <code>?preset=</code> n’est
+      jamais concernée.
+    </p>
+    <div id="obs-scene-status"></div>
+    <div id="obs-scene-rows"></div>
+    <div class="save-row">
+      <button id="obs-scene-save">Enregistrer les associations</button>
+      <button id="obs-scene-refresh" title="Relire l’état d’OBS">Actualiser</button>
     </div>
 
     <div id="server-status"></div>

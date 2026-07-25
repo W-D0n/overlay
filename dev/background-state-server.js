@@ -321,6 +321,16 @@ async function handlePostEvent(req) {
 }
 
 /** @type {Record<string, (req: Request) => Promise<Response>>} */
+/** @type {{ connected: boolean, reason: string | null, scenes: string[] }} */
+const obsStatus = { connected: false, reason: null, scenes: [] };
+
+/**
+ * GET /obs-status — connexion OBS et scènes réelles, pour la section « Scènes OBS » du tuner.
+ */
+function handleGetObsStatus() {
+  return Response.json({ ...obsStatus, configured: OBS_WS_PASSWORD !== '' }, { headers: CORS_HEADERS });
+}
+
 /**
  * POST /scene-map — `{ sceneMap }`. Remplace la table d'association scène OBS → preset.
  */
@@ -358,6 +368,7 @@ Bun.serve({
     }
 
     if (req.method === 'GET' && url.pathname === '/state') return handleGetState();
+    if (req.method === 'GET' && url.pathname === '/obs-status') return handleGetObsStatus();
 
     const handler = req.method === 'POST' ? POST_ROUTES[url.pathname] : undefined;
     if (!handler) return jsonError('not found', 404);
@@ -389,9 +400,6 @@ console.info(`[background-state-server] écoute sur http://localhost:${PORT} —
 // ─── Client OBS (③) ────────────────────────────────────────────────────────────
 // Démarre uniquement si un mot de passe est configuré : sans lui, ce serveur se comporte
 // exactement comme avant ③ (docs/specs/obs-scene-preset-mapping.md).
-
-/** @type {{ connected: boolean, reason: string | null, scenes: string[] }} */
-const obsStatus = { connected: false, reason: OBS_WS_PASSWORD === '' ? 'not-configured' : null, scenes: [] };
 
 /**
  * Applique le preset associé à une scène OBS. Une scène non associée ne change rien : on ne
@@ -434,5 +442,6 @@ if (OBS_WS_PASSWORD !== '') {
     onStatus: ({ connected, reason }) => { obsStatus.connected = connected; obsStatus.reason = reason; },
   });
 } else {
+  obsStatus.reason = 'not-configured';
   console.info('[background-state-server] OBS_WS_PASSWORD absent — mapping scène → preset désactivé');
 }

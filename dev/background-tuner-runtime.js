@@ -3,6 +3,7 @@ import { normalizeColorPalette } from './color-palette-format.js';
 import { createBackgroundPresetController } from './background-preset-controller.js';
 import { createBackgroundPreviewController } from './background-preview-controller.js';
 import { createBackgroundReadinessController } from './background-readiness-controller.js';
+import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import {
   BackgroundStateClientError,
   createBackgroundStateClient,
@@ -140,10 +141,25 @@ export async function startBackgroundTuner(environment = {}) {
     report.error(stateLoadErrorMessage(error));
   }
 
+  const obsSceneMap = createObsSceneMapController({
+    statusEl: byId('obs-scene-status'),
+    rowsEl: byId('obs-scene-rows'),
+    saveButton: byId('obs-scene-save'),
+    refreshButton: byId('obs-scene-refresh'),
+    documentRef,
+    client,
+    report,
+  });
+  obsSceneMap.refresh();
+
   presets.initialize();
   const unsubscribe = client.subscribe({
     onCurrent: preview.receive,
-    onPresets: presets.refresh,
+    onPresets(presets_) {
+      presets.refresh(presets_);
+      // Un preset renommé ou supprimé change les choix possibles d'association.
+      obsSceneMap.refresh();
+    },
     onEvent: preview.react,
     onError(error) {
       console.warn('[background-tuner] message temps réel invalide :', error);
@@ -157,5 +173,5 @@ export async function startBackgroundTuner(environment = {}) {
     preview.destroy();
   }
   windowRef.addEventListener('beforeunload', destroy, { once: true });
-  return { destroy, readiness, presets, preview };
+  return { destroy, readiness, presets, preview, obsSceneMap };
 }

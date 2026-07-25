@@ -75,6 +75,13 @@ export function createBackgroundStateClient(options) {
     readState() {
       return request('state');
     },
+    readObsStatus() {
+      return request('obs-status');
+    },
+    /** @param {Record<string, string>} sceneMap */
+    saveSceneMap(sceneMap) {
+      return request('scene-map', { sceneMap });
+    },
     /** @param {{ component: string | null, options: Record<string, unknown> }} current */
     saveCurrent(current) {
       return request('state', { current });
