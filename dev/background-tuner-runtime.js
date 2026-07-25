@@ -115,6 +115,7 @@ export async function startBackgroundTuner(environment = {}) {
       };
     },
     getRuntime: preview.runtimeMeasurement,
+    getAudioState: preview.audioState,
     focusEffect: preview.focusEffect,
     focusPresets: presets.focusSearch,
     documentRef,

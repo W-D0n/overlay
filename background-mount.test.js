@@ -70,11 +70,11 @@ describe('background mount react routing', () => {
 describe('background mount audio routing', () => {
   const levels = { level: 0.5, bass: 0.4, mid: 0.3, treble: 0.2 };
 
-  function mountWith(instance) {
+  function mountWith(instance, options = { audioReactive: 'Oui' }) {
     const container = { appendChild: () => {} };
     const registry = { RainBackground: () => instance };
     const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ (registry));
-    mount.apply({ component: 'RainBackground', options: {} });
+    mount.apply({ component: 'RainBackground', options });
     return mount;
   }
 
@@ -102,6 +102,35 @@ describe('background mount audio routing', () => {
     expect(mount.applyAudio(levels)).toBe(false);
   });
 
+  test('un effet capable de réagir reste inerte tant que le preset ne l’active pas', () => {
+    const received = [];
+    const mount = mountWith({
+      el: { name: 'rain', remove: () => {} },
+      setAudioLevel: (value) => received.push(value),
+    }, { audioReactive: 'Non' });
+    expect(mount.isAudioReactive()).toBe(false);
+    expect(mount.applyAudio(levels)).toBe(false);
+    expect(received).toEqual([]);
+  });
+
+  test('activer la réactivité via update suffit, sans remonter l’effet', () => {
+    const received = [];
+    const instance = {
+      el: { name: 'rain', remove: () => {} },
+      update: () => {},
+      setAudioLevel: (value) => received.push(value),
+    };
+    const container = { appendChild: () => {} };
+    const registry = { RainBackground: () => instance };
+    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ (registry));
+    mount.apply({ component: 'RainBackground', options: { audioReactive: 'Non' } });
+    expect(mount.isAudioReactive()).toBe(false);
+    mount.apply({ component: 'RainBackground', options: { audioReactive: 'Oui' } });
+    expect(mount.isAudioReactive()).toBe(true);
+    expect(mount.applyAudio(levels)).toBe(true);
+    expect(received).toEqual([levels]);
+  });
+
   test('un effet réactif démonté cesse d’être signalé comme réactif', () => {
     const mount = mountWith({
       el: { name: 'rain', remove: () => {} },
@@ -109,5 +138,35 @@ describe('background mount audio routing', () => {
     });
     mount.apply({ component: null, options: {} });
     expect(mount.isAudioReactive()).toBe(false);
+  });
+});
+
+describe('background mount change notification', () => {
+  test('chaque changement d’effet monté notifie l’observateur', () => {
+    let notifications = 0;
+    const container = { appendChild: () => {} };
+    const registry = { RainBackground: () => ({ el: { name: 'rain', remove: () => {} } }) };
+    const mount = createBackgroundMount(
+      /** @type {*} */ (container),
+      /** @type {*} */ (registry),
+      () => { notifications += 1; },
+    );
+    mount.apply({ component: 'RainBackground', options: {} });
+    mount.setPaused(true);
+    mount.setPaused(false);
+    mount.destroy();
+    expect(notifications).toBe(4);
+  });
+
+  test('une pause identique ne notifie pas deux fois', () => {
+    let notifications = 0;
+    const container = { appendChild: () => {} };
+    const mount = createBackgroundMount(
+      /** @type {*} */ (container),
+      /** @type {*} */ ({}),
+      () => { notifications += 1; },
+    );
+    mount.setPaused(false);
+    expect(notifications).toBe(0);
   });
 });

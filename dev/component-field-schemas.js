@@ -51,6 +51,7 @@ export const NUMBER_FIELD_GUIDANCE = {
   glowIntensity: { min: 0, max: 3, step: 0.05 },
   reactionInterval: { min: 2, max: 300, step: 1, unit: 's' },
   reactionIntensity: { min: 0, max: 3, step: 0.05 },
+  audioIntensity: { min: 0, max: 2, step: 0.05 },
   intensity: { min: 0, max: 1, step: 0.01 },
   speed: { min: 0, max: 5, step: 0.05 },
   lineWidth: { min: 0.25, max: 8, step: 0.05, unit: 'px' },
@@ -130,6 +131,15 @@ const BACKGROUND_FIELD_DEFINITIONS = {
     },
     { key: 'reactionInterval', label: 'Intervalle des animations (s)', type: 'number', default: 60 },
     { key: 'reactionIntensity', label: 'Intensité des animations', type: 'number', default: 1 },
+    {
+      key: 'audioReactive',
+      label: 'Réagit au son',
+      description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
+      type: 'select',
+      choices: ['Non', 'Oui'],
+      default: 'Non',
+    },
+    { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
   ],
   RainBackground: [
     { key: 'intensity', label: 'Intensité (0-1)', type: 'number', default: 0.5 },
@@ -147,6 +157,15 @@ const BACKGROUND_FIELD_DEFINITIONS = {
     { key: 'burstMaxTravel', label: 'Trajet maximum avant éclatement (0-1)', type: 'number', default: 0.9 },
     { key: 'burstDuration', label: "Durée de l'éclatement (s)", type: 'number', default: 0.37 },
     { key: 'burstScale', label: "Expansion de l'anneau", type: 'number', default: 1.8 },
+    {
+      key: 'audioReactive',
+      label: 'Réagit au son',
+      description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
+      type: 'select',
+      choices: ['Non', 'Oui'],
+      default: 'Non',
+    },
+    { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
   ],
   FirefliesBackground: [
     { key: 'count', label: 'Nombre de lucioles', type: 'number', default: 25 },
@@ -220,6 +239,15 @@ const BACKGROUND_FIELD_DEFINITIONS = {
     { key: 'color', label: 'Couleur', type: 'color', default: '#C8B97A' },
     { key: 'maxRadius', label: 'Rayon maximum (px)', type: 'number', default: 180 },
     { key: 'lineWidth', label: 'Épaisseur des ondes (px)', type: 'number', default: 1.5 },
+    {
+      key: 'audioReactive',
+      label: 'Réagit au son',
+      description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
+      type: 'select',
+      choices: ['Non', 'Oui'],
+      default: 'Non',
+    },
+    { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
   ],
 };
 

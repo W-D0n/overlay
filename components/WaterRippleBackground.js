@@ -1,6 +1,7 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
 import { canvasPixelRatio } from './canvas-runtime.js';
+import { isAudioPeak } from '../audio-levels.js';
 
 /**
  * WaterRippleBackground.js — Gouttes qui tombent puis propagent des ondes à la surface de l'eau.
@@ -12,6 +13,8 @@ import { canvasPixelRatio } from './canvas-runtime.js';
  * @param {{
  *   shape?: 'circle' | 'ellipse' | 'diamond',
  *   frequency?: number, - impacts par seconde (défaut 0.8)
+ *   audioReactive?: string, - 'Oui' pour engendrer une goutte à chaque pic sonore (défaut 'Non')
+ *   audioIntensity?: number, - amplitude de la réaction audio (défaut 1)
  *   speed?: number,     - multiplicateur temporel global (défaut 1)
  *   amplitude?: number, - intensité visuelle des ondes, 0-1 (défaut 0.7)
  *   color?: string,     - couleur CSS des gouttes et ondes (défaut var(--color-gold))
@@ -28,6 +31,8 @@ export function WaterRippleBackground(options = {}) {
   let color = options.color ?? 'var(--color-gold)';
   let maxRadius = Math.max(1, options.maxRadius ?? 180);
   let lineWidth = Math.max(0.1, options.lineWidth ?? 1.5);
+  let audioIntensity = Math.max(0, options.audioIntensity ?? 1);
+  let previousAudioLevel = 0;
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
@@ -149,11 +154,29 @@ export function WaterRippleBackground(options = {}) {
       if (typeof next.amplitude === 'number') amplitude = clamp(next.amplitude, 0, 1);
       if (typeof next.maxRadius === 'number') maxRadius = Math.max(1, next.maxRadius);
       if (typeof next.lineWidth === 'number') lineWidth = Math.max(0.1, next.lineWidth);
+      if (typeof next.audioIntensity === 'number' && next.audioIntensity >= 0) audioIntensity = next.audioIntensity;
+      if (next.audioReactive !== undefined && next.audioReactive !== 'Oui') previousAudioLevel = 0;
       if (typeof next.color === 'string' && next.color !== color) {
         color = next.color;
         rgb = resolveColor(color);
       }
     },
+    /**
+     * Une goutte par pic sonore, en plus de la fréquence réglée. `audioIntensity` module le nombre
+     * de gouttes par pic : c'est le lien son → image le plus lisible de la bibliothèque.
+     * @param {import('../audio-levels.js').AudioLevels} levels
+     */
+    setAudioLevel(levels) {
+      const level = typeof levels?.level === 'number' && Number.isFinite(levels.level)
+        ? clamp(levels.level, 0, 1)
+        : 0;
+      if (isAudioPeak(previousAudioLevel, level)) {
+        const drops = Math.max(1, Math.round(audioIntensity));
+        for (let i = 0; i < drops; i += 1) spawn();
+      }
+      previousAudioLevel = level;
+    },
+
     destroy() {
       cancelAnimationFrame(rafId);
       observer.disconnect();

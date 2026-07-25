@@ -56,6 +56,11 @@ function resolveMode(mode) {
   return typeof mode === 'string' && mode in MODE_PARAMS ? /** @type {GridMode} */ (mode) : DEFAULT_MODE;
 }
 
+/** Niveau audio sûr : une valeur absente ou aberrante ne doit jamais déformer le rendu. */
+function clamp01(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+}
+
 /** @param {number} a @param {number} b @param {number} t */
 function lerp(a, b, t) { return a + (b - a) * t; }
 
@@ -128,6 +133,14 @@ const REACTION_DURATIONS = { follow: 2000, sub: 2000, raid: 3000, bits: 1500 };
 
 /** Boost d'opacité maximal (Couche 4), additif à C1+C2 avant clamp final. */
 const REACTION_AMPLITUDE = 0.5;
+
+/**
+ * Gains de la réaction audio, à `audioIntensity` 1 et niveau saturé : le rayon des points grossit
+ * de 80 % sur le grave, l'opacité gagne 0.35 sur l'aigu. Bornés pour que la grille reste lisible
+ * même en musique forte (docs/specs/background-audio-reactivity.md).
+ */
+const AUDIO_RADIUS_GAIN = 0.8;
+const AUDIO_OPACITY_GAIN = 0.35;
 
 /** Épaisseur (px) de la bande de front de l'onde `follow`. */
 const FOLLOW_BAND_HALF_WIDTH = 40;
@@ -256,12 +269,15 @@ export function lerpModeParams(from, to, progress) {
  *   reactionMode?: 'none'|'ambient'|'follow'|'sub'|'raid'|'bits',
  *   reactionInterval?: number,
  *   reactionIntensity?: number,
+ *   audioReactive?: string,
+ *   audioIntensity?: number,
  * }} [options]
  * @returns {{
  *   el: HTMLCanvasElement,
  *   setMode: (mode: unknown) => void,
  *   update: (options: unknown) => void,
  *   trigger: (payload: unknown) => void,
+ *   setAudioLevel: (levels: import('../audio-levels.js').AudioLevels) => void,
  *   morphTo: (options: { mode: GridMode, duration?: number, easing?: unknown }) => Promise<void>,
  *   destroy: () => void,
  * }}
@@ -273,6 +289,11 @@ export function DotGridAnimated(options = {}) {
   let pulseSpeed = options.pulseSpeed ?? 1;
   let angle = options.angle ?? 0;
   let glowIntensity = Math.max(0, options.glowIntensity ?? 1);
+  let audioIntensity = Math.max(0, options.audioIntensity ?? 1);
+  // Dernier niveau reçu. Remis à zéro dès que la diffusion s'arrête (micro perdu, preset non
+  // réactif) pour que la grille revienne à son animation normale au lieu de figer sur un pic.
+  let audioBass = 0;
+  let audioTreble = 0;
   let reactionMode = isAutoReactionMode(options.reactionMode) ? options.reactionMode : 'ambient';
   let reactionInterval = Math.max(1, options.reactionInterval ?? 60);
   let reactionIntensity = Math.max(0, options.reactionIntensity ?? 1);
@@ -509,8 +530,11 @@ export function DotGridAnimated(options = {}) {
         ? reactionDelta(activeReaction, i, x, y, cssW, cssH, reactionProgress) * reactionIntensity
         : 0;
 
-      // Opacité finale : base + C1 + C2 + C3, clampée [0.04, 1]
-      const opacity = Math.min(1, Math.max(0.04, baseOpacity + c1 + c2 + c3));
+      // Couche audio — l'aigu éclaircit la grille (docs/specs/background-audio-reactivity.md)
+      const c4 = audioTreble * audioIntensity * AUDIO_OPACITY_GAIN;
+
+      // Opacité finale : base + C1 + C2 + C3 + C4, clampée [0.04, 1]
+      const opacity = Math.min(1, Math.max(0.04, baseOpacity + c1 + c2 + c3 + c4));
 
       if (colorMode === 'noise') {
         const deg = simplex2(
@@ -528,7 +552,7 @@ export function DotGridAnimated(options = {}) {
         ctx.globalAlpha = 1;
       }
       ctx.beginPath();
-      ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+      ctx.arc(x, y, dotRadius * (1 + audioBass * audioIntensity * AUDIO_RADIUS_GAIN), 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -583,6 +607,15 @@ export function DotGridAnimated(options = {}) {
         dotRadius = opts.dotRadius;
         glowStale = true;
       }
+      if (typeof opts.audioIntensity === 'number' && opts.audioIntensity >= 0) {
+        audioIntensity = opts.audioIntensity;
+      }
+      // Le preset repasse en non réactif : plus aucun niveau ne sera diffusé, on efface le dernier
+      // reçu pour que la grille retrouve son animation normale.
+      if (opts.audioReactive !== undefined && opts.audioReactive !== 'Oui') {
+        audioBass = 0;
+        audioTreble = 0;
+      }
       if (typeof opts.baseOpacity === 'number') {
         baseOpacity = Math.min(1, Math.max(0, opts.baseOpacity));
       }
@@ -633,6 +666,16 @@ export function DotGridAnimated(options = {}) {
     trigger(payload) {
       const type = /** @type {{ type?: unknown } | null | undefined} */ (payload)?.type;
       if (typeof type === 'string') startReaction(type);
+    },
+
+    /**
+     * Réaction audio : le grave gonfle les points, l'aigu les éclaircit. Se compose avec les
+     * réactions d'alerte (Couche 4) sans les remplacer.
+     * @param {import('../audio-levels.js').AudioLevels} levels
+     */
+    setAudioLevel(levels) {
+      audioBass = clamp01(levels?.bass);
+      audioTreble = clamp01(levels?.treble);
     },
 
     /**

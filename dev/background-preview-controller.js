@@ -2,6 +2,7 @@
 import { createBackgroundMount } from '../background-mount.js';
 import { ReactionOverlay } from '../components/ReactionOverlay.js';
 import { createReactionCoordinator } from '../background-reactions.js';
+import { createBrowserAudioSession } from '../background-audio.js';
 import {
   BACKGROUND_COMPONENT_NAMES,
   backgroundEffectLabel,
@@ -32,7 +33,10 @@ export function createBackgroundPreviewController(input) {
   const documentRef = input.documentRef ?? document;
   const windowRef = input.windowRef ?? window;
   const now = input.now ?? (() => windowRef.performance.now());
-  const mount = createBackgroundMount(input.layer);
+  /** @type {ReturnType<typeof createBrowserAudioSession> | null} */
+  let audio = null;
+  const mount = createBackgroundMount(input.layer, undefined, () => audio?.sync());
+  audio = createBrowserAudioSession({ mount, onStateChange: input.onAudioStateChange });
   const overlay = ReactionOverlay();
   input.layer.appendChild(overlay.el);
   const reactions = createReactionCoordinator({ mount, overlay });
@@ -153,6 +157,7 @@ export function createBackgroundPreviewController(input) {
       apply(next);
     },
     react: reactions.handle,
+    audioState: () => audio.getState(),
     snapshot: session.snapshot,
     /** @param {string | null} presetId */
     setActivePresetId(presetId) {

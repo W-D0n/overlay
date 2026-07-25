@@ -46,6 +46,7 @@ function cssTimeToMs(value) {
  *   stateServer: string,
  *   getSelection: () => { presetId: string | null, quality: 'auto' | 'performance' },
  *   getRuntime: () => { fps: number | null, pixelRatio: number | null, paused: boolean },
+ *   getAudioState?: () => { status: 'idle' | 'active' | 'unavailable', reason: string | null },
  *   focusEffect: () => void,
  *   focusPresets: () => void,
  *   documentRef?: Document,
@@ -140,6 +141,7 @@ export function createBackgroundReadinessController(input) {
         stateServer: input.stateServer,
         selection: input.getSelection(),
         runtime: input.getRuntime(),
+        audio: input.getAudioState?.(),
       });
       render(report);
     } finally {

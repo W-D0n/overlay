@@ -34,6 +34,7 @@
     import { selectBackground } from './background-selection.js';
     import { ReactionOverlay } from './components/ReactionOverlay.js';
     import { createReactionCoordinator } from './background-reactions.js';
+    import { createBrowserAudioSession } from './background-audio.js';
 
     const searchParams = new URLSearchParams(location.search);
     const presetRef = searchParams.get('preset');
@@ -44,7 +45,12 @@
 
     const STATE_SERVER = 'http://localhost:4462';
     const bgLayer = document.getElementById('bg-layer');
-    const mount = createBackgroundMount(bgLayer);
+    // La session audio se resynchronise sur chaque changement d'effet monté : un preset non
+    // réactif n'ouvre jamais le micro (docs/specs/background-audio-reactivity.md).
+    let audio = null;
+    const mount = createBackgroundMount(bgLayer, undefined, () => audio?.sync());
+    audio = createBrowserAudioSession({ mount });
+    audio.sync();
     mount.setPaused(document.hidden);
     document.addEventListener('visibilitychange', () => mount.setPaused(document.hidden));
 

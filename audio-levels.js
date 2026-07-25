@@ -77,3 +77,22 @@ export function computeLevels({ spectrum, sampleRate, previous }) {
   }
   return next;
 }
+
+/**
+ * Seuils du détecteur de pic — un pic est une montée franche ET un niveau déjà significatif.
+ * Sans le second, le silence produirait des pics sur le moindre souffle.
+ */
+const PEAK_RISE = 0.12;
+const PEAK_FLOOR = 0.35;
+
+/**
+ * Détecte un pic entre deux frames d'une même bande. Pur : l'appelant garde la valeur précédente.
+ * Utilisé pour les réactions ponctuelles (éclatement d'une bulle, goutte d'eau).
+ * @param {number} previous
+ * @param {number} current
+ * @returns {boolean}
+ */
+export function isAudioPeak(previous, current) {
+  if (!Number.isFinite(previous) || !Number.isFinite(current)) return false;
+  return current >= PEAK_FLOOR && current - previous >= PEAK_RISE;
+}

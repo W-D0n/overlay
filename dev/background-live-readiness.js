@@ -1,6 +1,7 @@
 // @ts-check
 import { backgroundCurrentUrl, backgroundPresetUrl } from '../background-selection.js';
 import { COMPONENT_NAMES } from '../component-names.js';
+import { isAudioEnabled } from '../background-mount.js';
 
 /** @param {import('./background-state-format.js').BackgroundFile} file */
 function stateReadyCheck(file) {
@@ -55,6 +56,7 @@ function reportStatus(checks) {
  *   relayUrl?: string,
  *   selection: { presetId: string | null, quality: 'auto' | 'performance' },
  *   runtime: { fps: number | null, pixelRatio: number | null, paused: boolean },
+ *   audio?: { status: 'idle' | 'active' | 'unavailable', reason: string | null },
  *   fetchImpl?: typeof fetch,
  * }} input
  */
@@ -81,7 +83,43 @@ export async function collectBackgroundLiveReadiness(input) {
     selection: input.selection,
     runtime: input.runtime,
     relay: { reachable: relayResult.status === 'fulfilled' },
+    audio: input.audio,
   });
+}
+
+/**
+ * Point d'état du micro — présent uniquement si le fond affiché est réglé pour réagir au son.
+ * Un preset non réactif n'a rien à vérifier ici, et un micro perdu ne bloque jamais un live :
+ * l'effet continue son animation normale (docs/specs/background-audio-reactivity.md).
+ * @param {{ status: 'idle' | 'active' | 'unavailable', reason: string | null } | undefined} audio
+ * @param {Record<string, unknown> | undefined} options
+ */
+function audioCheck(audio, options) {
+  if (!isAudioEnabled(options)) return null;
+
+  if (audio?.status === 'active') {
+    return {
+      id: 'audio',
+      status: 'ready',
+      title: 'Micro lu par l’aperçu',
+      detail: 'Le fond réagit au son. Confirme le rendu dans OBS, la source y est indépendante.',
+    };
+  }
+
+  const cause = audio?.reason === 'NotAllowedError'
+    ? 'Autorisation refusée par le navigateur.'
+    : audio?.reason === 'NotFoundError'
+      ? 'Aucune entrée audio par défaut côté système.'
+      : audio?.reason === 'StreamEnded'
+        ? 'L’entrée s’est arrêtée (micro débranché). Nouvelle tentative programmée.'
+        : 'Micro pas encore ouvert.';
+
+  return {
+    id: 'audio',
+    status: 'attention',
+    title: 'Réaction au son indisponible',
+    detail: `${cause} OBS doit être lancé avec --enable-media-stream ; l’entrée suivie est celle par défaut de Windows.`,
+  };
 }
 
 /**
@@ -93,6 +131,7 @@ export async function collectBackgroundLiveReadiness(input) {
  *   selection: { presetId: string | null, quality: 'auto' | 'performance' },
  *   runtime: { fps: number | null, pixelRatio: number | null, paused: boolean },
  *   relay: { reachable: boolean | null },
+ *   audio?: { status: 'idle' | 'active' | 'unavailable', reason: string | null },
  * }} input
  */
 export function evaluateBackgroundLiveReadiness(input) {
@@ -227,6 +266,9 @@ export function evaluateBackgroundLiveReadiness(input) {
     runtime,
     relay,
   ];
+
+  const audio = audioCheck(input.audio, preset?.options ?? input.state.file.current.options);
+  if (audio !== null) checks.push(audio);
 
   return {
     status: reportStatus(checks),

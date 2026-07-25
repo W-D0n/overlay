@@ -1,6 +1,6 @@
 // @ts-check
 import { expect, test } from 'bun:test';
-import { computeLevels, SILENT_LEVELS } from './audio-levels.js';
+import { computeLevels, isAudioPeak, SILENT_LEVELS } from './audio-levels.js';
 
 const SAMPLE_RATE = 48000;
 const BIN_COUNT = 1024; // fftSize 2048
@@ -96,4 +96,25 @@ test('9. un spectre vide de bins ne produit ni NaN ni exception', () => {
     previous: SILENT_LEVELS,
   });
   for (const value of Object.values(levels)) expect(Number.isFinite(value)).toBe(true);
+});
+
+test('10. une montée franche au-dessus du plancher est un pic', () => {
+  expect(isAudioPeak(0.3, 0.5)).toBe(true);
+});
+
+test('11. une montée franche sous le plancher n’est pas un pic', () => {
+  expect(isAudioPeak(0.05, 0.25)).toBe(false);
+});
+
+test('12. un niveau élevé mais stable n’est pas un pic', () => {
+  expect(isAudioPeak(0.8, 0.82)).toBe(false);
+});
+
+test('13. une descente n’est jamais un pic', () => {
+  expect(isAudioPeak(0.9, 0.4)).toBe(false);
+});
+
+test('14. une valeur non finie ne produit jamais de pic', () => {
+  expect(isAudioPeak(Number.NaN, 0.9)).toBe(false);
+  expect(isAudioPeak(0.1, Number.POSITIVE_INFINITY)).toBe(false);
 });

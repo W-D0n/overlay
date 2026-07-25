@@ -13,6 +13,9 @@ import { COMPONENT_REGISTRY } from './component-registry.js';
  *
  * @param {HTMLElement} container - Conteneur plein écran (ex : `#bg-layer`)
  * @param {typeof COMPONENT_REGISTRY} [registry] - Point d'injection pour les tests du cycle de vie.
+ * @param {() => void} [onMountChange] - Notifié après chaque changement d'effet monté (montage,
+ *   démontage, pause, changement d'options). La session audio s'y abonne plutôt que de dépendre
+ *   des appelants : un nouveau site d'appel de `apply` ne peut pas oublier de la resynchroniser.
  * @returns {{
  *   apply(state: { component: string | null, options: Record<string, unknown> }): void,
  *   react(event: unknown): boolean,
@@ -22,7 +25,20 @@ import { COMPONENT_REGISTRY } from './component-registry.js';
  *   destroy(): void,
  * }}
  */
-export function createBackgroundMount(container, registry = COMPONENT_REGISTRY) {
+/**
+ * La réactivité audio est un réglage de preset, pas une propriété de l'effet : un effet capable de
+ * réagir ne doit pas ouvrir le micro tant que le preset affiché ne le demande pas.
+ * @param {Record<string, unknown> | undefined} options
+ * @returns {boolean}
+ */
+export function isAudioEnabled(options) {
+  return options?.audioReactive === AUDIO_REACTIVE_ON;
+}
+
+/** Valeur du champ `audioReactive` qui active la réactivité (voir dev/component-field-schemas.js). */
+export const AUDIO_REACTIVE_ON = 'Oui';
+
+export function createBackgroundMount(container, registry = COMPONENT_REGISTRY, onMountChange = () => {}) {
   /** @type {import('./types.js').ComponentInstance | null} */
   let instance = null;
   /** @type {string | null} */
@@ -64,6 +80,7 @@ export function createBackgroundMount(container, registry = COMPONENT_REGISTRY) 
     apply(state) {
       latestState = state;
       if (!paused) applyMountedState(state);
+      onMountChange();
     },
     react(event) {
       if (instance !== null && typeof instance.trigger === 'function') {
@@ -73,11 +90,12 @@ export function createBackgroundMount(container, registry = COMPONENT_REGISTRY) 
       return false;
     },
     isAudioReactive() {
-      return instance !== null && typeof instance.setAudioLevel === 'function';
+      if (instance === null || typeof instance.setAudioLevel !== 'function') return false;
+      return isAudioEnabled(latestState?.options);
     },
     applyAudio(levels) {
-      if (instance === null || typeof instance.setAudioLevel !== 'function') return false;
-      instance.setAudioLevel(levels);
+      if (!this.isAudioReactive()) return false;
+      /** @type {*} */ (instance).setAudioLevel(levels);
       return true;
     },
     setPaused(nextPaused) {
@@ -85,10 +103,12 @@ export function createBackgroundMount(container, registry = COMPONENT_REGISTRY) 
       paused = nextPaused;
       if (paused) unmount();
       else if (latestState !== null) applyMountedState(latestState);
+      onMountChange();
     },
     destroy() {
       latestState = null;
       unmount();
+      onMountChange();
     },
   };
 }

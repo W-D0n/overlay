@@ -2,6 +2,7 @@
 import { resolveColor } from './color-utils.js';
 import { frameDeltaSeconds } from './animation-time.js';
 import { canvasPixelRatio } from './canvas-runtime.js';
+import { isAudioPeak } from '../audio-levels.js';
 
 /**
  * BubbleBackground.js — Bulles ambiantes montantes, avec éclatement (Track B, session B4).
@@ -20,9 +21,14 @@ import { canvasPixelRatio } from './canvas-runtime.js';
  *   burstMaxTravel?: number, - trajet maximum avant éclatement, ratio 0-1 (défaut 0.9)
  *   burstDuration?: number, - durée de l'anneau d'éclatement en secondes (défaut 0.37)
  *   burstScale?: number, - expansion finale de l'anneau (défaut 1.8)
+ *   audioReactive?: string, - 'Oui' pour réagir au son (défaut 'Non')
+ *   audioIntensity?: number, - amplitude de la réaction audio (défaut 1)
  * }} [options]
  * @returns {import('../types.js').ComponentInstance}
  */
+/** Accélération maximale de la montée à `audioIntensity` 1 et niveau saturé (+70 %). */
+const AUDIO_SPEED_GAIN = 0.7;
+
 export function BubbleBackground(options = {}) {
   let count = Math.max(1, Math.round(options.count ?? 15));
   let speed = options.speed ?? 1;
@@ -33,6 +39,9 @@ export function BubbleBackground(options = {}) {
   let burstMaxTravel = options.burstMaxTravel ?? 0.9;
   let burstDuration = Math.max(0.05, options.burstDuration ?? 0.37);
   let burstScale = Math.max(0, options.burstScale ?? 1.8);
+  let audioIntensity = Math.max(0, options.audioIntensity ?? 1);
+  let audioLevel = 0;
+  let previousAudioBass = 0;
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
@@ -96,8 +105,11 @@ export function BubbleBackground(options = {}) {
       const bub = bubbles[i];
 
       if (bub.phase === 'rising') {
-        bub.y -= bub.vy * speed * delta;
-        bub.x += Math.sin(timestamp * 0.001 * speed + bub.y * 0.02) * bub.driftSpeed * speed * delta;
+        // Le son accélère la montée sans jamais la ralentir : à niveau nul, le rendu est celui
+        // d'un preset non réactif (docs/specs/background-audio-reactivity.md).
+        const audioSpeed = speed * (1 + audioLevel * audioIntensity * AUDIO_SPEED_GAIN);
+        bub.y -= bub.vy * audioSpeed * delta;
+        bub.x += Math.sin(timestamp * 0.001 * audioSpeed + bub.y * 0.02) * bub.driftSpeed * audioSpeed * delta;
 
         ctx.strokeStyle = `rgba(${r},${g},${b},0.55)`;
         ctx.lineWidth = 1.5;
@@ -126,6 +138,16 @@ export function BubbleBackground(options = {}) {
     }
   }
 
+  /** Fait éclater la bulle la plus haute encore en montée — la plus visible à l'écran. */
+  function burstOneRisingBubble() {
+    let highest = null;
+    for (const bub of bubbles) {
+      if (bub.phase !== 'rising') continue;
+      if (highest === null || bub.y < highest.y) highest = bub;
+    }
+    if (highest !== null) highest.phase = 'bursting';
+  }
+
   const observer = new ResizeObserver(handleResize);
   observer.observe(canvas);
 
@@ -141,12 +163,31 @@ export function BubbleBackground(options = {}) {
       if (typeof o.burstMaxTravel === 'number') burstMaxTravel = o.burstMaxTravel;
       if (typeof o.burstDuration === 'number') burstDuration = Math.max(0.05, o.burstDuration);
       if (typeof o.burstScale === 'number') burstScale = Math.max(0, o.burstScale);
+      if (typeof o.audioIntensity === 'number' && o.audioIntensity >= 0) audioIntensity = o.audioIntensity;
+      if (o.audioReactive !== undefined && o.audioReactive !== 'Oui') { audioLevel = 0; previousAudioBass = 0; }
       if (typeof o.color === 'string' && o.color !== color) { color = o.color; rgb = resolveColor(color); }
       if (typeof o.count === 'number' && Math.round(o.count) !== count) {
         count = Math.max(1, Math.round(o.count));
         seed();
       }
     },
+    /**
+     * Le niveau général accélère la montée ; un pic de grave fait éclater une bulle en vol,
+     * en réutilisant l'éclatement déjà implémenté.
+     * @param {import('../audio-levels.js').AudioLevels} levels
+     */
+    setAudioLevel(levels) {
+      const level = typeof levels?.level === 'number' && Number.isFinite(levels.level)
+        ? Math.min(1, Math.max(0, levels.level))
+        : 0;
+      const bass = typeof levels?.bass === 'number' && Number.isFinite(levels.bass)
+        ? Math.min(1, Math.max(0, levels.bass))
+        : 0;
+      audioLevel = level;
+      if (isAudioPeak(previousAudioBass, bass)) burstOneRisingBubble();
+      previousAudioBass = bass;
+    },
+
     destroy() {
       cancelAnimationFrame(rafId);
       observer.disconnect();

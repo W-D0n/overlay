@@ -198,3 +198,46 @@ test('une coupure réseau produit un diagnostic complet sans faire échouer la c
   expect(report.checks.find(({ id }) => id === 'runtime')).toMatchObject({ status: 'ready' });
   expect(report.checks.find(({ id }) => id === 'relay')).toMatchObject({ status: 'ready' });
 });
+
+const reactiveFile = {
+  current: { component: 'DotGridBackground', options: { audioReactive: 'Oui' } },
+  presets: [],
+};
+
+test('un preset non réactif n’affiche aucun point micro', () => {
+  const report = evaluateBackgroundLiveReadiness({
+    state: { ok: true, file },
+    selection: { presetId: null, quality: 'auto' },
+    runtime: { fps: 60, pixelRatio: 1, paused: false },
+    relay: { reachable: false },
+    audio: { status: 'idle', reason: null },
+  });
+  expect(report.checks.find(({ id }) => id === 'audio')).toBeUndefined();
+});
+
+test('un fond réactif avec micro actif ajoute un point prêt', () => {
+  const report = evaluateBackgroundLiveReadiness({
+    state: { ok: true, file: reactiveFile },
+    selection: { presetId: null, quality: 'auto' },
+    runtime: { fps: 60, pixelRatio: 1, paused: false },
+    relay: { reachable: false },
+    audio: { status: 'active', reason: null },
+  });
+  const audio = report.checks.find(({ id }) => id === 'audio');
+  expect(audio?.status).toBe('ready');
+  expect(report.status).toBe('ready');
+});
+
+test('un micro refusé demande de l’attention sans bloquer le live', () => {
+  const report = evaluateBackgroundLiveReadiness({
+    state: { ok: true, file: reactiveFile },
+    selection: { presetId: null, quality: 'auto' },
+    runtime: { fps: 60, pixelRatio: 1, paused: false },
+    relay: { reachable: false },
+    audio: { status: 'unavailable', reason: 'NotAllowedError' },
+  });
+  const audio = report.checks.find(({ id }) => id === 'audio');
+  expect(audio?.status).toBe('attention');
+  expect(audio?.detail).toContain('--enable-media-stream');
+  expect(report.status).not.toBe('blocking');
+});
