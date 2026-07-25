@@ -7,7 +7,7 @@
 | [background-standalone](background-standalone.md) | Fait | 2026-07-14 | — |
 | [background-reactive-events](background-reactive-events.md) | Fait | 2026-07-24 | ① Fonds réactifs |
 | [background-audio-reactivity](background-audio-reactivity.md) | Fait | 2026-07-25 | ② Réactivité audio |
-| [obs-scene-preset-mapping](obs-scene-preset-mapping.md) | À valider | 2026-07-25 | ③ Preset par scène OBS |
+| [obs-scene-preset-mapping](obs-scene-preset-mapping.md) | Fait | 2026-07-25 | ③ Preset par scène OBS |
 
 ## Archive
 

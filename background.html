@@ -2,14 +2,14 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=1920">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Overlay — Fond seul</title>
   <!--
     URL OBS background-only (docs/specs/background-standalone.md) : ne rend QUE l'effet de fond
     courant, piloté par dev/background-state-server.js (port 4462). État chargé au démarrage (GET /state), puis suivi en live via
     WS /state-ws — serveur injoignable : page vide + reconnexion avec backoff, jamais d'erreur
     visible dans la Browser Source.
-    OBS : Browser Source 1920×1080, pointer-events: none.
+    OBS : la page épouse la taille de la Browser Source, quelle qu'elle soit ; pointer-events: none.
     Option "?transparent=1" : force le body en transparent (au lieu du noir Atelier) pour
     superposer l'animation au-dessus d'autres sources OBS (gameplay, cam).
   -->
@@ -20,8 +20,6 @@
     #bg-layer {
       position: absolute;
       inset: 0;
-      width: 1920px;
-      height: 1080px;
       pointer-events: none;
     }
   </style>

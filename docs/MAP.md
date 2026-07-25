@@ -36,11 +36,16 @@
 - Lot du 2026-07-25 : ⑦ archivage du moteur de scènes — registre scindé sur les seuls effets de
   fond, `types.js` réduit, Studio à une entrée, `start-dev` limité aux serveurs statique et fond,
   tuner DotGrid nettoyé de sa partie relais OBS.
+- Lot du 2026-07-25 : ③ preset automatique par scène OBS — client OBS WebSocket en lecture seule
+  dans le serveur d'état (actif seulement si `OBS_WS_PASSWORD`), `sceneMap` persisté, section
+  « Scènes OBS » du tuner. Vérifié contre le vrai OBS de l'owner.
+- Lot du 2026-07-25 : passage du canvas OBS en 2560×1440 — suppression des tailles figées
+  1920×1080 (`tokens.css`, `background.html`), la page épouse la Browser Source.
 - Lot du 2026-07-25 : ② réactivité audio — `setAudioLevel()` ajouté au contrat de composant,
   session micro paresseuse avec reprise automatique, réglages `audioReactive`/`audioIntensity` par
   preset, DotGrid/Bubble/WaterRipple réactifs. Guides du moteur de scènes retirés.
 
-État après le lot audio du 2026-07-25 : **230 tests verts** (341 avant retrait des tests du moteur
+État après le lot ③ du 2026-07-25 : **275 tests verts** (341 avant retrait des tests du moteur
 de scènes).
 
 ## Découpage des sessions

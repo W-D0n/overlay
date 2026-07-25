@@ -8,7 +8,7 @@ Direction artistique **Atelier** : noir profond, or patiné, serif + monospace.
 Contraintes structurantes :
 
 - HTML/CSS/JS natif, zéro build et zéro dépendance ;
-- Browser Source OBS fixe en 1920×1080 ;
+- Browser Source OBS de taille variable — la page s'adapte, rien n'est figé en pixels ;
 - composants sous le contrat `{ el, update?, destroy? }` ;
 - variables visuelles partagées dans `tokens.css`.
 

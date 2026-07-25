@@ -95,8 +95,10 @@
 }
 
 html, body {
-  width: 1920px;
-  height: 1080px;
+  /* La Browser Source impose sa taille (1920×1080, 2560×1440…) : le fond la remplit au lieu de
+     la supposer. Les pages de dev qui ont besoin de défiler redéfinissent ces règles. */
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   background: transparent; /* OBS gère le fond */
 }

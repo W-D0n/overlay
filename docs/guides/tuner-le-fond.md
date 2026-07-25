@@ -25,7 +25,8 @@ la seconde → au prochain démarrage, OBS recharge le dernier état sauvegardé
 1. Lancer `start-stream.bat` (ou `start-dev.bat` pour bricoler).
 2. Dans OBS : Source → **Navigateur** (Browser Source).
 3. URL : `http://localhost:5500/background.html`
-4. Largeur `1920`, hauteur `1080`.
+4. Largeur et hauteur : celles de ton canvas OBS (`2560 × 1440`, `1920 × 1080`…). Le fond remplit
+   la source quelle que soit sa taille.
 
 Laisser le champ **CSS personnalisé** vide. OBS injecte ce CSS après celui de la page : une règle
 ajoutée ici peut forcer un fond, masquer un élément ou changer une taille, mais crée alors une
@@ -68,6 +69,35 @@ Ouvrir `http://localhost:5500/dev/studio.html` (s'ouvre aussi automatiquement av
   ligne voisine affiche les FPS mesurés et la densité active.
 
 La ligne de statut en bas de la barre indique si le serveur d'état répond.
+
+## Un fond par scène OBS
+
+Deux façons, non exclusives :
+
+1. **Une source Navigateur par preset** — le bouton `URL` d'un preset donne une adresse stable
+   (`background.html?preset=<id>`) à coller dans la scène OBS voulue. Simple, sans configuration.
+2. **L'association automatique** (section « Scènes OBS » du tuner) — changer de scène dans OBS
+   change le fond de la source qui suit l'état courant.
+
+Pour la seconde, il faut donner au serveur d'état l'accès au serveur WebSocket d'OBS :
+
+1. Dans OBS : **Outils → Paramètres du serveur WebSocket**, activer le serveur et afficher le mot
+   de passe.
+2. À la racine du dépôt, créer `.env` (ignoré par git, gabarit dans `.env.example`) :
+   `OBS_WS_URL=ws://127.0.0.1:4455` et `OBS_WS_PASSWORD=<le mot de passe>`.
+3. Relancer `start-dev.bat` ou `start-stream.bat`.
+4. Dans le tuner, section **Scènes OBS** : chaque scène détectée reçoit un preset, puis
+   `Enregistrer les associations`.
+
+Ce qu'il faut savoir :
+
+- une scène **sans** association ne change rien — un oubli ne noircit jamais un live ;
+- l'association **reprend la main** sur un réglage fait à la main dans le tuner, au prochain
+  changement de scène ;
+- une URL `?preset=` n'est jamais concernée : elle est attachée à son preset ;
+- sans `OBS_WS_PASSWORD`, rien ne se connecte et tout fonctionne comme avant ;
+- l'association se fait par **nom de scène** : renommer une scène dans OBS casse le lien, à refaire
+  dans le tuner.
 
 ## Vérifier avant un live
 
@@ -177,7 +207,7 @@ La page `dev/background-tuner.html` ne contient plus sa logique métier. Selon l
 
 Les identifiants HTML, les URL et les routes serveur font partie du contrat : ne pas les recopier
 dans plusieurs modules. Ajouter un test à l'interface concernée, puis lancer `bun test` et vérifier
-les parcours du Studio à 1920×1080.
+les parcours du Studio.
 
 ## Performance et cycle de vie
 

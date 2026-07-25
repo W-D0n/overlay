@@ -43,7 +43,7 @@ Dans la scène OBS où l'habillage doit apparaître :
 2. Nouvelle source, nom libre (ex. `Overlay Atelier`)
 3. Renseigner :
    - **URL** : `http://localhost:5500/index.html`
-   - **Largeur** : `1920`
+   - **Largeur** : celle de ton canvas OBS
    - **Hauteur** : `1080`
    - **FPS personnalisé** : laisser la valeur par défaut (30 suffit, l'animation DotGrid tourne en JS, pas en dépendance du FPS de capture)
 4. **Décocher** « Actualiser le navigateur quand la scène devient active » — le DotGrid doit rester

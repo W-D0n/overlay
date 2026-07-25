@@ -29,7 +29,7 @@ Décisions validées (AskUserQuestion, 2026-07-14) :
 
 | Fichier | Rôle |
 |---|---|
-| `background.html` (racine) | URL OBS. `#bg-layer` plein écran 1920×1080, `pointer-events: none`. Charge l'état courant (GET), s'abonne au WS, applique les changements live. Serveur absent au démarrage → page vide ; coupure après chargement → dernier rendu valide conservé ; reconnexion avec backoff dans les deux cas. |
+| `background.html` (racine) | URL OBS. `#bg-layer` épouse la taille de la Browser Source, `pointer-events: none`. Charge l'état courant (GET), s'abonne au WS, applique les changements live. Serveur absent au démarrage → page vide ; coupure après chargement → dernier rendu valide conservé ; reconnexion avec backoff dans les deux cas. |
 | `background-mount.js` (racine) | Module partagé : applique un état `{ component, options }` sur un conteneur. Même composant → `update(options)` ; composant différent ou `null` → `destroy()` + remontage. `setPaused(true)` démonte le rendu tout en mémorisant le dernier état. |
 | `background-selection.js` (racine) | Résout soit l'état courant, soit un preset fixé par `?preset=...`, et construit les URL OBS dédiées. Logique pure testée. |
 | `dev/background-state-format.js` | Logique pure : validation, migration des anciens presets, identifiants stables, création/mise à jour/renommage/duplication/suppression. Testée (`.test.js`). |

@@ -1,7 +1,7 @@
 # Handoff — 2026-07-25
 
 Focus courant : **fonds autonomes**. Audit produit du 2026-07-24 → 6 ouvertures validées (①→⑥) +
-archivage du moteur de scènes (⑦). **①, ⑦ et ② livrés.**
+archivage du moteur de scènes (⑦). **①, ⑦, ② et ③ livrés.**
 
 ## État actuel
 
@@ -9,11 +9,37 @@ archivage du moteur de scènes (⑦). **①, ⑦ et ② livrés.**
 - Studio : `http://localhost:5500/dev/studio.html` (une seule entrée : Fonds & presets)
 - État live/presets/événements : `dev/background-state-server.js`, port 4462
 - 11 effets enregistrés, un seul actif à la fois ; overlay de réaction au-dessus de l'effet
-- `main` == `origin/main`, working tree propre, **230 tests verts**
+- `main` == `origin/main`, working tree propre, **275 tests verts**
 - Tag `scene-engine-v1` (poussé) sur `10369b5` — seule copie du moteur de scènes
 - Une seule branche dans le dépôt, locale et distante (convention inscrite dans `CLAUDE.md`)
 
-## Dernier lot — ② Réactivité audio (livré)
+## Dernier lot — ③ Preset automatique par scène OBS (livré, 4/4)
+
+Spec `docs/specs/obs-scene-preset-mapping.md`. Décision owner : faire ③ malgré la réintroduction
+d'une connexion OBS, périmètre réduit à **lire la scène active**.
+
+- `obs-auth.js` **restauré depuis le tag `scene-engine-v1`** avec son test — la raison d'être du tag.
+- `obs-scene-mapping.js` (pur) : distingue « scène non associée » de « preset disparu », ne
+  normalise pas la casse. `sceneMap` dans le fichier d'état, absent = `{}`, aucune migration.
+- `dev/obs-scene-client.js` : v5, abonnement aux seuls événements `Scenes`, reconnexion
+  2/5/15/30 s ; mot de passe refusé (4009) → **arrêt** des tentatives + trace explicite.
+- Branché dans `background-state-server.js`, **seulement si `OBS_WS_PASSWORD` est présent**.
+  Routes `GET /obs-status` et `POST /scene-map`.
+- Tuner : section « Scènes OBS » (présentation pure dans `obs-scene-map-presenter.js`, DOM dans
+  `obs-scene-map-controller.js`).
+
+### Vérification
+
+- `bun test` : **275/275**.
+- Faux OBS rejouant le protocole v5 : 3 scènes listées dans le tuner, association persistée,
+  scène associée → preset appliqué, scène libre → rien.
+- **Vrai OBS de l'owner (2026-07-25)** : authentification acceptée, 36 scènes remontées, bascule
+  réelle sur `STARTING` → le fond est passé en bulles, **confirmé à l'écran par l'owner**.
+- Piège rencontré : le faux OBS et le vrai OBS peuvent écouter **tous les deux** sur 4455 sous
+  Windows. Toute vérification avec un faux serveur doit utiliser un port distinct (4466 ici) pour
+  savoir ce qu'on teste réellement.
+
+## Lot précédent — ② Réactivité audio (livré)
 
 Spec `docs/specs/background-audio-reactivity.md`, faisabilité tranchée dans
 `docs/prototypes/2026-07-25-audio-reactivity.md`.
@@ -73,8 +99,7 @@ Refacto avant suppression, comme prévu :
 
 ## Restant — dans l'ordre de priorité owner
 
-1. **③→⑥** — mapping scène OBS→preset, transition entre presets, couche branding, vignettes de
-   presets.
+1. **④→⑥** — transition entre presets, couche branding, vignettes de presets.
 2. Étendre la réactivité audio aux 8 autres effets, un par un — le contrat est ouvert, il suffit
    d'implémenter `setAudioLevel()` et de déclarer les deux champs.
 
@@ -86,6 +111,18 @@ Refacto avant suppression, comme prévu :
   `Bun.spawn` était dérivé du PID, donc identique d'une exécution à l'autre ; deux `bun test`
   rapprochés se marchaient dessus. Remplacé par un port éphémère attribué par l'OS
   (`reserveFreePort`). 8 exécutions consécutives de la suite complète : 193/193 à chaque fois.
+
+## Résolution — passage en 2560×1440 (2026-07-25)
+
+L'owner est passé en 2560×1440 dans OBS. `background.html` et `tokens.css` **figeaient la page à
+1920×1080** : mesuré avant correctif, la couche restait à 1920×1080 dans une fenêtre plus grande,
+donc bandes vides à droite et en bas dans une source 1440p. Corrigé — `html, body` et `#bg-layer`
+épousent la source, `viewport` en `device-width`. Vérifié après : la couche et le canvas font
+exactement la taille de la fenêtre ; Studio sans régression.
+
+À surveiller : les effets couvrent une surface **1,8× plus grande**, donc plus de pixels à peindre.
+Les défauts en pixels (espacement DotGrid, tailles de formes) paraissent aussi plus petits
+relativement — à réajuster au goût dans le tuner, aucun code à changer.
 
 ## Notes ouvertes
 
