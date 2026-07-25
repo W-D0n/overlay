@@ -29,7 +29,7 @@ http://localhost:5500/dev/prototype-audio-reactivity.html
    - Fermer OBS complètement.
    - Clic droit sur le raccourci OBS → **Propriétés**.
    - Champ **Cible**, ajouter l'option après les guillemets fermants :
-     `"C:\Program Files\obs-studioin4bit\obs64.exe" --enable-media-stream`
+     `"C:\Program Files\obs-studio\bin\64bit\obs64.exe" --enable-media-stream`
    - Valider, puis relancer OBS **par ce raccourci** (un lancement depuis le menu Démarrer ou la
      barre des tâches n'aurait pas l'option).
 2. Ajouter une source **Navigateur**, URL ci-dessus, 1920×1080.
