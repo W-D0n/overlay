@@ -38,8 +38,8 @@ Spec `docs/specs/background-audio-reactivity.md`, faisabilité tranchée dans
   place du périphérique) : preset non réactif → `getUserMedia` jamais appelé ; preset réactif → un
   seul appel et encre du canvas 5 341 → ~19 500 (points visiblement plus gros) ; retour à non
   réactif → piste `ended` et encre revenue à 4 848. Aucune erreur console hors favicon 404.
-- **Reste à faire par l'owner** : confirmer le rendu avec un vrai micro dans OBS (les gains
-  `audioIntensity` n'ont jamais été jugés à l'œil en live, LAC-01 de la spec).
+- **Confirmé en live par l'owner (2026-07-25)** : l'animation réagit bien à un vrai micro dans
+  OBS. Le prototype jetable a été supprimé dans la foulée.
 
 ## Lot précédent — ⑦ Archivage du moteur de scènes
 
@@ -89,8 +89,6 @@ Refacto avant suppression, comme prévu :
 
 ## Notes ouvertes
 
-- `dev/prototype-audio-reactivity.html` est **à supprimer** : sa question est tranchée et la spec
-  est livrée. Laissé le temps que l'owner confirme le rendu en live avec un vrai micro.
 - Les guides `utiliser-le-panneau` et `harmoniser-scenes-obs` ont été retirés (ils décrivaient
   l'éditeur de scènes et le relais OBS archivés). `creer-un-composant` est réécrit côté fond seul.
   Les guides `.html` restent maintenus **à la main** en parallèle des `.md` — divergence facile,

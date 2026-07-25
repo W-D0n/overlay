@@ -11,11 +11,9 @@ Conséquence : la spec ② se construit sur la **voie 1** ci-dessous (lecture di
 `background.html`). La voie obs-websocket est écartée — elle réintroduirait un process, un secret et
 une dépendance à OBS ouvert, pour un besoin que la voie directe couvre.
 
-Prototype jetable : `dev/prototype-audio-reactivity.html`, servi par le serveur statique existant.
-
-```text
-http://localhost:5500/dev/prototype-audio-reactivity.html
-```
+Le prototype (`dev/prototype-audio-reactivity.html`, servi par le serveur statique) a été supprimé
+une fois la question tranchée — voir « Fin de vie » en bas. Il est récupérable dans l'historique git
+si la même question se repose.
 
 ## Ce qui est déjà vérifié (cette session, navigateur)
 
@@ -37,7 +35,7 @@ http://localhost:5500/dev/prototype-audio-reactivity.html
      `"C:\Program Files\obs-studio\bin\64bit\obs64.exe" --enable-media-stream`
    - Valider, puis relancer OBS **par ce raccourci** (un lancement depuis le menu Démarrer ou la
      barre des tâches n'aurait pas l'option).
-2. Ajouter une source **Navigateur**, URL ci-dessus, 1920×1080.
+2. Ajouter une source **Navigateur** pointant sur le prototype, 1920×1080.
 3. Parler dans le micro et lire le panneau en haut à gauche.
 
 Résultats possibles, tous concluants :
@@ -70,7 +68,8 @@ toujours être lancé avec `--enable-media-stream`, et l'entrée suit le périph
 Windows** (OBS ne propose pas de sélecteur à la page). Un changement de micro par défaut change donc
 la source du fond réactif, sans rien changer dans l'overlay.
 
-## Fin de vie
+## Fin de vie — close
 
-Code jetable : `dev/prototype-audio-reactivity.html` est supprimé dès que la spec ② est écrite (ou
-dès que la voie navigateur est écartée). Ne rien construire dessus.
+`dev/prototype-audio-reactivity.html` a été supprimé le 2026-07-25, après que l'owner a constaté en
+live l'animation réagissant à un vrai micro dans OBS. Ce document reste comme trace de la question
+et de son verdict ; la fonctionnalité vit dans `docs/specs/background-audio-reactivity.md`.
