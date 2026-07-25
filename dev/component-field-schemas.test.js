@@ -3,6 +3,7 @@ import { test, expect } from 'bun:test';
 import {
   BACKGROUND_COMPONENT_NAMES,
   BACKGROUND_FIELD_SCHEMAS,
+  NUMBER_FIELD_GUIDANCE,
 } from './component-field-schemas.js';
 import { COMPONENT_NAMES } from '../component-names.js';
 
@@ -41,4 +42,10 @@ test('chaque réglage numérique expose des bornes et un pas utilisables par un 
       expect(field.control).toBe('slider');
     }
   }
+});
+
+test('chaque borne déclarée est consommée par un champ existant', () => {
+  const fieldKeys = new Set(Object.values(BACKGROUND_FIELD_SCHEMAS).flat().map(({ key }) => key));
+  const orphans = Object.keys(NUMBER_FIELD_GUIDANCE).filter((key) => !fieldKeys.has(key));
+  expect(orphans).toEqual([]);
 });

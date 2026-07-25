@@ -23,8 +23,15 @@ http://localhost:5500/dev/prototype-audio-reactivity.html
 
 ## Le test que l'owner doit faire
 
-1. Fermer OBS, puis le relancer avec l'option `--enable-media-stream`
-   (raccourci → Propriétés → Cible : `"...\obs64.exe" --enable-media-stream`).
+1. Autoriser le micro dans le navigateur interne d'OBS. Ce n'est pas une case à cocher dans
+   l'interface : c'est une **option de lancement** à ajouter au raccourci OBS, une fois pour
+   toutes.
+   - Fermer OBS complètement.
+   - Clic droit sur le raccourci OBS → **Propriétés**.
+   - Champ **Cible**, ajouter l'option après les guillemets fermants :
+     `"C:\Program Files\obs-studioin4bit\obs64.exe" --enable-media-stream`
+   - Valider, puis relancer OBS **par ce raccourci** (un lancement depuis le menu Démarrer ou la
+     barre des tâches n'aurait pas l'option).
 2. Ajouter une source **Navigateur**, URL ci-dessus, 1920×1080.
 3. Parler dans le micro et lire le panneau en haut à gauche.
 
@@ -33,7 +40,7 @@ Résultats possibles, tous concluants :
 | Affichage | Signification |
 |---|---|
 | `audio LU — la Browser Source entend le micro` | Voie navigateur viable → on spécifie sur cette base |
-| `getUserMedia ABSENT` | OBS n'a pas reçu l'option de lancement |
+| `getUserMedia ABSENT` | OBS n'a pas reçu l'option de lancement (étape 1 manquée, ou OBS relancé autrement que par le raccourci modifié) |
 | `getUserMedia REFUSÉ — NotAllowedError` | Option présente mais permission refusée par le conteneur |
 | `getUserMedia REFUSÉ — NotFoundError` | Aucun périphérique d'entrée par défaut côté OBS |
 

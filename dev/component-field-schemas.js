@@ -35,11 +35,15 @@ import { GRID_MODES } from '../components/DotGridAnimated.js';
  * @property {unknown} default - Valeur par défaut à l'ajout du composant
  */
 
-/** @type {Record<string, { min: number, max: number, step: number, unit?: string }>} */
-const NUMBER_FIELD_GUIDANCE = {
+/**
+ * Bornes et pas par nom de champ numérique, appliqués par `withNumberGuidance`.
+ * Exporté pour que le test vérifie l'invariant inverse des schémas : aucune entrée ici ne doit
+ * survivre au retrait de l'effet qui la consommait.
+ * @type {Record<string, { min: number, max: number, step: number, unit?: string }>}
+ */
+export const NUMBER_FIELD_GUIDANCE = {
   opacity: { min: 0, max: 1, step: 0.01 },
   baseOpacity: { min: 0, max: 1, step: 0.01 },
-  backgroundOpacity: { min: 0, max: 1, step: 0.01 },
   spacing: { min: 6, max: 120, step: 1, unit: 'px' },
   dotRadius: { min: 0.5, max: 8, step: 0.05, unit: 'px' },
   pulseSpeed: { min: 0, max: 5, step: 0.05 },
@@ -49,13 +53,7 @@ const NUMBER_FIELD_GUIDANCE = {
   reactionIntensity: { min: 0, max: 3, step: 0.05 },
   intensity: { min: 0, max: 1, step: 0.01 },
   speed: { min: 0, max: 5, step: 0.05 },
-  gridSize: { min: 30, max: 240, step: 1, unit: 'px' },
   lineWidth: { min: 0.25, max: 8, step: 0.05, unit: 'px' },
-  glow: { min: 0, max: 1, step: 0.01 },
-  horizon: { min: 0.05, max: 0.95, step: 0.01 },
-  vanishingX: { min: 0, max: 1, step: 0.01 },
-  perspective: { min: 0.2, max: 4, step: 0.05 },
-  fade: { min: 0, max: 0.49, step: 0.01 },
   count: { min: 1, max: 200, step: 1 },
   minRadius: { min: 1, max: 80, step: 1, unit: 'px' },
   maxRadius: { min: 2, max: 500, step: 2, unit: 'px' },
