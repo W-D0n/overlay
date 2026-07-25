@@ -38,6 +38,7 @@ import {
   renamePreset,
   duplicatePreset,
   removePreset,
+  readSceneMap,
 } from './background-state-format.js';
 import { createKeyedLock } from './keyed-lock.js';
 import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
@@ -47,8 +48,12 @@ import {
   mergeBackgroundPresetImport,
   parseBackgroundPresetBundle,
 } from './background-preset-library.js';
+import { createObsSceneClient } from './obs-scene-client.js';
+import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
 
 const PORT = Number(process.env.BACKGROUND_STATE_PORT ?? 4462);
+const OBS_WS_URL = process.env.OBS_WS_URL ?? 'ws://127.0.0.1:4455';
+const OBS_WS_PASSWORD = process.env.OBS_WS_PASSWORD ?? '';
 const STATE_FILE = process.env.BACKGROUND_STATE_FILE ?? `${import.meta.dir}/data/background-state.json`;
 
 const withStateLock = createKeyedLock();
@@ -316,7 +321,19 @@ async function handlePostEvent(req) {
 }
 
 /** @type {Record<string, (req: Request) => Promise<Response>>} */
+/**
+ * POST /scene-map — `{ sceneMap }`. Remplace la table d'association scène OBS → preset.
+ */
+async function handlePostSceneMap(req) {
+  const body = /** @type {*} */ (await req.json());
+  const validation = validateSceneMap(body?.sceneMap);
+  if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
+
+  return withStateUpdate((file) => ({ ...file, sceneMap: body.sceneMap }));
+}
+
 const POST_ROUTES = {
+  '/scene-map': handlePostSceneMap,
   '/state': handlePostState,
   '/save-preset': handleSavePreset,
   '/rename-preset': handleRenamePreset,
@@ -368,3 +385,54 @@ Bun.serve({
 });
 
 console.info(`[background-state-server] écoute sur http://localhost:${PORT} — état dans ${STATE_FILE}`);
+
+// ─── Client OBS (③) ────────────────────────────────────────────────────────────
+// Démarre uniquement si un mot de passe est configuré : sans lui, ce serveur se comporte
+// exactement comme avant ③ (docs/specs/obs-scene-preset-mapping.md).
+
+/** @type {{ connected: boolean, reason: string | null, scenes: string[] }} */
+const obsStatus = { connected: false, reason: OBS_WS_PASSWORD === '' ? 'not-configured' : null, scenes: [] };
+
+/**
+ * Applique le preset associé à une scène OBS. Une scène non associée ne change rien : on ne
+ * remplace jamais un fond en direct sur un oubli de configuration.
+ * @param {string} sceneName
+ */
+async function applySceneMapping(sceneName) {
+  await withStateLock(STATE_LOCK_KEY, async () => {
+    const read = await readStateFile();
+    if (!read.ok) {
+      console.error(`[background-state-server] mapping ignoré, état illisible : ${read.errors.join(' ; ')}`);
+      return;
+    }
+
+    const { preset, reason } = resolveSceneMapping({
+      sceneName,
+      sceneMap: readSceneMap(read.file),
+      presets: read.file.presets,
+    });
+    if (preset === null) {
+      if (reason === 'missing-preset') {
+        console.warn(`[background-state-server] scène "${sceneName}" : preset associé introuvable`);
+      }
+      return;
+    }
+
+    const current = { component: preset.component, options: preset.options };
+    await writeStateFile({ ...read.file, current });
+    broadcastCurrent(current);
+    console.info(`[background-state-server] scène "${sceneName}" → preset "${preset.name}"`);
+  });
+}
+
+if (OBS_WS_PASSWORD !== '') {
+  createObsSceneClient({
+    url: OBS_WS_URL,
+    password: OBS_WS_PASSWORD,
+    onSceneChange: (sceneName) => { applySceneMapping(sceneName); },
+    onScenes: (scenes) => { obsStatus.scenes = scenes; },
+    onStatus: ({ connected, reason }) => { obsStatus.connected = connected; obsStatus.reason = reason; },
+  });
+} else {
+  console.info('[background-state-server] OBS_WS_PASSWORD absent — mapping scène → preset désactivé');
+}
