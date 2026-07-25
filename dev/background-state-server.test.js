@@ -14,6 +14,18 @@ async function waitFor(predicate, timeoutMs = 2000) {
   throw new Error('condition non atteinte dans le délai imparti');
 }
 
+/**
+ * Port libre attribué par l'OS au moment du spawn. Un port dérivé du PID était réutilisé à
+ * l'identique par deux exécutions rapprochées de `bun test` — le serveur de la précédente pouvait
+ * encore relâcher le port et le nouveau enfant échouait à écouter.
+ */
+async function reserveFreePort() {
+  const probe = Bun.serve({ port: 0, fetch: () => new Response('probe') });
+  const { port } = probe;
+  await probe.stop(true);
+  return port;
+}
+
 async function waitForServer(baseUrl) {
   for (let attempt = 0; attempt < 50; attempt += 1) {
     try {
@@ -30,7 +42,7 @@ async function waitForServer(baseUrl) {
 test('l’import est prévisualisé sans écriture puis protégé par sa révision', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'overlay-background-state-'));
   const stateFile = join(directory, 'state.json');
-  const port = 42000 + (process.pid % 10000);
+  const port = await reserveFreePort();
   const baseUrl = `http://localhost:${port}`;
   const child = Bun.spawn(['bun', 'dev/background-state-server.js'], {
     cwd: join(import.meta.dir, '..'),
@@ -155,7 +167,7 @@ test('l’import est prévisualisé sans écriture puis protégé par sa révisi
 test('POST /event valide diffuse une fois sans toucher le fichier ; invalide → 400 sans diffusion', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'overlay-background-event-'));
   const stateFile = join(directory, 'state.json');
-  const port = 43000 + (process.pid % 10000);
+  const port = await reserveFreePort();
   const baseUrl = `http://localhost:${port}`;
   const child = Bun.spawn(['bun', 'dev/background-state-server.js'], {
     cwd: join(import.meta.dir, '..'),

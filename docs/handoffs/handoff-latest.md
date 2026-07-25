@@ -56,8 +56,10 @@ Refacto avant suppression, comme prévu :
 
 - Intégration Twitch EventSub réelle (postera sur `/event`, point d'entrée générique déjà prêt).
 - Réactions natives sur mesure au-delà de DotGrid (overlay partagé couvre les 10 autres).
-- Durcissement du harness de tests serveur (ports éphémères) — les tests `Bun.spawn` restent
-  sensibles à la contention de ports (un faux échec observé puis non reproduit pendant ce lot).
+- ~~Durcissement du harness de tests serveur~~ — fait le 2026-07-25 : le port des tests
+  `Bun.spawn` était dérivé du PID, donc identique d'une exécution à l'autre ; deux `bun test`
+  rapprochés se marchaient dessus. Remplacé par un port éphémère attribué par l'OS
+  (`reserveFreePort`). 8 exécutions consécutives de la suite complète : 193/193 à chaque fois.
 
 ## Notes ouvertes
 
