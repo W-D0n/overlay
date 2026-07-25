@@ -3,8 +3,13 @@
 **Question** : un fond peut-il réagir au son sans plugin ni process supplémentaire, c'est-à-dire en
 lisant l'audio directement depuis la Browser Source OBS ?
 
-Statut : **prototype livré, verdict OBS en attente de l'owner** (test à faire sur sa machine, OBS
-ouvert). Aucune spec ne sera écrite avant ce verdict.
+Statut : **verdict rendu le 2026-07-25 — la voie navigateur passe.** Testé par l'owner dans une
+vraie Browser Source, OBS relancé avec `--enable-media-stream` : le panneau affiche
+`audio LU — la Browser Source entend le micro`.
+
+Conséquence : la spec ② se construit sur la **voie 1** ci-dessous (lecture directe du micro dans
+`background.html`). La voie obs-websocket est écartée — elle réintroduirait un process, un secret et
+une dépendance à OBS ouvert, pour un besoin que la voie directe couvre.
 
 Prototype jetable : `dev/prototype-audio-reactivity.html`, servi par le serveur statique existant.
 
@@ -58,7 +63,12 @@ réglage overlay.
    et suit exactement les sources OBS, mais réintroduit un process, un secret et une dépendance à
    OBS ouvert — c'est-à-dire ce qui vient d'être archivé avec le relais.
 
-Le choix se fait au vu du verdict, pas avant.
+Choix arrêté : **voie 1**.
+
+Contrainte qui devient permanente et doit figurer dans la spec et la doc utilisateur : OBS doit
+toujours être lancé avec `--enable-media-stream`, et l'entrée suit le périphérique **par défaut de
+Windows** (OBS ne propose pas de sélecteur à la page). Un changement de micro par défaut change donc
+la source du fond réactif, sans rien changer dans l'overlay.
 
 ## Fin de vie
 

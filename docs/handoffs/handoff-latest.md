@@ -45,10 +45,10 @@ Refacto avant suppression, comme prévu :
 
 ## Restant — dans l'ordre de priorité owner
 
-1. **② Réactivité audio** — prototype livré, **verdict OBS en attente de l'owner** :
-   `docs/prototypes/2026-07-25-audio-reactivity.md` décrit le test (relancer OBS avec
-   `--enable-media-stream`, ouvrir `dev/prototype-audio-reactivity.html` en Browser Source, lire le
-   panneau). Pas de spec avant ce verdict.
+1. **② Réactivité audio** — **faisabilité validée le 2026-07-25** en Browser Source réelle
+   (`audio LU`). La voie retenue est la lecture directe du micro dans `background.html` ; la voie
+   obs-websocket est écartée. Détail et contraintes permanentes :
+   `docs/prototypes/2026-07-25-audio-reactivity.md`. **Prochaine étape : écrire la spec.**
 2. **③→⑥** — mapping scène OBS→preset, transition entre presets, couche branding, vignettes de
    presets.
 
