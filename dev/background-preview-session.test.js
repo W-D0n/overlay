@@ -31,6 +31,7 @@ describe('session d’aperçu du tuner', () => {
         options: { intensity: 0.5, speed: 1, color: '#C8B97A', angle: 8 },
       },
       activePresetId: null,
+      transition: { type: 'fade', durationMs: 600, direction: 'right' },
     });
   });
 
@@ -49,6 +50,7 @@ describe('session d’aperçu du tuner', () => {
         options: { intensity: 0.3, speed: 2 },
       },
       activePresetId: 'pluie',
+      transition: { type: 'fade', durationMs: 600, direction: 'right' },
     });
     expect(preset.options.speed).toBe(1);
   });
@@ -60,5 +62,45 @@ describe('session d’aperçu du tuner', () => {
     snapshot.current.options.speed = 99;
 
     expect(session.snapshot().current.options.speed).toBe(1);
+  });
+
+  test('l’arrivée d’un preset porte sa transition dans l’état diffusé', () => {
+    const session = createBackgroundPreviewSession();
+    const state = session.apply(
+      {
+        component: 'RainBackground',
+        options: {},
+        transition: { type: 'wipe', durationMs: 400, direction: 'up' },
+      },
+      'pluie',
+    );
+
+    expect(state.current.transition).toEqual({ type: 'wipe', durationMs: 400, direction: 'up' });
+  });
+
+  test('un réglage qui suit l’arrivée ne rejoue pas la transition', () => {
+    const session = createBackgroundPreviewSession();
+    session.apply(
+      { component: 'RainBackground', options: { speed: 1 }, transition: { type: 'wipe', durationMs: 400 } },
+      'pluie',
+    );
+
+    expect(session.changeOption('speed', 2).current.transition).toBeUndefined();
+    expect(session.snapshot().current.transition).toBeUndefined();
+  });
+
+  test('un preset sans transition arrive avec les valeurs par défaut', () => {
+    const session = createBackgroundPreviewSession();
+    const state = session.apply({ component: 'RainBackground', options: {} }, 'pluie');
+    expect(state.current.transition).toEqual({ type: 'fade', durationMs: 600, direction: 'right' });
+  });
+
+  test('changer la transition n’anime pas et borne les valeurs aberrantes', () => {
+    const session = createBackgroundPreviewSession();
+    session.apply({ component: 'RainBackground', options: {} }, 'pluie');
+
+    const state = session.changeTransition({ type: 'wipe', durationMs: 99999 });
+    expect(state.transition).toEqual({ type: 'wipe', durationMs: 2000, direction: 'right' });
+    expect(state.current.transition).toBeUndefined();
   });
 });

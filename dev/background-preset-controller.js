@@ -274,7 +274,7 @@ export function createBackgroundPresetController(input) {
       const tags = [...new Set(
         elements.tags.value.split(',').map((tag) => tag.trim()).filter(Boolean),
       )];
-      const { current, activePresetId } = input.preview.snapshot();
+      const { current, activePresetId, transition } = input.preview.snapshot();
       if (current.component === null) {
         input.report.error('rien à sauvegarder — aucun effet sélectionné');
         return;
@@ -286,6 +286,7 @@ export function createBackgroundPresetController(input) {
           component: current.component,
           options: current.options,
           tags,
+          transition,
         });
         input.report.ok();
         const presets = await refresh();

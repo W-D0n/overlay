@@ -430,6 +430,29 @@
       <button type="button" data-event="bits">Bits</button>
     </div>
 
+    <h2>Arrivée de ce preset</h2>
+    <p class="hint">
+      Comment ce preset remplace le fond précédent. Sans effet sur tes réglages en cours : la
+      transition se joue quand le preset arrive (clic sur un preset, ou changement de scène OBS).
+    </p>
+    <label>Type
+      <select id="transition-type">
+        <option value="fade">Fondu</option>
+        <option value="wipe">Balayage</option>
+      </select>
+    </label>
+    <label>Durée (ms)
+      <input id="transition-duration" type="number" min="0" max="2000" step="50">
+    </label>
+    <label id="transition-direction-row">Sens du balayage
+      <select id="transition-direction">
+        <option value="right">Vers la droite</option>
+        <option value="left">Vers la gauche</option>
+        <option value="up">Vers le haut</option>
+        <option value="down">Vers le bas</option>
+      </select>
+    </label>
+
     <h2>Mes presets</h2>
     <div class="library-tools">
       <button id="preset-export">Exporter</button>

@@ -376,3 +376,70 @@ test('une scène associée applique son preset et le diffuse ; une scène inconn
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('la transition d’un preset survit à l’enregistrement et aux mises à jour partielles', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-preset-transition-'));
+  const stateFile = join(directory, 'state.json');
+  const { child, baseUrl } = await startStateServer({ stateFile });
+
+  try {
+    const created = await fetch(`${baseUrl}/save-preset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Balayage',
+        component: 'RainBackground',
+        options: {},
+        transition: { type: 'wipe', durationMs: 400, direction: 'up' },
+      }),
+    });
+    expect(created.ok).toBe(true);
+
+    const afterCreate = await (await fetch(`${baseUrl}/state`)).json();
+    expect(afterCreate.presets[0].transition).toEqual({ type: 'wipe', durationMs: 400, direction: 'up' });
+
+    // Mise à jour qui ne parle pas de transition : elle doit être conservée, comme les tags.
+    const updated = await fetch(`${baseUrl}/save-preset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: afterCreate.presets[0].id,
+        name: 'Balayage',
+        component: 'RainBackground',
+        options: { speed: 2 },
+      }),
+    });
+    expect(updated.ok).toBe(true);
+
+    const afterUpdate = await (await fetch(`${baseUrl}/state`)).json();
+    expect(afterUpdate.presets[0].transition).toEqual({ type: 'wipe', durationMs: 400, direction: 'up' });
+  } finally {
+    child.kill();
+    await child.exited;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('une transition invalide est refusée à l’enregistrement du preset', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-preset-transition-ko-'));
+  const stateFile = join(directory, 'state.json');
+  const { child, baseUrl } = await startStateServer({ stateFile });
+
+  try {
+    const response = await fetch(`${baseUrl}/save-preset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Cassé',
+        component: 'RainBackground',
+        options: {},
+        transition: { type: 'morph' },
+      }),
+    });
+    expect(response.status).toBe(400);
+  } finally {
+    child.kill();
+    await child.exited;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

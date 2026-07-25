@@ -54,9 +54,17 @@ export function createBackgroundPreviewController(input) {
     return option;
   }
 
+  /**
+   * État à publier au prochain envoi. Une arrivée de preset le fixe avec sa `transition` : sans
+   * ça, l'instantané relu au moment de l'envoi l'aurait déjà oubliée et l'URL OBS ne recevrait
+   * jamais l'animation (docs/specs/background-preset-transitions.md).
+   */
+  let pendingCurrent = null;
+
   async function persistNow() {
     try {
-      await input.client.saveCurrent(session.snapshot().current);
+      await input.client.saveCurrent(pendingCurrent ?? session.snapshot().current);
+      pendingCurrent = null;
       input.report.ok();
       return true;
     } catch (error) {
@@ -65,10 +73,15 @@ export function createBackgroundPreviewController(input) {
     }
   }
 
-  function schedulePersist() {
+  /** @param {*} [current] - État à publier tel quel (sinon l'instantané au moment de l'envoi) */
+  function schedulePersist(current = null) {
+    if (current !== null) pendingCurrent = current;
     windowRef.clearTimeout(postTimer);
     postTimer = windowRef.setTimeout(persistNow, 150);
   }
+
+  /** @type {{ render: (transition: *) => void } | null} */
+  let transitionControls = null;
 
   const fieldRenderer = createBackgroundFieldRenderer({
     container: input.fields,
@@ -91,7 +104,8 @@ export function createBackgroundPreviewController(input) {
   function apply(next, presetId = null, persist = false) {
     const state = session.apply(next, presetId);
     reflect(state, next);
-    if (persist) schedulePersist();
+    transitionControls?.render(state.transition);
+    if (persist) schedulePersist(state.current);
     return state;
   }
 
@@ -150,6 +164,15 @@ export function createBackgroundPreviewController(input) {
 
   return {
     apply,
+    /** Branche la section « Arrivée de ce preset » sur la session. */
+    attachTransitionControls(controls) {
+      transitionControls = controls;
+      controls.render(session.snapshot().transition);
+    },
+    /** @param {Record<string, unknown>} patch */
+    changeTransition(patch) {
+      return session.changeTransition(patch);
+    },
     /** @param {unknown} next */
     receive(next) {
       const current = session.snapshot().current;

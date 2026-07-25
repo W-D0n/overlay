@@ -4,6 +4,7 @@ import { createBackgroundPresetController } from './background-preset-controller
 import { createBackgroundPreviewController } from './background-preview-controller.js';
 import { createBackgroundReadinessController } from './background-readiness-controller.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
+import { createTransitionController } from './background-transition-controller.js';
 import {
   BackgroundStateClientError,
   createBackgroundStateClient,
@@ -140,6 +141,14 @@ export async function startBackgroundTuner(environment = {}) {
   } catch (error) {
     report.error(stateLoadErrorMessage(error));
   }
+
+  preview.attachTransitionControls(createTransitionController({
+    typeSelect: byId('transition-type'),
+    durationInput: byId('transition-duration'),
+    directionSelect: byId('transition-direction'),
+    directionRow: byId('transition-direction-row'),
+    onChange: preview.changeTransition,
+  }));
 
   const obsSceneMap = createObsSceneMapController({
     statusEl: byId('obs-scene-status'),

@@ -194,6 +194,10 @@ async function handleSavePreset(req) {
       ...(body?.tags === undefined
         ? (existing?.tags === undefined ? {} : { tags: existing.tags })
         : { tags: body.tags }),
+      // Même règle que les tags : ce que la requête ne dit pas, le preset existant le conserve.
+      ...(body?.transition === undefined
+        ? (existing?.transition === undefined ? {} : { transition: existing.transition })
+        : { transition: body.transition }),
     };
     const validation = validateBackgroundPreset(candidate);
     if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
