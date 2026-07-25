@@ -13,7 +13,14 @@ import { COMPONENT_REGISTRY } from './component-registry.js';
  *
  * @param {HTMLElement} container - Conteneur plein écran (ex : `#bg-layer`)
  * @param {typeof COMPONENT_REGISTRY} [registry] - Point d'injection pour les tests du cycle de vie.
- * @returns {{ apply(state: { component: string | null, options: Record<string, unknown> }): void, react(event: unknown): boolean, setPaused(paused: boolean): void, destroy(): void }}
+ * @returns {{
+ *   apply(state: { component: string | null, options: Record<string, unknown> }): void,
+ *   react(event: unknown): boolean,
+ *   isAudioReactive(): boolean,
+ *   applyAudio(levels: import('./audio-levels.js').AudioLevels): boolean,
+ *   setPaused(paused: boolean): void,
+ *   destroy(): void,
+ * }}
  */
 export function createBackgroundMount(container, registry = COMPONENT_REGISTRY) {
   /** @type {import('./types.js').ComponentInstance | null} */
@@ -64,6 +71,14 @@ export function createBackgroundMount(container, registry = COMPONENT_REGISTRY) 
         return true;
       }
       return false;
+    },
+    isAudioReactive() {
+      return instance !== null && typeof instance.setAudioLevel === 'function';
+    },
+    applyAudio(levels) {
+      if (instance === null || typeof instance.setAudioLevel !== 'function') return false;
+      instance.setAudioLevel(levels);
+      return true;
     },
     setPaused(nextPaused) {
       if (paused === nextPaused) return;

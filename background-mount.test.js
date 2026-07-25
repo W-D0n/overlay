@@ -66,3 +66,48 @@ describe('background mount react routing', () => {
     expect(mount.react({ type: 'raid' })).toBe(false);
   });
 });
+
+describe('background mount audio routing', () => {
+  const levels = { level: 0.5, bass: 0.4, mid: 0.3, treble: 0.2 };
+
+  function mountWith(instance) {
+    const container = { appendChild: () => {} };
+    const registry = { RainBackground: () => instance };
+    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ (registry));
+    mount.apply({ component: 'RainBackground', options: {} });
+    return mount;
+  }
+
+  test('applyAudio transmet les niveaux une fois quand l’effet expose setAudioLevel', () => {
+    const received = [];
+    const mount = mountWith({
+      el: { name: 'rain', remove: () => {} },
+      setAudioLevel: (value) => received.push(value),
+    });
+    expect(mount.isAudioReactive()).toBe(true);
+    expect(mount.applyAudio(levels)).toBe(true);
+    expect(received).toEqual([levels]);
+  });
+
+  test('applyAudio ne fait rien quand l’effet n’expose pas setAudioLevel', () => {
+    const mount = mountWith({ el: { name: 'rain', remove: () => {} } });
+    expect(mount.isAudioReactive()).toBe(false);
+    expect(mount.applyAudio(levels)).toBe(false);
+  });
+
+  test('applyAudio ne fait rien quand rien n’est monté', () => {
+    const container = { appendChild: () => {} };
+    const mount = createBackgroundMount(/** @type {*} */ (container), /** @type {*} */ ({}));
+    expect(mount.isAudioReactive()).toBe(false);
+    expect(mount.applyAudio(levels)).toBe(false);
+  });
+
+  test('un effet réactif démonté cesse d’être signalé comme réactif', () => {
+    const mount = mountWith({
+      el: { name: 'rain', remove: () => {} },
+      setAudioLevel: () => {},
+    });
+    mount.apply({ component: null, options: {} });
+    expect(mount.isAudioReactive()).toBe(false);
+  });
+});
