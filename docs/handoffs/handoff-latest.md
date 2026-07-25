@@ -9,8 +9,9 @@ archivage du moteur de scènes (⑦). **① et ⑦ livrés.**
 - Studio : `http://localhost:5500/dev/studio.html` (une seule entrée : Fonds & presets)
 - État live/presets/événements : `dev/background-state-server.js`, port 4462
 - 11 effets enregistrés, un seul actif à la fois ; overlay de réaction au-dessus de l'effet
-- Branche `chore/archive-scene-engine`, **193 tests verts**
-- Tag `scene-engine-v1` posé sur `10369b5` — seule copie du moteur de scènes
+- `main` == `origin/main` à `3c389d1`, working tree propre, **193 tests verts**
+- Tag `scene-engine-v1` (poussé) sur `10369b5` — seule copie du moteur de scènes
+- Une seule branche dans le dépôt, locale et distante (convention inscrite dans `CLAUDE.md`)
 
 ## Dernier lot — ⑦ Archivage du moteur de scènes
 
@@ -63,4 +64,5 @@ Refacto avant suppression, comme prévu :
   encore du moteur de scènes, à retrancher au prochain triage.
 - `NUMBER_FIELD_GUIDANCE` contient des clés sans champ correspondant (`backgroundOpacity`,
   `gridSize`, `horizon`, `vanishingX`, `perspective`, `fade`, `glow`) — pré-existant, non traité ici.
-- Branche `codex/background-studio` toujours conservée côté distant.
+- Aucune branche parallèle restante : `codex/background-studio` n'existe plus, ni en local ni sur
+  `origin`.

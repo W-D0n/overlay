@@ -47,6 +47,21 @@ Modifier l'une de ces surfaces impacte tous les effets : vérifier en aval avant
 
 ---
 
+## Git — un seul fil
+
+Dépôt solo, un seul développeur : **`main` est la seule branche**, locale comme distante.
+Cette règle prime sur les workflows génériques (worktree, branche de feature, PR) du CLAUDE.md
+global.
+
+- Travailler et committer directement sur `main`, un commit par changement logique.
+- **Pousser en fin de lot**, une fois `bun test` vert : `main` et `origin/main` ne doivent jamais
+  rester décalés d'une session à l'autre.
+- Pas de branche de feature, pas de PR, pas de worktree — sauf demande explicite de l'owner.
+- Ce qui est retiré du dépôt mais doit rester récupérable est **taggé** (ex. `scene-engine-v1`),
+  jamais gardé sur une branche parallèle. Un tag est poussé avec le commit qui le retire.
+
+---
+
 ## Agent skills
 
 ### Issue tracker
