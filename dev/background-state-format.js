@@ -2,6 +2,7 @@
 import { BACKGROUND_COMPONENT_NAMES } from './component-field-schemas.js';
 import { validateSceneMap } from '../obs-scene-mapping.js';
 import { validateTransition } from '../background-transition.js';
+import { normalizeBranding, validateBranding } from '../branding-format.js';
 
 /**
  * dev/background-state-format.js — Logique pure de l'état background standalone (2026-07-14).
@@ -11,9 +12,10 @@ import { validateTransition } from '../background-transition.js';
  * testable sans serveur (même découpage AD-1 que `scene-data-format.js`).
  *
  * @typedef {import('../background-transition.js').BackgroundTransition} BackgroundTransition
- * @typedef {{ component: string | null, options: Record<string, unknown>, transition?: BackgroundTransition }} BackgroundCurrent
- * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[], transition?: BackgroundTransition }} BackgroundPreset
- * @typedef {{ current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string> }} BackgroundFile
+ * @typedef {{ component: string | null, options: Record<string, unknown>, transition?: BackgroundTransition, showBranding?: boolean }} BackgroundCurrent
+ * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[], transition?: BackgroundTransition, showBranding?: boolean }} BackgroundPreset
+ * @typedef {import('../branding-format.js').Branding} Branding
+ * @typedef {{ current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string>, branding?: Branding }} BackgroundFile
  */
 
 /** Longueur maximale d'un nom de preset — borne UI (liste lisible), pas une contrainte technique. */
@@ -25,6 +27,16 @@ const RETIRED_BACKGROUND_COMPONENT = 'MatrixGridBackground';
 /** @returns {BackgroundFile} */
 export function defaultBackgroundFile() {
   return { current: { component: 'DotGridBackground', options: {} }, presets: [], sceneMap: {} };
+}
+
+/**
+ * Branding d'un fichier d'état, prêt à afficher. Absent des fichiers écrits avant ⑤ : les valeurs
+ * par défaut n'affichent rien, donc un état existant ne change pas d'apparence.
+ * @param {unknown} file
+ * @returns {Branding}
+ */
+export function readBranding(file) {
+  return normalizeBranding(isPlainObject(file) ? file.branding : undefined);
 }
 
 /**
@@ -120,6 +132,9 @@ export function validateBackgroundCurrent(current) {
   }
   if (!isPlainObject(options)) errors.push('options : objet attendu');
   errors.push(...validateTransition(current.transition).errors);
+  if (current.showBranding !== undefined && typeof current.showBranding !== 'boolean') {
+    errors.push('showBranding : booléen attendu');
+  }
 
   return { ok: errors.length === 0, errors };
 }
@@ -159,6 +174,9 @@ export function validateBackgroundPreset(preset) {
   }
   if (!isPlainObject(preset.options)) errors.push('options : objet attendu');
   errors.push(...validateTransition(preset.transition).errors);
+  if (preset.showBranding !== undefined && typeof preset.showBranding !== 'boolean') {
+    errors.push('showBranding : booléen attendu');
+  }
   if (preset.tags !== undefined && (!Array.isArray(preset.tags)
     || preset.tags.some((tag) => typeof tag !== 'string' || tag.length === 0 || tag !== tag.trim()))) {
     errors.push('tags : tableau de chaînes non vides attendu');
@@ -178,6 +196,7 @@ export function validateBackgroundFile(raw) {
 
   /** @type {string[]} */
   const errors = [...validateBackgroundCurrent(raw.current).errors];
+  for (const err of validateBranding(raw.branding).errors) errors.push(err);
   if (raw.sceneMap !== undefined) {
     for (const err of validateSceneMap(raw.sceneMap).errors) errors.push(`sceneMap : ${err}`);
   }

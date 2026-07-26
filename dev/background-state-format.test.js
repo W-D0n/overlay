@@ -13,6 +13,7 @@ import {
   duplicatePreset,
   removePreset,
   readSceneMap,
+  readBranding,
   PRESET_NAME_MAX_LENGTH,
 } from './background-state-format.js';
 
@@ -295,4 +296,47 @@ test('une transition fautive rend l’état courant invalide', () => {
   });
   expect(result.ok).toBe(false);
   expect(result.errors.join(' ')).toContain('transition.durationMs');
+});
+
+test('un fichier sans branding reste valide et n’affiche rien', () => {
+  const legacy = { current: { component: 'DotGridBackground', options: {} }, presets: [] };
+  expect(validateBackgroundFile(legacy).ok).toBe(true);
+  expect(readBranding(legacy).name).toBe('');
+  expect(readBranding(legacy).lines).toEqual([]);
+});
+
+test('un branding enregistré est relu normalisé', () => {
+  const file = {
+    current: { component: 'DotGridBackground', options: {} },
+    presets: [],
+    branding: { name: 'D0n', lines: ['twitch.tv/d0n'], x: 12, y: 88 },
+  };
+  expect(validateBackgroundFile(file).ok).toBe(true);
+  expect(readBranding(file)).toMatchObject({ name: 'D0n', x: 12, y: 88 });
+});
+
+test('un branding fautif rend le fichier invalide', () => {
+  const file = {
+    current: { component: 'DotGridBackground', options: {} },
+    presets: [],
+    branding: { x: 400 },
+  };
+  const result = validateBackgroundFile(file);
+  expect(result.ok).toBe(false);
+  expect(result.errors.join(' ')).toContain('branding.x');
+});
+
+test('showBranding n’accepte qu’un booléen, sur le preset comme sur l’état courant', () => {
+  expect(validateBackgroundCurrent({
+    component: 'RainBackground', options: {}, showBranding: false,
+  }).ok).toBe(true);
+  expect(validateBackgroundCurrent({
+    component: 'RainBackground', options: {}, showBranding: 'non',
+  }).ok).toBe(false);
+  expect(validateBackgroundPreset({
+    id: 'alpha', name: 'Alpha', component: 'RainBackground', options: {}, showBranding: true,
+  }).ok).toBe(true);
+  expect(validateBackgroundPreset({
+    id: 'alpha', name: 'Alpha', component: 'RainBackground', options: {}, showBranding: 1,
+  }).ok).toBe(false);
 });
