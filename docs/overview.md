@@ -14,7 +14,9 @@ Contraintes structurantes :
 
 ## Focus actuel — fond autonome
 
-Depuis le 14 juillet 2026, le développement actif cible un flux **background-only** :
+Depuis le 14 juillet 2026, le développement actif cible un flux **background-only**. L'audit produit
+du 24 juillet est livré en entier ; la phase courante est la **validation en conditions réelles**
+(voir `docs/roadmap.md` et `docs/inbox.md`).
 
 ```text
 background-tuner.html ──► background-tuner-runtime.js
@@ -35,8 +37,12 @@ background.html (OBS)
   toujours prévisualisé avant que la confirmation n'autorise son écriture.
 - `dev/background-state-server.js` persiste l'état et le diffuse en direct.
 - Un seul effet est actif à la fois parmi les 11 enregistrés.
-- Les presets mémorisent `{ id, name, component, options, tags? }` et exposent une URL OBS stable pour
-  affecter des ambiances différentes aux scènes.
+- Les presets mémorisent `{ id, name, component, options, tags?, transition?, showBranding? }` et
+  exposent une URL OBS stable pour affecter des ambiances différentes aux scènes.
+- Une scène OBS peut désigner elle-même son preset (`sceneMap`, lecture seule du serveur WebSocket
+  d'OBS), et un preset décide comment il arrive à l'écran (fondu ou balayage).
+- Une couche d'identité globale (pseudo, réseaux) se superpose au fond, masquable par preset.
+- Les onze effets réagissent au micro quand le preset l'autorise.
 
 Le contrat détaillé vit dans `docs/specs/background-standalone.md`.
 
@@ -85,6 +91,7 @@ L'indépendance repose sur des protocoles locaux explicites :
 - `docs/specs/background-reactive-events.md` — protocole des réactions ;
 - `docs/specs/background-effects-library.md` — contrat et inventaire des effets ;
 - `docs/guides/tuner-le-fond.md` — utilisation quotidienne ;
-- `docs/inbox.md` — notes et items qui restent à traiter ;
+- `docs/roadmap.md` — phase active et ce qui est en cours ;
+- `docs/inbox.md` — protocole de QA en attente et items à traiter ;
 - `docs/backlog-history.md` — décisions et lots sortis du backlog actif ;
 - `docs/MAP.md` — feuille de route et livraisons.
