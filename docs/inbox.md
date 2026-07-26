@@ -12,12 +12,16 @@ Notes et items qui restent à traiter. Les clôtures récentes sont consignées 
   vitesses et les contrôles récents restent conformes, sans coût ou artefact inattendu. Les effets
   couvrent maintenant une surface 1,8× plus grande : surveiller le coût CPU/GPU.
 
-## Décisions produit à reprendre si le besoin se confirme
+## À juger à l'œil dans OBS
 
-- **Preset automatique par scène OBS** — les URL stables par preset couvrent le besoin actuel.
-  Décider si une association OBS WebSocket scène → preset apporte encore assez de valeur.
-- **Miniatures de presets** — à envisager seulement si la bibliothèque personnelle devient trop
-  volumineuse pour rester lisible par nom, effet et tags.
-- **Repositionnement dynamique pendant une scène** — `placement` est appliqué au montage. Une
-  animation pilotée par l’état demanderait une mise à jour à chaud ; différé tant que le moteur de
-  scènes reste en pause.
+- **Amplitude des effets pilotés par la vitesse** — Rain, FloatingSymbols, ColorDrops et
+  OrbitingShapes réagissent au son, mais la mesure automatique sature sur ces rendus : seul un
+  regard peut dire si la réaction est trop discrète ou trop forte
+  (`docs/specs/background-audio-reactivity.md`).
+
+## Décisions produit tranchées (2026-07-26)
+
+- ~~**Preset automatique par scène OBS**~~ — fait, ③ : `docs/specs/obs-scene-preset-mapping.md`.
+- ~~**Miniatures de presets**~~ — fait, ⑥ : `docs/specs/background-preset-thumbnails.md`.
+- **Repositionnement dynamique pendant une scène** — sans objet depuis l'archivage du moteur de
+  scènes ; le branding, lui, se repositionne au glisser-déposer.

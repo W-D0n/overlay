@@ -82,6 +82,60 @@ CSS.</p>
 <p>La ligne de statut en bas de la barre indique si le serveur d'état répond. Si elle est rouge,
 lancer <code>start-dev.bat</code> ou <code>start-stream.bat</code>.</p>
 
+<h2>Un fond par scène OBS</h2>
+<p>Deux façons, non exclusives :</p>
+<ol>
+  <li><strong>Une source Navigateur par preset</strong> — le bouton <code>URL</code> d'un preset donne
+    une adresse stable (<code>background.html?preset=&lt;id&gt;</code>) à coller dans la scène OBS
+    voulue. Simple, sans configuration.</li>
+  <li><strong>L'association automatique</strong> (section « Scènes OBS » du tuner) — changer de scène
+    dans OBS change le fond de la source qui suit l'état courant.</li>
+</ol>
+<p>Pour la seconde : activer le serveur WebSocket dans OBS (Outils → Paramètres du serveur
+WebSocket), créer un fichier <code>.env</code> à la racine avec <code>OBS_WS_URL</code> et
+<code>OBS_WS_PASSWORD</code> (gabarit dans <code>.env.example</code>), puis relancer
+<code>start-dev.bat</code>. Dans la section <strong>Scènes OBS</strong>, chaque scène détectée reçoit
+un preset.</p>
+<p>Une scène <strong>sans</strong> association ne change rien — un oubli ne noircit jamais un live.
+L'association reprend la main sur un réglage fait à la main au prochain changement de scène, et une
+URL <code>?preset=</code> n'est jamais concernée. L'association se fait par <strong>nom</strong> :
+renommer une scène dans OBS casse le lien.</p>
+
+<h2>Repérer un preset d'un coup d'œil</h2>
+<p>Chaque ligne porte une vignette de son effet. <strong>Survole-la</strong> pour voir l'animation :
+au repos c'est une simple image, donc une longue liste ne coûte rien à la machine. Sur les effets
+très clairsemés (WaterRipple, StarsParallax), l'image figée montre peu de choses — c'est le survol
+qui les identifie.</p>
+
+<h2>Ton identité à l'écran — le branding</h2>
+<p>La section <strong>Branding</strong> porte ton pseudo et tes réseaux. Le contenu est
+<strong>commun à tous les presets</strong> : c'est ton identité, elle ne change pas d'une scène à
+l'autre.</p>
+<ul>
+  <li><strong>Placer le bloc</strong> : attrape-le dans l'aperçu. Sa position est enregistrée en
+    pourcentage du canvas. Posé dans la moitié droite il s'aligne à droite, en bas il remonte.</li>
+  <li><strong>Masquer sur un preset</strong> : la case « Afficher sur ce preset ». Le branding
+    disparaît dans OBS mais reste visible estompé dans l'aperçu, sinon tu ne pourrais plus le
+    repositionner.</li>
+  <li>Les tailles sont en pixels pour un canvas <strong>2560×1440</strong>, et le bloc est mis à
+    l'échelle automatiquement si le canvas change.</li>
+</ul>
+<table>
+  <tr><th>URL</th><th>Ce que la source affiche</th></tr>
+  <tr><td><code>background.html</code></td><td>Le fond <strong>et</strong> le branding</td></tr>
+  <tr><td><code>background.html?branding=only</code></td><td>Le branding <strong>seul</strong>, fond transparent — à poser sur une cam ou un gameplay</td></tr>
+  <tr><td><code>background.html?branding=off</code></td><td>Le fond <strong>seul</strong></td></tr>
+</table>
+
+<h2>Comment un preset arrive — les transitions</h2>
+<p>La section <strong>Arrivée de ce preset</strong> décrit la façon dont ce preset remplace le fond
+précédent : <strong>type</strong> (fondu ou balayage), <strong>durée</strong> (0 à 2000 ms),
+<strong>courbe</strong>, et <strong>sens</strong> pour le balayage.</p>
+<p>La transition se joue quand le preset <strong>arrive</strong> : clic sur un preset, ou changement
+de scène OBS associé. Bouger un curseur ne la rejoue pas. L'ouverture de la Browser Source n'anime
+jamais. Pendant la transition, deux effets tournent en même temps — borné à 2 secondes, mais c'est le
+moment le plus coûteux pour la machine.</p>
+
 <h2>Vérifier avant un live</h2>
 <p>Le bloc <strong>Prêt pour le live</strong> se contrôle automatiquement à l'ouverture du tuner.
 Le bouton <strong>Revérifier</strong> permet de relancer le diagnostic après avoir changé un effet,
