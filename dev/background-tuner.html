@@ -27,8 +27,10 @@
       top: 0;
       left: 0;
       bottom: 0;
-      width: 320px;
-      background: rgba(10, 10, 12, 0.92);
+      width: 340px;
+      /* Opaque : le panneau flotte au-dessus d'une animation qui bouge, la translucidité faisait
+         fluctuer la lisibilité du texte au rythme du fond. */
+      background: #0B0B0D;
       border-right: 1px solid var(--color-rule);
       color: var(--color-text-primary);
       font-family: var(--font-mono);
@@ -58,25 +60,70 @@
     #sidebar.collapsed + #sidebar-toggle { left: 0; }
 
     h1 {
-      font-size: 14px;
-      font-weight: 400;
-      color: var(--color-gold);
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      margin: 0 0 16px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--color-rule);
-    }
-    h2 {
       font-size: 12px;
       font-weight: 400;
-      color: var(--color-text-mid);
+      color: var(--color-text-dim);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin: 0 0 12px;
+    }
+    /* Trois niveaux distincts, là où titres et étiquettes partageaient couleur et taille :
+       le titre parle en serif clair, l'étiquette en mono atténué, la valeur en clair. */
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 17px;
+      font-weight: 400;
+      color: var(--color-text-primary);
+      letter-spacing: 0;
+      text-transform: none;
+      margin: 22px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--color-rule);
+    }
+    .workspace > h2:first-child { margin-top: 4px; }
+
+    .workspaces {
+      position: sticky;
+      top: -16px;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      margin: 0 -16px 16px;
+      padding: 0 16px 10px;
+      background: #0B0B0D;
+      border-bottom: 1px solid var(--color-rule);
+    }
+    .workspaces button {
+      font-family: var(--font-mono);
+      font-size: 12px;
       letter-spacing: 1px;
       text-transform: uppercase;
-      margin: 24px 0 10px;
+      padding: 9px 4px;
+      color: var(--color-text-mid);
+      background: transparent;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
     }
+    .workspaces button:hover { color: var(--color-text-primary); }
+    .workspaces button[aria-selected="true"] {
+      color: var(--color-gold);
+      border-bottom-color: var(--color-gold);
+    }
+    .workspaces button:focus-visible { outline: 1px solid var(--color-gold); outline-offset: 2px; }
 
-    label { display: block; color: var(--color-text-mid); margin: 12px 0 4px; }
+    label {
+      display: block;
+      color: var(--color-text-mid);
+      font-size: 12px;
+      letter-spacing: 0.3px;
+      margin: 12px 0 4px;
+    }
+    input, select, textarea { color: var(--color-text-primary); font-size: 13px; }
+
+    /* Deux colonnes pour les réglages courts : la colonne unique doublait la hauteur de page. */
+    .save-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); align-items: end; }
     .field-help {
       color: var(--color-text-dim);
       font-size: var(--text-xs);
@@ -181,21 +228,42 @@
       padding-left: calc(var(--space-xs) / 2);
     }
     .preset-action { padding: var(--space-xs) var(--space-sm); }
+    /* Chaque point de départ tenait sur trois lignes ; en deux colonnes la liste passe de
+       cinq cartes hautes à cinq lignes lisibles. */
     .preset-row-builtin {
       display: grid;
-      align-items: stretch;
-      gap: var(--space-md);
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: var(--space-sm);
+    }
+    .preset-row-builtin .preset-try {
+      display: grid;
+      gap: 2px;
+      text-align: left;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+    }
+    .preset-row-builtin .preset-try:hover .preset-title { color: var(--color-gold); }
+    .preset-row-builtin .preset-add {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      font-size: 15px;
+      line-height: 1;
     }
     .preset-copy { display: grid; gap: var(--space-xs); }
     .preset-title { color: var(--color-text-primary); font-size: var(--text-md); font-weight: 400; }
     .preset-row-builtin .preset-meta { padding-left: 0; }
     .preset-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
     .preset-actions .preset-add { flex: 1; }
-    .section-intro {
+    .section-intro, .hint {
       margin: calc(-1 * var(--space-xs)) 0 var(--space-md);
-      color: var(--color-text-dim);
-      font-size: var(--text-base);
-      line-height: 1.45;
+      color: var(--color-text-mid);
+      font-size: 12px;
+      line-height: 1.5;
     }
     .preset-edit { display: flex; width: 100%; gap: var(--space-sm); }
     .preset-edit input { flex: 1; }
@@ -412,6 +480,13 @@
       </div>
     </details>
 
+    <nav class="workspaces" role="tablist" aria-label="Espaces de travail">
+      <button type="button" role="tab" data-workspace="fond" aria-selected="true">Fond</button>
+      <button type="button" role="tab" data-workspace="habillage" aria-selected="false">Habillage</button>
+      <button type="button" role="tab" data-workspace="diffusion" aria-selected="false">Diffusion</button>
+    </nav>
+
+    <div class="workspace" data-workspace="fond">
     <h2>Points de départ</h2>
     <p class="section-intro">Essaie une ambiance, puis ajuste-la dans les réglages ci-dessous.</p>
     <div class="library-tools">
@@ -433,6 +508,9 @@
       <button type="button" data-event="bits">Bits</button>
     </div>
 
+    </div>
+
+    <div class="workspace" data-workspace="habillage" hidden>
     <h2>Branding</h2>
     <p class="hint">
       Ton identité, commune à tous les presets. Attrape le bloc dans l’aperçu pour le déplacer.
@@ -494,6 +572,9 @@
       </select>
     </label>
 
+    </div>
+
+    <div class="workspace" data-workspace="diffusion" hidden>
     <h2>Mes presets</h2>
     <div class="library-tools">
       <button id="preset-export">Exporter</button>
@@ -529,6 +610,8 @@
     <div class="save-row">
       <button id="obs-scene-save">Enregistrer les associations</button>
       <button id="obs-scene-refresh" title="Relire l’état d’OBS">Actualiser</button>
+    </div>
+
     </div>
 
     <div id="server-status"></div>

@@ -191,30 +191,30 @@ export function createBackgroundPresetController(input) {
       const row = documentRef.createElement('article');
       row.className = 'preset-row preset-row-builtin';
 
-      const copy = documentRef.createElement('div');
-      copy.className = 'preset-copy';
+      // La ligne entière essaie l'ambiance : c'est l'action principale, elle n'a pas besoin d'un
+      // bouton séparé. Reste un bouton discret pour la garder dans ses presets.
+      const apply = documentRef.createElement('button');
+      apply.className = 'preset-load preset-try';
+      apply.type = 'button';
       const title = documentRef.createElement('strong');
       title.className = 'preset-title';
       title.textContent = `${preset.name} — ${backgroundEffectLabel(preset.component)}`;
       const meta = documentRef.createElement('span');
       meta.className = 'preset-meta';
       meta.textContent = preset.tags.join(' · ');
-      copy.append(title, meta);
-
-      const actions = documentRef.createElement('div');
-      actions.className = 'preset-actions';
-      const apply = documentRef.createElement('button');
-      apply.className = 'preset-action preset-try';
-      apply.type = 'button';
-      apply.textContent = 'Essayer';
+      apply.append(title, meta);
+      apply.title = `Essayer « ${preset.name} »`;
       apply.onclick = () => {
         input.preview.apply(preset, null, true);
         elements.name.value = preset.name;
       };
+
       const add = documentRef.createElement('button');
       add.className = 'preset-action preset-add';
       add.type = 'button';
-      add.textContent = 'Ajouter à mes presets';
+      add.textContent = '+';
+      add.title = `Ajouter « ${preset.name} » à mes presets`;
+      add.setAttribute('aria-label', `Ajouter ${preset.name} à mes presets`);
       add.onclick = async () => {
         const name = uniquePresetName(`${preset.name} — perso`);
         try {
@@ -230,8 +230,8 @@ export function createBackgroundPresetController(input) {
           reportClientError('save-preset', error);
         }
       };
-      actions.append(apply, add);
-      row.append(copy, actions);
+
+      row.append(apply, add);
       elements.builtinList.appendChild(row);
     }
   }

@@ -6,6 +6,7 @@ import { createBackgroundReadinessController } from './background-readiness-cont
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
 import { createBrandingController } from './branding-controller.js';
+import { createWorkspaceTabs } from './workspace-tabs.js';
 import {
   BackgroundStateClientError,
   createBackgroundStateClient,
@@ -52,6 +53,12 @@ export async function startBackgroundTuner(environment = {}) {
     sidebar.classList.toggle('collapsed');
     sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
   };
+
+  createWorkspaceTabs({
+    nav: documentRef.querySelector('.workspaces'),
+    panels: [...documentRef.querySelectorAll('.workspace')],
+    storage: windowRef.localStorage,
+  });
 
   const client = createBackgroundStateClient({ baseUrl: STATE_SERVER });
   const preview = createBackgroundPreviewController({

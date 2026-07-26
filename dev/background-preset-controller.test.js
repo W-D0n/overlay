@@ -14,6 +14,9 @@ function element(overrides = {}) {
     replaceChildren(...children) { this.children = [...children]; },
     focus() {},
     scrollIntoView() {},
+    attributes: {},
+    setAttribute(name, value) { this.attributes[name] = value; },
+    getAttribute(name) { return this.attributes[name]; },
     ...overrides,
   };
 }
@@ -63,7 +66,7 @@ test('initialise le parcours d’import avec son panneau de détails', () => {
   expect(elements.importDetails.children).toEqual([]);
 });
 
-test('présente les points de départ avec deux actions explicites', () => {
+test('présente chaque point de départ comme une ligne cliquable plus un ajout discret', () => {
   const elements = {
     list: element(), builtinList: element(), name: element(), tags: element(), search: element(),
     exportButton: element(), importTrigger: element(), importInput: element(), importReview: element(),
@@ -86,8 +89,16 @@ test('présente les points de départ avec deux actions explicites', () => {
 
   controller.initialize();
 
+  // La ligne elle-même essaie l'ambiance : son libellé est le nom du point de départ, pas
+  // « Essayer ». L'ajout reste une action séparée, réduite à un « + » avec son intitulé accessible.
   const labels = allText(elements.builtinList);
-  expect(labels).toContain('Essayer');
-  expect(labels).toContain('Ajouter à mes presets');
-  expect(labels.some((label) => label.startsWith('Atelier —'))).toBe(false);
+  expect(labels.some((label) => label.includes('Respiration'))).toBe(true);
+  expect(labels).toContain('+');
+  expect(labels).not.toContain('Essayer');
+
+  const rows = elements.builtinList.children;
+  const rowActions = rows[0].children;
+  expect(rowActions.length).toBe(2);
+  expect(rowActions[0].title.startsWith('Essayer')).toBe(true);
+  expect(rowActions[1].getAttribute('aria-label').startsWith('Ajouter')).toBe(true);
 });
