@@ -33,11 +33,15 @@
     import { ReactionOverlay } from './components/ReactionOverlay.js';
     import { createReactionCoordinator } from './background-reactions.js';
     import { createBrowserAudioSession } from './background-audio.js';
+    import { BrandingLayer } from './components/BrandingLayer.js';
 
     const searchParams = new URLSearchParams(location.search);
     const presetRef = searchParams.get('preset');
+    // `only` : couche d'identité seule, à poser sur une cam ou un gameplay. `off` : fond seul.
+    const brandingMode = searchParams.get('branding');
+    const brandingOnly = brandingMode === 'only';
 
-    if (searchParams.get('transparent') === '1') {
+    if (searchParams.get('transparent') === '1' || brandingOnly) {
       document.body.classList.add('transparent');
     }
 
@@ -57,9 +61,31 @@
     bgLayer.appendChild(overlay.el);
     const coordinator = createReactionCoordinator({ mount, overlay });
 
+    // Branding : au-dessus de tout le reste, c'est l'élément le plus lisible de l'écran.
+    const branding = brandingMode === 'off' ? null : BrandingLayer();
+    if (branding !== null) {
+      branding.el.style.zIndex = '2';
+      bgLayer.appendChild(branding.el);
+    }
+
+    /**
+     * Le contenu est global, sa visibilité appartient au preset affiché : un preset qui masque le
+     * branding le démonte, il ne le laisse pas invisible dans le DOM.
+     */
+    let latestBranding;
+    let latestCurrent = null;
+
+    function applyBranding() {
+      if (branding === null) return;
+      const visible = latestCurrent?.showBranding !== false;
+      branding.update(visible ? latestBranding : undefined);
+    }
+
     function applySafely(current) {
+      latestCurrent = current;
+      applyBranding();
       try {
-        mount.apply(current);
+        if (!brandingOnly) mount.apply(current);
       } catch (err) {
         // Effet inconnu (état plus récent que le code chargé par OBS) : on garde l'effet en
         // place plutôt qu'un écran vide en live, et on trace pour diagnostic.
@@ -72,6 +98,7 @@
         const response = await fetch(`${STATE_SERVER}/state`);
         if (!response.ok) throw new Error(`GET /state → ${response.status}`);
         const file = await response.json();
+        latestBranding = file.branding;
         const selected = selectBackground(file, presetRef);
         if (selected === null) {
           mount.apply({ component: null, options: {} });
@@ -101,6 +128,18 @@
       ws.onclose = () => setTimeout(() => connect(Math.min(delayMs * 2, 30000)), delayMs);
     }
 
+    /** Contenu du branding : canal séparé, il est global et ne dépend ni du preset ni de l'effet. */
+    function connectBranding(delayMs = 1000) {
+      if (branding === null) return;
+      const ws = new WebSocket(`ws://localhost:4462/branding-ws`);
+      ws.onopen = () => { delayMs = 1000; };
+      ws.onmessage = (event) => {
+        latestBranding = JSON.parse(event.data);
+        applyBranding();
+      };
+      ws.onclose = () => setTimeout(() => connectBranding(Math.min(delayMs * 2, 30000)), delayMs);
+    }
+
     /** Réactions : canal séparé, actif quel que soit le mode (courant ou preset). */
     function connectEvents(delayMs = 1000) {
       const ws = new WebSocket('ws://localhost:4462/event-ws');
@@ -117,6 +156,7 @@
 
     connect();
     connectEvents();
+    connectBranding();
   </script>
 </body>
 </html>

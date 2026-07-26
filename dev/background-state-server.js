@@ -39,6 +39,7 @@ import {
   duplicatePreset,
   removePreset,
   readSceneMap,
+  readBranding,
 } from './background-state-format.js';
 import { createKeyedLock } from './keyed-lock.js';
 import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
@@ -50,6 +51,7 @@ import {
 } from './background-preset-library.js';
 import { createObsSceneClient } from './obs-scene-client.js';
 import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
+import { validateBranding } from '../branding-format.js';
 
 const PORT = Number(process.env.BACKGROUND_STATE_PORT ?? 4462);
 const OBS_WS_URL = process.env.OBS_WS_URL ?? 'ws://127.0.0.1:4455';
@@ -59,7 +61,7 @@ const STATE_FILE = process.env.BACKGROUND_STATE_FILE ?? `${import.meta.dir}/data
 const withStateLock = createKeyedLock();
 const STATE_LOCK_KEY = 'background-state';
 
-/** @typedef {{ channel: 'state'|'presets'|'event' }} BackgroundSocketData */
+/** @typedef {{ channel: 'state'|'presets'|'event'|'branding' }} BackgroundSocketData */
 
 /** @type {Set<import('bun').ServerWebSocket<BackgroundSocketData>>} */
 const stateClients = new Set();
@@ -67,11 +69,19 @@ const stateClients = new Set();
 const presetClients = new Set();
 /** @type {Set<import('bun').ServerWebSocket<BackgroundSocketData>>} */
 const eventClients = new Set();
+/** @type {Set<import('bun').ServerWebSocket<BackgroundSocketData>>} */
+const brandingClients = new Set();
 
 /** @param {Record<string, unknown>} event */
 function broadcastEvent(event) {
   const payload = JSON.stringify(event);
   eventClients.forEach((client) => client.send(payload));
+}
+
+/** @param {import('../branding-format.js').Branding} branding */
+function broadcastBranding(branding) {
+  const payload = JSON.stringify(branding);
+  brandingClients.forEach((client) => client.send(payload));
 }
 
 /** @param {import('./background-state-format.js').BackgroundCurrent} current */
@@ -198,6 +208,9 @@ async function handleSavePreset(req) {
       ...(body?.transition === undefined
         ? (existing?.transition === undefined ? {} : { transition: existing.transition })
         : { transition: body.transition }),
+      ...(body?.showBranding === undefined
+        ? (existing?.showBranding === undefined ? {} : { showBranding: existing.showBranding })
+        : { showBranding: body.showBranding }),
     };
     const validation = validateBackgroundPreset(candidate);
     if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
@@ -325,6 +338,19 @@ async function handlePostEvent(req) {
 }
 
 /** @type {Record<string, (req: Request) => Promise<Response>>} */
+/**
+ * POST /branding — `{ branding }`. Contenu global de la couche d'identité.
+ */
+async function handlePostBranding(req) {
+  const body = /** @type {*} */ (await req.json());
+  const validation = validateBranding(body?.branding);
+  if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
+
+  const response = await withStateUpdate((file) => ({ ...file, branding: body.branding }));
+  if (response.ok) broadcastBranding(readBranding({ branding: body.branding }));
+  return response;
+}
+
 /** @type {{ connected: boolean, reason: string | null, scenes: string[] }} */
 const obsStatus = { connected: false, reason: null, scenes: [] };
 
@@ -348,6 +374,7 @@ async function handlePostSceneMap(req) {
 
 const POST_ROUTES = {
   '/scene-map': handlePostSceneMap,
+  '/branding': handlePostBranding,
   '/state': handlePostState,
   '/save-preset': handleSavePreset,
   '/rename-preset': handleRenamePreset,
@@ -365,8 +392,14 @@ Bun.serve({
 
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
 
-    if (url.pathname === '/state-ws' || url.pathname === '/presets-ws' || url.pathname === '/event-ws') {
-      const channel = url.pathname === '/state-ws' ? 'state' : url.pathname === '/presets-ws' ? 'presets' : 'event';
+    const WS_CHANNELS = {
+      '/state-ws': 'state',
+      '/presets-ws': 'presets',
+      '/event-ws': 'event',
+      '/branding-ws': 'branding',
+    };
+    if (WS_CHANNELS[url.pathname] !== undefined) {
+      const channel = WS_CHANNELS[url.pathname];
       const upgraded = server.upgrade(req, { data: { channel } });
       return upgraded ? undefined : new Response('upgrade failed', { status: 500 });
     }
@@ -388,12 +421,14 @@ Bun.serve({
     open(ws) {
       if (ws.data.channel === 'state') stateClients.add(ws);
       else if (ws.data.channel === 'presets') presetClients.add(ws);
+      else if (ws.data.channel === 'branding') brandingClients.add(ws);
       else eventClients.add(ws);
     },
     close(ws) {
       stateClients.delete(ws);
       presetClients.delete(ws);
       eventClients.delete(ws);
+      brandingClients.delete(ws);
     },
     message() {},
   },
@@ -436,6 +471,7 @@ async function applySceneMapping(sceneName) {
       component: preset.component,
       options: preset.options,
       ...(preset.transition === undefined ? {} : { transition: preset.transition }),
+      ...(preset.showBranding === undefined ? {} : { showBranding: preset.showBranding }),
     };
     await writeStateFile({ ...read.file, current });
     broadcastCurrent(current);
