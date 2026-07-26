@@ -209,10 +209,8 @@ dans OBS.**
 
 ## Notes ouvertes
 
-- Pendant ces manipulations, le **pseudo du branding a été effacé** de l'état de l'owner (et une
-  ligne perdue) ; restauré à l'identique (`D0n`, twitch + @mozaik). Cause non élucidée : un
-  événement `input` sur un champ vide avant le premier rendu reste le suspect le plus probable.
-  À surveiller — un contrôleur qui persiste avant d'avoir été peuplé peut écraser des données.
+- **Prochaine session : commencer par `docs/inbox.md`**, section « À regarder en priorité ». Elle
+  porte le protocole de QA OBS 1440p et recevra le retour d'audit de l'owner.
 
 - L'état de l'owner porte un branding de départ (« D0n », twitch + @mozaik, bas à gauche), posé
   pour la vérification et validé tel quel.
