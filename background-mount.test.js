@@ -287,6 +287,32 @@ describe('background mount transitions', () => {
     expect(incoming.style.transition).toBe('opacity 600ms linear');
   });
 
+  test('le fondu efface le calque sortant pendant que l’entrant apparaît', () => {
+    const { mount, layers, scheduler } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: {} });
+    mount.apply({ component: 'BubbleBackground', options: {}, transition: FADE });
+
+    const outgoingLayer = layers[0];
+    expect(outgoingLayer.style.opacity).toBeUndefined();
+
+    scheduler.runFrames();
+    expect(outgoingLayer.style.opacity).toBe('0');
+    expect(outgoingLayer.style.transition).toBe('opacity 600ms linear');
+  });
+
+  test('le balayage laisse le calque sortant intact — il est recouvert, pas effacé', () => {
+    const { mount, layers, scheduler } = transitionSetup();
+    mount.apply({ component: 'RainBackground', options: {} });
+    mount.apply({
+      component: 'BubbleBackground',
+      options: {},
+      transition: { type: 'wipe', durationMs: 700, direction: 'left' },
+    });
+
+    scheduler.runFrames();
+    expect(layers[0].style.opacity).toBeUndefined();
+  });
+
   test('un balayage anime clip-path et non l’opacité', () => {
     const { mount, layers, scheduler } = transitionSetup();
     mount.apply({ component: 'RainBackground', options: {} });

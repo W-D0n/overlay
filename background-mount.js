@@ -94,6 +94,14 @@ export function createBackgroundMount(container, options = {}) {
       const property = transition.type === 'wipe' ? 'clip-path' : 'opacity';
       next.layer.style.transition = `${property} ${transition.durationMs}ms linear`;
       Object.assign(next.layer.style, to);
+
+      // Fondu : le sortant s'efface pendant que l'entrant apparaît. Sans ça il reste opaque
+      // jusqu'au démontage et disparaît d'un coup — la coupure que la transition doit supprimer
+      // (retour owner, 2026-07-26). Le balayage ne le fait pas : le sortant est recouvert.
+      if (transition.type === 'fade' && previous !== null) {
+        previous.layer.style.transition = `opacity ${transition.durationMs}ms linear`;
+        previous.layer.style.opacity = '0';
+      }
     });
 
     scheduleTimeout(() => {
