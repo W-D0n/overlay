@@ -40,29 +40,50 @@ export function cssEasing(easing) {
 }
 
 /**
- * Côté par lequel le calque entrant est masqué au départ — opposé au sens de progression.
- * `inset(haut droite bas gauche)`.
+ * Le balayage est un masque dégradé qui glisse, pas une découpe nette : un bord franc se lit comme
+ * « un masque qui se déplace » sur des fonds transparents, et la dernière bande du calque sortant
+ * disparaît d'un coup (retour owner, 2026-07-26). La bande de fondu adoucit les deux.
+ *
+ * Le masque fait deux fois la taille du calque sur l'axe concerné ; c'est sa **position** qui est
+ * animée, propriété interpolable de façon fiable, contrairement aux arrêts d'un dégradé.
  */
-const WIPE_START_CLIP = {
-  right: 'inset(0 0 0 100%)',
-  left: 'inset(0 100% 0 0)',
-  up: 'inset(100% 0 0 0)',
-  down: 'inset(0 0 100% 0)',
-};
-
-const WIPE_END_CLIP = 'inset(0 0 0 0)';
+const WIPE_AXIS = { right: 'to right', left: 'to left', up: 'to top', down: 'to bottom' };
+const WIPE_MASK_SIZE = { right: '200% 100%', left: '200% 100%', up: '100% 200%', down: '100% 200%' };
 
 /**
- * Masquage symétrique du calque sortant. Indispensable : les effets peignent sur des canvas
- * transparents, donc révéler l'entrant ne cache pas le sortant — sans ce masquage, les deux
- * restent visibles puis le sortant disparaît d'un coup (retour owner, 2026-07-26).
+ * Masque de l'entrant (opaque puis transparent) et son inverse exact pour le sortant. Les deux
+ * calques partagent la même position à chaque instant : c'est l'inversion du dégradé — et non un
+ * dégradé miroir — qui garantit que l'un est opaque là où l'autre ne l'est pas. Vérifié en teintant
+ * les deux calques : avec le dégradé miroir, le sortant n'apparaissait nulle part.
  */
-const WIPE_OUTGOING_END_CLIP = {
-  right: 'inset(0 100% 0 0)',
-  left: 'inset(0 0 0 100%)',
-  up: 'inset(0 0 100% 0)',
-  down: 'inset(100% 0 0 0)',
-};
+const WIPE_MASK_IMAGE = (axis) => `linear-gradient(${axis}, #000 0%, #000 35%, transparent 65%, transparent 100%)`;
+const WIPE_MASK_IMAGE_INVERSE = (axis) => `linear-gradient(${axis}, transparent 0%, transparent 35%, #000 65%, #000 100%)`;
+
+/** Positions extrêmes du masque, identiques pour les deux calques. */
+const WIPE_HIDDEN_POSITION = { right: '100% 0%', left: '0% 0%', up: '0% 0%', down: '0% 100%' };
+const WIPE_VISIBLE_POSITION = { right: '0% 0%', left: '100% 0%', up: '0% 100%', down: '0% 0%' };
+
+/**
+ * @param {TransitionDirection} direction
+ * @param {'hidden' | 'visible'} position
+ * @param {boolean} inverse - `true` pour le calque sortant
+ */
+function wipeMask(direction, position, inverse) {
+  const image = inverse
+    ? WIPE_MASK_IMAGE_INVERSE(WIPE_AXIS[direction])
+    : WIPE_MASK_IMAGE(WIPE_AXIS[direction]);
+  const offset = position === 'hidden' ? WIPE_HIDDEN_POSITION[direction] : WIPE_VISIBLE_POSITION[direction];
+  return {
+    maskImage: image,
+    WebkitMaskImage: image,
+    maskSize: WIPE_MASK_SIZE[direction],
+    WebkitMaskSize: WIPE_MASK_SIZE[direction],
+    maskRepeat: 'no-repeat',
+    WebkitMaskRepeat: 'no-repeat',
+    maskPosition: offset,
+    WebkitMaskPosition: offset,
+  };
+}
 
 /** @param {unknown} value */
 function isPlainObject(value) {
@@ -99,28 +120,30 @@ export function normalizeTransition(value) {
  * transparents, faire apparaître l'entrant ne suffit pas à faire disparaître le sortant.
  * @param {{ type: TransitionType, direction: TransitionDirection }} transition
  * @returns {{
- *   incoming: { from: Record<string, string>, to: Record<string, string>, property: string },
- *   outgoing: { from: Record<string, string>, to: Record<string, string>, property: string },
+ *   incoming: { from: Record<string, string>, to: Record<string, string>, properties: string[] },
+ *   outgoing: { from: Record<string, string>, to: Record<string, string>, properties: string[] },
  * }}
  */
 export function transitionStyles({ type, direction }) {
   if (type === 'wipe') {
+    // Même sens, même position, dégradé inversé : le sortant se retire exactement là où l'entrant
+    // arrive, sans zone où les deux sont visibles ni où aucun ne l'est.
     return {
       incoming: {
-        from: { clipPath: WIPE_START_CLIP[direction] },
-        to: { clipPath: WIPE_END_CLIP },
-        property: 'clip-path',
+        from: wipeMask(direction, 'hidden', false),
+        to: wipeMask(direction, 'visible', false),
+        properties: ['mask-position', '-webkit-mask-position'],
       },
       outgoing: {
-        from: { clipPath: WIPE_END_CLIP },
-        to: { clipPath: WIPE_OUTGOING_END_CLIP[direction] },
-        property: 'clip-path',
+        from: wipeMask(direction, 'hidden', true),
+        to: wipeMask(direction, 'visible', true),
+        properties: ['mask-position', '-webkit-mask-position'],
       },
     };
   }
   return {
-    incoming: { from: { opacity: '0' }, to: { opacity: '1' }, property: 'opacity' },
-    outgoing: { from: { opacity: '1' }, to: { opacity: '0' }, property: 'opacity' },
+    incoming: { from: { opacity: '0' }, to: { opacity: '1' }, properties: ['opacity'] },
+    outgoing: { from: { opacity: '1' }, to: { opacity: '0' }, properties: ['opacity'] },
   };
 }
 

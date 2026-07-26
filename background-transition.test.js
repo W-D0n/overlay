@@ -55,38 +55,43 @@ test('9. le fondu croise les opacités des deux calques', () => {
   expect(styles.outgoing.to.opacity).toBe('0');
 });
 
-test('10. le balayage révèle l’entrant par clip-path, sans toucher l’opacité', () => {
+test('10. le balayage masque par dégradé, jamais par découpe nette', () => {
   const styles = transitionStyles({ type: 'wipe', direction: 'right' });
-  expect(styles.incoming.from.clipPath).toBe('inset(0 0 0 100%)');
-  expect(styles.incoming.to.clipPath).toBe('inset(0 0 0 0)');
-  expect(styles.incoming.from.opacity).toBeUndefined();
+  expect(styles.incoming.to.clipPath).toBeUndefined();
+  expect(styles.incoming.from.maskImage).toContain('linear-gradient(to right');
+  expect(styles.incoming.from.maskSize).toBe('200% 100%');
 });
 
-test('11. le balayage masque le sortant symétriquement — sinon il resterait visible', () => {
-  // Les canvas sont transparents : révéler l'entrant ne cache pas le sortant.
-  expect(transitionStyles({ type: 'wipe', direction: 'right' }).outgoing.to.clipPath).toBe('inset(0 100% 0 0)');
-  expect(transitionStyles({ type: 'wipe', direction: 'left' }).outgoing.to.clipPath).toBe('inset(0 0 0 100%)');
-  expect(transitionStyles({ type: 'wipe', direction: 'up' }).outgoing.to.clipPath).toBe('inset(0 0 100% 0)');
-  expect(transitionStyles({ type: 'wipe', direction: 'down' }).outgoing.to.clipPath).toBe('inset(100% 0 0 0)');
-});
-
-test('12. le masque du sortant est exactement le complément de celui de l’entrant', () => {
+test('11. le masque du sortant est l’inverse exact de celui de l’entrant', () => {
+  // Même sens, même position : c'est l'inversion du dégradé qui rend les deux complémentaires.
+  // Un dégradé miroir laissait les deux calques masqués du même côté (vérifié à l'écran).
   for (const direction of ['left', 'right', 'up', 'down']) {
-    const styles = transitionStyles({ type: 'wipe', direction });
-    const opposite = { left: 'right', right: 'left', up: 'down', down: 'up' }[direction];
-    expect(styles.outgoing.to.clipPath).toBe(transitionStyles({ type: 'wipe', direction: opposite }).incoming.from.clipPath);
+    const { incoming, outgoing } = transitionStyles({ type: 'wipe', direction });
+    expect(outgoing.from.maskPosition).toBe(incoming.from.maskPosition);
+    expect(outgoing.to.maskPosition).toBe(incoming.to.maskPosition);
+    expect(outgoing.to.maskImage).not.toBe(incoming.to.maskImage);
+    expect(outgoing.to.maskImage.startsWith('linear-gradient(transparent')
+      || outgoing.to.maskImage.includes('transparent 0%')).toBe(true);
+    expect(incoming.to.maskImage.includes('#000 0%')).toBe(true);
   }
 });
 
-test('13. chaque sens de balayage part du bord opposé à sa progression', () => {
-  expect(transitionStyles({ type: 'wipe', direction: 'left' }).incoming.from.clipPath).toBe('inset(0 100% 0 0)');
-  expect(transitionStyles({ type: 'wipe', direction: 'up' }).incoming.from.clipPath).toBe('inset(100% 0 0 0)');
-  expect(transitionStyles({ type: 'wipe', direction: 'down' }).incoming.from.clipPath).toBe('inset(0 0 100% 0)');
+test('12. chaque propriété de masque est aussi déclinée en -webkit-, pour le CEF d’OBS', () => {
+  const { incoming } = transitionStyles({ type: 'wipe', direction: 'right' });
+  expect(incoming.to.WebkitMaskImage).toBe(incoming.to.maskImage);
+  expect(incoming.to.WebkitMaskPosition).toBe(incoming.to.maskPosition);
 });
 
-test('14. tous les sens convergent vers le même état final', () => {
+test('13. les sens horizontaux et verticaux utilisent l’axe et la taille correspondants', () => {
+  expect(transitionStyles({ type: 'wipe', direction: 'up' }).incoming.to.maskImage).toContain('to top');
+  expect(transitionStyles({ type: 'wipe', direction: 'up' }).incoming.to.maskSize).toBe('100% 200%');
+  expect(transitionStyles({ type: 'wipe', direction: 'down' }).incoming.to.maskImage).toContain('to bottom');
+});
+
+test('14. l’entrant part masqué et finit visible, jamais l’inverse', () => {
   for (const direction of ['left', 'right', 'up', 'down']) {
-    expect(transitionStyles({ type: 'wipe', direction }).incoming.to.clipPath).toBe('inset(0 0 0 0)');
+    const { incoming } = transitionStyles({ type: 'wipe', direction });
+    expect(incoming.from.maskPosition).not.toBe(incoming.to.maskPosition);
   }
 });
 
@@ -126,4 +131,10 @@ test('20. la validation refuse ce que la normalisation corrigerait', () => {
 test('21. toutes les erreurs d’une transition sont listées, pas seulement la première', () => {
   const result = validateTransition({ type: 'morph', durationMs: -1, direction: 'diagonale' });
   expect(result.errors.length).toBe(3);
+});
+
+test('22. chaque propriété animée est déclarée séparément, sans durée implicite', () => {
+  const { incoming } = transitionStyles({ type: 'wipe', direction: 'right' });
+  expect(incoming.properties).toEqual(['mask-position', '-webkit-mask-position']);
+  expect(transitionStyles({ type: 'fade', direction: 'right' }).incoming.properties).toEqual(['opacity']);
 });

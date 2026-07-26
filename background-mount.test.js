@@ -300,7 +300,7 @@ describe('background mount transitions', () => {
     expect(outgoingLayer.style.transition).toBe('opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)');
   });
 
-  test('le balayage masque le sortant par clip-path, jamais par l’opacité', () => {
+  test('le balayage masque le sortant par dégradé, jamais par l’opacité', () => {
     const { mount, layers, scheduler } = transitionSetup();
     mount.apply({ component: 'RainBackground', options: {} });
     mount.apply({
@@ -311,10 +311,11 @@ describe('background mount transitions', () => {
 
     scheduler.runFrames();
     expect(layers[0].style.opacity).toBeUndefined();
-    expect(layers[0].style.clipPath).toBe('inset(0 0 0 100%)');
+    expect(layers[0].style.maskImage).toContain('transparent 0%');
+    expect(layers[0].style.maskPosition).toBe(layers[1].style.maskPosition);
   });
 
-  test('un balayage anime clip-path et non l’opacité', () => {
+  test('un balayage anime la position du masque et non l’opacité', () => {
     const { mount, layers, scheduler } = transitionSetup();
     mount.apply({ component: 'RainBackground', options: {} });
     mount.apply({
@@ -324,10 +325,13 @@ describe('background mount transitions', () => {
     });
 
     const incoming = layers[1];
-    expect(incoming.style.clipPath).toBe('inset(100% 0 0 0)');
+    const start = incoming.style.maskPosition;
     scheduler.runFrames();
-    expect(incoming.style.clipPath).toBe('inset(0 0 0 0)');
-    expect(incoming.style.transition).toBe('clip-path 400ms cubic-bezier(0.4, 0, 0.2, 1)');
+    expect(incoming.style.maskPosition).not.toBe(start);
+    expect(incoming.style.opacity).toBeUndefined();
+    expect(incoming.style.transition).toBe(
+      'mask-position 400ms cubic-bezier(0.4, 0, 0.2, 1), -webkit-mask-position 400ms cubic-bezier(0.4, 0, 0.2, 1)',
+    );
   });
 
   test('une durée nulle remplace sans animation ni calque résiduel', () => {

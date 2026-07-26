@@ -9,6 +9,10 @@
  * CLAUDE.md — ce projet évite déjà tout `npm`/`bunx` de package tiers ailleurs), un seul process,
  * correctement lié à son parent.
  *
+ * Sert tout en `no-store` : la Browser Source OBS garde sinon d'anciens modules en cache et
+ * continue d'exécuter du code corrigé depuis longtemps (constaté le 2026-07-26 sur les
+ * transitions). Serveur de développement local, aucun intérêt à mettre en cache quoi que ce soit.
+ *
  * Lancement : `bun dev/static-server.js` (port 5500 par défaut, `STATIC_PORT` pour changer).
  */
 const PORT = Number(process.env.STATIC_PORT ?? 5500);
@@ -23,7 +27,9 @@ Bun.serve({
       : url.pathname;
 
     const file = Bun.file(`${ROOT}${pathname}`);
-    if (await file.exists()) return new Response(file);
+    if (await file.exists()) {
+      return new Response(file, { headers: { 'Cache-Control': 'no-store, must-revalidate' } });
+    }
 
     return new Response('Not Found', { status: 404 });
   },

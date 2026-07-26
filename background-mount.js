@@ -95,13 +95,15 @@ export function createBackgroundMount(container, options = {}) {
       // figé à `inset(0px)` pendant toute la durée) avant d'ajouter ce flush.
       forceStyleFlush(next.layer);
       const timing = `${transition.durationMs}ms ${cssEasing(transition.easing)}`;
-      next.layer.style.transition = `${incoming.property} ${timing}`;
+      // Une durée par propriété : `a, b 400ms` donnerait 0s à `a` et ferait sauter l'animation.
+      const timingFor = (properties) => properties.map((name) => `${name} ${timing}`).join(', ');
+      next.layer.style.transition = timingFor(incoming.properties);
       Object.assign(next.layer.style, incoming.to);
 
       // Le sortant est animé lui aussi : les effets peignent sur des canvas transparents, donc
       // révéler l'entrant ne le masque pas. Sans ça il reste visible puis disparaît d'un coup.
       if (previous !== null) {
-        previous.layer.style.transition = `${outgoingStyles.property} ${timing}`;
+        previous.layer.style.transition = timingFor(outgoingStyles.properties);
         Object.assign(previous.layer.style, outgoingStyles.to);
       }
     });
@@ -110,7 +112,7 @@ export function createBackgroundMount(container, options = {}) {
       // Une transition plus récente a pu passer entre-temps : elle a déjà nettoyé, ne rien défaire.
       if (mounted !== next) return;
       flushOutgoing();
-      next.layer.style.transition = '';
+      clearTransitionStyles(next.layer);
     }, transition.durationMs);
   }
 
@@ -188,6 +190,22 @@ export function createBackgroundMount(container, options = {}) {
       return (mounted === null ? 0 : 1) + outgoing.length;
     },
   };
+}
+
+/**
+ * Efface toute trace de la transition sur le calque survivant. Sans ça, son masque et sa durée
+ * restent inscrits en style inline bien après l'animation — résidu invisible aujourd'hui, piège
+ * dès qu'un autre mécanisme touchera ces mêmes propriétés.
+ * @param {*} layer
+ */
+function clearTransitionStyles(layer) {
+  for (const property of [
+    'transition', 'opacity',
+    'maskImage', 'WebkitMaskImage', 'maskSize', 'WebkitMaskSize',
+    'maskRepeat', 'WebkitMaskRepeat', 'maskPosition', 'WebkitMaskPosition',
+  ]) {
+    layer.style[property] = '';
+  }
 }
 
 /**
