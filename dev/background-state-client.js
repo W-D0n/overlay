@@ -82,6 +82,10 @@ export function createBackgroundStateClient(options) {
     saveSceneMap(sceneMap) {
       return request('scene-map', { sceneMap });
     },
+    /** @param {unknown} branding */
+    saveBranding(branding) {
+      return request('branding', { branding });
+    },
     /** @param {{ component: string | null, options: Record<string, unknown> }} current */
     saveCurrent(current) {
       return request('state', { current });

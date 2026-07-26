@@ -5,6 +5,7 @@ import { createBackgroundPreviewController } from './background-preview-controll
 import { createBackgroundReadinessController } from './background-readiness-controller.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
+import { createBrandingController } from './branding-controller.js';
 import {
   BackgroundStateClientError,
   createBackgroundStateClient,
@@ -133,9 +134,29 @@ export async function startBackgroundTuner(environment = {}) {
     console.warn('[background-tuner] palette indisponible, saisie libre conservée :', error);
   }
 
+  const brandingControls = createBrandingController({
+    layer: byId('bg-layer'),
+    fields: {
+      name: byId('branding-name'),
+      lines: byId('branding-lines'),
+      nameSize: byId('branding-name-size'),
+      lineSize: byId('branding-line-size'),
+      color: byId('branding-color'),
+      opacity: byId('branding-opacity'),
+      position: byId('branding-position'),
+      showOnPreset: byId('branding-show-on-preset'),
+    },
+    documentRef,
+    client,
+    report,
+    onShowOnPresetChange: (visible) => preview.changeShowBranding(visible),
+  });
+
   try {
     const file = await client.readState();
     preview.apply(file.current);
+    brandingControls.render(file.branding);
+    brandingControls.renderShowOnPreset(file.current?.showBranding !== false);
     presets.renderPresets(file.presets);
     report.ok();
   } catch (error) {
@@ -150,6 +171,8 @@ export async function startBackgroundTuner(environment = {}) {
     directionRow: byId('transition-direction-row'),
     onChange: preview.changeTransition,
   }));
+
+  preview.attachBrandingControls(brandingControls);
 
   const obsSceneMap = createObsSceneMapController({
     statusEl: byId('obs-scene-status'),
@@ -183,5 +206,5 @@ export async function startBackgroundTuner(environment = {}) {
     preview.destroy();
   }
   windowRef.addEventListener('beforeunload', destroy, { once: true });
-  return { destroy, readiness, presets, preview, obsSceneMap };
+  return { destroy, readiness, presets, preview, obsSceneMap, brandingControls };
 }

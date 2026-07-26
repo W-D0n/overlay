@@ -20,16 +20,20 @@ export function createBackgroundPreviewSession() {
    * (docs/specs/background-preset-transitions.md).
    */
   let arriving = false;
+  /** Visibilité du branding pour le preset en cours — voyage toujours avec l'état diffusé. */
+  let showBranding = true;
 
   function snapshot() {
     return {
       current: {
         component: current.component,
         options: { ...current.options },
+        showBranding,
         ...(arriving ? { transition: { ...transition } } : {}),
       },
       activePresetId,
       transition: { ...transition },
+      showBranding,
     };
   }
 
@@ -43,6 +47,7 @@ export function createBackgroundPreviewSession() {
       current = { component: next.component, options: { ...next.options } };
       activePresetId = presetId;
       transition = normalizeTransition(next.transition);
+      showBranding = next.showBranding !== false;
       arriving = true;
       const state = snapshot();
       // L'arrivée n'a lieu qu'une fois : les réglages qui suivent ne doivent pas ré-animer.
@@ -70,6 +75,11 @@ export function createBackgroundPreviewSession() {
     /** @param {string} key @param {unknown} value */
     changeOption(key, value) {
       current = { ...current, options: { ...current.options, [key]: value } };
+      return snapshot();
+    },
+    /** @param {boolean} visible */
+    setShowBranding(visible) {
+      showBranding = visible;
       return snapshot();
     },
     /** @param {string | null} presetId */

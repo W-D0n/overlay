@@ -82,6 +82,8 @@ export function createBackgroundPreviewController(input) {
 
   /** @type {{ render: (transition: *) => void } | null} */
   let transitionControls = null;
+  /** @type {{ renderShowOnPreset: (visible: boolean) => void } | null} */
+  let brandingControls = null;
 
   const fieldRenderer = createBackgroundFieldRenderer({
     container: input.fields,
@@ -105,6 +107,7 @@ export function createBackgroundPreviewController(input) {
     const state = session.apply(next, presetId);
     reflect(state, next);
     transitionControls?.render(state.transition);
+    brandingControls?.renderShowOnPreset(state.showBranding);
     if (persist) schedulePersist(state.current);
     return state;
   }
@@ -164,6 +167,10 @@ export function createBackgroundPreviewController(input) {
 
   return {
     apply,
+    /** Branche la case « Afficher sur ce preset » sur la session. */
+    attachBrandingControls(controls) {
+      brandingControls = controls;
+    },
     /** Branche la section « Arrivée de ce preset » sur la session. */
     attachTransitionControls(controls) {
       transitionControls = controls;
@@ -172,6 +179,16 @@ export function createBackgroundPreviewController(input) {
     /** @param {Record<string, unknown>} patch */
     changeTransition(patch) {
       return session.changeTransition(patch);
+    },
+    /**
+     * La visibilité du branding appartient au preset : elle part dans l'état courant tout de suite,
+     * pour que l'URL OBS suive sans attendre un enregistrement de preset.
+     * @param {boolean} visible
+     */
+    changeShowBranding(visible) {
+      const state = session.setShowBranding(visible);
+      schedulePersist(state.current);
+      return state;
     },
     /** @param {unknown} next */
     receive(next) {

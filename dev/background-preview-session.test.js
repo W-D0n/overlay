@@ -29,8 +29,10 @@ describe('session d’aperçu du tuner', () => {
       current: {
         component: 'RainBackground',
         options: { intensity: 0.5, speed: 1, color: '#C8B97A', angle: 8 },
+        showBranding: true,
       },
       activePresetId: null,
+      showBranding: true,
       transition: { type: 'fade', durationMs: 600, direction: 'right', easing: 'easeInOut' },
     });
   });
@@ -48,8 +50,10 @@ describe('session d’aperçu du tuner', () => {
       current: {
         component: 'RainBackground',
         options: { intensity: 0.3, speed: 2 },
+        showBranding: true,
       },
       activePresetId: 'pluie',
+      showBranding: true,
       transition: { type: 'fade', durationMs: 600, direction: 'right', easing: 'easeInOut' },
     });
     expect(preset.options.speed).toBe(1);
@@ -102,5 +106,22 @@ describe('session d’aperçu du tuner', () => {
     const state = session.changeTransition({ type: 'wipe', durationMs: 99999 });
     expect(state.transition).toEqual({ type: 'wipe', durationMs: 2000, direction: 'right', easing: 'easeInOut' });
     expect(state.current.transition).toBeUndefined();
+  });
+
+  test('un preset qui masque le branding le transmet dans l’état diffusé', () => {
+    const session = createBackgroundPreviewSession();
+    const state = session.apply(
+      { component: 'RainBackground', options: {}, showBranding: false },
+      'discret',
+    );
+    expect(state.current.showBranding).toBe(false);
+    expect(state.showBranding).toBe(false);
+  });
+
+  test('basculer la visibilité du branding n’attend pas un enregistrement de preset', () => {
+    const session = createBackgroundPreviewSession();
+    session.apply({ component: 'RainBackground', options: {} }, 'pluie');
+    expect(session.setShowBranding(false).current.showBranding).toBe(false);
+    expect(session.changeOption('speed', 3).current.showBranding).toBe(false);
   });
 });

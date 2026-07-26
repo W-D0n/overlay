@@ -359,6 +359,9 @@
     }
     .readiness-check-action { grid-column: 2; justify-self: start; margin-top: var(--space-xs); }
 
+    .branding-toggle { display: flex; align-items: center; gap: var(--space-xs); }
+    #branding-position { margin-bottom: var(--space-xs); }
+
     #obs-scene-status { font-size: var(--text-base); line-height: 1.4; margin-bottom: var(--space-xs); }
     #obs-scene-status[data-tone="attention"] { color: var(--color-text-dim); }
     #obs-scene-status[data-tone="ready"] { color: var(--color-gold); }
@@ -429,6 +432,36 @@
       <button type="button" data-event="raid">Raid</button>
       <button type="button" data-event="bits">Bits</button>
     </div>
+
+    <h2>Branding</h2>
+    <p class="hint">
+      Ton identité, commune à tous les presets. Attrape le bloc dans l’aperçu pour le déplacer.
+    </p>
+    <label>Pseudo
+      <input id="branding-name" type="text" maxlength="40" placeholder="D0n">
+    </label>
+    <label>Réseaux (une ligne chacun)
+      <textarea id="branding-lines" rows="3" placeholder="twitch.tv/d0n"></textarea>
+    </label>
+    <div class="save-row">
+      <label>Taille du pseudo
+        <input id="branding-name-size" type="number" min="10" max="96" step="1">
+      </label>
+      <label>Taille des lignes
+        <input id="branding-line-size" type="number" min="8" max="48" step="1">
+      </label>
+    </div>
+    <label>Couleur
+      <input id="branding-color" type="text" placeholder="var(--color-gold)">
+    </label>
+    <label>Opacité
+      <input id="branding-opacity" type="range" min="0" max="1" step="0.05">
+    </label>
+    <div id="branding-position" class="hint"></div>
+    <label class="branding-toggle">
+      <input id="branding-show-on-preset" type="checkbox">
+      Afficher sur ce preset
+    </label>
 
     <h2>Arrivée de ce preset</h2>
     <p class="hint">
