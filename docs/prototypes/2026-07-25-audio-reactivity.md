@@ -35,7 +35,7 @@ si la même question se repose.
      `"C:\Program Files\obs-studio\bin\64bit\obs64.exe" --enable-media-stream`
    - Valider, puis relancer OBS **par ce raccourci** (un lancement depuis le menu Démarrer ou la
      barre des tâches n'aurait pas l'option).
-2. Ajouter une source **Navigateur** pointant sur le prototype, 1920×1080.
+2. Ajouter une source **Navigateur** pointant sur le prototype, à la taille du canvas OBS.
 3. Parler dans le micro et lire le panneau en haut à gauche.
 
 Résultats possibles, tous concluants :

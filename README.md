@@ -33,7 +33,7 @@ portable entre deux installations.
 1. Double-cliquer sur `start-stream.bat`.
 2. Ajouter une source **Navigateur** dans OBS.
 3. URL : `http://localhost:5500/background.html`
-4. Dimensions : celles de ton canvas OBS (`2560 × 1440`, `1920 × 1080`…) — le fond les épouse.
+4. Dimensions : celles de ton canvas OBS — `2560 × 1440` ici. Le fond les épouse quelles qu'elles soient.
 5. Laisser le champ **CSS personnalisé** vide.
 
 Pour superposer uniquement l'animation au-dessus d'une capture, utiliser :

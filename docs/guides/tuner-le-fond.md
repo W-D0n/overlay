@@ -25,8 +25,8 @@ la seconde → au prochain démarrage, OBS recharge le dernier état sauvegardé
 1. Lancer `start-stream.bat` (ou `start-dev.bat` pour bricoler).
 2. Dans OBS : Source → **Navigateur** (Browser Source).
 3. URL : `http://localhost:5500/background.html`
-4. Largeur et hauteur : celles de ton canvas OBS (`2560 × 1440`, `1920 × 1080`…). Le fond remplit
-   la source quelle que soit sa taille.
+4. Largeur et hauteur : celles de ton canvas OBS — `2560 × 1440`. Le fond remplit la source quelle
+   que soit sa taille.
 
 Laisser le champ **CSS personnalisé** vide. OBS injecte ce CSS après celui de la page : une règle
 ajoutée ici peut forcer un fond, masquer un élément ou changer une taille, mais crée alors une

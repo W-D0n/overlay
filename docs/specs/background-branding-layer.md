@@ -30,8 +30,8 @@ Un bloc **global** dans le fichier d'état, à côté de `current`, `presets` et
   "lines": ["twitch.tv/d0n", "@mozaik"],
   "x": 3,
   "y": 92,
-  "nameSize": 28,
-  "lineSize": 14,
+  "nameSize": 36,
+  "lineSize": 18,
   "color": "var(--color-gold)",
   "opacity": 0.9
 }
@@ -42,16 +42,15 @@ Un bloc **global** dans le fichier d'état, à côté de `current`, `presets` et
 | `name` | texte, 0–40 caractères (vide = pas de pseudo affiché) | `''` |
 | `lines` | tableau de textes, 0 à 4 lignes, 40 caractères chacune | `[]` |
 | `x` / `y` | 0 à 100 (% du canvas) | `3` / `92` |
-| `nameSize` / `lineSize` | 10 à 96 px / 8 à 48 px | `28` / `14` |
+| `nameSize` / `lineSize` | 10 à 96 px / 8 à 48 px, pensés pour le canvas 2560×1440 | `36` / `18` |
 | `color` | valeur CSS libre (hex, `rgb()`, `oklch()`, `var(--token)`) | `var(--color-gold)` |
 | `opacity` | 0 à 1 | `0.9` |
 
 `branding` absent d'un fichier existant = valeurs par défaut, `name` vide et `lines` vide : **rien
 ne s'affiche**. Aucune migration, aucun changement visible pour un état déjà sur disque.
 
-**Pourcentage plutôt que pixels** : le canvas change de taille (1920×1080 hier, 2560×1440
-aujourd'hui) et un pourcentage reste juste dans les deux cas. Conséquence assumée : une marge de 3 %
-vaut 58 px en 1080p et 77 px en 1440p — la marge grandit avec l'écran.
+**Pourcentage plutôt que pixels** : le canvas de référence est **2560×1440**, et un pourcentage
+reste juste s'il change encore. Sur ce canvas, une marge de 3 % vaut 77 px.
 
 **Le bloc s'aligne selon sa position**, sans réglage supplémentaire : posé dans la moitié droite, il
 s'aligne à droite (`translateX(-100%)`) ; dans la moitié basse, il remonte (`translateY(-100%)`).
@@ -145,9 +144,9 @@ d'options d'effet, pas de réaction audio, pas de transition).
 
 ## Lacunes assumées (LAC)
 
-- **LAC-01** — Le texte n'est pas mis à l'échelle selon la taille du canvas : à 2560×1440, une
-  taille réglée pour 1080p paraît plus petite. Un facteur automatique masquerait le réglage réel ;
-  les tailles restent explicites, à ajuster une fois. À noter : la **position** suit la résolution
-  (pourcentage), la **taille** non — c'est volontaire, pas une incohérence.
+- **LAC-01** — Les tailles de texte sont en pixels, réglées pour le canvas 2560×1440. Si le canvas
+  changeait encore, la **position** suivrait (pourcentage) mais la **taille** non. Volontaire :
+  un facteur automatique masquerait le réglage réel, alors qu'un chiffre explicite se réajuste
+  une fois.
 - **LAC-02** — Aucune protection contre un pseudo plus large que le canvas : le texte déborderait.
   Borné à 40 caractères, jugé suffisant sans ajouter une troncature qui surprendrait à l'écran.

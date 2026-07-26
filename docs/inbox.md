@@ -8,7 +8,7 @@ Notes et items qui restent à traiter. Les clôtures récentes sont consignées 
 
 - **ShapeMorph** — confirmer dans le tuner la qualité des cinq contours et leurs transitions.
 - **ColorDrops** — recueillir un retour détaillé sur le rendu, le rythme et la lisibilité.
-- **QA OBS native** — confirmer dans une vraie Browser Source (2560×1440 désormais) que les
+- **QA OBS native** — confirmer dans une vraie Browser Source (2560×1440) que les
   vitesses et les contrôles récents restent conformes, sans coût ou artefact inattendu. Les effets
   couvrent maintenant une surface 1,8× plus grande : surveiller le coût CPU/GPU.
 

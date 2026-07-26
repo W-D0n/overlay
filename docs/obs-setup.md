@@ -57,7 +57,7 @@ Dans la scène OBS où l'habillage doit apparaître :
 ## 3. Vérification visuelle avant stream
 
 Repasser sur chaque scène de l'overlay (`discussion`, `brb`, `codage`, `jeu`, `interview`, `react`,
-`creation`, `fin`) au moins une fois en conditions réelles OBS 1920×1080 avant le premier live —
+`creation`, `fin`) au moins une fois en conditions réelles OBS 2560×1440 avant le premier live —
 la vérification de cette session (S3b) s'est arrêtée à `bun test` (voir gap tracé dans
 `docs/MAP.md` / `docs/handoffs/handoff-latest.md`), pas de vérification visuelle en navigateur.
 

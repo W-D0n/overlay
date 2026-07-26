@@ -22,8 +22,8 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 
 1. **Zero build, zero dépendance** — HTML/CSS/JS natif uniquement. Aucun `npm install`,
    aucun framework, aucune lib externe. Toute fonction (ex : Simplex noise) est portée from scratch.
-2. **OBS Browser Source, taille imposée par la source** — la page épouse la Browser Source
-   (2560×1440 chez l'owner depuis le 2026-07-25, 1920×1080 auparavant) : aucune dimension en dur,
+2. **OBS Browser Source 2560×1440** — canvas de référence du projet depuis le 2026-07-25. La page
+   épouse la source, aucune dimension en dur ; raisonner et vérifier en 1440p, pas en 1080p.
    `pointer-events: none`.
 3. **Source de vérité design** — toutes les variables visuelles dans `tokens.css`. Jamais de valeur
    hardcodée dans un composant si un token existe.
