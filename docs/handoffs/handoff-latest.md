@@ -1,7 +1,7 @@
 # Handoff — 2026-07-25
 
 Focus courant : **fonds autonomes**. Audit produit du 2026-07-24 → 6 ouvertures validées (①→⑥) +
-archivage du moteur de scènes (⑦). **①, ⑦, ② et ③ livrés.**
+archivage du moteur de scènes (⑦). **①, ⑦, ②, ③ et ④ livrés.**
 
 ## État actuel
 
@@ -9,11 +9,39 @@ archivage du moteur de scènes (⑦). **①, ⑦, ② et ③ livrés.**
 - Studio : `http://localhost:5500/dev/studio.html` (une seule entrée : Fonds & presets)
 - État live/presets/événements : `dev/background-state-server.js`, port 4462
 - 11 effets enregistrés, un seul actif à la fois ; overlay de réaction au-dessus de l'effet
-- `main` == `origin/main`, working tree propre, **275 tests verts**
+- `main` == `origin/main`, working tree propre, **320 tests verts**
 - Tag `scene-engine-v1` (poussé) sur `10369b5` — seule copie du moteur de scènes
 - Une seule branche dans le dépôt, locale et distante (convention inscrite dans `CLAUDE.md`)
 
-## Dernier lot — ③ Preset automatique par scène OBS (livré, 4/4)
+## Dernier lot — ④ Transition entre presets (livré, 4/4)
+
+Spec `docs/specs/background-preset-transitions.md`. Décisions owner : transition déclarée par le
+**preset entrant**, répertoire fondu + balayage, et « des réglages pour choisir » plutôt que des
+règles implicites (d'où la courbe réglable, pas de défaut différent par type).
+
+- **La transition sert de signal** : présente dans l'état diffusé = arrivée de preset (on anime),
+  absente = réglage en cours (`update()` en direct). Sans ça, chaque cran de curseur animerait.
+- `background-transition.js` (pur) : `normalizeTransition` corrige pour le rendu,
+  `validateTransition` refuse à l'écriture. Réglages : type, durée (0–2000 ms), courbe, sens.
+- `background-mount.js` monte chaque effet dans son calque ; les **deux** calques sont animés.
+- Tuner : section « Arrivée de ce preset » ; le mapping OBS (③) joint la transition du preset.
+
+### Ce que la vérification visuelle a corrigé (et que les tests unitaires ne voyaient pas)
+
+1. L'animation **sautait** : l'état de départ n'était jamais résolu par le navigateur. Corrigé par
+   un flush de style ; mesuré ensuite 83 % → 15 % en progression continue.
+2. Le sortant restait **opaque puis disparaissait d'un coup** — mon « fondu » superposait au lieu de
+   croiser. Corrigé en fondu croisé réel.
+3. Le balayage à **bord net** se lisait comme un masque qui glisse, sur des calques transparents.
+   Remplacé par un masque en dégradé animé en position.
+4. Ma première symétrie utilisait un dégradé **miroir** : vérifié en teintant les calques, le
+   sortant n'apparaissait nulle part. Il faut le dégradé **inversé à la même position**.
+5. Résidus : masque laissé en style inline après la transition, et chaîne CSS invalide
+   (`a, b 400ms` donne 0 s à `a`). Les deux corrigés.
+
+Validé par l'owner en Browser Source réelle le 2026-07-26.
+
+## Lot précédent — ③ Preset automatique par scène OBS (livré, 4/4)
 
 Spec `docs/specs/obs-scene-preset-mapping.md`. Décision owner : faire ③ malgré la réintroduction
 d'une connexion OBS, périmètre réduit à **lire la scène active**.
@@ -99,7 +127,7 @@ Refacto avant suppression, comme prévu :
 
 ## Restant — dans l'ordre de priorité owner
 
-1. **④→⑥** — transition entre presets, couche branding, vignettes de presets.
+1. **⑤→⑥** — couche branding, vignettes de presets.
 2. Étendre la réactivité audio aux 8 autres effets, un par un — le contrat est ouvert, il suffit
    d'implémenter `setAudioLevel()` et de déclarer les deux champs.
 
@@ -125,6 +153,11 @@ Les défauts en pixels (espacement DotGrid, tailles de formes) paraissent aussi 
 relativement — à réajuster au goût dans le tuner, aucun code à changer.
 
 ## Notes ouvertes
+
+- Deux presets de test taggés `test-transition` (« Test fondu lent », « Test balayage ») restent
+  dans l'état de l'owner — à supprimer quand ils n'ont plus d'utilité.
+- Le serveur statique sert désormais tout en `no-store` : sans ça, la Browser Source OBS gardait
+  d'anciens modules et exécutait du code corrigé depuis longtemps.
 
 - Les guides `utiliser-le-panneau` et `harmoniser-scenes-obs` ont été retirés (ils décrivaient
   l'éditeur de scènes et le relais OBS archivés). `creer-un-composant` est réécrit côté fond seul.

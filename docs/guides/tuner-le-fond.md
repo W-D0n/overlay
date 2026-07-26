@@ -99,6 +99,30 @@ Ce qu'il faut savoir :
 - l'association se fait par **nom de scène** : renommer une scène dans OBS casse le lien, à refaire
   dans le tuner.
 
+## Comment un preset arrive — les transitions
+
+La section **Arrivée de ce preset** décrit la façon dont ce preset remplace le fond précédent. Le
+réglage appartient au preset entrant : c'est lui qui décide de son entrée.
+
+| Réglage | Effet |
+|---|---|
+| **Type** | `Fondu` (les deux fonds se croisent en opacité) ou `Balayage` (une bande adoucie glisse) |
+| **Durée** | 0 à 2000 ms. `0` = remplacement sec |
+| **Courbe** | Douce au départ et à l'arrivée (défaut), douce à l'arrivée, douce au départ, ou constante |
+| **Sens** | Uniquement pour le balayage : gauche, droite, haut, bas |
+
+Ce qu'il faut savoir :
+
+- la transition se joue quand le preset **arrive** : clic sur un preset, ou changement de scène OBS
+  associé. Bouger un curseur ne la rejoue pas, sinon chaque cran de réglage déclencherait une
+  animation ;
+- l'ouverture de la Browser Source n'anime jamais : une page qui démarre ne commence pas par un
+  fondu ;
+- pendant la transition, **deux effets tournent en même temps**. C'est borné à 2 secondes, mais
+  c'est le moment le plus coûteux pour la machine — à surveiller si tu enchaînes les scènes ;
+- les effets peignent sur des fonds transparents : c'est pour ça que le balayage masque le fond
+  sortant au lieu de simplement révéler le nouveau.
+
 ## Vérifier avant un live
 
 Le bloc **Prêt pour le live** se contrôle automatiquement à l'ouverture du tuner. Le bouton

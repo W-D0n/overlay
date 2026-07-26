@@ -1,6 +1,6 @@
 # Spec — Transition entre presets (④ de l'audit produit)
 
-Statut : **à valider par l'owner**. Créée le 2026-07-25.
+Statut : **livrée et validée en Browser Source réelle** (owner, 2026-07-26). Créée le 2026-07-25.
 
 Décisions owner (2026-07-25) :
 
@@ -63,8 +63,10 @@ après retour de l'owner (« la disparition est trop brutale, ça se voit beauco
 
 - **fade** — fondu croisé : l'entrant va de l'opacité 0 à 1 pendant que le sortant va de 1 à 0.
   Mesuré : 0,83/0,17 → 0,13/0,87, somme constante.
-- **wipe** — l'entrant est révélé par `clip-path: inset(...)`, le sortant est masqué par le
-  `clip-path` **complémentaire** au même instant. Mesuré : sortant 19,68 % + entrant 80,32 % = 100 %.
+- **wipe** — masque en **dégradé** dont la position est animée : la bande de fondu remplace le bord
+  net, qui se lisait comme « un masque qui se déplace » (retour owner). Le sortant porte le dégradé
+  **inversé à la même position** — pas le dégradé miroir, qui laissait les deux calques masqués du
+  même côté (vérifié en teintant les calques).
 
 Pendant la transition, **deux effets tournent simultanément** — c'est le coût de la fonctionnalité,
 borné par `durationMs` (2 s maximum) et par le fait qu'une seule transition est en cours à la fois.
