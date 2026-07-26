@@ -1,6 +1,10 @@
 # Spec — Couche branding (⑤ de l'audit produit)
 
-Statut : **à valider par l'owner**. Créée le 2026-07-26.
+Statut : **livrée et validée en Browser Source réelle** (owner, 2026-07-26). Créée le 2026-07-26.
+
+LAC-01 **résolue à la livraison** : le bloc est rendu dans un espace de conception 2560×1440 puis
+mis à l'échelle du canvas réel (`components/BrandingLayer.js`), donc les tailles suivent la
+résolution sans cesser d'être explicites.
 
 Décisions owner (2026-07-26) :
 

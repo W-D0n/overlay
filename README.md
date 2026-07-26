@@ -74,6 +74,8 @@ components/
   color-utils.js
   color-palette.json
 
+branding-format.js
+
 dev/
   studio.html
   studio.config.js

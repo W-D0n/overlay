@@ -1,7 +1,7 @@
 # Handoff — 2026-07-25
 
 Focus courant : **fonds autonomes**. Audit produit du 2026-07-24 → 6 ouvertures validées (①→⑥) +
-archivage du moteur de scènes (⑦). **①, ⑦, ②, ③ et ④ livrés.**
+archivage du moteur de scènes (⑦). **①, ⑦, ②, ③, ④ et ⑤ livrés.** Reste ⑥.
 
 ## État actuel
 
@@ -9,11 +9,39 @@ archivage du moteur de scènes (⑦). **①, ⑦, ②, ③ et ④ livrés.**
 - Studio : `http://localhost:5500/dev/studio.html` (une seule entrée : Fonds & presets)
 - État live/presets/événements : `dev/background-state-server.js`, port 4462
 - 11 effets enregistrés, un seul actif à la fois ; overlay de réaction au-dessus de l'effet
-- `main` == `origin/main`, working tree propre, **320 tests verts**
+- `main` == `origin/main`, working tree propre, **355 tests verts**
 - Tag `scene-engine-v1` (poussé) sur `10369b5` — seule copie du moteur de scènes
 - Une seule branche dans le dépôt, locale et distante (convention inscrite dans `CLAUDE.md`)
 
-## Dernier lot — ④ Transition entre presets (livré, 4/4)
+## Dernier lot — ⑤ Couche branding (livré, 4/4)
+
+Spec `docs/specs/background-branding-layer.md`. Décisions owner : pseudo + réseaux, contenu global
+masquable par preset, rattachement double (intégré au fond **et** URL dédiée), placement **libre en
+pourcentage posé au glisser-déposer**.
+
+- `branding-format.js` (pur) : normalisation, validation, styles. L'alignement se **déduit** de la
+  position (à droite du canvas → aligné à droite), sinon un bloc posé au bord déborderait.
+- `components/BrandingLayer.js` : DOM pur, `textContent` jamais `innerHTML`. **LAC-01 résolue** —
+  rendu dans un espace de conception 2560×1440 puis `scale(hauteur / 1440)` : les tailles restent
+  explicites et suivent la résolution.
+- `background.html` : `?branding=only` (couche seule, transparente) et `?branding=off`. Canal
+  `/branding-ws` dédié pour propager le contenu en direct.
+- Tuner : section « Branding », glisser-déposer dans l'aperçu (`dev/branding-drag.js`, pur), case
+  « Afficher sur ce preset ».
+
+### Défauts trouvés en vérifiant
+
+1. **Ordre d'initialisation** : `brandingControls.render()` appelé avant la création du contrôleur.
+   L'erreur était **avalée par le `catch` de chargement** — la section démarrait vide en silence,
+   puis le premier enregistrement écrasait le contenu par du vide. Corrigé en créant le contrôleur
+   avant la lecture d'état. Leçon : un `catch` de chargement qui n'affiche qu'un message masque
+   aussi les erreurs de programmation.
+2. L'aperçu affichait encore le bloc alors que le preset le masquait. Il montre désormais l'état
+   réel (estompé, cerclé) tout en restant déplaçable.
+
+Validé par l'owner en Browser Source réelle le 2026-07-26.
+
+## Lot précédent — ④ Transition entre presets (livré, 4/4)
 
 Spec `docs/specs/background-preset-transitions.md`. Décisions owner : transition déclarée par le
 **preset entrant**, répertoire fondu + balayage, et « des réglages pour choisir » plutôt que des
@@ -127,7 +155,7 @@ Refacto avant suppression, comme prévu :
 
 ## Restant — dans l'ordre de priorité owner
 
-1. **⑤→⑥** — couche branding, vignettes de presets.
+1. **⑥ Vignettes de presets** — dernière ouverture de l'audit produit.
 2. Étendre la réactivité audio aux 8 autres effets, un par un — le contrat est ouvert, il suffit
    d'implémenter `setAudioLevel()` et de déclarer les deux champs.
 
@@ -153,6 +181,9 @@ Les défauts en pixels (espacement DotGrid, tailles de formes) paraissent aussi 
 relativement — à réajuster au goût dans le tuner, aucun code à changer.
 
 ## Notes ouvertes
+
+- L'état de l'owner porte un branding de départ (« D0n », twitch + @mozaik, bas à gauche), posé
+  pour la vérification et validé tel quel.
 
 - Deux presets de test taggés `test-transition` (« Test fondu lent », « Test balayage ») restent
   dans l'état de l'owner — à supprimer quand ils n'ont plus d'utilité.

@@ -36,6 +36,9 @@
 - Lot du 2026-07-25 : ⑦ archivage du moteur de scènes — registre scindé sur les seuls effets de
   fond, `types.js` réduit, Studio à une entrée, `start-dev` limité aux serveurs statique et fond,
   tuner DotGrid nettoyé de sa partie relais OBS.
+- Lot du 2026-07-26 : ⑤ couche branding — pseudo et réseaux posés au glisser-déposer, contenu
+  global masquable par preset, URL `?branding=only` / `?branding=off`, mise à l'échelle depuis le
+  canvas de référence 2560×1440.
 - Lot du 2026-07-26 : ④ transitions entre presets — fondu croisé et balayage à bord adouci
   déclarés par le preset entrant (type, durée, courbe, sens), `no-store` sur le serveur de dev.
 - Lot du 2026-07-25 : ③ preset automatique par scène OBS — client OBS WebSocket en lecture seule
@@ -47,7 +50,7 @@
   session micro paresseuse avec reprise automatique, réglages `audioReactive`/`audioIntensity` par
   preset, DotGrid/Bubble/WaterRipple réactifs. Guides du moteur de scènes retirés.
 
-État après le lot ④ du 2026-07-26 : **320 tests verts** (341 avant retrait des tests du moteur
+État après le lot ⑤ du 2026-07-26 : **355 tests verts** (341 avant retrait des tests du moteur
 de scènes).
 
 ## Découpage des sessions

@@ -99,6 +99,29 @@ Ce qu'il faut savoir :
 - l'association se fait par **nom de scène** : renommer une scène dans OBS casse le lien, à refaire
   dans le tuner.
 
+## Ton identité à l'écran — le branding
+
+La section **Branding** du Studio porte ton pseudo et tes réseaux. Le contenu est **commun à tous
+les presets** : c'est ton identité, elle ne change pas d'une scène à l'autre.
+
+- **Placer le bloc** : attrape-le dans l'aperçu et déplace-le. Sa position est enregistrée en
+  pourcentage du canvas, affichée sous les champs. Posé dans la moitié droite, il s'aligne à droite
+  tout seul pour ne pas déborder ; posé en bas, il remonte au-dessus de son point d'ancrage.
+- **Masquer sur un preset** : la case « Afficher sur ce preset ». Le branding disparaît alors dans
+  OBS, mais reste visible en estompé dans l'aperçu — sinon tu ne pourrais plus le repositionner.
+- Les tailles sont en pixels, calibrées pour un canvas **2560×1440**, et le bloc est mis à l'échelle
+  automatiquement si ton canvas change de taille.
+
+Trois adresses, selon l'usage :
+
+| URL | Ce que la source affiche |
+|---|---|
+| `background.html` | Le fond **et** le branding |
+| `background.html?branding=only` | Le branding **seul**, sur fond transparent — à poser au-dessus d'une cam, d'un gameplay ou d'une capture |
+| `background.html?branding=off` | Le fond **seul** |
+
+Un changement de pseudo ou de réseaux se propage en direct : aucune source à recharger.
+
 ## Comment un preset arrive — les transitions
 
 La section **Arrivée de ce preset** décrit la façon dont ce preset remplace le fond précédent. Le
