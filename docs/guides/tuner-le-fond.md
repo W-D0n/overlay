@@ -99,6 +99,15 @@ Ce qu'il faut savoir :
 - l'association se fait par **nom de scène** : renommer une scène dans OBS casse le lien, à refaire
   dans le tuner.
 
+## Repérer un preset d'un coup d'œil
+
+Chaque ligne de la liste porte une vignette de son effet. **Survole-la** pour voir l'animation :
+au repos c'est une simple image, donc une longue liste ne coûte rien à la machine. Les vignettes se
+recalculent à chaque ouverture du Studio, une par une — la liste reste utilisable pendant ce temps.
+
+Sur les effets très clairsemés (WaterRipple, StarsParallax), l'image figée montre peu de choses :
+c'est le survol qui les identifie.
+
 ## Ton identité à l'écran — le branding
 
 La section **Branding** du Studio porte ton pseudo et tes réseaux. Le contenu est **commun à tous

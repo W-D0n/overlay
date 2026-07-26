@@ -17,6 +17,12 @@ function element(overrides = {}) {
     attributes: {},
     setAttribute(name, value) { this.attributes[name] = value; },
     getAttribute(name) { return this.attributes[name]; },
+    // Les vignettes stylent et écoutent leur élément : le faux DOM doit offrir la même surface.
+    style: {},
+    dataset: {},
+    addEventListener() {},
+    remove() {},
+    querySelector() { return null; },
     ...overrides,
   };
 }
@@ -96,9 +102,11 @@ test('présente chaque point de départ comme une ligne cliquable plus un ajout 
   expect(labels).toContain('+');
   expect(labels).not.toContain('Essayer');
 
+  // Une ligne = sa vignette, sa zone cliquable, son bouton d'ajout.
   const rows = elements.builtinList.children;
-  const rowActions = rows[0].children;
-  expect(rowActions.length).toBe(2);
-  expect(rowActions[0].title.startsWith('Essayer')).toBe(true);
-  expect(rowActions[1].getAttribute('aria-label').startsWith('Ajouter')).toBe(true);
+  const [thumbnail, tryButton, addButton] = rows[0].children;
+  expect(rows[0].children.length).toBe(3);
+  expect(thumbnail.className).toBe('preset-thumb');
+  expect(tryButton.title.startsWith('Essayer')).toBe(true);
+  expect(addButton.getAttribute('aria-label').startsWith('Ajouter')).toBe(true);
 });

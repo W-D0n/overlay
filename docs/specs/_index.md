@@ -10,6 +10,7 @@
 | [obs-scene-preset-mapping](obs-scene-preset-mapping.md) | Fait | 2026-07-25 | ③ Preset par scène OBS |
 | [background-preset-transitions](background-preset-transitions.md) | Fait | 2026-07-26 | ④ Transition entre presets |
 | [background-branding-layer](background-branding-layer.md) | Fait | 2026-07-26 | ⑤ Couche branding |
+| [background-preset-thumbnails](background-preset-thumbnails.md) | Fait | 2026-07-26 | ⑥ Vignettes de presets |
 
 ## Archive
 

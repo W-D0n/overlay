@@ -3,6 +3,7 @@ import { backgroundPresetUrl } from '../background-selection.js';
 import { BUILTIN_BACKGROUND_PRESETS } from './builtin-background-presets.js';
 import { backgroundEffectLabel } from './component-field-schemas.js';
 import { filterBackgroundPresets } from './background-preset-library.js';
+import { createPresetThumbnail } from './preset-thumbnail.js';
 import { createBackgroundPresetTransferController } from './background-preset-transfer-controller.js';
 
 /**
@@ -52,6 +53,21 @@ export function createBackgroundPresetController(input) {
     container.appendChild(empty);
   }
 
+  /** @type {{ destroy: () => void }[]} */
+  const thumbnails = [];
+
+  /** Les vignettes détiennent des effets montés : un re-rendu doit les libérer, pas les oublier. */
+  function disposeThumbnails() {
+    for (const thumbnail of thumbnails.splice(0)) thumbnail.destroy();
+  }
+
+  /** Une vignette par ligne, capturée une fois puis animée seulement au survol. */
+  function appendThumbnail(row, preset) {
+    const thumbnail = createPresetThumbnail({ preset, documentRef });
+    thumbnails.push(thumbnail);
+    row.appendChild(thumbnail.el);
+  }
+
   function createPresetRowShell(preset, metaText) {
     const row = documentRef.createElement('div');
     row.className = 'preset-row';
@@ -65,6 +81,7 @@ export function createBackgroundPresetController(input) {
   }
 
   function renderPresets(presets) {
+    disposeThumbnails();
     cachedPresets = presets;
     elements.exportButton.disabled = presets.length === 0;
     elements.list.replaceChildren();
@@ -168,6 +185,7 @@ export function createBackgroundPresetController(input) {
         row.replaceChildren(label, yes, no);
       };
 
+      appendThumbnail(row, preset);
       row.append(load, copyUrl, rename, duplicate, remove, meta);
       elements.list.appendChild(row);
     }
@@ -198,10 +216,12 @@ export function createBackgroundPresetController(input) {
       apply.type = 'button';
       const title = documentRef.createElement('strong');
       title.className = 'preset-title';
-      title.textContent = `${preset.name} — ${backgroundEffectLabel(preset.component)}`;
+      // Le nom seul sur la première ligne : l'effet et les tags vivent sur la seconde, sinon le
+      // titre se coupait en deux à côté de la vignette.
+      title.textContent = preset.name;
       const meta = documentRef.createElement('span');
       meta.className = 'preset-meta';
-      meta.textContent = preset.tags.join(' · ');
+      meta.textContent = [backgroundEffectLabel(preset.component), ...preset.tags].join(' · ');
       apply.append(title, meta);
       apply.title = `Essayer « ${preset.name} »`;
       apply.onclick = () => {
@@ -231,6 +251,7 @@ export function createBackgroundPresetController(input) {
         }
       };
 
+      appendThumbnail(row, preset);
       row.append(apply, add);
       elements.builtinList.appendChild(row);
     }
