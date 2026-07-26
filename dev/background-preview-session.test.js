@@ -31,7 +31,7 @@ describe('session d’aperçu du tuner', () => {
         options: { intensity: 0.5, speed: 1, color: '#C8B97A', angle: 8 },
       },
       activePresetId: null,
-      transition: { type: 'fade', durationMs: 600, direction: 'right' },
+      transition: { type: 'fade', durationMs: 600, direction: 'right', easing: 'easeInOut' },
     });
   });
 
@@ -50,7 +50,7 @@ describe('session d’aperçu du tuner', () => {
         options: { intensity: 0.3, speed: 2 },
       },
       activePresetId: 'pluie',
-      transition: { type: 'fade', durationMs: 600, direction: 'right' },
+      transition: { type: 'fade', durationMs: 600, direction: 'right', easing: 'easeInOut' },
     });
     expect(preset.options.speed).toBe(1);
   });
@@ -75,7 +75,7 @@ describe('session d’aperçu du tuner', () => {
       'pluie',
     );
 
-    expect(state.current.transition).toEqual({ type: 'wipe', durationMs: 400, direction: 'up' });
+    expect(state.current.transition).toEqual({ type: 'wipe', durationMs: 400, direction: 'up', easing: 'easeInOut' });
   });
 
   test('un réglage qui suit l’arrivée ne rejoue pas la transition', () => {
@@ -92,7 +92,7 @@ describe('session d’aperçu du tuner', () => {
   test('un preset sans transition arrive avec les valeurs par défaut', () => {
     const session = createBackgroundPreviewSession();
     const state = session.apply({ component: 'RainBackground', options: {} }, 'pluie');
-    expect(state.current.transition).toEqual({ type: 'fade', durationMs: 600, direction: 'right' });
+    expect(state.current.transition).toEqual({ type: 'fade', durationMs: 600, direction: 'right', easing: 'easeInOut' });
   });
 
   test('changer la transition n’anime pas et borne les valeurs aberrantes', () => {
@@ -100,7 +100,7 @@ describe('session d’aperçu du tuner', () => {
     session.apply({ component: 'RainBackground', options: {} }, 'pluie');
 
     const state = session.changeTransition({ type: 'wipe', durationMs: 99999 });
-    expect(state.transition).toEqual({ type: 'wipe', durationMs: 2000, direction: 'right' });
+    expect(state.transition).toEqual({ type: 'wipe', durationMs: 2000, direction: 'right', easing: 'easeInOut' });
     expect(state.current.transition).toBeUndefined();
   });
 });

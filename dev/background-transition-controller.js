@@ -8,6 +8,7 @@
  *
  * @param {{
  *   typeSelect: HTMLSelectElement,
+ *   easingSelect: HTMLSelectElement,
  *   durationInput: HTMLInputElement,
  *   directionSelect: HTMLSelectElement,
  *   directionRow: HTMLElement,
@@ -22,12 +23,14 @@ export function createTransitionController(input) {
 
   function render(transition) {
     input.typeSelect.value = transition.type;
+    input.easingSelect.value = transition.easing;
     input.durationInput.value = String(transition.durationMs);
     input.directionSelect.value = transition.direction;
     reflectTypeVisibility(transition.type);
   }
 
   input.typeSelect.onchange = () => render(input.onChange({ type: input.typeSelect.value }).transition);
+  input.easingSelect.onchange = () => render(input.onChange({ easing: input.easingSelect.value }).transition);
   input.directionSelect.onchange = () => {
     render(input.onChange({ direction: input.directionSelect.value }).transition);
   };

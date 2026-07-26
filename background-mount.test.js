@@ -284,7 +284,7 @@ describe('background mount transitions', () => {
 
     scheduler.runFrames();
     expect(incoming.style.opacity).toBe('1');
-    expect(incoming.style.transition).toBe('opacity 600ms linear');
+    expect(incoming.style.transition).toBe('opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)');
   });
 
   test('le fondu efface le calque sortant pendant que l’entrant apparaît', () => {
@@ -293,14 +293,14 @@ describe('background mount transitions', () => {
     mount.apply({ component: 'BubbleBackground', options: {}, transition: FADE });
 
     const outgoingLayer = layers[0];
-    expect(outgoingLayer.style.opacity).toBeUndefined();
+    expect(outgoingLayer.style.opacity).toBe('1');
 
     scheduler.runFrames();
     expect(outgoingLayer.style.opacity).toBe('0');
-    expect(outgoingLayer.style.transition).toBe('opacity 600ms linear');
+    expect(outgoingLayer.style.transition).toBe('opacity 600ms cubic-bezier(0.4, 0, 0.2, 1)');
   });
 
-  test('le balayage laisse le calque sortant intact — il est recouvert, pas effacé', () => {
+  test('le balayage masque le sortant par clip-path, jamais par l’opacité', () => {
     const { mount, layers, scheduler } = transitionSetup();
     mount.apply({ component: 'RainBackground', options: {} });
     mount.apply({
@@ -311,6 +311,7 @@ describe('background mount transitions', () => {
 
     scheduler.runFrames();
     expect(layers[0].style.opacity).toBeUndefined();
+    expect(layers[0].style.clipPath).toBe('inset(0 0 0 100%)');
   });
 
   test('un balayage anime clip-path et non l’opacité', () => {
@@ -326,7 +327,7 @@ describe('background mount transitions', () => {
     expect(incoming.style.clipPath).toBe('inset(100% 0 0 0)');
     scheduler.runFrames();
     expect(incoming.style.clipPath).toBe('inset(0 0 0 0)');
-    expect(incoming.style.transition).toBe('clip-path 400ms linear');
+    expect(incoming.style.transition).toBe('clip-path 400ms cubic-bezier(0.4, 0, 0.2, 1)');
   });
 
   test('une durée nulle remplace sans animation ni calque résiduel', () => {

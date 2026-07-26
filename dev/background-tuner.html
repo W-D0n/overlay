@@ -444,6 +444,14 @@
     <label>Durée (ms)
       <input id="transition-duration" type="number" min="0" max="2000" step="50">
     </label>
+    <label>Courbe
+      <select id="transition-easing">
+        <option value="easeInOut">Douce (départ et arrivée)</option>
+        <option value="easeOut">Douce à l’arrivée</option>
+        <option value="easeIn">Douce au départ</option>
+        <option value="linear">Constante</option>
+      </select>
+    </label>
     <label id="transition-direction-row">Sens du balayage
       <select id="transition-direction">
         <option value="right">Vers la droite</option>

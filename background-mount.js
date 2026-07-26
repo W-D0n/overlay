@@ -1,6 +1,6 @@
 // @ts-check
 import { COMPONENT_REGISTRY } from './component-registry.js';
-import { normalizeTransition, transitionStyles } from './background-transition.js';
+import { cssEasing, normalizeTransition, transitionStyles } from './background-transition.js';
 
 /**
  * background-mount.js — Montage d'un effet de fond standalone dans un conteneur (2026-07-14).
@@ -79,28 +79,30 @@ export function createBackgroundMount(container, options = {}) {
    * @param {import('./background-transition.js').BackgroundTransition} transition
    */
   function runTransition(next, transition) {
-    const { from, to } = transitionStyles(transition);
-    Object.assign(next.layer.style, from);
+    const { incoming, outgoing: outgoingStyles } = transitionStyles(transition);
+    Object.assign(next.layer.style, incoming.from);
 
     const previous = mounted;
     mounted = next;
-    if (previous !== null) outgoing.push(previous);
+    if (previous !== null) {
+      Object.assign(previous.layer.style, outgoingStyles.from);
+      outgoing.push(previous);
+    }
 
     scheduleFrame(() => {
       // Sans cette lecture, le navigateur n'a jamais résolu l'état de départ : il voit uniquement
       // la valeur finale et l'applique d'un coup, sans animer. Mesuré en vrai (clip-path calculé
       // figé à `inset(0px)` pendant toute la durée) avant d'ajouter ce flush.
       forceStyleFlush(next.layer);
-      const property = transition.type === 'wipe' ? 'clip-path' : 'opacity';
-      next.layer.style.transition = `${property} ${transition.durationMs}ms linear`;
-      Object.assign(next.layer.style, to);
+      const timing = `${transition.durationMs}ms ${cssEasing(transition.easing)}`;
+      next.layer.style.transition = `${incoming.property} ${timing}`;
+      Object.assign(next.layer.style, incoming.to);
 
-      // Fondu : le sortant s'efface pendant que l'entrant apparaît. Sans ça il reste opaque
-      // jusqu'au démontage et disparaît d'un coup — la coupure que la transition doit supprimer
-      // (retour owner, 2026-07-26). Le balayage ne le fait pas : le sortant est recouvert.
-      if (transition.type === 'fade' && previous !== null) {
-        previous.layer.style.transition = `opacity ${transition.durationMs}ms linear`;
-        previous.layer.style.opacity = '0';
+      // Le sortant est animé lui aussi : les effets peignent sur des canvas transparents, donc
+      // révéler l'entrant ne le masque pas. Sans ça il reste visible puis disparaît d'un coup.
+      if (previous !== null) {
+        previous.layer.style.transition = `${outgoingStyles.property} ${timing}`;
+        Object.assign(previous.layer.style, outgoingStyles.to);
       }
     });
 

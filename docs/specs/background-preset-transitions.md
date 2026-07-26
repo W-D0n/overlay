@@ -48,6 +48,7 @@ Sur un preset, à côté de `component` et `options` :
 | `type` | `fade`, `wipe` | `fade` | `direction` ignoré si `fade` |
 | `durationMs` | 0 à 2000 | `600` | 0 = coupure franche, bornée pour ne jamais bloquer un live |
 | `direction` | `left`, `right`, `up`, `down` | `right` | Sens de recouvrement du nouveau fond |
+| `easing` | `linear`, `easeIn`, `easeOut`, `easeInOut` | `easeInOut` | Courbe de l'animation (ajouté 2026-07-26 : l'owner veut régler plutôt que subir une règle) |
 
 `transition` absent d'un preset = valeurs par défaut ci-dessus. Les presets déjà enregistrés
 restent valides et arrivent en fondu de 600 ms.
@@ -56,9 +57,14 @@ restent valides et arrivent en fondu de 600 ms.
 
 Chaque effet est monté dans son propre calque plein écran (`position: absolute; inset: 0`) :
 
-- **fade** — le nouveau calque passe de l'opacité 0 à 1 par-dessus l'ancien, qui est démonté à la fin.
-- **wipe** — le nouveau calque est révélé par un `clip-path: inset(...)` animé dans le sens choisi ;
-  l'ancien reste dessous, intact, et est démonté à la fin.
+**Les deux calques sont animés, pas seulement l'entrant.** Les effets peignent sur des canvas
+transparents : faire apparaître le nouveau ne fait pas disparaître l'ancien. Corrigé le 2026-07-26
+après retour de l'owner (« la disparition est trop brutale, ça se voit beaucoup trop »).
+
+- **fade** — fondu croisé : l'entrant va de l'opacité 0 à 1 pendant que le sortant va de 1 à 0.
+  Mesuré : 0,83/0,17 → 0,13/0,87, somme constante.
+- **wipe** — l'entrant est révélé par `clip-path: inset(...)`, le sortant est masqué par le
+  `clip-path` **complémentaire** au même instant. Mesuré : sortant 19,68 % + entrant 80,32 % = 100 %.
 
 Pendant la transition, **deux effets tournent simultanément** — c'est le coût de la fonctionnalité,
 borné par `durationMs` (2 s maximum) et par le fait qu'une seule transition est en cours à la fois.
@@ -129,6 +135,5 @@ options d'effet, ils appartiennent au preset. Les mélanger obligerait chaque ef
 - **LAC-01** — Pendant la transition, deux effets tournent : sur un canvas 2560×1440, le coût est
   doublé pendant au plus 2 s. À surveiller lors de la QA OBS native, aucun garde-fou automatique
   (visibilité et contrôle manuel plutôt que correction silencieuse).
-- **LAC-02** — Le fondu croisé de deux effets clairs peut produire une surbrillance passagère au
-  milieu de la transition. Corriger demanderait de composer les calques hors écran, complexité non
-  justifiée tant que le rendu réel n'a pas été jugé gênant.
+- ~~**LAC-02**~~ — Résolue par le fondu croisé : les deux opacités s'additionnent à 1 au lieu de
+  dépasser, la surbrillance redoutée n'a pas lieu.

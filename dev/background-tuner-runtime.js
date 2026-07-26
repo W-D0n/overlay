@@ -144,6 +144,7 @@ export async function startBackgroundTuner(environment = {}) {
 
   preview.attachTransitionControls(createTransitionController({
     typeSelect: byId('transition-type'),
+    easingSelect: byId('transition-easing'),
     durationInput: byId('transition-duration'),
     directionSelect: byId('transition-direction'),
     directionRow: byId('transition-direction-row'),
