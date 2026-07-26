@@ -2,6 +2,7 @@
 import { resolveColor } from './color-utils.js';
 import { easeProgress } from './DotGridAnimated.js';
 import { canvasPixelRatio } from './canvas-runtime.js';
+import { createAudioReaction } from './audio-reaction.js';
 
 /**
  * ShapeMorphBackground.js — Cycle de silhouettes qui morphent (Track B, session B8, idée
@@ -50,6 +51,7 @@ export function ShapeMorphBackground(options = {}) {
   let posY = options.y ?? 0.5;
   let morphDuration = options.morphDuration ?? 700;
   let morphEasing = options.morphEasing ?? 'easeInOut';
+  const audio = createAudioReaction(options);
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
@@ -99,7 +101,8 @@ export function ShapeMorphBackground(options = {}) {
     for (const item of layout) {
       const cx = cssW * (posX + item.x);
       const cy = cssH * (posY + item.y);
-      const rotation = item.rotation + timestamp * 0.001 * rotationSpeed * item.direction;
+      const rotation = item.rotation
+        + timestamp * 0.001 * rotationSpeed * audio.boost('level', 1.2) * item.direction;
 
       ctx.save();
       ctx.translate(cx, cy);
@@ -107,7 +110,8 @@ export function ShapeMorphBackground(options = {}) {
       ctx.beginPath();
       for (let i = 0; i < SAMPLES; i++) {
         const theta = (i / SAMPLES) * Math.PI * 2;
-        const radius = radii[i] * size * item.scale;
+        // Le grave gonfle les formes autour de leur taille réglée.
+        const radius = radii[i] * size * item.scale * audio.boost('bass', 0.3);
         const x = Math.cos(theta) * radius;
         const y = Math.sin(theta) * radius;
         if (i === 0) ctx.moveTo(x, y);
@@ -162,7 +166,16 @@ export function ShapeMorphBackground(options = {}) {
         shapeName = o.shape;
         morphState = { from, to: computeRadii(shapeName), startTime: performance.now() };
       }
+      audio.readOptions(o);
     },
+    /**
+     * Le grave gonfle les formes, le niveau accélère leur rotation.
+     * @param {import('../audio-levels.js').AudioLevels} levels
+     */
+    setAudioLevel(levels) {
+      audio.apply(levels);
+    },
+
     destroy() {
       cancelAnimationFrame(rafId);
       observer.disconnect();

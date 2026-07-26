@@ -1,6 +1,7 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
 import { canvasPixelRatio } from './canvas-runtime.js';
+import { createAudioReaction } from './audio-reaction.js';
 
 /**
  * StarsParallaxBackground.js — Champ d'étoiles en parallaxe, 3 couches (Track B, session B6).
@@ -21,6 +22,7 @@ export function StarsParallaxBackground(options = {}) {
   let color = options.color ?? '#ffffff';
   let density = options.density ?? 0.06;
   let speed = options.speed ?? 1;
+  const audio = createAudioReaction(options);
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
@@ -67,7 +69,8 @@ export function StarsParallaxBackground(options = {}) {
 
     layers.forEach((stars, i) => {
       const def = LAYER_DEFS[i];
-      const offset = (timestamp * 0.02 * speed * def.speedMul) % cssH;
+      // Le niveau accélère le défilement : la profondeur se lit comme une accélération.
+      const offset = (timestamp * 0.02 * speed * audio.boost('level', 1.1) * def.speedMul) % cssH;
       ctx.fillStyle = `rgba(${r},${g},${b},${def.opacity})`;
       for (const star of stars) {
         const y = (star.y + offset) % cssH;
@@ -89,7 +92,16 @@ export function StarsParallaxBackground(options = {}) {
       if (typeof o.speed === 'number') speed = o.speed;
       if (typeof o.color === 'string' && o.color !== color) { color = o.color; rgb = resolveColor(color); }
       if (typeof o.density === 'number' && o.density !== density) { density = o.density; seed(); }
+      audio.readOptions(o);
     },
+    /**
+     * Le niveau accélère le défilement, comme une accélération de vitesse.
+     * @param {import('../audio-levels.js').AudioLevels} levels
+     */
+    setAudioLevel(levels) {
+      audio.apply(levels);
+    },
+
     destroy() {
       cancelAnimationFrame(rafId);
       observer.disconnect();

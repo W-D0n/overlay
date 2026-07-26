@@ -1,4 +1,6 @@
 // @ts-check
+import { createAudioReaction } from './audio-reaction.js';
+
 /**
  * GeometricPatternBackground.js — Motif géométrique répétitif animé (Track B, session B5).
  *
@@ -35,6 +37,12 @@ export function GeometricPatternBackground(options = {}) {
   let direction = isDirection(options.direction) ? options.direction : 'right';
   let angle = options.angle ?? 45;
   let opacity = options.opacity ?? 0.15;
+  const audio = createAudioReaction(options);
+  // Ce motif est une animation CSS, pas un canvas : le son agit sur sa vitesse de lecture et sur
+  // son opacité, pas sur une boucle de rendu. Les écritures de style sont filtrées pour ne pas
+  // repeindre à chaque frame quand le niveau bouge à peine.
+  let appliedRate = 1;
+  let appliedOpacity = opacity;
 
   const el = document.createElement('div');
   el.style.cssText = `position:absolute;inset:0;pointer-events:none;opacity:${opacity};`;
@@ -79,7 +87,28 @@ export function GeometricPatternBackground(options = {}) {
       if (typeof o.angle === 'number' && o.angle !== angle) { angle = o.angle; changed = true; }
       if (typeof o.opacity === 'number' && o.opacity !== opacity) { opacity = o.opacity; el.style.opacity = String(opacity); }
       if (changed) build();
+      audio.readOptions(o);
     },
+    /**
+     * Le niveau accélère le défilement du motif et l'éclaircit légèrement.
+     * @param {import('../audio-levels.js').AudioLevels} levels
+     */
+    setAudioLevel(levels) {
+      audio.apply(levels);
+
+      const rate = Math.round(audio.boost('level', 0.9) * 20) / 20;
+      if (animation !== null && rate !== appliedRate) {
+        animation.playbackRate = rate;
+        appliedRate = rate;
+      }
+
+      const nextOpacity = Math.min(1, Math.round(opacity * audio.boost('level', 0.6) * 100) / 100);
+      if (nextOpacity !== appliedOpacity) {
+        el.style.opacity = String(nextOpacity);
+        appliedOpacity = nextOpacity;
+      }
+    },
+
     destroy() {
       animation?.cancel();
     },

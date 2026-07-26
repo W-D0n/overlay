@@ -15,7 +15,6 @@
 
 /** Bornes de bandes en Hz — validées au prototype (docs/prototypes/2026-07-25-audio-reactivity.md). */
 const BANDS = {
-  level: { from: 20, to: 8000 },
   bass: { from: 20, to: 250 },
   mid: { from: 250, to: 2000 },
   treble: { from: 2000, to: 8000 },
@@ -32,20 +31,27 @@ const RELEASE = 0.08;
 export const SILENT_LEVELS = Object.freeze({ level: 0, bass: 0, mid: 0, treble: 0 });
 
 /**
- * Moyenne des bins couverts par une bande, normalisée dans [0, 1].
+ * Maximum des bins couverts par une bande, normalisé dans [0, 1].
+ *
+ * Le maximum et non la moyenne : une voix ou une basse occupe quelques bins sur les dizaines que
+ * couvre une bande, et la moyenne la ramenait à moins de 10 % — les effets ne bougeaient alors que
+ * de quelques pourcents (mesuré le 2026-07-26). Le lissage attaque/retour absorbe la nervosité
+ * propre au maximum.
  * @param {Uint8Array} spectrum
  * @param {number} hzPerBin
  * @param {{ from: number, to: number }} band
  * @returns {number}
  */
-function bandAverage(spectrum, hzPerBin, band) {
+function bandPeak(spectrum, hzPerBin, band) {
   const start = Math.min(Math.floor(band.from / hzPerBin), spectrum.length);
   const end = Math.min(Math.ceil(band.to / hzPerBin), spectrum.length);
   if (end <= start) return 0;
 
-  let total = 0;
-  for (let index = start; index < end; index += 1) total += spectrum[index];
-  return total / ((end - start) * 255);
+  let peak = 0;
+  for (let index = start; index < end; index += 1) {
+    if (spectrum[index] > peak) peak = spectrum[index];
+  }
+  return peak / 255;
 }
 
 /**
@@ -71,10 +77,15 @@ export function computeLevels({ spectrum, sampleRate, previous }) {
 
   /** @type {AudioLevels} */
   const next = { level: 0, bass: 0, mid: 0, treble: 0 };
-  for (const name of /** @type {(keyof AudioLevels)[]} */ (Object.keys(BANDS))) {
-    const target = hzPerBin > 0 ? bandAverage(spectrum, hzPerBin, BANDS[name]) : 0;
+  for (const name of ['bass', 'mid', 'treble']) {
+    const target = hzPerBin > 0 ? bandPeak(spectrum, hzPerBin, BANDS[name]) : 0;
     next[name] = smooth(previous[name], target);
   }
+
+  // `level` est la bande la plus chargée, pas la moyenne de 20 à 8000 Hz : une voix ou une basse
+  // occupe une part étroite du spectre, et la moyenne la diluait à quelques pourcents — les effets
+  // pilotés par `level` ne bougeaient alors presque pas (mesuré le 2026-07-26).
+  next.level = Math.max(next.bass, next.mid, next.treble);
   return next;
 }
 

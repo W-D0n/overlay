@@ -2,6 +2,7 @@
 import { resolveColor } from './color-utils.js';
 import { chanceForDelta, frameDeltaSeconds } from './animation-time.js';
 import { canvasPixelRatio } from './canvas-runtime.js';
+import { createAudioReaction } from './audio-reaction.js';
 
 /**
  * FirefliesBackground.js — Particules lumineuses dérivantes, avec flash (Track B, session B4).
@@ -24,6 +25,7 @@ export function FirefliesBackground(options = {}) {
   let speed = options.speed ?? 1;
   let color = options.color ?? 'var(--color-gold)';
   let flashChance = options.flashChance ?? 0.006;
+  const audio = createAudioReaction(options);
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
@@ -82,14 +84,16 @@ export function FirefliesBackground(options = {}) {
     const delta = frameDeltaSeconds(previousTimestamp, timestamp);
     previousTimestamp = timestamp;
     ctx.clearRect(0, 0, cssW, cssH);
-    const t = timestamp * 0.001 * speed;
+    const t = timestamp * 0.001 * speed * audio.boost('level', 0.5);
     const [r, g, b] = rgb;
 
     for (const fly of flies) {
       const x = fly.cx + Math.sin(t * fly.freqX + fly.phase) * fly.radiusX;
       const y = fly.cy + Math.cos(t * fly.freqY + fly.phase) * fly.radiusY;
 
-      if (fly.flashT === 0 && Math.random() < chanceForDelta(flashChance, delta)) {
+      // L'aigu fait scintiller : c'est la bande qui porte les consonnes et les percussions.
+      const audioChance = flashChance * audio.boost('treble', 6);
+      if (fly.flashT === 0 && Math.random() < chanceForDelta(audioChance, delta)) {
         fly.flashT = FLASH_DURATION;
       }
 
@@ -124,7 +128,16 @@ export function FirefliesBackground(options = {}) {
         count = Math.max(1, Math.round(o.count));
         seed();
       }
+      audio.readOptions(o);
     },
+    /**
+     * L'aigu multiplie les éclats, le niveau élargit l'errance des lucioles.
+     * @param {import('../audio-levels.js').AudioLevels} levels
+     */
+    setAudioLevel(levels) {
+      audio.apply(levels);
+    },
+
     destroy() {
       cancelAnimationFrame(rafId);
       observer.disconnect();

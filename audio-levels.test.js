@@ -33,6 +33,14 @@ test('1. un spectre à 100 Hz charge le grave et laisse medium et aigu quasi nul
   expect(levels.treble).toBeLessThan(0.01);
 });
 
+test('1b. le niveau général suit la bande la plus chargée, pas la moyenne du spectre', () => {
+  // Une source étroite (voix, basse) ne doit pas être diluée : sinon les effets pilotés par
+  // `level` ne réagissent qu'à quelques pourcents.
+  const levels = settle(spectrumAt(100));
+  expect(levels.level).toBe(levels.bass);
+  expect(levels.level).toBeGreaterThan(0.9);
+});
+
 test('2. un spectre à 5000 Hz charge l’aigu et laisse le grave quasi nul', () => {
   const levels = settle(spectrumAt(5000));
   expect(levels.treble).toBeGreaterThan(levels.bass);

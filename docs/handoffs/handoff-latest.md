@@ -180,7 +180,39 @@ exactement la taille de la fenêtre ; Studio sans régression.
 Les défauts en pixels (espacement DotGrid, tailles de formes) paraissent aussi plus petits
 relativement — à réajuster au goût dans le tuner, aucun code à changer.
 
+## Dernier lot — audio sur les 11 effets + UX du tuner + ⑥ vignettes (2026-07-26)
+
+Mandat owner : « fais 3+1 et fais passer l'ux/ui du tuner au niveau pro ».
+
+- **UX du tuner** : trois espaces de travail (Fond / Habillage / Diffusion), hiérarchie serif/mono,
+  panneau opaque. Défilement pour atteindre un réglage : **5,4 → 1,7 écrans**. Contraste vérifié
+  (titres 17,3:1, étiquettes 6,8:1). Piège évité de justesse : mon premier jet avait rendu les
+  étiquettes **moins** lisibles (`--color-text-dim`), c'est la mesure qui l'a montré.
+- **⑥ vignettes** : `docs/specs/background-preset-thumbnails.md`. Photo capturée puis effet démonté
+  (0 canvas, 0 animation au repos), animation au survol, file d'attente séquentielle.
+- **Audio sur les 8 effets restants** : `components/audio-reaction.js` porte le motif commun.
+  Réaction propre à chaque effet, listée dans la spec.
+- **Correction de fond sur `level`** : il moyennait 20–8000 Hz, donc une voix ou une basse tombait
+  sous 10 % et les effets pilotés par `level` ne bougeaient que de quelques pourcents. `level` est
+  désormais la **bande la plus chargée**, et chaque bande son **maximum** plutôt que sa moyenne.
+  Mesuré : ton pur → 1,0 ; bruit large → 0,87. Cela rend aussi DotGrid, Bubble et WaterRipple plus
+  réactifs qu'au moment de leur validation.
+
+### Ce que la vérification n'a pas pu prouver
+
+Le pixel-diff **sature** sur les champs de lignes fines (Rain, FloatingSymbols) : un déplacement
+d'un pixel change déjà tous les pixels de la ligne, donc une accélération ne s'y mesure plus.
+Vérifiés indirectement : niveaux corrects, `setAudioLevel` présent sur les 11 effets, session micro
+demandée une fois, et variation franche visible sur Fireflies (×2), StarsParallax (×13) et
+ShapeMorph (×2). **L'amplitude visuelle des effets pilotés par la vitesse reste à juger par l'owner
+dans OBS.**
+
 ## Notes ouvertes
+
+- Pendant ces manipulations, le **pseudo du branding a été effacé** de l'état de l'owner (et une
+  ligne perdue) ; restauré à l'identique (`D0n`, twitch + @mozaik). Cause non élucidée : un
+  événement `input` sur un champ vide avant le premier rendu reste le suspect le plus probable.
+  À surveiller — un contrôleur qui persiste avant d'avoir été peuplé peut écraser des données.
 
 - L'état de l'owner porte un branding de départ (« D0n », twitch + @mozaik, bas à gauche), posé
   pour la vérification et validé tel quel.

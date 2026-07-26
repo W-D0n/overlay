@@ -14,6 +14,8 @@ describe('session d’aperçu du tuner', () => {
       speed: 1,
       color: '#C8B97A',
       angle: 8,
+      audioReactive: 'Non',
+      audioIntensity: 1,
     });
     expect(second).toEqual(first);
     expect(second).not.toBe(first);
@@ -28,7 +30,10 @@ describe('session d’aperçu du tuner', () => {
     expect(next).toEqual({
       current: {
         component: 'RainBackground',
-        options: { intensity: 0.5, speed: 1, color: '#C8B97A', angle: 8 },
+        options: {
+          intensity: 0.5, speed: 1, color: '#C8B97A', angle: 8,
+          audioReactive: 'Non', audioIntensity: 1,
+        },
         showBranding: true,
       },
       activePresetId: null,

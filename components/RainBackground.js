@@ -2,6 +2,7 @@
 import { resolveColor } from './color-utils.js';
 import { frameDeltaSeconds } from './animation-time.js';
 import { canvasPixelRatio } from './canvas-runtime.js';
+import { createAudioReaction } from './audio-reaction.js';
 
 /**
  * RainBackground.js — Effet de fond « pluie » ambiante (Track B, session B3).
@@ -24,6 +25,7 @@ export function RainBackground(options = {}) {
   let speed = options.speed ?? 1;
   let color = options.color ?? 'var(--color-gold)';
   let angle = options.angle ?? 8;
+  const audio = createAudioReaction(options);
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
@@ -89,8 +91,10 @@ export function RainBackground(options = {}) {
       ctx.moveTo(d.x, d.y);
       ctx.lineTo(d.x + dx * d.len, d.y + d.len);
       ctx.stroke();
-      d.x += dx * d.vy * speed * delta;
-      d.y += d.vy * speed * delta;
+      // Le son accélère la chute sans jamais la ralentir.
+      const audioSpeed = speed * audio.boost('level', 0.8);
+      d.x += dx * d.vy * audioSpeed * delta;
+      d.y += d.vy * audioSpeed * delta;
       if (d.y > cssH) {
         d.y = -d.len;
         d.x = spawnX();
@@ -110,7 +114,16 @@ export function RainBackground(options = {}) {
       if (typeof o.speed === 'number') speed = o.speed;
       if (typeof o.angle === 'number' && o.angle !== angle) { angle = o.angle; seedDrops(); }
       if (typeof o.color === 'string' && o.color !== color) { color = o.color; rgb = resolveColor(color); }
+      audio.readOptions(o);
     },
+    /**
+     * Le niveau général accélère la chute de la pluie.
+     * @param {import('../audio-levels.js').AudioLevels} levels
+     */
+    setAudioLevel(levels) {
+      audio.apply(levels);
+    },
+
     destroy() {
       cancelAnimationFrame(rafId);
       observer.disconnect();

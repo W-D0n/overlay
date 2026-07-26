@@ -1,6 +1,7 @@
 # Spec — Fonds réactifs au son (② de l'audit produit)
 
-Statut : **à valider par l'owner**. Créée le 2026-07-25.
+Statut : **livrée** (3 effets validés en live le 2026-07-25, étendue aux 11 le 2026-07-26).
+Créée le 2026-07-25.
 Prérequis tranché : `docs/prototypes/2026-07-25-audio-reactivity.md` — la Browser Source lit le micro
 (`audio LU`, testé en conditions réelles). Voie retenue : lecture directe, pas de pont
 obs-websocket.
@@ -14,6 +15,9 @@ Décisions owner intégrées (2026-07-25) :
    automatique**.
 
 Premier lot d'effets réactifs : **DotGrid, Bubble, WaterRipple**.
+Étendu le 2026-07-26 aux **11 effets** : Rain, Fireflies, FloatingSymbols, GeometricPattern,
+ColorDrops, StarsParallax, OrbitingShapes, ShapeMorph rejoignent le lot, chacun avec sa réaction
+propre (voir §Comportement des effets).
 
 ---
 
@@ -52,7 +56,8 @@ autre fichier à toucher. Ce point est à répercuter dans `docs/guides/creer-un
 | `background-audio.js` | Session micro : acquisition, boucle rAF, diffusion, arrêt, reprise | Effets de bord |
 | `background-mount.js` | `applyAudio(levels)` — route vers l'instance montée si elle expose `setAudioLevel` | Existant, étendu |
 | `components/{DotGridAnimated,BubbleBackground,WaterRippleBackground}.js` | `setAudioLevel` | Existants, étendus |
-| `dev/component-field-schemas.js` | Champs `audioReactive` / `audioIntensity` sur les 3 effets | Existant, étendu |
+| `components/audio-reaction.js` | Motif commun : intensité, bornage, remise à zéro, détection de pic | Partagé, testé |
+| `dev/component-field-schemas.js` | Champs `audioReactive` / `audioIntensity` sur les 11 effets | Existant, étendu |
 | `background.html`, `dev/background-preview-*` | Branchement identique des deux côtés | Existants, étendus |
 
 `background-audio.js` est au même niveau que `background-reactions.js` : partagé mot pour mot entre
@@ -62,7 +67,11 @@ l'URL OBS et l'aperçu du tuner, pour qu'ils ne puissent pas diverger.
 
 - Bandes en Hz, mêmes bornes que le prototype (validées à l'oscillateur) :
   `bass 20–250`, `mid 250–2000`, `treble 2000–8000`.
-- Chaque bande = moyenne des bins couverts / 255 → `[0, 1]`. `level` = moyenne de `20–8000`.
+- Chaque bande = **maximum** des bins couverts / 255 → `[0, 1]` ; `level` = maximum des trois
+  bandes. Corrigé le 2026-07-26 : avec des moyennes, une voix ou une basse (quelques bins sur des
+  dizaines) tombait sous 10 %, et les effets pilotés par `level` ne bougeaient que de quelques
+  pourcents. Mesuré après correction : ton pur → `level` 1,0 ; bruit large → 0,87 sur les trois
+  bandes.
 - `fftSize` 2048, `smoothingTimeConstant` 0.7.
 - **Lissage attaque/retour** par-dessus le lissage natif : montée rapide (facteur 0.5), descente
   lente (facteur 0.08). Sans ça, un fond suit le moindre trou entre deux syllabes et scintille.
@@ -106,13 +115,25 @@ comportement après la mise à jour.
 `select` plutôt qu'un booléen : les schémas de champs n'ont pas de type booléen aujourd'hui, et en
 introduire un pour deux valeurs serait un ajout de vocabulaire non justifié.
 
-## Comportement des trois effets
+## Comportement des effets
 
 | Effet | Réaction |
 |---|---|
 | DotGrid | Le rayon des points suit `bass`, l'opacité suit `treble`. Se compose avec les réactions d'alerte existantes sans les remplacer. |
 | Bubble | La vitesse de montée suit `level` ; un pic de `bass` (dépassement de seuil après le lissage) déclenche l'éclatement aléatoire déjà implémenté. |
 | WaterRipple | Un pic de `level` engendre une goutte, en plus de la fréquence réglée. |
+| Rain | Le niveau accélère la chute. |
+| Fireflies | L'aigu multiplie les éclats, le niveau élargit l'errance. |
+| FloatingSymbols | Le niveau accélère la dérive et la rotation. |
+| GeometricPattern | Animation CSS : le niveau accélère la lecture et éclaircit le motif. |
+| ColorDrops | Un pic relance la goutte la plus basse en haut de l'écran. |
+| StarsParallax | Le niveau accélère le défilement, comme une accélération de vitesse. |
+| OrbitingShapes | Le grave écarte les formes de leur centre, le niveau accélère la rotation. |
+| ShapeMorph | Le grave gonfle les formes, le niveau accélère leur rotation. |
+
+`components/audio-reaction.js` porte le motif commun (lecture de `audioIntensity`, bornage des
+niveaux, remise à zéro quand le preset repasse en non réactif, détection de pic), extrait après la
+troisième occurrence. Chaque effet garde la main sur **ce que** le son modifie chez lui.
 
 Aucun effet ne doit devenir illisible à `audioIntensity = 2` en musique forte : la réaction module
 les paramètres existants, elle ne les remplace pas.

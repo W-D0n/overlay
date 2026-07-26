@@ -1,6 +1,7 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
 import { canvasPixelRatio } from './canvas-runtime.js';
+import { createAudioReaction } from './audio-reaction.js';
 
 /**
  * OrbitingShapesBackground.js — Formes en orbite pseudo-3D (Track B, session B7).
@@ -30,6 +31,7 @@ export function OrbitingShapesBackground(options = {}) {
   let minSize = options.minSize ?? 8;
   let maxSize = options.maxSize ?? 28;
   let opacity = clamp(options.opacity ?? 1, 0, 1);
+  const audio = createAudioReaction(options);
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
@@ -101,14 +103,16 @@ export function OrbitingShapesBackground(options = {}) {
   function tick(timestamp) {
     rafId = requestAnimationFrame(tick);
     ctx.clearRect(0, 0, cssW, cssH);
-    const t = timestamp * 0.001 * speed;
+    const t = timestamp * 0.001 * speed * audio.boost('level', 0.8);
     const [r, g, b] = rgb;
 
     for (const o of orbiters) {
       const angle = t * o.angularSpeed + o.phase;
       const depth = (Math.sin(angle) + 1) / 2; // 0 = fond, 1 = premier plan
-      const x = o.cx + Math.cos(angle) * o.radiusX;
-      const y = o.cy + Math.sin(angle) * o.radiusY;
+      // Le grave écarte les formes de leur centre : l'orbite respire avec le son.
+      const orbitBoost = audio.boost('bass', 0.35);
+      const x = o.cx + Math.cos(angle) * o.radiusX * orbitBoost;
+      const y = o.cy + Math.sin(angle) * o.radiusY * orbitBoost;
       const baseSize = minSize + o.sizeRatio * (maxSize - minSize);
       const size = baseSize * (0.4 + 0.6 * depth);
       const shapeOpacity = (0.15 + 0.55 * depth) * opacity;
@@ -136,7 +140,16 @@ export function OrbitingShapesBackground(options = {}) {
         count = Math.max(1, Math.round(o.count));
         seed();
       }
+      audio.readOptions(o);
     },
+    /**
+     * Le grave élargit les orbites, le niveau accélère la rotation.
+     * @param {import('../audio-levels.js').AudioLevels} levels
+     */
+    setAudioLevel(levels) {
+      audio.apply(levels);
+    },
+
     destroy() {
       cancelAnimationFrame(rafId);
       observer.disconnect();

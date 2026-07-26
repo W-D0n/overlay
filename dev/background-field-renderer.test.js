@@ -17,6 +17,8 @@ describe('rendu des champs de fond', () => {
       ['speed', 1],
       ['color', 'var(--color-gold)'],
       ['angle', 8],
+      ['audioReactive', 'Non'],
+      ['audioIntensity', 1],
     ]);
   });
 

@@ -157,6 +157,17 @@ Déclare aussi les deux champs `audioReactive` et `audioIntensity` dans le sché
 (`dev/component-field-schemas.js`) : c'est ce réglage, propre à chaque preset, qui autorise
 l'ouverture du micro. Sans lui, `setAudioLevel` ne sera jamais appelée.
 
-Pour une réaction ponctuelle (un impact par pic sonore plutôt qu'une modulation continue), réutilise
-`isAudioPeak(previous, current)` de `audio-levels.js` — voir `BubbleBackground` et
-`WaterRippleBackground`. Détail complet : `docs/specs/background-audio-reactivity.md`.
+En pratique, n'écris pas ce bloc à la main : `components/audio-reaction.js` le fournit déjà.
+
+```js
+const audio = createAudioReaction(options);      // à la création
+audio.readOptions(o);                             // dans update()
+setAudioLevel(levels) { audio.apply(levels); },   // dans l'instance
+// dans la boucle : un multiplicateur qui vaut 1 au silence
+const vitesse = speed * audio.boost('level', 0.8);
+// pour un impact ponctuel : vrai une seule fois par pic
+if (audio.consumePeak()) spawn();
+```
+
+Les 11 effets l'utilisent ; regarde `RainBackground` (modulation continue) ou
+`ColorDropsBackground` (réaction ponctuelle) comme référence. Détail complet : `docs/specs/background-audio-reactivity.md`.

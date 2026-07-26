@@ -1,5 +1,6 @@
 // @ts-check
 import { canvasPixelRatio } from './canvas-runtime.js';
+import { createAudioReaction } from './audio-reaction.js';
 /**
  * ColorDropsBackground.js — Gouttes de couleur tombant verticalement (Track B, session B6).
  *
@@ -24,6 +25,7 @@ export function ColorDropsBackground(options = {}) {
   let speed = options.speed ?? 1;
   let colors = options.colors ?? ['var(--color-gold)', '#8A2BE2', '#1E90FF', '#DC143C'];
   let length = options.length ?? 90;
+  const audio = createAudioReaction(options);
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
@@ -99,6 +101,13 @@ export function ColorDropsBackground(options = {}) {
     previousTimestamp = timestamp;
     ctx.clearRect(0, 0, cssW, cssH);
 
+    // Un pic sonore relance la goutte la plus basse en haut de l'écran : le son se voit tomber.
+    if (audio.consumePeak() && drops.length > 0) {
+      let lowest = 0;
+      for (let i = 1; i < drops.length; i += 1) if (drops[i].y > drops[lowest].y) lowest = i;
+      drops[lowest] = spawn(false);
+    }
+
     for (let i = 0; i < drops.length; i++) {
       const d = drops[i];
       ctx.save();
@@ -112,7 +121,7 @@ export function ColorDropsBackground(options = {}) {
       ctx.stroke();
       ctx.restore();
 
-      d.y += d.vy * speed * delta;
+      d.y += d.vy * speed * audio.boost('level', 0.5) * delta;
       if (d.y - length > cssH) drops[i] = spawn(false);
     }
   }
@@ -134,7 +143,16 @@ export function ColorDropsBackground(options = {}) {
         count = Math.max(1, Math.round(o.count));
         seed();
       }
+      audio.readOptions(o);
     },
+    /**
+     * Chaque pic sonore lâche une goutte de plus.
+     * @param {import('../audio-levels.js').AudioLevels} levels
+     */
+    setAudioLevel(levels) {
+      audio.apply(levels);
+    },
+
     destroy() {
       cancelAnimationFrame(rafId);
       observer.disconnect();

@@ -2,6 +2,7 @@
 import { resolveColor } from './color-utils.js';
 import { frameDeltaSeconds } from './animation-time.js';
 import { canvasPixelRatio } from './canvas-runtime.js';
+import { createAudioReaction } from './audio-reaction.js';
 
 /**
  * FloatingSymbolsBackground.js — Glyphes/emoji flottants configurables (Track B, session B5).
@@ -29,6 +30,7 @@ export function FloatingSymbolsBackground(options = {}) {
   let color = options.color ?? 'var(--color-gold)';
   let minSize = options.minSize ?? 24;
   let maxSize = options.maxSize ?? 64;
+  const audio = createAudioReaction(options);
 
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
@@ -99,8 +101,10 @@ export function FloatingSymbolsBackground(options = {}) {
       ctx.fillText(symbol, 0, 0);
       ctx.restore();
 
-      s.y += s.vy * speed * delta;
-      s.rotPhase += s.rotSpeed * speed * delta;
+      // Le son accélère la dérive et la rotation des symboles, sans changer leur trajectoire.
+      const audioSpeed = speed * audio.boost('level', 0.9);
+      s.y += s.vy * audioSpeed * delta;
+      s.rotPhase += s.rotSpeed * audioSpeed * delta;
       if (s.y - s.size > cssH) symbols[i] = spawn(false);
     }
   }
@@ -122,7 +126,16 @@ export function FloatingSymbolsBackground(options = {}) {
         count = Math.max(1, Math.round(o.count));
         seed();
       }
+      audio.readOptions(o);
     },
+    /**
+     * Le niveau accélère la dérive des symboles.
+     * @param {import('../audio-levels.js').AudioLevels} levels
+     */
+    setAudioLevel(levels) {
+      audio.apply(levels);
+    },
+
     destroy() {
       cancelAnimationFrame(rafId);
       observer.disconnect();
