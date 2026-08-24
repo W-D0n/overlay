@@ -1,5 +1,9 @@
 // @ts-check
 
+import { STATIC_PORT } from './ports.config.js';
+
+const DEFAULT_BACKGROUND_URL = `http://localhost:${STATIC_PORT}/background.html`;
+
 /**
  * Résout le fond rendu par une URL standalone.
  * Sans référence de preset, la page suit l'état courant du tuner. Avec un identifiant stable (ou
@@ -31,7 +35,7 @@ function backgroundUrl(presetId, baseUrl, options) {
  * @param {string} [baseUrl]
  * @param {{ performance?: boolean }} [options]
  */
-export function backgroundCurrentUrl(baseUrl = 'http://localhost:5500/background.html', options = {}) {
+export function backgroundCurrentUrl(baseUrl = DEFAULT_BACKGROUND_URL, options = {}) {
   return backgroundUrl(null, baseUrl, options);
 }
 
@@ -40,6 +44,6 @@ export function backgroundCurrentUrl(baseUrl = 'http://localhost:5500/background
  * @param {string} [baseUrl]
  * @param {{ performance?: boolean }} [options]
  */
-export function backgroundPresetUrl(presetId, baseUrl = 'http://localhost:5500/background.html', options = {}) {
+export function backgroundPresetUrl(presetId, baseUrl = DEFAULT_BACKGROUND_URL, options = {}) {
   return backgroundUrl(presetId, baseUrl, options);
 }

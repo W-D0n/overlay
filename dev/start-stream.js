@@ -15,16 +15,17 @@
  * Lancement : `bun dev/start-stream.js` (ou double-clic sur start-stream.bat).
  */
 import { findBusyPorts } from './port-check.js';
+import { STATIC_PORT, BACKGROUND_STATE_PORT } from '../ports.config.js';
 
 const ROOT = `${import.meta.dir}/..`;
 
 /** @type {{ name: string, cmd: string[], port: number }[]} */
 const SERVERS = [
-  { name: 'statique',         cmd: ['bun', 'dev/static-server.js'],           port: Number(process.env.STATIC_PORT ?? 5500) },
+  { name: 'statique',         cmd: ['bun', 'dev/static-server.js'],           port: Number(process.env.STATIC_PORT ?? STATIC_PORT) },
   // background-state en live : background.html (Browser Source fond seul) charge son état et suit
   // les réglages du tuner en direct. N'écrit qu'un JSON d'état, jamais de code source
   // (docs/specs/background-standalone.md §Intégration lancement).
-  { name: 'background-state', cmd: ['bun', 'dev/background-state-server.js'], port: Number(process.env.BACKGROUND_STATE_PORT ?? 4462) },
+  { name: 'background-state', cmd: ['bun', 'dev/background-state-server.js'], port: Number(process.env.BACKGROUND_STATE_PORT ?? BACKGROUND_STATE_PORT) },
 ];
 
 const busy = findBusyPorts(SERVERS);

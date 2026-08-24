@@ -15,15 +15,16 @@
  * Lancement : `bun dev/start-dev.js` (ou double-clic sur start-dev.bat).
  */
 import { findBusyPorts, freeStaleBunPorts } from './port-check.js';
+import { STATIC_PORT, BACKGROUND_STATE_PORT } from '../ports.config.js';
 
 const ROOT = `${import.meta.dir}/..`;
 
 /** @type {{ name: string, cmd: string[], port: number }[]} */
 const SERVERS = [
-  { name: 'statique',         cmd: ['bun', 'dev/static-server.js'],           port: Number(process.env.STATIC_PORT ?? 5500) },
+  { name: 'statique',         cmd: ['bun', 'dev/static-server.js'],           port: Number(process.env.STATIC_PORT ?? STATIC_PORT) },
   // Recharge les imports du validateur quand un nouvel effet rejoint le schéma. Sans `--watch`,
   // un tuner frais pouvait proposer un effet refusé par un vieux process encore en mémoire.
-  { name: 'background-state', cmd: ['bun', '--watch', 'dev/background-state-server.js'], port: Number(process.env.BACKGROUND_STATE_PORT ?? 4462) },
+  { name: 'background-state', cmd: ['bun', '--watch', 'dev/background-state-server.js'], port: Number(process.env.BACKGROUND_STATE_PORT ?? BACKGROUND_STATE_PORT) },
 ];
 
 const freed = freeStaleBunPorts(SERVERS);
@@ -82,9 +83,10 @@ process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
 setTimeout(() => {
+  const staticPort = SERVERS.find((s) => s.name === 'statique')?.port;
   const urls = [
-    'http://localhost:5500/dev/studio.html',
-    'http://localhost:5500/background.html',
+    `http://localhost:${staticPort}/dev/studio.html`,
+    `http://localhost:${staticPort}/background.html`,
   ];
   for (const url of urls) Bun.spawn(['rundll32.exe', 'url.dll,FileProtocolHandler', url]);
 }, 2000);

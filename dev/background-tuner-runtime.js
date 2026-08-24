@@ -11,8 +11,9 @@ import {
   BackgroundStateClientError,
   createBackgroundStateClient,
 } from './background-state-client.js';
+import { BACKGROUND_STATE_PORT } from '../ports.config.js';
 
-const STATE_SERVER = 'http://localhost:4462';
+const STATE_SERVER = `http://localhost:${BACKGROUND_STATE_PORT}`;
 
 /** @param {unknown} error */
 export function stateLoadErrorMessage(error) {
@@ -41,7 +42,7 @@ export async function startBackgroundTuner(environment = {}) {
       serverStatus.textContent = message;
       serverStatus.classList.add('error');
     },
-    ok(message = 'connecté au serveur d\'état (4462)') {
+    ok(message = `connecté au serveur d'état (${BACKGROUND_STATE_PORT})`) {
       serverStatus.textContent = message;
       serverStatus.classList.remove('error');
     },

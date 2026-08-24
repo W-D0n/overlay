@@ -21,7 +21,7 @@ git `scene-engine-v1`, et ses specs vivent dans `docs/specs/archive/`.
 
 Double-cliquer sur `start-dev.bat`. Le script lance l'environnement de création et ouvre notamment :
 
-`http://localhost:5500/dev/studio.html`
+`http://localhost:5931/dev/studio.html`
 
 L'onglet **Fonds & presets** permet de choisir parmi les **11 effets**, de les régler avec des
 curseurs bornés, d'essayer les points de départ et de gérer ses presets. La recherche couvre
@@ -32,13 +32,13 @@ portable entre deux installations.
 
 1. Double-cliquer sur `start-stream.bat`.
 2. Ajouter une source **Navigateur** dans OBS.
-3. URL : `http://localhost:5500/background.html`
+3. URL : `http://localhost:5931/background.html`
 4. Dimensions : celles de ton canvas OBS — `2560 × 1440` ici. Le fond les épouse quelles qu'elles soient.
 5. Laisser le champ **CSS personnalisé** vide.
 
 Pour superposer uniquement l'animation au-dessus d'une capture, utiliser :
 
-`http://localhost:5500/background.html?transparent=1`
+`http://localhost:5931/background.html?transparent=1`
 
 ### Utiliser un fond différent par scène
 
@@ -46,7 +46,7 @@ Chaque preset possède un bouton **URL**. Son adresse utilise un identifiant sta
 valide après un renommage et reste attachée au preset, même
 si le tuner pilote un autre effet :
 
-`http://localhost:5500/background.html?preset=discussion-calme&transparent=1`
+`http://localhost:5931/background.html?preset=discussion-calme&transparent=1`
 
 Créer une source Navigateur par preset utile, puis placer la bonne source dans chaque scène OBS.
 Activer **Arrêter la source lorsqu'elle n'est pas visible** pour que les scènes masquées ne

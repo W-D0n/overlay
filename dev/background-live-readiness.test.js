@@ -3,6 +3,7 @@ import {
   collectBackgroundLiveReadiness,
   evaluateBackgroundLiveReadiness,
 } from './background-live-readiness.js';
+import { STATIC_PORT } from '../ports.config.js';
 
 const file = {
   current: { component: 'RainBackground', options: {} },
@@ -26,7 +27,7 @@ test('un preset valide produit un diagnostic prêt et son URL OBS stable', () =>
 
   expect(report.status).toBe('ready');
   expect(report.obsUrl).toBe(
-    'http://localhost:5500/background.html?preset=discussion-calme&transparent=1&quality=performance',
+    `http://localhost:${STATIC_PORT}/background.html?preset=discussion-calme&transparent=1&quality=performance`,
   );
   expect(report.checks.map(({ id, status }) => [id, status])).toEqual([
     ['state', 'ready'],
@@ -94,14 +95,14 @@ test('le fond courant fournit aussi une URL OBS transparente sans faux preset', 
   });
 
   expect(report.status).toBe('ready');
-  expect(report.obsUrl).toBe('http://localhost:5500/background.html?transparent=1');
+  expect(report.obsUrl).toBe(`http://localhost:${STATIC_PORT}/background.html?transparent=1`);
   expect(report.checks.find(({ id }) => id === 'selection')).toMatchObject({
     status: 'ready',
     title: 'Effet courant prêt',
   });
   expect(report.checks.find(({ id }) => id === 'url')).toMatchObject({
     detail: 'Cette adresse suit l’effet courant du tuner.',
-    action: { value: 'http://localhost:5500/background.html?transparent=1' },
+    action: { value: `http://localhost:${STATIC_PORT}/background.html?transparent=1` },
   });
 });
 

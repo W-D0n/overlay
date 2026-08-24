@@ -14,7 +14,7 @@ Quatre pièces communiquent :
 - `dev/studio.html` — l'entrée de création commune aux fonds et aux scènes complètes.
 - `dev/background-tuner.html` — l'espace de tuning. Aperçu plein écran + barre latérale
   rétractable (liste des effets, paramètres, presets).
-- Le **serveur d'état** (port 4462, lancé automatiquement) — retient le dernier réglage dans
+- Le **serveur d'état** (port 5932, lancé automatiquement) — retient le dernier réglage dans
   `dev/data/background-state.json` et pousse chaque changement en direct vers OBS.
 
 Concrètement : tu bouges un curseur dans le tuner → l'aperçu change immédiatement → OBS suit dans
@@ -24,23 +24,23 @@ la seconde → au prochain démarrage, OBS recharge le dernier état sauvegardé
 
 1. Lancer `start-stream.bat` (ou `start-dev.bat` pour bricoler).
 2. Dans OBS : Source → **Navigateur** (Browser Source).
-3. URL : `http://localhost:5500/background.html`
+3. URL : `http://localhost:5931/background.html`
 4. Largeur et hauteur : celles de ton canvas OBS — `2560 × 1440`. Le fond remplit la source quelle
    que soit sa taille.
 
 Laisser le champ **CSS personnalisé** vide. OBS injecte ce CSS après celui de la page : une règle
 ajoutée ici peut forcer un fond, masquer un élément ou changer une taille, mais crée alors une
 différence entre le tuner et OBS. Pour superposer l'animation sur une capture, utiliser
-`http://localhost:5500/background.html?transparent=1` plutôt qu'une surcharge CSS.
+`http://localhost:5931/background.html?transparent=1` plutôt qu'une surcharge CSS.
 
 Si le serveur n'est pas encore lancé quand OBS charge la page, la page attend et se reconnecte
 toute seule (1 s → 30 s max entre les tentatives).
 
 ## La page de tuning
 
-Ouvrir `http://localhost:5500/dev/studio.html` (s'ouvre aussi automatiquement avec
+Ouvrir `http://localhost:5931/dev/studio.html` (s'ouvre aussi automatiquement avec
 `start-dev.bat`), puis choisir **Fonds & presets**. L'URL directe
-`http://localhost:5500/dev/background-tuner.html` reste utilisable.
+`http://localhost:5931/dev/background-tuner.html` reste utilisable.
 
 - **La barre latérale se rétracte** avec le bouton `◀` / `▶` sur son bord.
 - **Points de départ** : **Essayer** charge une ambiance sans la sauvegarder ; **Ajouter à mes

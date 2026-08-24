@@ -44,7 +44,7 @@ Décisions validées (AskUserQuestion, 2026-07-14) :
 | `dev/background-preset-transfer-controller.js` | Isole l'export et le parcours d'import prévisualisé puis confirmé ; son câblage est testé sans navigateur. |
 | `dev/background-readiness-controller.js` | Rend et relance le diagnostic pré-live ; rejoue la révélation progressive des résultats en respectant la réduction de mouvement. |
 | `dev/background-tuner-runtime.js` | Point d'entrée d'orchestration : câble les contrôleurs, charge l'état et la palette, puis démarre les abonnements. |
-| `dev/background-state-server.js` | Serveur Bun (port 4462, `BACKGROUND_STATE_PORT`). Persiste `dev/data/background-state.json`. Écritures sérialisées (`keyed-lock`). |
+| `dev/background-state-server.js` | Serveur Bun (port 5932, `BACKGROUND_STATE_PORT`). Persiste `dev/data/background-state.json`. Écritures sérialisées (`keyed-lock`). |
 | `dev/studio.html` / `dev/studio.config.js` | Entrée unique vers le tuner de fonds et l'éditeur des scènes complètes ; navigation déclarée hors de la page. |
 | `dev/background-tuner.html` | Markup et styles de la page de tuning ; son script d'entrée délègue toute l'implémentation à `background-tuner-runtime.js`. |
 | `dev/builtin-background-presets.js` | Sélection éditoriale immuable ; une copie n'entre dans l'état utilisateur qu'après action explicite. |
@@ -104,7 +104,7 @@ Toutes les écritures passent par un `keyed-lock` (clé unique) — même motif 
 
 ### Intégration lancement
 
-- `dev/start-dev.js` : ajoute le serveur `background-state` (port 4462) + ouvre
+- `dev/start-dev.js` : ajoute le serveur `background-state` (port 5932) + ouvre
   `dev/studio.html` et la preview complète.
 - `dev/start-stream.js` : ajoute le serveur `background-state` — nécessaire pour que
   `background.html` (Browser Source) charge son état et reçoive les changements live. Ce serveur

@@ -26,7 +26,7 @@
   <li><code>dev/studio.html</code> — l'entrée de création commune aux fonds et aux scènes.</li>
   <li><code>dev/background-tuner.html</code> — la page de tuning. Aperçu plein écran +
       barre latérale rétractable avec la liste des effets, leurs paramètres et les presets.</li>
-  <li>Le <strong>serveur d'état</strong> (port 4462, lancé automatiquement) — retient le dernier
+  <li>Le <strong>serveur d'état</strong> (port 5932, lancé automatiquement) — retient le dernier
       réglage dans <code>dev/data/background-state.json</code> et pousse chaque changement en
       direct vers OBS.</li>
 </ul>
@@ -37,13 +37,13 @@ dans la seconde → et au prochain démarrage, OBS recharge le dernier état sau
 <ol>
   <li>Lancer <code>start-stream.bat</code> (ou <code>start-dev.bat</code> pour bricoler).</li>
   <li>Dans OBS : Source → <strong>Navigateur</strong> (Browser Source).</li>
-  <li>URL : <code>http://localhost:5500/background.html</code></li>
+  <li>URL : <code>http://localhost:5931/background.html</code></li>
   <li>Largeur <code>1920</code>, hauteur <code>1080</code>.</li>
 </ol>
 <p>Laisser le champ <strong>CSS personnalisé</strong> vide. OBS injecte ce CSS après celui de la
 page : une règle ajoutée ici peut forcer un fond, masquer un élément ou changer une taille, mais
 crée alors une différence entre le tuner et OBS. Pour superposer l'animation sur une capture,
-utiliser <code>http://localhost:5500/background.html?transparent=1</code> plutôt qu'une surcharge
+utiliser <code>http://localhost:5931/background.html?transparent=1</code> plutôt qu'une surcharge
 CSS.</p>
 <div class="callout">
   Si le serveur n'est pas encore lancé quand OBS charge la page, ce n'est pas grave : la page
@@ -51,7 +51,7 @@ CSS.</p>
 </div>
 
 <h2>La page de tuning</h2>
-<p>Ouvrir <code>http://localhost:5500/dev/studio.html</code> (s'ouvre automatiquement avec
+<p>Ouvrir <code>http://localhost:5931/dev/studio.html</code> (s'ouvre automatiquement avec
 <code>start-dev.bat</code>), puis choisir <strong>Fonds &amp; presets</strong>. L'URL directe
 <code>dev/background-tuner.html</code> reste disponible pour le diagnostic.</p>
 <ul>

@@ -32,7 +32,7 @@ bun dev/static-server.js
 Depuis la racine du repo (`C:\DEV\overlay`). Laisser tourner pendant tout le stream — c'est un
 process séparé d'OBS, à démarrer avant d'ouvrir OBS (ou à relancer si le PC redémarre).
 
-Vérifier que ça répond : `http://localhost:5500/index.html` doit afficher l'overlay (fond noir +
+Vérifier que ça répond : `http://localhost:5931/index.html` doit afficher l'overlay (fond noir +
 grille de points) dans un navigateur classique avant de le brancher à OBS.
 
 ## 2. Ajouter la Browser Source dans OBS
@@ -42,7 +42,7 @@ Dans la scène OBS où l'habillage doit apparaître :
 1. **Sources → + → Navigateur (Browser Source)**
 2. Nouvelle source, nom libre (ex. `Overlay Atelier`)
 3. Renseigner :
-   - **URL** : `http://localhost:5500/index.html`
+   - **URL** : `http://localhost:5931/index.html`
    - **Largeur** : celle de ton canvas OBS
    - **Hauteur** : `1080`
    - **FPS personnalisé** : laisser la valeur par défaut (30 suffit, l'animation DotGrid tourne en JS, pas en dépendance du FPS de capture)
@@ -64,7 +64,7 @@ la vérification de cette session (S3b) s'est arrêtée à `bun test` (voir gap 
 Pas de mécanisme de changement de scène depuis OBS pour l'instant (voir limite ci-dessous) : pour
 prévisualiser une scène donnée, il faut déclencher l'événement `overlay:scene-change` manuellement
 depuis la console DevTools du Browser Source OBS (clic droit → Interagir, ou depuis un navigateur
-classique sur `localhost:5500`) :
+classique sur `localhost:5931`) :
 
 ```js
 document.dispatchEvent(new CustomEvent('overlay:scene-change', { detail: { scene: 'discussion' } }));

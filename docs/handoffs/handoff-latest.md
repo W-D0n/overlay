@@ -6,10 +6,10 @@ la prochaine session traite le retour de QA de l'owner, pas une nouvelle fonctio
 ## État actuel
 
 - `main` == `origin/main`, working tree propre, **372 tests verts**
-- URL OBS : `http://localhost:5500/background.html`
+- URL OBS : `http://localhost:5931/background.html`
   (variantes : `?preset=<id>`, `?transparent=1`, `?branding=only`, `?branding=off`, `?quality=performance`)
-- Studio : `http://localhost:5500/dev/studio.html` — trois espaces : Fond · Habillage · Diffusion
-- Serveurs : `start-stream.bat` pour le live (statique + état, port 4462), `start-dev.bat` pour créer
+- Studio : `http://localhost:5931/dev/studio.html` — trois espaces : Fond · Habillage · Diffusion
+- Serveurs : `start-stream.bat` pour le live (statique + état, port 5932), `start-dev.bat` pour créer
 - Canvas de référence : **2560×1440**. Raisonner et vérifier en 1440p, jamais en 1080p.
 - Connexion OBS (mapping scène → preset) : active seulement si `OBS_WS_PASSWORD` est dans `.env`
 - Moteur de scènes archivé, restaurable via le tag git `scene-engine-v1`

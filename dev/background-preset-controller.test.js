@@ -1,5 +1,8 @@
 import { expect, test } from 'bun:test';
 import { createBackgroundPresetController } from './background-preset-controller.js';
+import { STATIC_PORT } from '../ports.config.js';
+
+const backgroundPageUrl = `http://localhost:${STATIC_PORT}/background.html`;
 
 function element(overrides = {}) {
   return {
@@ -60,7 +63,7 @@ test('initialise le parcours d’import avec son panneau de détails', () => {
       snapshot: () => ({ activePresetId: null, current: { component: null, options: {} } }),
     },
     report: { ok() {}, error() {} },
-    backgroundPageUrl: 'http://localhost:5500/background.html',
+    backgroundPageUrl,
     documentRef: { createElement: () => element() },
     navigatorRef: { clipboard: { writeText: async () => {} } },
     windowRef: { setTimeout: () => 1 },
@@ -87,7 +90,7 @@ test('présente chaque point de départ comme une ligne cliquable plus un ajout 
       snapshot: () => ({ activePresetId: null, current: { component: null, options: {} } }),
     },
     report: { ok() {}, error() {} },
-    backgroundPageUrl: 'http://localhost:5500/background.html',
+    backgroundPageUrl,
     documentRef: { createElement: () => element() },
     navigatorRef: { clipboard: { writeText: async () => {} } },
     windowRef: { setTimeout: () => 1 },

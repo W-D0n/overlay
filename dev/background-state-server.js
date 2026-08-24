@@ -52,8 +52,9 @@ import {
 import { createObsSceneClient } from './obs-scene-client.js';
 import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
 import { validateBranding } from '../branding-format.js';
+import { BACKGROUND_STATE_PORT } from '../ports.config.js';
 
-const PORT = Number(process.env.BACKGROUND_STATE_PORT ?? 4462);
+const PORT = Number(process.env.BACKGROUND_STATE_PORT ?? BACKGROUND_STATE_PORT);
 const OBS_WS_URL = process.env.OBS_WS_URL ?? 'ws://127.0.0.1:4455';
 const OBS_WS_PASSWORD = process.env.OBS_WS_PASSWORD ?? '';
 const STATE_FILE = process.env.BACKGROUND_STATE_FILE ?? `${import.meta.dir}/data/background-state.json`;

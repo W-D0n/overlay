@@ -4,6 +4,7 @@ import {
   backgroundPresetUrl,
   selectBackground,
 } from './background-selection.js';
+import { STATIC_PORT } from './ports.config.js';
 
 const file = {
   current: { component: 'RainBackground', options: { speed: 1 } },
@@ -44,9 +45,9 @@ describe('sélection du fond standalone', () => {
   });
 
   test('backgroundCurrentUrl suit le tuner avec transparence et profil performance optionnel', () => {
-    expect(backgroundCurrentUrl()).toBe('http://localhost:5500/background.html?transparent=1');
+    expect(backgroundCurrentUrl()).toBe(`http://localhost:${STATIC_PORT}/background.html?transparent=1`);
     expect(backgroundCurrentUrl(undefined, { performance: true })).toBe(
-      'http://localhost:5500/background.html?transparent=1&quality=performance',
+      `http://localhost:${STATIC_PORT}/background.html?transparent=1&quality=performance`,
     );
   });
 });

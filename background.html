@@ -6,7 +6,7 @@
   <title>Overlay — Fond seul</title>
   <!--
     URL OBS background-only (docs/specs/background-standalone.md) : ne rend QUE l'effet de fond
-    courant, piloté par dev/background-state-server.js (port 4462). État chargé au démarrage (GET /state), puis suivi en live via
+    courant, piloté par dev/background-state-server.js (port 5932). État chargé au démarrage (GET /state), puis suivi en live via
     WS /state-ws — serveur injoignable : page vide + reconnexion avec backoff, jamais d'erreur
     visible dans la Browser Source.
     OBS : la page épouse la taille de la Browser Source, quelle qu'elle soit ; pointer-events: none.
@@ -34,6 +34,7 @@
     import { createReactionCoordinator } from './background-reactions.js';
     import { createBrowserAudioSession } from './background-audio.js';
     import { BrandingLayer } from './components/BrandingLayer.js';
+    import { BACKGROUND_STATE_PORT } from './ports.config.js';
 
     const searchParams = new URLSearchParams(location.search);
     const presetRef = searchParams.get('preset');
@@ -45,7 +46,8 @@
       document.body.classList.add('transparent');
     }
 
-    const STATE_SERVER = 'http://localhost:4462';
+    const STATE_SERVER = `http://localhost:${BACKGROUND_STATE_PORT}`;
+    const WS_STATE_SERVER = `ws://localhost:${BACKGROUND_STATE_PORT}`;
     const bgLayer = document.getElementById('bg-layer');
     // La session audio se resynchronise sur chaque changement d'effet monté : un preset non
     // réactif n'ouvre jamais le micro (docs/specs/background-audio-reactivity.md).
@@ -113,7 +115,7 @@
     /** Reconnexion avec backoff (1s → 30s max) : OBS peut charger la page avant le serveur. */
     function connect(delayMs = 1000) {
       const wsPath = presetRef === null ? 'state-ws' : 'presets-ws';
-      const ws = new WebSocket(`ws://localhost:4462/${wsPath}`);
+      const ws = new WebSocket(`${WS_STATE_SERVER}/${wsPath}`);
       ws.onopen = () => {
         delayMs = 1000;
         loadInitialState(); // resynchronise l'état manqué pendant la déconnexion
@@ -131,7 +133,7 @@
     /** Contenu du branding : canal séparé, il est global et ne dépend ni du preset ni de l'effet. */
     function connectBranding(delayMs = 1000) {
       if (branding === null) return;
-      const ws = new WebSocket(`ws://localhost:4462/branding-ws`);
+      const ws = new WebSocket(`${WS_STATE_SERVER}/branding-ws`);
       ws.onopen = () => { delayMs = 1000; };
       ws.onmessage = (event) => {
         latestBranding = JSON.parse(event.data);
@@ -142,7 +144,7 @@
 
     /** Réactions : canal séparé, actif quel que soit le mode (courant ou preset). */
     function connectEvents(delayMs = 1000) {
-      const ws = new WebSocket('ws://localhost:4462/event-ws');
+      const ws = new WebSocket(`${WS_STATE_SERVER}/event-ws`);
       ws.onopen = () => { delayMs = 1000; };
       ws.onmessage = (event) => {
         try {

@@ -13,9 +13,12 @@
  * continue d'exécuter du code corrigé depuis longtemps (constaté le 2026-07-26 sur les
  * transitions). Serveur de développement local, aucun intérêt à mettre en cache quoi que ce soit.
  *
- * Lancement : `bun dev/static-server.js` (port 5500 par défaut, `STATIC_PORT` pour changer).
+ * Lancement : `bun dev/static-server.js` (port par défaut dans `ports.config.js`, `STATIC_PORT`
+ * pour changer sans toucher au code).
  */
-const PORT = Number(process.env.STATIC_PORT ?? 5500);
+import { STATIC_PORT } from '../ports.config.js';
+
+const PORT = Number(process.env.STATIC_PORT ?? STATIC_PORT);
 const ROOT = `${import.meta.dir}/..`;
 
 Bun.serve({
