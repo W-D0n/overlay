@@ -17,6 +17,7 @@ function createFakeServer() {
   class FakeWebSocket {
     constructor(url) {
       this.path = new URL(url).pathname;
+      this.search = new URL(url).search;
       this.closed = false;
       sockets.push(this);
     }
@@ -236,4 +237,17 @@ describe('transport avec cache', () => {
     await flush();
     expect(second.of('state')).toEqual([]);
   });
+});
+
+test('chaque canal de la page de rendu s’annonce comme page de rendu', () => {
+  const server = createFakeServer();
+  const transport = createLocalTransport({
+    baseUrl: 'http://state.test',
+    fetchImpl: server.fetchImpl,
+    WebSocketImpl: server.WebSocketImpl,
+    setTimeoutImpl: server.setTimeoutImpl,
+  });
+  transport.subscribe({});
+  expect(server.sockets.length).toBeGreaterThan(0);
+  expect(server.sockets.map(({ search }) => search)).toEqual(server.sockets.map(() => '?role=render'));
 });

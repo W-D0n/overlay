@@ -77,6 +77,10 @@ export function createBackgroundStateClient(options) {
     async readState() {
       return canonicalBackgroundState(await request('state'));
     },
+    /** @returns {Promise<{ renderPages: number }>} */
+    readLiveStatus() {
+      return request('live-status');
+    },
     readObsStatus() {
       return request('obs-status');
     },

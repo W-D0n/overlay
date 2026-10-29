@@ -65,7 +65,10 @@ const STATE_FILE = process.env.BACKGROUND_STATE_FILE ?? `${import.meta.dir}/data
 const withStateLock = createKeyedLock();
 const STATE_LOCK_KEY = 'background-state';
 
-/** @typedef {{ channel: 'state'|'presets'|'event'|'branding' }} BackgroundSocketData */
+/**
+ * `role` : une page de rendu (OBS) s'annonce par `?role=render` ; le Studio ne s'annonce pas.
+ * @typedef {{ channel: 'state'|'presets'|'event'|'branding', role: 'render'|'studio' }} BackgroundSocketData
+ */
 
 /** @type {Set<import('bun').ServerWebSocket<BackgroundSocketData>>} */
 const stateClients = new Set();
@@ -379,6 +382,16 @@ function handleGetObsStatus() {
 }
 
 /**
+ * GET /live-status — nombre de pages de rendu connectées (une par page : son canal `state`).
+ * Seul moyen de savoir, depuis le Studio, qu'une source OBS affiche bien le fond.
+ */
+function handleGetLiveStatus() {
+  let renderPages = 0;
+  for (const socket of stateClients) if (socket.data.role === 'render') renderPages += 1;
+  return Response.json({ renderPages }, { headers: CORS_HEADERS });
+}
+
+/**
  * POST /scene-map — `{ sceneMap }`. Remplace la table d'association scène OBS → preset.
  */
 async function handlePostSceneMap(req) {
@@ -421,12 +434,14 @@ Bun.serve({
     };
     if (WS_CHANNELS[url.pathname] !== undefined) {
       const channel = WS_CHANNELS[url.pathname];
-      const upgraded = server.upgrade(req, { data: { channel } });
+      const role = url.searchParams.get('role') === 'render' ? 'render' : 'studio';
+      const upgraded = server.upgrade(req, { data: { channel, role } });
       return upgraded ? undefined : new Response('upgrade failed', { status: 500 });
     }
 
     if (req.method === 'GET' && url.pathname === '/state') return handleGetState();
     if (req.method === 'GET' && url.pathname === '/obs-status') return handleGetObsStatus();
+    if (req.method === 'GET' && url.pathname === '/live-status') return handleGetLiveStatus();
 
     const handler = req.method === 'POST' ? POST_ROUTES[url.pathname] : undefined;
     if (!handler) return jsonError('not found', 404);

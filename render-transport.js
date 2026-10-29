@@ -83,7 +83,7 @@ export function createLocalTransport(options) {
         let delay = RECONNECT_MIN_MS;
         function connect() {
           if (stopped) return;
-          const socket = new WebSocketImpl(`${socketBase}${path}`);
+          const socket = new WebSocketImpl(`${socketBase}${path}?role=render`);
           sockets.add(socket);
           socket.onopen = () => {
             delay = RECONNECT_MIN_MS;

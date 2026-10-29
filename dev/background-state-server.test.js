@@ -586,3 +586,45 @@ test('le serveur rejette un type d’option invalide et ramène un nombre hors b
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('GET /live-status compte les pages de rendu connectées, pas les pages du Studio', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-background-state-'));
+  const port = await reserveFreePort();
+  const baseUrl = `http://localhost:${port}`;
+  const child = Bun.spawn(['bun', 'dev/background-state-server.js'], {
+    cwd: join(import.meta.dir, '..'),
+    env: { ...process.env, BACKGROUND_STATE_PORT: String(port), BACKGROUND_STATE_FILE: join(directory, 'state.json') },
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  const open = (path) => new Promise((resolve, reject) => {
+    const socket = new WebSocket(`ws://localhost:${port}${path}`);
+    socket.onopen = () => resolve(socket);
+    socket.onerror = reject;
+  });
+  const renderPages = async () => (await (await fetch(`${baseUrl}/live-status`)).json()).renderPages;
+  try {
+    await waitForServer(baseUrl);
+    expect(await renderPages()).toBe(0);
+
+    const studio = await open('/state-ws');
+    expect(await renderPages()).toBe(0);
+
+    const render = await open('/state-ws?role=render');
+    await open('/presets-ws?role=render');
+    expect(await renderPages()).toBe(1);
+
+    render.close();
+    let remaining = await renderPages();
+    for (let attempt = 0; attempt < 100 && remaining !== 0; attempt += 1) {
+      await delay(30);
+      remaining = await renderPages();
+    }
+    expect(remaining).toBe(0);
+    studio.close();
+  } finally {
+    child.kill();
+    await child.exited;
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
