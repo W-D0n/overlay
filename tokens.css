@@ -25,7 +25,7 @@
 
   --color-text-primary: #F2F0EC;   /* titres, valeurs */
   --color-text-mid:     #9A9890;   /* labels, secondaire */
-  --color-text-dim:     #85858F;   /* tertiaire ; 5,4:1 sur le fond des panneaux d'outillage (AA) */
+  --color-text-dim:     #85858F;   /* tertiaire ; 5,2:1 sur le fond des panneaux d'outillage (AA) */
   --color-text-ghost:   #3C3C48;   /* liens, métadonnées */
   --color-text-dead:    #2A2A32;   /* watermark zone capture */
   --color-danger:       #C86A6A;   /* erreur bloquante / action destructive */
