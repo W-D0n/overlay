@@ -53,10 +53,11 @@ import {
   parseBackgroundPresetBundle,
 } from './background-preset-library.js';
 import { createObsSceneClient } from './obs-scene-client.js';
+import { inspectObs } from './obs-inspector.js';
 import { EXIT_RESTART, EXIT_STOP, SUPERVISED_ENV } from './supervisor.js';
 import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
 import { validateBranding } from '../branding-format.js';
-import { BACKGROUND_STATE_PORT } from '../ports.config.js';
+import { BACKGROUND_STATE_PORT, STATIC_PORT } from '../ports.config.js';
 
 const PORT = Number(process.env.BACKGROUND_STATE_PORT ?? BACKGROUND_STATE_PORT);
 const OBS_WS_URL = process.env.OBS_WS_URL ?? 'ws://127.0.0.1:4455';
@@ -375,6 +376,9 @@ async function handlePostBranding(req) {
 /** @type {{ connected: boolean, reason: string | null, scenes: string[], activeScene: string | null }} */
 const obsStatus = { connected: false, reason: null, scenes: [], activeScene: null };
 
+/** @type {ReturnType<typeof createObsSceneClient> | null} */
+let obsClient = null;
+
 /**
  * GET /obs-status — connexion OBS et scènes réelles, pour la section « Scènes OBS » du tuner.
  */
@@ -387,9 +391,41 @@ function handleGetObsStatus() {
  * Seul moyen de savoir, depuis le Studio, qu'une source OBS affiche bien le fond.
  */
 function handleGetLiveStatus() {
+  return Response.json({ renderPages: countRenderPages() }, { headers: CORS_HEADERS });
+}
+
+function countRenderPages() {
   let renderPages = 0;
   for (const socket of stateClients) if (socket.data.role === 'render') renderPages += 1;
-  return Response.json({ renderPages }, { headers: CORS_HEADERS });
+  return renderPages;
+}
+
+/**
+ * GET /diagnostics — les faits dont le Studio tire son diagnostic (`dev/diagnostics.js`) : état d'OBS, photographie
+ * de ses sources navigateur et scènes (lecture seule), pages de rendu, table scène → preset. À la demande, jamais en
+ * boucle : l'inspection fait plusieurs requêtes à OBS.
+ */
+async function handleGetDiagnostics() {
+  /** @type {import('./obs-inspector.js').ObsInspection | null} */
+  let inspection = null;
+  /** @type {string | null} */
+  let inspectionError = null;
+  if (obsStatus.connected && obsClient !== null) {
+    try {
+      inspection = await inspectObs(obsClient.request);
+    } catch (error) {
+      inspectionError = error instanceof Error ? error.message : String(error);
+    }
+  }
+  const read = await readStateFile();
+  return Response.json({
+    obs: { ...obsStatus, configured: OBS_WS_PASSWORD !== '' },
+    inspection,
+    inspectionError,
+    renderPages: countRenderPages(),
+    sceneMap: read.ok ? readSceneMap(read.file) : {},
+    staticPort: Number(process.env.STATIC_PORT ?? STATIC_PORT),
+  }, { headers: CORS_HEADERS });
 }
 
 /**
@@ -462,6 +498,7 @@ Bun.serve({
     if (req.method === 'GET' && url.pathname === '/state') return handleGetState();
     if (req.method === 'GET' && url.pathname === '/obs-status') return handleGetObsStatus();
     if (req.method === 'GET' && url.pathname === '/live-status') return handleGetLiveStatus();
+    if (req.method === 'GET' && url.pathname === '/diagnostics') return handleGetDiagnostics();
 
     const handler = req.method === 'POST' ? POST_ROUTES[url.pathname] : undefined;
     if (!handler) return jsonError('not found', 404);
@@ -536,7 +573,7 @@ async function applySceneMapping(sceneName) {
 }
 
 if (OBS_WS_PASSWORD !== '') {
-  createObsSceneClient({
+  obsClient = createObsSceneClient({
     url: OBS_WS_URL,
     password: OBS_WS_PASSWORD,
     onSceneChange: (sceneName) => { obsStatus.activeScene = sceneName; applySceneMapping(sceneName); },

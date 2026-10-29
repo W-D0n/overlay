@@ -412,7 +412,43 @@
     .antenna-item[data-tone="ok"] .antenna-mark { color: var(--color-gold); }
     .antenna-item[data-tone="bad"] .antenna-mark { color: var(--color-danger); }
     .antenna-item[data-tone="warn"] .antenna-mark { color: var(--color-text-primary); }
-    #antenna-copy { padding: 3px 10px; }
+    #antenna-copy, #diagnostic-open { padding: 3px 10px; }
+    .diagnostic {
+      margin: auto;
+      width: min(40rem, calc(100vw - 2 * var(--space-lg)));
+      max-height: calc(100vh - 2 * var(--space-xl));
+      padding: 0;
+      color: var(--color-text-primary);
+      background: var(--color-bg-panel);
+      border: var(--border-rule-mid);
+      border-radius: var(--radius-md);
+    }
+    .diagnostic::backdrop { background: rgba(0, 0, 0, 0.6); }
+    .diagnostic[open] { display: flex; flex-direction: column; }
+    .diagnostic-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--space-sm) var(--space-md);
+      padding: var(--space-md) var(--space-lg);
+      border-bottom: var(--border-rule);
+    }
+    .diagnostic-bar h2 { margin: 0; font-size: var(--text-lg); font-weight: 400; letter-spacing: var(--tracking-label); text-transform: uppercase; }
+    #diagnostic-summary { color: var(--color-text-mid); font-size: var(--text-base); }
+    .diagnostic[data-tone="ok"] #diagnostic-summary { color: var(--color-gold); }
+    .diagnostic[data-tone="bad"] #diagnostic-summary { color: var(--color-danger); }
+    .diagnostic-actions { display: flex; gap: var(--space-xs); margin-left: auto; }
+    .diagnostic-list { margin: 0; padding: var(--space-sm) var(--space-lg); list-style: none; overflow-y: auto; }
+    .diagnostic-check { display: grid; grid-template-columns: 1.25rem 1fr; gap: var(--space-sm); padding: var(--space-md) 0; border-bottom: var(--border-rule); font-size: var(--text-base); }
+    .diagnostic-check:last-child { border-bottom: 0; }
+    .diagnostic-check p { margin: var(--space-xs) 0 0; color: var(--color-text-mid); line-height: 1.5; }
+    .diagnostic-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-xs) var(--space-md); }
+    .diagnostic-short { color: var(--color-text-dim); }
+    .diagnostic-check p.diagnostic-fix { color: var(--color-text-primary); }
+    .diagnostic-fix::before { content: '→ '; color: var(--color-gold); }
+    .diagnostic-check[data-tone="ok"] .diagnostic-mark { color: var(--color-gold); }
+    .diagnostic-check[data-tone="bad"] .diagnostic-mark, .diagnostic-check[data-tone="bad"] .diagnostic-short { color: var(--color-danger); }
+    .diagnostic-check[data-tone="warn"] .diagnostic-mark, .diagnostic-check[data-tone="warn"] .diagnostic-short { color: var(--color-text-primary); }
     .servers { position: relative; }
     #servers-toggle { padding: 3px 10px; }
     .servers-panel {
@@ -471,6 +507,7 @@
       <strong id="antenna-summary">…</strong>
       <div id="antenna-items"></div>
       <button id="antenna-copy" type="button">Copier l’URL OBS</button>
+      <button id="diagnostic-open" type="button">Diagnostic</button>
     </div>
     <div id="servers" class="servers">
       <button id="servers-toggle" type="button" aria-expanded="false" aria-controls="servers-panel">Serveurs ▾</button>
@@ -484,6 +521,19 @@
     <div id="server-status"></div>
     <a class="studio-link" href="../background.html" target="_blank" rel="noopener">Ouvrir le rendu OBS</a>
   </header>
+
+  <dialog id="diagnostic" class="diagnostic" data-tone="warn" aria-labelledby="diagnostic-title">
+    <div class="diagnostic-bar">
+      <h2 id="diagnostic-title">Diagnostic</h2>
+      <span id="diagnostic-summary" role="status" aria-live="polite">…</span>
+      <div class="diagnostic-actions">
+        <button id="diagnostic-refresh" type="button">Revérifier</button>
+        <button id="diagnostic-copy" type="button">Copier le rapport</button>
+        <button id="diagnostic-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <ul id="diagnostic-list" class="diagnostic-list"></ul>
+  </dialog>
 
   <main class="studio-zones">
     <aside id="rail" class="rail" aria-label="Bibliothèque, scènes et branding">

@@ -86,6 +86,10 @@ export function createBackgroundStateClient(options) {
     control(action) {
       return request(`control/${action}`, {}, { 'X-Overlay-Control': '1' });
     },
+    /** Faits du diagnostic : état d'OBS, sources navigateur et scènes, pages de rendu, table scène → preset. */
+    readDiagnostics() {
+      return request('diagnostics');
+    },
     /** @returns {Promise<{ renderPages: number }>} */
     readLiveStatus() {
       return request('live-status');

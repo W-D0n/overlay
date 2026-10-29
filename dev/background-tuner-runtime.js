@@ -5,6 +5,7 @@ import { isAudioOn, kindCapabilities } from '../layer-kinds.js';
 import { createBackgroundPreviewController } from './background-preview-controller.js';
 import { createAntennaController } from './antenna-controller.js';
 import { createServerControlController } from './server-control-controller.js';
+import { createDiagnosticController } from './diagnostic-controller.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
 import { createBrandingController } from './branding-controller.js';
@@ -133,6 +134,19 @@ export async function startBackgroundTuner(environment = {}) {
     windowRef,
   });
 
+  const diagnostic = createDiagnosticController({
+    dialog: /** @type {HTMLDialogElement} */ (byId('diagnostic')),
+    openButton: /** @type {HTMLButtonElement} */ (byId('diagnostic-open')),
+    closeButton: /** @type {HTMLButtonElement} */ (byId('diagnostic-close')),
+    refreshButton: /** @type {HTMLButtonElement} */ (byId('diagnostic-refresh')),
+    copyButton: /** @type {HTMLButtonElement} */ (byId('diagnostic-copy')),
+    summary: byId('diagnostic-summary'),
+    list: byId('diagnostic-list'),
+    client,
+    documentRef,
+    windowRef,
+  });
+
   const antenna = createAntennaController({
     root: byId('antenna'),
     summary: byId('antenna-summary'),
@@ -230,6 +244,7 @@ export async function startBackgroundTuner(environment = {}) {
   function destroy() {
     antenna.destroy();
     serverControl.closePanel();
+    diagnostic.destroy();
     stage.destroy();
     unsubscribe();
     preview.destroy();
