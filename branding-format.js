@@ -20,7 +20,7 @@
 export const MAX_BRANDING_LINES = 4;
 export const MAX_BRANDING_TEXT_LENGTH = 40;
 
-/** Tailles pensées pour le canvas de référence 1920×1080 (voir LAC-01 de la spec). */
+/** Tailles pensées pour le canvas de référence (`render-reference.js`, voir LAC-01 de la spec). */
 /** @type {Branding} */
 export const DEFAULT_BRANDING = Object.freeze({
   name: '',

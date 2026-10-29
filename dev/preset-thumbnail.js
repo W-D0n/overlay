@@ -6,7 +6,7 @@ import { STAGE_HEIGHT, STAGE_WIDTH } from './preview-stage.js';
 /**
  * dev/preset-thumbnail.js — Vignette d'un preset dans la liste du Studio.
  *
- * L'effet réel est monté dans une scène de la taille de la source OBS (1920×1080) réduite par
+ * L'effet réel est monté dans une scène de la taille de la source OBS (`render-reference.js`) réduite par
  * transformation CSS, photographié après un court échauffement, puis démonté : au repos, une vignette
  * ne coûte rien. La vignette montre donc ce qu'OBS affichera, pas l'effet redessiné à petite échelle :
  * un fond discret reste discret. Le survol relance l'effet pour montrer le mouvement, qui est souvent

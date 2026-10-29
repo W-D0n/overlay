@@ -3,12 +3,13 @@
  * components/layer-test-harness.js — Banc de test des effets canvas : horloge pilotée à la main, canvas
  * factice dont le contexte enregistre chaque appel de dessin. Utilisé uniquement par les tests.
  */
+import { RENDER_REFERENCE } from '../render-reference.js';
 import { createRenderClock } from '../render-clock.js';
 
 /**
  * @param {{ width?: number, height?: number }} [size]
  */
-export function createLayerHarness({ width = 1920, height = 1080 } = {}) {
+export function createLayerHarness({ width = RENDER_REFERENCE.width, height = RENDER_REFERENCE.height } = {}) {
   /** @type {any[][]} */
   let calls = [];
   const ctx = new Proxy({}, {

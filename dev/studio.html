@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Overlay Studio</title>
   <!--
-    dev/studio.html — Studio : rail (antenne, bibliothèque, scènes, branding), aperçu 1920×1080
+    dev/studio.html — Studio : rail (antenne, bibliothèque, scènes, branding), aperçu à la taille de la source OBS
     (même moteur que background.html : background-mount.js) et réglages du preset.
     Chaque réglage : rendu local immédiat (brouillon) ; « Publier » envoie l'état par POST /state à
     dev/background-state-server.js, ce qui met l'URL OBS à jour.
@@ -108,7 +108,7 @@
       .rail { border-right: 0; }
       .inspector { border-left: 0; border-top: 1px solid var(--color-rule); }
     }
-    /* Cadre d'aperçu : taille, position et échelle sont posées par preview-stage.js (1920×1080 réel). */
+    /* Cadre d'aperçu : taille, position et échelle sont posées par preview-stage.js (taille réelle de la source OBS). */
     #bg-layer {
       position: absolute;
       overflow: hidden;
@@ -537,7 +537,7 @@
       </details>
     </aside>
 
-    <section class="stage-zone" aria-label="Aperçu 1920×1080">
+    <section class="stage-zone" aria-label="Aperçu à la taille de la source OBS">
     <div id="publish-bar" data-state="live" role="status" aria-live="polite">
       <span id="publish-state">En antenne</span>
       <button id="publish-discard" type="button" hidden>Annuler</button>

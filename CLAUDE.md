@@ -27,10 +27,14 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
    le dépôt (`bunx`). Aucun code d'outillage n'est importé par l'overlay.
    Typage : `bun dev/typecheck.js` (TypeScript sur les JSDoc `// @ts-check`, `tsconfig.json` strict) ;
    la dette connue est figée par fichier dans `dev/typecheck-baseline.json` et ne peut que baisser.
-2. **OBS Browser Source 1920×1080** — canvas de référence du projet depuis le 2026-10-29 (le
-   2560×1440 posé le 2026-07-25 posait des problèmes avec certaines scènes et sources OBS). La page
-   épouse la source, aucune dimension en dur ; raisonner et vérifier en 1080p.
-   `pointer-events: none`.
+2. **Résolution de la source OBS = un paramètre, pas une constante du code** — la source de référence est
+   aujourd'hui 1920×1080 (le 2560×1440 posé le 2026-07-25 posait des problèmes avec certaines scènes et
+   sources OBS ; le 1440p reste possible plus tard). Elle est déclarée **une seule fois** dans
+   `render-reference.js` ; l'aperçu, les vignettes et le branding la lisent de là, la page de rendu épouse
+   sa source et ne fige aucune dimension. Aucun autre fichier source n'écrit 1920 ni 1080 (garde : `dev/render-reference.test.js`) ;
+   les positions et tailles de couches se stockent en **fractions** du canvas. `pointer-events: none`.
+   Les interfaces de dev s'adaptent à l'écran (colonnes proportionnelles, empilement sous 1100 px, aperçu
+   agrandi ou réduit) : aucune largeur de panneau ni aucun plafond de taille figé.
 3. **Source de vérité design** — toutes les variables visuelles dans `tokens.css`. Jamais de valeur
    hardcodée dans un composant si un token existe.
 4. **Pattern composant** — chaque composant est une fonction retournant

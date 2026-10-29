@@ -1,15 +1,22 @@
 import { expect, test } from 'bun:test';
+import { RENDER_REFERENCE } from '../render-reference.js';
 import { createPreviewStage, fitStage, STAGE_HEIGHT, STAGE_WIDTH } from './preview-stage.js';
 
-test('le cadre garde le rapport 16:9 et reste centré dans la zone libre', () => {
-  const { scale, left, top } = fitStage({ areaWidth: 1920, areaHeight: 1080, insetLeft: 340 });
-  expect(STAGE_WIDTH * scale + 2 * (left - 340)).toBeCloseTo(1920 - 340, 6);
-  expect(STAGE_HEIGHT * scale + 2 * top).toBeCloseTo(1080, 6);
-  expect(scale).toBeCloseTo((1920 - 340 - 32) / 1920, 6);
+test('le cadre suit la résolution de référence, jamais une valeur recopiée', () => {
+  expect([STAGE_WIDTH, STAGE_HEIGHT]).toEqual([RENDER_REFERENCE.width, RENDER_REFERENCE.height]);
 });
 
-test('le cadre n’est jamais agrandi au-delà de la taille réelle', () => {
-  expect(fitStage({ areaWidth: 5000, areaHeight: 4000 }).scale).toBe(1);
+test('le cadre garde le rapport de la source et reste centré dans la zone libre', () => {
+  const { scale, left, top } = fitStage({ areaWidth: 1580, areaHeight: 1000 });
+  expect(STAGE_WIDTH * scale + 2 * left).toBeCloseTo(1580, 6);
+  expect(STAGE_HEIGHT * scale + 2 * top).toBeCloseTo(1000, 6);
+  expect(scale).toBeCloseTo((1580 - 32) / 1920, 6);
+});
+
+test('sur un écran plus grand que la source, le cadre est agrandi pour remplir la zone', () => {
+  const { scale } = fitStage({ areaWidth: 3200, areaHeight: 1800 });
+  expect(scale).toBeGreaterThan(1);
+  expect(STAGE_HEIGHT * scale).toBeCloseTo(1800 - 32, 6);
 });
 
 test('la hauteur limite l’échelle quand la zone est large et basse', () => {
@@ -18,7 +25,7 @@ test('la hauteur limite l’échelle quand la zone est large et basse', () => {
 });
 
 test('une zone libre nulle donne une échelle nulle, pas négative', () => {
-  expect(fitStage({ areaWidth: 100, areaHeight: 100, insetLeft: 340 }).scale).toBe(0);
+  expect(fitStage({ areaWidth: 20, areaHeight: 20 }).scale).toBe(0);
 });
 
 test('createPreviewStage dimensionne le conteneur à 1920×1080 et suit la taille de la zone', () => {

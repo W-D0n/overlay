@@ -39,7 +39,7 @@ export const RainBackground = defineCanvasLayer((/** @type {RainBackgroundOption
   function seedDrops() {
     const { minX, maxX } = rainSpawnRange(cssW, cssH, angle);
     // Garder une densité visuelle stable lorsque l'angle élargit le domaine nécessaire pour
-    // couvrir le viewport. À 90°, le coût maximal reste borné à ~1,5× sur un canvas 1920×1080.
+    // couvrir le viewport. À 90°, le coût maximal reste borné à ~1,5× sur un canvas de la résolution de référence.
     const coverageFactor = cssW > 0 ? (maxX - minX) / (cssW + RAIN_MARGIN * 2) : 1;
     const count = Math.round((40 + intensity * 260) * coverageFactor);
     drops = Array.from({ length: count }, () => ({
