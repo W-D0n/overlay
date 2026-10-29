@@ -5,7 +5,7 @@ import { createBackgroundPresetTransferController } from './background-preset-tr
 const preset = {
   id: 'pluie-calme',
   name: 'Pluie calme',
-  component: 'RainBackground',
+  component: 'rain',
   options: { intensity: 0.4, speed: 1, color: '#C8B97A', angle: 8 },
   tags: ['calme'],
 };

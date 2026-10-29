@@ -6,12 +6,12 @@ import {
 import { STATIC_PORT } from '../ports.config.js';
 
 const file = {
-  current: { component: 'RainBackground', options: {} },
+  current: { component: 'rain', options: {} },
   presets: [
     {
       id: 'discussion-calme',
       name: 'Discussion calme',
-      component: 'BubbleBackground',
+      component: 'bubble',
       options: { count: 12 },
     },
   ],
@@ -184,7 +184,7 @@ test('une coupure réseau produit un diagnostic complet sans faire échouer la c
 });
 
 const reactiveFile = {
-  current: { component: 'DotGridBackground', options: { audioReactive: 'Oui' } },
+  current: { component: 'dotgrid', options: { audioReactive: 'Oui' } },
   presets: [],
 };
 

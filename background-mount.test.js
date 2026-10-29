@@ -434,3 +434,16 @@ describe('isAudioEnabled', () => {
     expect(isAudioEnabled(undefined)).toBe(false);
   });
 });
+
+describe('identifiants neutres', () => {
+  test('un état à identifiant neutre monte la fabrique de ce nom, et l’ancien nom monte la même', () => {
+    const created = [];
+    const registry = { rain: () => { created.push('rain'); return { el: { name: 'rain', remove: () => {} } }; } };
+    const container = { appendChild: () => {} };
+    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
+    mount.apply({ component: 'rain', options: {} });
+    mount.apply({ component: null, options: {} });
+    mount.apply({ component: 'RainBackground', options: {} });
+    expect(created).toEqual(['rain', 'rain']);
+  });
+});

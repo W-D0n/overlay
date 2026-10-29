@@ -18,11 +18,11 @@ test('les couleurs de fond utilisent les contrôles color/colors du tuner', () =
       if (/^color[A-Z]?$/.test(field.key)) expect(field.type).toBe('color');
     }
   }
-  expect(BACKGROUND_FIELD_SCHEMAS.ColorDropsBackground.find(({ key }) => key === 'colors')?.type).toBe('colors');
+  expect(BACKGROUND_FIELD_SCHEMAS['color-drops'].find(({ key }) => key === 'colors')?.type).toBe('colors');
 });
 
 test('DotGrid nomme son mode comme un profil de mouvement et l’explique', () => {
-  const mode = BACKGROUND_FIELD_SCHEMAS.DotGridBackground.find(({ key }) => key === 'mode');
+  const mode = BACKGROUND_FIELD_SCHEMAS.dotgrid.find(({ key }) => key === 'mode');
   expect(mode?.label).toBe('Profil de mouvement');
   expect(mode?.description).toContain('ne change pas la scène OBS');
 });

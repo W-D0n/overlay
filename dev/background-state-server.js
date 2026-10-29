@@ -30,6 +30,8 @@ import {
   defaultBackgroundFile,
   createPresetId,
   migrateBackgroundFile,
+  canonicalBackgroundCurrent,
+  canonicalBackgroundPreset,
   validateBackgroundCurrent,
   validateBackgroundPreset,
   validateBackgroundFile,
@@ -186,11 +188,11 @@ async function handleGetState() {
  */
 async function handlePostState(req) {
   const body = /** @type {*} */ (await req.json());
-  const validation = validateBackgroundCurrent(body?.current);
+  // Un client plus ancien peut encore envoyer l'ancien nom d'effet ou « Oui » : on stocke la forme persistée.
+  const current = /** @type {import('./background-state-format.js').BackgroundCurrent} */ (canonicalBackgroundCurrent(body?.current));
+  const validation = validateBackgroundCurrent(current);
   if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
 
-  /** @type {import('./background-state-format.js').BackgroundCurrent} */
-  const current = body.current;
   const response = await withStateUpdate((file) => ({ ...file, current }));
   if (response.ok) broadcastCurrent(current);
   return response;
@@ -211,7 +213,7 @@ async function handleSavePreset(req) {
     if (requestedId !== null && existing === undefined) return jsonError(`preset inconnu : ${requestedId}`, 404);
 
     const id = existing?.id ?? createPresetId(String(body?.name ?? ''), file.presets);
-    const candidate = {
+    const candidate = canonicalBackgroundPreset({
       id,
       name: body?.name,
       component: body?.component,
@@ -226,7 +228,7 @@ async function handleSavePreset(req) {
       ...(body?.showBranding === undefined
         ? (existing?.showBranding === undefined ? {} : { showBranding: existing.showBranding })
         : { showBranding: body.showBranding }),
-    };
+    });
     const validation = validateBackgroundPreset(candidate);
     if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
     if (file.presets.some((preset) => preset.name === candidate.name && preset.id !== id)) {

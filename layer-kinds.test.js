@@ -1,6 +1,6 @@
 // @ts-check
 import { describe, expect, test } from 'bun:test';
-import { GRID_MODES, LAYER_KINDS, LAYER_KIND_IDS, isAudioOn, isLayerKindId } from './layer-kinds.js';
+import { GRID_MODES, LAYER_KINDS, LAYER_KIND_IDS, isAudioOn, isLayerKindId, isKnownKindId, resolveKindId } from './layer-kinds.js';
 import { MODE_PARAMS } from './components/DotGridAnimated.js';
 
 describe('valeur persistée de la réactivité audio', () => {
@@ -30,9 +30,41 @@ describe('description des types de couche', () => {
   });
 
   test('isLayerKindId ne reconnaît que les identifiants décrits', () => {
-    expect(isLayerKindId('RainBackground')).toBe(true);
+    expect(isLayerKindId('rain')).toBe(true);
     expect(isLayerKindId('MatrixGridBackground')).toBe(false);
     expect(isLayerKindId('toString')).toBe(false);
     expect(isLayerKindId(null)).toBe(false);
+  });
+});
+
+describe('identifiants neutres et anciens noms', () => {
+  const LEGACY = {
+    DotGridBackground: 'dotgrid', RainBackground: 'rain', BubbleBackground: 'bubble',
+    FirefliesBackground: 'fireflies', FloatingSymbolsBackground: 'floating-symbols',
+    GeometricPatternBackground: 'geometric-pattern', ColorDropsBackground: 'color-drops',
+    StarsParallaxBackground: 'stars-parallax', OrbitingShapesBackground: 'orbiting-shapes',
+    ShapeMorphBackground: 'shape-morph', WaterRippleBackground: 'water-ripple',
+  };
+
+  test('chaque ancien nom se résout vers son identifiant neutre, qui se résout vers lui-même', () => {
+    for (const [legacy, id] of Object.entries(LEGACY)) {
+      expect(resolveKindId(legacy)).toBe(id);
+      expect(resolveKindId(id)).toBe(id);
+    }
+    expect([...LAYER_KIND_IDS].sort()).toEqual(Object.values(LEGACY).sort());
+  });
+
+  test('un nom inconnu ne se résout pas ; isKnownKindId accepte l’ancien et le nouveau nom', () => {
+    expect(resolveKindId('MatrixGridBackground')).toBeNull();
+    expect(resolveKindId(undefined)).toBeNull();
+    expect(resolveKindId('toString')).toBeNull();
+    expect(isKnownKindId('RainBackground')).toBe(true);
+    expect(isKnownKindId('rain')).toBe(true);
+    expect(isLayerKindId('RainBackground')).toBe(false);
+  });
+
+  test('les libellés affichés ne changent pas avec les identifiants', () => {
+    expect(LAYER_KINDS.rain.label).toBe('Rain');
+    expect(LAYER_KINDS['floating-symbols'].label).toBe('FloatingSymbols');
   });
 });

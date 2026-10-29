@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * component-registry.js — `ComponentName` → factory d'effet de fond.
+ * component-registry.js — identifiant de type de couche → factory d'effet de fond.
  *
  * Map résolue par `background-mount.js` au montage de l'effet courant, pour l'URL OBS
  * (`background.html`) comme pour l'aperçu du Studio. `DotGridBackground` reste l'alias de
@@ -28,16 +28,16 @@ import { WaterRippleBackground } from './components/WaterRippleBackground.js';
  * @type {Record<import('./layer-kinds.js').LayerKindId, (options: any, environment?: any) => import('./types.js').ComponentInstance>}
  */
 export const COMPONENT_REGISTRY = ({
-  DotGridBackground: DotGridAnimated,
-  RainBackground,
-  BubbleBackground,
-  FirefliesBackground,
-  FloatingSymbolsBackground,
-  GeometricPatternBackground,
-  ColorDropsBackground,
-  StarsParallaxBackground,
-  OrbitingShapesBackground,
-  ShapeMorphBackground,
-  WaterRippleBackground,
+  dotgrid: DotGridAnimated,
+  rain: RainBackground,
+  bubble: BubbleBackground,
+  fireflies: FirefliesBackground,
+  'floating-symbols': FloatingSymbolsBackground,
+  'geometric-pattern': GeometricPatternBackground,
+  'color-drops': ColorDropsBackground,
+  'stars-parallax': StarsParallaxBackground,
+  'orbiting-shapes': OrbitingShapesBackground,
+  'shape-morph': ShapeMorphBackground,
+  'water-ripple': WaterRippleBackground,
 });
 

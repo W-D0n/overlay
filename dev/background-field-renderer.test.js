@@ -7,7 +7,7 @@ import {
 
 describe('rendu des champs de fond', () => {
   test('prépare chaque champ avec la valeur courante ou son défaut', () => {
-    const values = backgroundFieldValues('RainBackground', {
+    const values = backgroundFieldValues('rain', {
       intensity: 0.8,
       color: 'var(--color-gold)',
     });
@@ -58,7 +58,7 @@ describe('champ booléen', () => {
       documentRef: /** @type {*} */ ({ createElement: fakeElement }),
       onChange: (key, next) => changes.push([key, next]),
     });
-    renderer.render('RainBackground', { audioReactive: value });
+    renderer.render('rain', { audioReactive: value });
     const checkbox = find(container, (node) => node.type === 'checkbox');
     return { checkbox, changes };
   }

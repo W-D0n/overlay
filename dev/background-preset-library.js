@@ -1,6 +1,6 @@
 // @ts-check
-import { PRESET_NAME_MAX_LENGTH, validateBackgroundFile } from './background-state-format.js';
-import { neutralizeOptions } from '../layer-kinds.js';
+import { PRESET_NAME_MAX_LENGTH, canonicalBackgroundPreset, validateBackgroundFile } from './background-state-format.js';
+import { backgroundEffectLabel } from './component-field-schemas.js';
 
 export const BACKGROUND_PRESET_BUNDLE_FORMAT = 'overlay-background-presets';
 export const BACKGROUND_PRESET_BUNDLE_VERSION = 2;
@@ -60,7 +60,7 @@ export function filterBackgroundPresets(presets, query) {
   if (needle === '') return presets;
   return presets.filter((preset) => searchable([
     preset.name,
-    preset.component.replace(/Background$/, ''),
+    backgroundEffectLabel(preset.component),
     ...(preset.tags ?? []),
   ].join(' ')).includes(needle));
 }
@@ -213,7 +213,7 @@ export function parseBackgroundPresetBundle(input) {
     ok: true,
     presets: /** @type {import('./background-state-format.js').BackgroundPreset[]} */ (bundle.presets)
       .map(clonePreset)
-      .map((preset) => ({ ...preset, options: neutralizeOptions(preset.options) })),
+      .map(canonicalBackgroundPreset),
   };
 }
 

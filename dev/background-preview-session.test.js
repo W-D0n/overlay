@@ -6,8 +6,8 @@ import {
 
 describe('session d’aperçu du tuner', () => {
   test('construit des options par défaut indépendantes pour chaque sélection', () => {
-    const first = defaultBackgroundOptions('RainBackground');
-    const second = defaultBackgroundOptions('RainBackground');
+    const first = defaultBackgroundOptions('rain');
+    const second = defaultBackgroundOptions('rain');
 
     expect(first).toEqual({
       intensity: 0.5,
@@ -23,13 +23,13 @@ describe('session d’aperçu du tuner', () => {
 
   test('sélectionner un effet initialise ses options et quitte le preset actif', () => {
     const session = createBackgroundPreviewSession();
-    session.apply({ component: 'BubbleBackground', options: { count: 8 } }, 'bulles');
+    session.apply({ component: 'bubble', options: { count: 8 } }, 'bulles');
 
-    const next = session.selectEffect('RainBackground');
+    const next = session.selectEffect('rain');
 
     expect(next).toEqual({
       current: {
-        component: 'RainBackground',
+        component: 'rain',
         options: {
           intensity: 0.5, speed: 1, color: '#C8B97A', angle: 8,
           audioReactive: false, audioIntensity: 1,
@@ -44,7 +44,7 @@ describe('session d’aperçu du tuner', () => {
 
   test('appliquer un preset et modifier une option ne mute pas la source', () => {
     const preset = {
-      component: 'RainBackground',
+      component: 'rain',
       options: { intensity: 0.3, speed: 1 },
     };
     const session = createBackgroundPreviewSession();
@@ -53,7 +53,7 @@ describe('session d’aperçu du tuner', () => {
 
     expect(session.snapshot()).toEqual({
       current: {
-        component: 'RainBackground',
+        component: 'rain',
         options: { intensity: 0.3, speed: 2 },
         showBranding: true,
       },
@@ -66,7 +66,7 @@ describe('session d’aperçu du tuner', () => {
 
   test('le snapshot ne permet pas de modifier la session depuis l’extérieur', () => {
     const session = createBackgroundPreviewSession();
-    session.apply({ component: 'RainBackground', options: { speed: 1 } });
+    session.apply({ component: 'rain', options: { speed: 1 } });
     const snapshot = session.snapshot();
     snapshot.current.options.speed = 99;
 
@@ -77,7 +77,7 @@ describe('session d’aperçu du tuner', () => {
     const session = createBackgroundPreviewSession();
     const state = session.apply(
       {
-        component: 'RainBackground',
+        component: 'rain',
         options: {},
         transition: { type: 'wipe', durationMs: 400, direction: 'up' },
       },
@@ -90,7 +90,7 @@ describe('session d’aperçu du tuner', () => {
   test('un réglage qui suit l’arrivée ne rejoue pas la transition', () => {
     const session = createBackgroundPreviewSession();
     session.apply(
-      { component: 'RainBackground', options: { speed: 1 }, transition: { type: 'wipe', durationMs: 400 } },
+      { component: 'rain', options: { speed: 1 }, transition: { type: 'wipe', durationMs: 400 } },
       'pluie',
     );
 
@@ -100,13 +100,13 @@ describe('session d’aperçu du tuner', () => {
 
   test('un preset sans transition arrive avec les valeurs par défaut', () => {
     const session = createBackgroundPreviewSession();
-    const state = session.apply({ component: 'RainBackground', options: {} }, 'pluie');
+    const state = session.apply({ component: 'rain', options: {} }, 'pluie');
     expect(state.current.transition).toEqual({ type: 'fade', durationMs: 600, direction: 'right', easing: 'easeInOut' });
   });
 
   test('changer la transition n’anime pas et borne les valeurs aberrantes', () => {
     const session = createBackgroundPreviewSession();
-    session.apply({ component: 'RainBackground', options: {} }, 'pluie');
+    session.apply({ component: 'rain', options: {} }, 'pluie');
 
     const state = session.changeTransition({ type: 'wipe', durationMs: 99999 });
     expect(state.transition).toEqual({ type: 'wipe', durationMs: 2000, direction: 'right', easing: 'easeInOut' });
@@ -116,7 +116,7 @@ describe('session d’aperçu du tuner', () => {
   test('un preset qui masque le branding le transmet dans l’état diffusé', () => {
     const session = createBackgroundPreviewSession();
     const state = session.apply(
-      { component: 'RainBackground', options: {}, showBranding: false },
+      { component: 'rain', options: {}, showBranding: false },
       'discret',
     );
     expect(state.current.showBranding).toBe(false);
@@ -125,7 +125,7 @@ describe('session d’aperçu du tuner', () => {
 
   test('basculer la visibilité du branding n’attend pas un enregistrement de preset', () => {
     const session = createBackgroundPreviewSession();
-    session.apply({ component: 'RainBackground', options: {} }, 'pluie');
+    session.apply({ component: 'rain', options: {} }, 'pluie');
     expect(session.setShowBranding(false).current.showBranding).toBe(false);
     expect(session.changeOption('speed', 3).current.showBranding).toBe(false);
   });

@@ -8,6 +8,8 @@ import {
   validateBackgroundFile,
   createPresetId,
   migrateBackgroundFile,
+  canonicalBackgroundCurrent,
+  canonicalBackgroundPreset,
   upsertPreset,
   renamePreset,
   duplicatePreset,
@@ -18,7 +20,7 @@ import {
 } from './background-state-format.js';
 
 /** @type {(over?: object) => { id: string, name: string, component: string, options: Record<string, unknown> }} */
-const preset = (over = {}) => ({ id: 'pluie-douce', name: 'pluie douce', component: 'RainBackground', options: { intensity: 0.3 }, ...over });
+const preset = (over = {}) => ({ id: 'pluie-douce', name: 'pluie douce', component: 'rain', options: { intensity: 0.3 }, ...over });
 
 // ── defaultBackgroundFile ────────────────────────────────────────────────
 
@@ -33,7 +35,7 @@ test('defaultBackgroundFile returns a new object on each call', () => {
 // ── validateBackgroundCurrent ────────────────────────────────────────────
 
 test('validateBackgroundCurrent accepts a known effect with options', () => {
-  expect(validateBackgroundCurrent({ component: 'RainBackground', options: { intensity: 0.6 } }).ok).toBe(true);
+  expect(validateBackgroundCurrent({ component: 'rain', options: { intensity: 0.6 } }).ok).toBe(true);
 });
 
 test('validateBackgroundCurrent accepts component null (no background)', () => {
@@ -87,7 +89,7 @@ test('validateBackgroundPreset accepts a nominal preset', () => {
 });
 
 test('validateBackgroundPreset requires a stable URL-safe id', () => {
-  expect(validateBackgroundPreset({ name: 'pluie douce', component: 'RainBackground', options: {} }).ok).toBe(false);
+  expect(validateBackgroundPreset({ name: 'pluie douce', component: 'rain', options: {} }).ok).toBe(false);
   expect(validateBackgroundPreset(preset({ id: 'Pluie douce' })).ok).toBe(false);
 });
 
@@ -109,7 +111,7 @@ test('validateBackgroundPreset lists all invalid fields simultaneously', () => {
 // ── validateBackgroundFile ───────────────────────────────────────────────
 
 test('validateBackgroundFile accepts a nominal file with presets', () => {
-  const file = { current: { component: 'RainBackground', options: {} }, presets: [preset()] };
+  const file = { current: { component: 'rain', options: {} }, presets: [preset()] };
   expect(validateBackgroundFile(file)).toEqual({ ok: true, errors: [] });
 });
 
@@ -145,10 +147,10 @@ test('validateBackgroundFile rejects duplicate preset ids', () => {
 
 test('migrateBackgroundFile adds deterministic ids to legacy presets without altering their visuals', () => {
   const legacy = {
-    current: { component: 'RainBackground', options: { speed: 2 } },
+    current: { component: 'rain', options: { speed: 2 } },
     presets: [
-      { name: 'Pluie douce', component: 'RainBackground', options: { intensity: 0.3 } },
-      { name: 'Pluie douce !', component: 'RainBackground', options: { intensity: 0.8 } },
+      { name: 'Pluie douce', component: 'rain', options: { intensity: 0.3 } },
+      { name: 'Pluie douce !', component: 'rain', options: { intensity: 0.8 } },
     ],
   };
   const result = migrateBackgroundFile(legacy);
@@ -163,7 +165,7 @@ test('migrateBackgroundFile retires MatrixGrid safely without mutating persisted
     current: { component: 'MatrixGridBackground', options: { speed: 0.7 } },
     presets: [
       { id: 'horizon-neon', name: 'Horizon néon', component: 'MatrixGridBackground', options: { density: 18 } },
-      { name: 'Pluie douce', component: 'RainBackground', options: { intensity: 0.3 } },
+      { name: 'Pluie douce', component: 'rain', options: { intensity: 0.3 } },
     ],
   };
   const before = structuredClone(persisted);
@@ -173,7 +175,7 @@ test('migrateBackgroundFile retires MatrixGrid safely without mutating persisted
   expect(result.migrated).toBe(true);
   expect(result.file.current).toEqual({ component: null, options: {} });
   expect(result.file.presets).toEqual([
-    { id: 'pluie-douce', name: 'Pluie douce', component: 'RainBackground', options: { intensity: 0.3 } },
+    { id: 'pluie-douce', name: 'Pluie douce', component: 'rain', options: { intensity: 0.3 } },
   ]);
   expect(persisted).toEqual(before);
 });
@@ -235,14 +237,14 @@ test('removePreset does not mutate the input array and returns a new reference',
 });
 
 test('un fichier écrit avant le mapping OBS reste valide et lit une table vide', () => {
-  const legacy = { current: { component: 'DotGridBackground', options: {} }, presets: [] };
+  const legacy = { current: { component: 'dotgrid', options: {} }, presets: [] };
   expect(validateBackgroundFile(legacy).ok).toBe(true);
   expect(readSceneMap(legacy)).toEqual({});
 });
 
 test('une table d’association valide est relue telle quelle', () => {
   const file = {
-    current: { component: 'DotGridBackground', options: {} },
+    current: { component: 'dotgrid', options: {} },
     presets: [],
     sceneMap: { Discussion: 'discussion-calme' },
   };
@@ -252,7 +254,7 @@ test('une table d’association valide est relue telle quelle', () => {
 
 test('une table d’association invalide rend le fichier invalide', () => {
   const file = {
-    current: { component: 'DotGridBackground', options: {} },
+    current: { component: 'dotgrid', options: {} },
     presets: [],
     sceneMap: { Discussion: 42 },
   };
@@ -267,23 +269,23 @@ test('un fichier neuf part avec une table d’association vide', () => {
 
 test('un preset sans transition reste valide', () => {
   expect(validateBackgroundPreset({
-    id: 'alpha', name: 'Alpha', component: 'RainBackground', options: {},
+    id: 'alpha', name: 'Alpha', component: 'rain', options: {},
   }).ok).toBe(true);
 });
 
 test('une transition valide est acceptée sur un preset comme sur l’état courant', () => {
   const transition = { type: 'wipe', durationMs: 400, direction: 'up' };
   expect(validateBackgroundPreset({
-    id: 'alpha', name: 'Alpha', component: 'RainBackground', options: {}, transition,
+    id: 'alpha', name: 'Alpha', component: 'rain', options: {}, transition,
   }).ok).toBe(true);
   expect(validateBackgroundCurrent({
-    component: 'RainBackground', options: {}, transition,
+    component: 'rain', options: {}, transition,
   }).ok).toBe(true);
 });
 
 test('une transition fautive rend le preset invalide et nomme le champ', () => {
   const result = validateBackgroundPreset({
-    id: 'alpha', name: 'Alpha', component: 'RainBackground', options: {},
+    id: 'alpha', name: 'Alpha', component: 'rain', options: {},
     transition: { type: 'morph' },
   });
   expect(result.ok).toBe(false);
@@ -292,14 +294,14 @@ test('une transition fautive rend le preset invalide et nomme le champ', () => {
 
 test('une transition fautive rend l’état courant invalide', () => {
   const result = validateBackgroundCurrent({
-    component: 'RainBackground', options: {}, transition: { durationMs: 9000 },
+    component: 'rain', options: {}, transition: { durationMs: 9000 },
   });
   expect(result.ok).toBe(false);
   expect(result.errors.join(' ')).toContain('transition.durationMs');
 });
 
 test('un fichier sans branding reste valide et n’affiche rien', () => {
-  const legacy = { current: { component: 'DotGridBackground', options: {} }, presets: [] };
+  const legacy = { current: { component: 'dotgrid', options: {} }, presets: [] };
   expect(validateBackgroundFile(legacy).ok).toBe(true);
   expect(readBranding(legacy).name).toBe('');
   expect(readBranding(legacy).lines).toEqual([]);
@@ -307,7 +309,7 @@ test('un fichier sans branding reste valide et n’affiche rien', () => {
 
 test('un branding enregistré est relu normalisé', () => {
   const file = {
-    current: { component: 'DotGridBackground', options: {} },
+    current: { component: 'dotgrid', options: {} },
     presets: [],
     branding: { name: 'D0n', lines: ['twitch.tv/d0n'], x: 12, y: 88 },
   };
@@ -317,7 +319,7 @@ test('un branding enregistré est relu normalisé', () => {
 
 test('un branding fautif rend le fichier invalide', () => {
   const file = {
-    current: { component: 'DotGridBackground', options: {} },
+    current: { component: 'dotgrid', options: {} },
     presets: [],
     branding: { x: 400 },
   };
@@ -328,16 +330,16 @@ test('un branding fautif rend le fichier invalide', () => {
 
 test('showBranding n’accepte qu’un booléen, sur le preset comme sur l’état courant', () => {
   expect(validateBackgroundCurrent({
-    component: 'RainBackground', options: {}, showBranding: false,
+    component: 'rain', options: {}, showBranding: false,
   }).ok).toBe(true);
   expect(validateBackgroundCurrent({
-    component: 'RainBackground', options: {}, showBranding: 'non',
+    component: 'rain', options: {}, showBranding: 'non',
   }).ok).toBe(false);
   expect(validateBackgroundPreset({
-    id: 'alpha', name: 'Alpha', component: 'RainBackground', options: {}, showBranding: true,
+    id: 'alpha', name: 'Alpha', component: 'rain', options: {}, showBranding: true,
   }).ok).toBe(true);
   expect(validateBackgroundPreset({
-    id: 'alpha', name: 'Alpha', component: 'RainBackground', options: {}, showBranding: 1,
+    id: 'alpha', name: 'Alpha', component: 'rain', options: {}, showBranding: 1,
   }).ok).toBe(false);
 });
 
@@ -374,4 +376,27 @@ test('un fichier déjà en version 2 n’est pas modifié, et la migration est i
   expect(migrateBackgroundFile(current)).toEqual({ file: current, migrated: false });
   const once = migrateBackgroundFile({ current: { component: null, options: {} }, presets: [] });
   expect(migrateBackgroundFile(once.file).migrated).toBe(false);
+});
+
+test('la migration renomme les effets vers leurs identifiants neutres dans l’état courant et les presets', () => {
+  const { file } = migrateBackgroundFile({
+    current: { component: 'ShapeMorphBackground', options: {} },
+    presets: [preset({ id: 'a', name: 'a', component: 'FloatingSymbolsBackground' }), preset({ id: 'b', name: 'b', component: 'rain' })],
+  });
+  expect(file.current.component).toBe('shape-morph');
+  expect(file.presets.map((entry) => entry.component)).toEqual(['floating-symbols', 'rain']);
+  expect(validateBackgroundFile(file)).toEqual({ ok: true, errors: [] });
+});
+
+test('un ancien nom d’effet reste valide à la lecture ; un nom inconnu est toujours refusé', () => {
+  expect(validateBackgroundCurrent({ component: 'RainBackground', options: {} }).ok).toBe(true);
+  expect(validateBackgroundCurrent({ component: 'rain', options: {} }).ok).toBe(true);
+  expect(validateBackgroundCurrent({ component: 'FantomeBackground', options: {} }).ok).toBe(false);
+});
+
+test('canonicalBackgroundCurrent et canonicalBackgroundPreset ramènent nom et valeurs à la forme persistée', () => {
+  expect(canonicalBackgroundCurrent({ component: 'RainBackground', options: { audioReactive: 'Oui' } }))
+    .toEqual({ component: 'rain', options: { audioReactive: true } });
+  expect(canonicalBackgroundCurrent({ component: null, options: {} })).toEqual({ component: null, options: {} });
+  expect(canonicalBackgroundPreset(preset({ component: 'WaterRippleBackground' })).component).toBe('water-ripple');
 });

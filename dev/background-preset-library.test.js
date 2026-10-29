@@ -9,8 +9,8 @@ import {
 } from './background-preset-library.js';
 
 const presets = [
-  { id: 'ondes', name: 'Ondes dorées', component: 'WaterRippleBackground', options: {}, tags: ['intermission', 'calme'] },
-  { id: 'pluie', name: 'Pluie lente', component: 'RainBackground', options: {}, tags: ['coding'] },
+  { id: 'ondes', name: 'Ondes dorées', component: 'water-ripple', options: {}, tags: ['intermission', 'calme'] },
+  { id: 'pluie', name: 'Pluie lente', component: 'rain', options: {}, tags: ['coding'] },
 ];
 
 test('la recherche de presets couvre nom, effet et tags sans dépendre des accents ni de la casse', () => {
@@ -48,7 +48,7 @@ test('le plan d’import décrit les valeurs utiles d’une création', () => {
   const imported = [{
     id: 'brume',
     name: 'Brume',
-    component: 'FirefliesBackground',
+    component: 'fireflies',
     options: { count: 18 },
     tags: ['calme'],
   }];
@@ -62,12 +62,12 @@ test('le plan d’import décrit les valeurs utiles d’une création', () => {
       id: 'brume',
       operation: 'created',
       name: 'Brume',
-      component: 'FirefliesBackground',
+      component: 'fireflies',
       requestedName: 'Brume',
       renamed: false,
       conflict: null,
       differences: [
-        { field: 'component', after: 'FirefliesBackground' },
+        { field: 'component', after: 'fireflies' },
         { field: 'tags', after: ['calme'] },
         { field: 'option', key: 'count', after: 18 },
       ],
@@ -79,14 +79,14 @@ test('le plan d’import limite une mise à jour aux valeurs réellement modifi�
   const existing = [{
     id: 'pluie',
     name: 'Pluie lente',
-    component: 'RainBackground',
+    component: 'rain',
     options: { speed: 1, color: '#ffffff', angle: 8 },
     tags: ['coding', 'calme'],
   }];
   const imported = [{
     id: 'pluie',
     name: 'Pluie vive',
-    component: 'BubbleBackground',
+    component: 'bubble',
     options: { speed: 2, color: '#ffffff', count: 12 },
     tags: ['dynamique'],
   }];
@@ -105,7 +105,7 @@ test('le plan d’import limite une mise à jour aux valeurs réellement modifi�
       conflict: null,
       differences: [
         { field: 'name', before: 'Pluie lente', after: 'Pluie vive' },
-        { field: 'component', before: 'RainBackground', after: 'BubbleBackground' },
+        { field: 'component', before: 'rain', after: 'bubble' },
         { field: 'tags', before: ['coding', 'calme'], after: ['dynamique'] },
         { field: 'option', key: 'speed', before: 1, after: 2 },
         { field: 'option', key: 'angle', before: 8 },
@@ -119,7 +119,7 @@ test('le plan d’import marque un preset identique comme ignoré', () => {
   const existing = [{
     id: 'pluie',
     name: 'Pluie calme',
-    component: 'RainBackground',
+    component: 'rain',
     options: { speed: 1, color: '#ffffff' },
     tags: ['calme'],
   }];
@@ -149,13 +149,13 @@ test('le plan d’import explique le renommage causé par un conflit de nom', ()
   const existing = [{
     id: 'ondes',
     name: 'Ondes',
-    component: 'WaterRippleBackground',
+    component: 'water-ripple',
     options: {},
   }];
   const imported = [{
     id: 'nouveau',
     name: 'Ondes',
-    component: 'BubbleBackground',
+    component: 'bubble',
     options: {},
   }];
 
@@ -173,7 +173,7 @@ test('le plan d’import explique le renommage causé par un conflit de nom', ()
       conflict: { id: 'ondes', name: 'Ondes' },
       differences: [
         { field: 'name', before: 'Ondes', after: 'Ondes — import' },
-        { field: 'component', after: 'BubbleBackground' },
+        { field: 'component', after: 'bubble' },
       ],
     }],
   });
@@ -181,19 +181,19 @@ test('le plan d’import explique le renommage causé par un conflit de nom', ()
 
 test('la fusion met à jour les ids connus et renomme une collision de nom sans écraser un autre preset', () => {
   const existing = [
-    { id: 'pluie', name: 'Pluie lente', component: 'RainBackground', options: { speed: 1 } },
-    { id: 'ondes', name: 'Ondes', component: 'WaterRippleBackground', options: {} },
+    { id: 'pluie', name: 'Pluie lente', component: 'rain', options: { speed: 1 } },
+    { id: 'ondes', name: 'Ondes', component: 'water-ripple', options: {} },
   ];
   const imported = [
-    { id: 'pluie', name: 'Pluie mise à jour', component: 'RainBackground', options: { speed: 2 } },
-    { id: 'nouveau', name: 'Ondes', component: 'BubbleBackground', options: {} },
+    { id: 'pluie', name: 'Pluie mise à jour', component: 'rain', options: { speed: 2 } },
+    { id: 'nouveau', name: 'Ondes', component: 'bubble', options: {} },
   ];
 
   expect(mergeBackgroundPresetImport(existing, imported)).toMatchObject({
     presets: [
-      { id: 'pluie', name: 'Pluie mise à jour', component: 'RainBackground', options: { speed: 2 } },
-      { id: 'ondes', name: 'Ondes', component: 'WaterRippleBackground', options: {} },
-      { id: 'nouveau', name: 'Ondes — import', component: 'BubbleBackground', options: {} },
+      { id: 'pluie', name: 'Pluie mise à jour', component: 'rain', options: { speed: 2 } },
+      { id: 'ondes', name: 'Ondes', component: 'water-ripple', options: {} },
+      { id: 'nouveau', name: 'Ondes — import', component: 'bubble', options: {} },
     ],
     created: 1,
     updated: 1,
@@ -204,8 +204,8 @@ test('la fusion met à jour les ids connus et renomme une collision de nom sans 
 
 test('le preset actif est resynchronisé seulement si son id faisait partie de l’import', () => {
   const merged = [
-    { id: 'pluie', name: 'Pluie importée', component: 'RainBackground', options: { speed: 2 } },
-    { id: 'ondes', name: 'Ondes', component: 'WaterRippleBackground', options: {} },
+    { id: 'pluie', name: 'Pluie importée', component: 'rain', options: { speed: 2 } },
+    { id: 'ondes', name: 'Ondes', component: 'water-ripple', options: {} },
   ];
 
   expect(findImportedActivePreset(merged, [{ id: 'pluie' }], 'pluie')).toEqual(merged[0]);
@@ -226,7 +226,7 @@ test('la révision de bibliothèque reste stable à contenu égal et change avec
 const presetWithPlayback = {
   id: 'ambiance-test',
   name: 'Ambiance test',
-  component: 'RainBackground',
+  component: 'rain',
   options: { intensity: 0.5 },
   tags: ['calme'],
   transition: { type: 'wipe', durationMs: 900, direction: 'left', easing: 'easeOut' },
@@ -255,13 +255,13 @@ test('un import qui ne change que la transition ou showBranding est une mise à 
 });
 
 test('un export est en version 2 ; un lot version 1 s’importe en convertissant « Oui » en booléen', () => {
-  const exported = createBackgroundPresetBundle([{ id: 'a', name: 'A', component: 'RainBackground', options: { audioReactive: true } }]);
+  const exported = createBackgroundPresetBundle([{ id: 'a', name: 'A', component: 'rain', options: { audioReactive: true } }]);
   expect(exported.version).toBe(2);
 
   const legacyBundle = JSON.stringify({
     format: 'overlay-background-presets',
     version: 1,
-    presets: [{ id: 'a', name: 'A', component: 'RainBackground', options: { audioReactive: 'Oui', speed: 2 } }],
+    presets: [{ id: 'a', name: 'A', component: 'rain', options: { audioReactive: 'Oui', speed: 2 } }],
   });
   const parsed = parseBackgroundPresetBundle(legacyBundle);
   expect(parsed.ok).toBe(true);
@@ -271,4 +271,14 @@ test('un export est en version 2 ; un lot version 1 s’importe en convertissant
 test('une version de lot inconnue est refusée', () => {
   const result = parseBackgroundPresetBundle(JSON.stringify({ format: 'overlay-background-presets', version: 9, presets: [] }));
   expect(result.ok).toBe(false);
+});
+
+test('un lot version 1 qui porte d’anciens noms d’effet s’importe sous leurs identifiants neutres', () => {
+  const parsed = parseBackgroundPresetBundle(JSON.stringify({
+    format: 'overlay-background-presets',
+    version: 1,
+    presets: [{ id: 'a', name: 'A', component: 'StarsParallaxBackground', options: {} }],
+  }));
+  expect(parsed.ok).toBe(true);
+  expect(parsed.presets[0].component).toBe('stars-parallax');
 });

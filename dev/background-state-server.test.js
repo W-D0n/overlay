@@ -60,7 +60,7 @@ test('l’import est prévisualisé sans écriture puis protégé par sa révisi
     const saved = await fetch(`${baseUrl}/save-preset`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Alpha', component: 'RainBackground', options: {} }),
+      body: JSON.stringify({ name: 'Alpha', component: 'rain', options: {} }),
     });
     expect(saved.ok).toBe(true);
     const before = readFileSync(stateFile, 'utf8');
@@ -92,7 +92,7 @@ test('l’import est prévisualisé sans écriture puis protégé par sa révisi
     const bundle = {
       format: 'overlay-background-presets',
       version: 1,
-      presets: [{ id: 'beta', name: 'Beta', component: 'BubbleBackground', options: {} }],
+      presets: [{ id: 'beta', name: 'Beta', component: 'bubble', options: {} }],
     };
     const previewResponse = await fetch(`${baseUrl}/preview-import`, {
       method: 'POST',
@@ -111,11 +111,11 @@ test('l’import est prévisualisé sans écriture puis protégé par sa révisi
         id: 'beta',
         operation: 'created',
         name: 'Beta',
-        component: 'BubbleBackground',
+        component: 'bubble',
         requestedName: 'Beta',
         renamed: false,
         conflict: null,
-        differences: [{ field: 'component', after: 'BubbleBackground' }],
+        differences: [{ field: 'component', after: 'bubble' }],
       }],
     });
     expect(readFileSync(stateFile, 'utf8')).toBe(before);
@@ -123,7 +123,7 @@ test('l’import est prévisualisé sans écriture puis protégé par sa révisi
     const concurrentSave = await fetch(`${baseUrl}/save-preset`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'Gamma', component: 'RainBackground', options: {} }),
+      body: JSON.stringify({ name: 'Gamma', component: 'rain', options: {} }),
     });
     expect(concurrentSave.ok).toBe(true);
     await delay(60);
@@ -262,7 +262,7 @@ function startFakeObs() {
  * signifie « mettre à jour un preset existant » et échoue en 404 s'il n'existe pas). */
 const PRESET_FOR_SCENE = {
   name: 'Ambiance nuit',
-  component: 'StarsParallaxBackground',
+  component: 'stars-parallax',
   options: { count: 40 },
 };
 
@@ -360,8 +360,8 @@ test('une scène associée applique son preset et le diffuse ; une scène inconn
     await waitFor(() => fakeObs.connections.length > 0, 3000);
     fakeObs.changeScene('Discussion');
     await waitFor(() => messages.length === 1, 3000);
-    expect(messages[0].component).toBe('StarsParallaxBackground');
-    expect(JSON.parse(readFileSync(stateFile, 'utf8')).current.component).toBe('StarsParallaxBackground');
+    expect(messages[0].component).toBe('stars-parallax');
+    expect(JSON.parse(readFileSync(stateFile, 'utf8')).current.component).toBe('stars-parallax');
 
     const before = readFileSync(stateFile, 'utf8');
     fakeObs.changeScene('Scene sans association');
@@ -388,7 +388,7 @@ test('la transition d’un preset survit à l’enregistrement et aux mises à j
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Balayage',
-        component: 'RainBackground',
+        component: 'rain',
         options: {},
         transition: { type: 'wipe', durationMs: 400, direction: 'up' },
       }),
@@ -405,7 +405,7 @@ test('la transition d’un preset survit à l’enregistrement et aux mises à j
       body: JSON.stringify({
         id: afterCreate.presets[0].id,
         name: 'Balayage',
-        component: 'RainBackground',
+        component: 'rain',
         options: { speed: 2 },
       }),
     });
@@ -431,7 +431,7 @@ test('une transition invalide est refusée à l’enregistrement du preset', asy
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: 'Cassé',
-        component: 'RainBackground',
+        component: 'rain',
         options: {},
         transition: { type: 'morph' },
       }),
@@ -463,7 +463,7 @@ test('une page web étrangère ne peut ni lire ni modifier l’état, ni ouvrir 
     const write = await fetch(`${baseUrl}/save-preset`, {
       method: 'POST',
       headers: foreign,
-      body: JSON.stringify({ name: 'Intrus', component: 'RainBackground', options: {} }),
+      body: JSON.stringify({ name: 'Intrus', component: 'rain', options: {} }),
     });
     expect(write.status).toBe(403);
 
@@ -525,6 +525,31 @@ test('un fichier d’état version 1 est migré en version 2 et sauvegardé une 
     });
     expect(readFileSync(backup, 'utf8')).toBe(original);
     expect(JSON.parse(readFileSync(stateFile, 'utf8')).version).toBe(2);
+  } finally {
+    child.kill();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('un client qui envoie encore l’ancien nom d’effet ou « Oui » est stocké sous la forme persistée', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-background-state-'));
+  const stateFile = join(directory, 'state.json');
+  const port = await reserveFreePort();
+  const baseUrl = `http://localhost:${port}`;
+  const child = Bun.spawn(['bun', 'dev/background-state-server.js'], {
+    cwd: join(import.meta.dir, '..'),
+    env: { ...process.env, BACKGROUND_STATE_PORT: String(port), BACKGROUND_STATE_FILE: stateFile },
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  try {
+    await waitForServer(baseUrl);
+    const post = (path, body) => fetch(`${baseUrl}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    expect((await post('/state', { current: { component: 'RainBackground', options: { audioReactive: 'Oui' } } })).status).toBe(200);
+    expect((await post('/save-preset', { name: 'Ancien', component: 'BubbleBackground', options: { audioReactive: 'Non' } })).status).toBe(200);
+    const stored = JSON.parse(readFileSync(stateFile, 'utf8'));
+    expect(stored.current).toEqual({ component: 'rain', options: { audioReactive: true } });
+    expect(stored.presets[0]).toMatchObject({ component: 'bubble', options: { audioReactive: false } });
   } finally {
     child.kill();
     rmSync(directory, { recursive: true, force: true });

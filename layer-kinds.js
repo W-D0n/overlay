@@ -36,6 +36,7 @@
 
 /**
  * @typedef {Object} LayerKindDefinition
+ * @property {string[]} legacyIds - Anciens noms de ce type (suffixe `Background`), lus indéfiniment
  * @property {string} label - Libellé affiché dans le Studio
  * @property {LayerCapabilities} capabilities
  * @property {FieldSchema[]} fields
@@ -96,7 +97,8 @@ export const NUMBER_FIELD_GUIDANCE = {
  * @satisfies {Record<string, LayerKindDefinition>}
  */
 const KIND_DEFINITIONS = {
-  DotGridBackground: {
+  dotgrid: {
+    legacyIds: ['DotGridBackground'],
     label: 'DotGrid',
     capabilities: { audio: true, reactions: 'native' },
     fields: [
@@ -143,7 +145,8 @@ const KIND_DEFINITIONS = {
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
   },
-  RainBackground: {
+  rain: {
+    legacyIds: ['RainBackground'],
     label: 'Rain',
     capabilities: { audio: true, reactions: 'overlay' },
     fields: [
@@ -161,7 +164,8 @@ const KIND_DEFINITIONS = {
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
   },
-  BubbleBackground: {
+  bubble: {
+    legacyIds: ['BubbleBackground'],
     label: 'Bubble',
     capabilities: { audio: true, reactions: 'overlay' },
     fields: [
@@ -184,7 +188,8 @@ const KIND_DEFINITIONS = {
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
   },
-  FirefliesBackground: {
+  fireflies: {
+    legacyIds: ['FirefliesBackground'],
     label: 'Fireflies',
     capabilities: { audio: true, reactions: 'overlay' },
     fields: [
@@ -202,7 +207,8 @@ const KIND_DEFINITIONS = {
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
   },
-  FloatingSymbolsBackground: {
+  'floating-symbols': {
+    legacyIds: ['FloatingSymbolsBackground'],
     label: 'FloatingSymbols',
     capabilities: { audio: true, reactions: 'overlay' },
     fields: [
@@ -222,7 +228,8 @@ const KIND_DEFINITIONS = {
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
   },
-  GeometricPatternBackground: {
+  'geometric-pattern': {
+    legacyIds: ['GeometricPatternBackground'],
     label: 'GeometricPattern',
     capabilities: { audio: true, reactions: 'overlay' },
     fields: [
@@ -250,7 +257,8 @@ const KIND_DEFINITIONS = {
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
   },
-  ColorDropsBackground: {
+  'color-drops': {
+    legacyIds: ['ColorDropsBackground'],
     label: 'ColorDrops',
     capabilities: { audio: true, reactions: 'overlay' },
     fields: [
@@ -268,7 +276,8 @@ const KIND_DEFINITIONS = {
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
   },
-  StarsParallaxBackground: {
+  'stars-parallax': {
+    legacyIds: ['StarsParallaxBackground'],
     label: 'StarsParallax',
     capabilities: { audio: true, reactions: 'overlay' },
     fields: [
@@ -285,7 +294,8 @@ const KIND_DEFINITIONS = {
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
   },
-  OrbitingShapesBackground: {
+  'orbiting-shapes': {
+    legacyIds: ['OrbitingShapesBackground'],
     label: 'OrbitingShapes',
     capabilities: { audio: true, reactions: 'overlay' },
     fields: [
@@ -306,7 +316,8 @@ const KIND_DEFINITIONS = {
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
   },
-  ShapeMorphBackground: {
+  'shape-morph': {
+    legacyIds: ['ShapeMorphBackground'],
     label: 'ShapeMorph',
     capabilities: { audio: true, reactions: 'overlay' },
     fields: [
@@ -332,7 +343,8 @@ const KIND_DEFINITIONS = {
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
   },
-  WaterRippleBackground: {
+  'water-ripple': {
+    legacyIds: ['WaterRippleBackground'],
     label: 'WaterRipple',
     capabilities: { audio: true, reactions: 'overlay' },
     fields: [
@@ -387,7 +399,30 @@ export const LAYER_KIND_IDS = /** @type {LayerKindId[]} */ (Object.keys(KIND_DEF
  * @returns {LayerCapabilities}
  */
 export function kindCapabilities(id) {
-  return isLayerKindId(id) ? LAYER_KINDS[id].capabilities : { audio: false, reactions: 'overlay' };
+  const kind = resolveKindId(id);
+  return kind === null ? { audio: false, reactions: 'overlay' } : LAYER_KINDS[kind].capabilities;
+}
+
+/** @type {Map<string, LayerKindId>} */
+const LEGACY_TO_ID = new Map(
+  Object.entries(KIND_DEFINITIONS).flatMap(([id, definition]) => definition.legacyIds.map((legacy) => [legacy, /** @type {LayerKindId} */ (id)])),
+);
+
+/**
+ * Identifiant neutre d'un type de couche, que `value` soit l'identifiant lui-même ou un ancien nom ;
+ * `null` si elle ne désigne aucun type connu.
+ * @param {unknown} value
+ * @returns {LayerKindId | null}
+ */
+export function resolveKindId(value) {
+  if (typeof value !== 'string') return null;
+  if (Object.hasOwn(KIND_DEFINITIONS, value)) return /** @type {LayerKindId} */ (value);
+  return LEGACY_TO_ID.get(value) ?? null;
+}
+
+/** Vrai pour un identifiant neutre ou un ancien nom (lecture tolérante). @param {unknown} value */
+export function isKnownKindId(value) {
+  return resolveKindId(value) !== null;
 }
 
 /** @param {unknown} value @returns {value is LayerKindId} */

@@ -31,7 +31,7 @@ test('le détail d’un preset traduit les champs techniques et explique un conf
     requestedName: 'Pluie',
     renamed: true,
     conflict: { id: 'pluie', name: 'Pluie' },
-    component: 'RainBackground',
+    component: 'rain',
     differences: [
       { field: 'name', before: 'Pluie vive', after: 'Pluie — import' },
       { field: 'tags', before: ['coding'], after: ['calme', 'discussion'] },

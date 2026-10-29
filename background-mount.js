@@ -1,7 +1,7 @@
 // @ts-check
 import { COMPONENT_REGISTRY } from './component-registry.js';
 import { cssEasing, normalizeTransition, transitionStyles } from './background-transition.js';
-import { isAudioOn, kindCapabilities } from './layer-kinds.js';
+import { isAudioOn, kindCapabilities, resolveKindId } from './layer-kinds.js';
 
 /**
  * background-mount.js — Montage d'un effet de fond standalone dans un conteneur (2026-07-14).
@@ -66,7 +66,8 @@ export function createBackgroundMount(container, options = {}) {
    * @param {Record<string, unknown>} componentOptions
    */
   function mountLayer(component, componentOptions) {
-    const factory = registry[/** @type {import('./types.js').ComponentName} */ (component)];
+    const factory = registry[/** @type {import('./types.js').ComponentName} */ (component)]
+      ?? registry[/** @type {import('./types.js').ComponentName} */ (resolveKindId(component))];
     if (factory === undefined) throw new Error(`effet de fond inconnu : ${component}`);
 
     const instance = factory(componentOptions);

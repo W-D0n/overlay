@@ -1,5 +1,5 @@
 // @ts-check
-import { isLayerKindId, neutralizeOptions } from '../layer-kinds.js';
+import { isKnownKindId, neutralizeOptions, resolveKindId } from '../layer-kinds.js';
 import { validateSceneMap } from '../obs-scene-mapping.js';
 import { validateTransition } from '../background-transition.js';
 import { normalizeBranding, validateBranding } from '../branding-format.js';
@@ -27,9 +27,32 @@ const RETIRED_BACKGROUND_COMPONENT = 'MatrixGridBackground';
 /** Version du fichier d'état : 2 = valeurs persistées neutres (`audioReactive` booléen). */
 export const BACKGROUND_FILE_VERSION = 2;
 
+/**
+ * Forme persistée d'un état courant : identifiant neutre de l'effet et options aux valeurs neutres.
+ * Ne valide rien : un nom inconnu est laissé tel quel pour que la validation le signale.
+ * @template {{ component: string | null, options: Record<string, unknown> }} T
+ * @param {T} current
+ * @returns {T}
+ */
+export function canonicalBackgroundCurrent(current) {
+  if (!isPlainObject(current)) return current;
+  const component = resolveKindId(current.component) ?? current.component;
+  const options = isPlainObject(current.options) ? neutralizeOptions(current.options) : current.options;
+  return { ...current, component, options };
+}
+
+/**
+ * @template {{ component: string, options: Record<string, unknown> }} T
+ * @param {T} preset
+ * @returns {T}
+ */
+export function canonicalBackgroundPreset(preset) {
+  return canonicalBackgroundCurrent(/** @type {*} */ (preset));
+}
+
 /** @returns {BackgroundFile} */
 export function defaultBackgroundFile() {
-  return { version: BACKGROUND_FILE_VERSION, current: { component: 'DotGridBackground', options: {} }, presets: [], sceneMap: {} };
+  return { version: BACKGROUND_FILE_VERSION, current: { component: 'dotgrid', options: {} }, presets: [], sceneMap: {} };
 }
 
 /**
@@ -116,11 +139,13 @@ export function migrateBackgroundFile(raw) {
   const current = retireCurrent ? { component: null, options: {} } : raw.current;
   if (!needsNeutralValues) return { file: migrated ? { ...raw, current, presets } : raw, migrated };
 
-  const neutral = (/** @type {unknown} */ entry) => (
-    isPlainObject(entry) && isPlainObject(entry.options) ? { ...entry, options: neutralizeOptions(entry.options) } : entry
-  );
   return {
-    file: { ...raw, version: BACKGROUND_FILE_VERSION, current: neutral(current), presets: presets.map(neutral) },
+    file: {
+      ...raw,
+      version: BACKGROUND_FILE_VERSION,
+      current: canonicalBackgroundCurrent(/** @type {*} */ (current)),
+      presets: presets.map((entry) => (isPlainObject(entry) ? canonicalBackgroundPreset(/** @type {*} */ (entry)) : entry)),
+    },
     migrated: true,
   };
 }
@@ -139,7 +164,7 @@ export function validateBackgroundCurrent(current) {
   const { component, options } = current;
   if (component !== null && typeof component !== 'string') {
     errors.push('component : null ou chaîne attendu');
-  } else if (typeof component === 'string' && !isLayerKindId(component)) {
+  } else if (typeof component === 'string' && !isKnownKindId(component)) {
     errors.push(`effet de fond inconnu : ${component}`);
   }
   if (!isPlainObject(options)) errors.push('options : objet attendu');
@@ -181,7 +206,7 @@ export function validateBackgroundPreset(preset) {
   if (typeof preset.id !== 'string' || !PRESET_ID_PATTERN.test(preset.id) || preset.id.length > PRESET_ID_MAX_LENGTH) {
     errors.push('id de preset : identifiant URL attendu (minuscules, chiffres et tirets)');
   }
-  if (!isLayerKindId(preset.component)) {
+  if (!isKnownKindId(preset.component)) {
     errors.push(`effet de fond inconnu : ${preset.component}`);
   }
   if (!isPlainObject(preset.options)) errors.push('options : objet attendu');
