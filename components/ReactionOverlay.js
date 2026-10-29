@@ -2,6 +2,7 @@
 import { resolveColor } from './color-utils.js';
 import { canvasPixelRatio } from './canvas-runtime.js';
 import { createFrameRequester, getRenderClock } from '../render-clock.js';
+import { referenceScale } from '../render-reference.js';
 
 /**
  * ReactionOverlay.js — Couche de réaction partagée pour le mode fond autonome (2026-07-24).
@@ -130,10 +131,11 @@ export function ReactionOverlay(options = {}) {
     const w = canvas.offsetWidth;
     const h = canvas.offsetHeight;
     if (w === 0 || h === 0) return;
-    cssW = w; cssH = h;
+    const scale = referenceScale(h);
+    cssW = w / scale; cssH = h / scale;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, 0, 0);
   }
 
   /** @param {{ type: string, progress: number }} sample */

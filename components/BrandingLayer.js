@@ -1,5 +1,5 @@
 // @ts-check
-import { RENDER_REFERENCE } from '../render-reference.js';
+import { RENDER_REFERENCE, referenceScale } from '../render-reference.js';
 import { brandingStyles, hasBrandingContent, normalizeBranding } from '../branding-format.js';
 
 /**
@@ -20,7 +20,7 @@ export const BRANDING_REFERENCE_HEIGHT = RENDER_REFERENCE.height;
 
 /** @param {number} height */
 export function brandingScale(height) {
-  return Number.isFinite(height) && height > 0 ? height / BRANDING_REFERENCE_HEIGHT : 1;
+  return referenceScale(height);
 }
 
 /**

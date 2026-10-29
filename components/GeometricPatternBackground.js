@@ -1,5 +1,6 @@
 // @ts-check
 import { createAudioReaction } from './audio-reaction.js';
+import { referenceScale } from '../render-reference.js';
 
 /**
  * @typedef {object} GeometricPatternBackgroundOptions
@@ -45,8 +46,23 @@ export function GeometricPatternBackground(options = {}) {
   let appliedRate = 1;
   let appliedOpacity = opacity;
 
+  // Le motif est dessiné dans le repère de la résolution de référence (ses tailles en px valent pour
+  // cette hauteur) : `el` a la taille « logique » du conteneur et `root` le met à l'échelle de la source.
+  const root = document.createElement('div');
+  root.style.cssText = 'position:absolute;inset:0;overflow:hidden;pointer-events:none;';
   const el = document.createElement('div');
-  el.style.cssText = `position:absolute;inset:0;pointer-events:none;opacity:${opacity};`;
+  el.style.cssText = `position:absolute;left:0;top:0;transform-origin:0 0;pointer-events:none;opacity:${opacity};`;
+  root.appendChild(el);
+
+  function fit() {
+    const scale = referenceScale(root.offsetHeight);
+    el.style.width = `${root.offsetWidth / scale}px`;
+    el.style.height = `${root.offsetHeight / scale}px`;
+    el.style.transform = `scale(${scale})`;
+  }
+  fit();
+  const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(fit) : null;
+  observer?.observe(root);
 
   /** @type {Animation | null} */
   let animation = null;
@@ -71,7 +87,7 @@ export function GeometricPatternBackground(options = {}) {
   build();
 
   return {
-    el,
+    el: root,
     /** @param {unknown} newOptions */
     update(newOptions) {
       const o = /** @type {Record<string, unknown>} */ (newOptions ?? {});
@@ -112,6 +128,7 @@ export function GeometricPatternBackground(options = {}) {
 
     destroy() {
       animation?.cancel();
+      observer?.disconnect();
     },
   };
 }

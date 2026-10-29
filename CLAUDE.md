@@ -33,6 +33,9 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
    `render-reference.js` ; l'aperçu, les vignettes et le branding la lisent de là, la page de rendu épouse
    sa source et ne fige aucune dimension. Aucun autre fichier source n'écrit 1920 ni 1080 (garde : `dev/render-reference.test.js`) ;
    les positions et tailles de couches se stockent en **fractions** du canvas. `pointer-events: none`.
+   Les effets dessinent dans ce repère de référence : `components/canvas-layer.js` (et `ReactionOverlay`,
+   `GeometricPatternBackground`) mettent le dessin à l'échelle de la source réelle, donc **une taille en px
+   dans un effet vaut pour la hauteur de référence** et suit la résolution de la source sans code d'effet.
    Les interfaces de dev s'adaptent à l'écran (colonnes proportionnelles, empilement sous 1100 px, aperçu
    agrandi ou réduit) : aucune largeur de panneau ni aucun plafond de taille figé.
 3. **Source de vérité design** — toutes les variables visuelles dans `tokens.css`. Jamais de valeur

@@ -1,5 +1,6 @@
 // @ts-check
 import { getRenderClock } from '../render-clock.js';
+import { referenceScale } from '../render-reference.js';
 
 /**
  * components/canvas-layer.js — Squelette commun des effets de fond dessinés sur un canvas.
@@ -8,7 +9,10 @@ import { getRenderClock } from '../render-clock.js';
  * `ResizeObserver`, le ratio de pixels, l'abonnement à l'horloge unique (`render-clock.js`) et la
  * destruction. La première frame d'une couche a toujours `dt = 0`. `setAudioLevel` et `trigger`
  * n'existent sur l'instance que si la couche les définit : le montage détecte ces capacités par leur
- * présence. `destroy` libère ce que la couche détient hors du canvas (minuteurs) ; `extend` ajoute des
+ * présence. Le repère de dessin est celui de la résolution de référence (`render-reference.js`) : la
+ * taille passée à l'effet est « logique » et le contexte est mis à l'échelle de la source réelle, de sorte
+ * que les tailles en pixels d'un effet (réglages comme constantes) suivent la résolution de la source.
+ * `destroy` libère ce que la couche détient hors du canvas (minuteurs) ; `extend` ajoute des
  * méthodes propres à l'effet sur l'instance (ex. `morphTo`).
  *
  * @typedef {{ width: number, height: number }} LayerSize
@@ -47,6 +51,7 @@ export function defineCanvasLayer(create) {
 
     /** @type {LayerSize} */
     let size = { width: 0, height: 0 };
+    let surface = { width: 0, height: 0 };
     let ratio = 0;
     let firstFrame = true;
 
@@ -59,12 +64,14 @@ export function defineCanvasLayer(create) {
       const width = canvas.offsetWidth;
       const height = canvas.offsetHeight;
       if (width === 0 || height === 0) return false;
-      if (width === size.width && height === size.height && pixelRatio === ratio) return true;
-      size = { width, height };
+      if (width === surface.width && height === surface.height && pixelRatio === ratio) return true;
+      surface = { width, height };
       ratio = pixelRatio;
+      const scale = referenceScale(height);
+      size = { width: width / scale, height: height / scale };
       canvas.width = width * pixelRatio;
       canvas.height = height * pixelRatio;
-      ctx.scale(pixelRatio, pixelRatio);
+      ctx.scale(pixelRatio * scale, pixelRatio * scale);
       layer.resize(size, pixelRatio);
       return true;
     }

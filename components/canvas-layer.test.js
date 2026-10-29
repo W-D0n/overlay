@@ -48,7 +48,9 @@ describe('squelette de couche canvas', () => {
     harness.tick(1000);
     harness.tick(1016);
     expect(events.map(([kind]) => kind)).toEqual(['resize', 'draw', 'draw']);
-    expect(events[0]).toEqual(['resize', { width: 800, height: 600 }, 2]);
+    // 800×600 est une source plus petite que la référence (hauteur 600 contre 1080) : l'effet reçoit
+    // le repère de référence, 1440×1080, et le contexte est réduit d'autant.
+    expect(events[0]).toEqual(['resize', { width: 1440, height: 1080 }, 2]);
     expect(harness.canvas.width).toBe(1600);
     expect(harness.calls.filter(([name]) => name === 'clearRect').length).toBe(2);
   });
@@ -138,5 +140,41 @@ describe('squelette de couche canvas', () => {
     harness.tick(16);
     harness.tick(32);
     expect(healthy.length).toBe(3);
+  });
+});
+
+describe('échelle de la source', () => {
+  const run = (width, height) => {
+    const harness = createHarness({ width, height });
+    const sizes = [];
+    defineCanvasLayer(() => ({ resize: (size) => sizes.push(size), draw: (ctx, frame, size) => sizes.push(size) }))({}, harness.environment);
+    harness.tick(1000);
+    return { harness, sizes };
+  };
+
+  test('à la résolution de référence, l’effet reçoit exactement la taille de la source et le contexte n’est pas mis à l’échelle', () => {
+    const { harness, sizes } = run(1920, 1080);
+    expect(sizes[0]).toEqual({ width: 1920, height: 1080 });
+    expect(harness.calls.find(([name]) => name === 'scale')).toEqual(['scale', 2, 2]);
+  });
+
+  test('sur une source deux fois plus grande, l’effet voit le même repère et le contexte est agrandi du double', () => {
+    const { harness, sizes } = run(3840, 2160);
+    expect(sizes[0]).toEqual({ width: 1920, height: 1080 });
+    expect(harness.calls.find(([name]) => name === 'scale')).toEqual(['scale', 4, 4]);
+    expect(harness.canvas.width).toBe(7680);
+  });
+
+  test('une source 1440p donne à l’effet un repère de 1080 de haut, la largeur suivant le rapport', () => {
+    const { sizes } = run(2560, 1440);
+    expect(sizes[0].height).toBeCloseTo(1080, 6);
+    expect(sizes[0].width).toBeCloseTo(1920, 6);
+    const wide = run(3440, 1440);
+    expect(wide.sizes[0].width).toBeCloseTo(3440 / (1440 / 1080), 6);
+  });
+
+  test('l’effacement couvre le repère logique, pas la taille en pixels', () => {
+    const { harness } = run(3840, 2160);
+    expect(harness.calls.find(([name]) => name === 'clearRect')).toEqual(['clearRect', 0, 0, 1920, 1080]);
   });
 });
