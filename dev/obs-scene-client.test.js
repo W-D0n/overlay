@@ -185,3 +185,62 @@ test('la scène active de la réponse GetSceneList est transmise', () => {
   });
   expect(harness.activeSeen).toEqual(['BRB']);
 });
+
+async function identified(setupResult) {
+  const socket = setupResult.sockets[0];
+  socket.emitMessage({ op: 0, d: { rpcVersion: 1 } });
+  await waitForSent(socket, 1);
+  socket.emitMessage({ op: 2, d: {} });
+  return socket;
+}
+
+test('request : la réponse d’OBS résout la promesse avec ses données', async () => {
+  const ctx = setup({ password: '' });
+  const socket = await identified(ctx);
+  const promise = ctx.client.request('GetVersion', {});
+  const sent = socket.sent.filter((message) => message.op === 6).at(-1);
+  expect(sent.d.requestType).toBe('GetVersion');
+  socket.emitMessage({ op: 7, d: { requestId: sent.d.requestId, requestStatus: { result: true, code: 100 }, responseData: { obsVersion: '31.0.0' } } });
+  expect(await promise).toEqual({ obsVersion: '31.0.0' });
+});
+
+test('request : un refus d’OBS rejette avec son commentaire', async () => {
+  const ctx = setup({ password: '' });
+  const socket = await identified(ctx);
+  const promise = ctx.client.request('GetInputSettings', { inputName: 'x' });
+  const sent = socket.sent.filter((message) => message.op === 6).at(-1);
+  socket.emitMessage({ op: 7, d: { requestId: sent.d.requestId, requestStatus: { result: false, code: 600, comment: 'No input was found' } } });
+  await expect(promise).rejects.toThrow('No input was found');
+});
+
+test('request : refuse toute requête qui n’est pas une lecture, sans rien envoyer', async () => {
+  const ctx = setup({ password: '' });
+  const socket = await identified(ctx);
+  const before = socket.sent.length;
+  await expect(ctx.client.request('SetCurrentProgramScene', { sceneName: 'x' })).rejects.toThrow('écriture refusée');
+  expect(socket.sent.length).toBe(before);
+});
+
+test('request : hors connexion, rejette tout de suite', async () => {
+  const ctx = setup({ password: '' });
+  await expect(ctx.client.request('GetVersion')).rejects.toThrow('non connecté');
+});
+
+test('request : sans réponse, la promesse est abandonnée après le délai', async () => {
+  const sockets = [];
+  const client = createObsSceneClient({
+    url: 'ws://x', password: '', onSceneChange() {}, requestTimeoutMs: 20,
+    createSocket: () => { const socket = createFakeSocket(); sockets.push(socket); return socket; },
+    scheduleReconnect() {}, log() {},
+  });
+  await identified({ sockets });
+  await expect(client.request('GetVersion')).rejects.toThrow('pas répondu');
+});
+
+test('request : la fermeture du socket rejette les requêtes en attente', async () => {
+  const ctx = setup({ password: '' });
+  const socket = await identified(ctx);
+  const promise = ctx.client.request('GetVersion');
+  socket.emitClose(1006);
+  await expect(promise).rejects.toThrow('connexion OBS fermée');
+});
