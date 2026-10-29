@@ -1,6 +1,7 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
-import { canvasPixelRatio } from './canvas-runtime.js';
+import { defineCanvasLayer } from './canvas-layer.js';
+import { createPhase } from '../render-clock.js';
 import { createAudioReaction } from './audio-reaction.js';
 
 /**
@@ -16,23 +17,15 @@ import { createAudioReaction } from './audio-reaction.js';
  * en JS au montage (`generateStarLayer`), pas des centaines de valeurs `box-shadow` codées en dur
  * comme le CodePen source (LAC-03 de `docs/specs/background-effects-library.md` : composante
  * non-déterministe acceptée, pas besoin de reproductibilité pixel-perfect entre deux lancements).
- *
- * @param {StarsParallaxBackgroundOptions} [options]
- * @returns {import('../types.js').ComponentInstance}
  */
-export function StarsParallaxBackground(options = {}) {
+export const StarsParallaxBackground = defineCanvasLayer((/** @type {StarsParallaxBackgroundOptions} */ options = {}) => {
   let color = options.color ?? '#ffffff';
   let density = options.density ?? 0.06;
   let speed = options.speed ?? 1;
   const audio = createAudioReaction(options);
 
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
-  const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
-
   let cssW = 0;
   let cssH = 0;
-  let rafId = 0;
   let rgb = resolveColor(color);
 
   /** Trois couches, vitesse/rayon/opacité croissants avec la profondeur apparente. */
@@ -42,6 +35,10 @@ export function StarsParallaxBackground(options = {}) {
     { speedMul: 1.0, radius: 1.6, opacity: 0.9, densityMul: 0.3 },
   ];
 
+  /** Défilement en px/s par couche, intégré : un changement de vitesse n'affecte que l'avenir. */
+  const SCROLL_PX_PER_SECOND = 20;
+  const scrolls = LAYER_DEFS.map(() => createPhase());
+
   /** @type {{x:number,y:number}[][]} */
   let layers = [];
 
@@ -49,45 +46,29 @@ export function StarsParallaxBackground(options = {}) {
     layers = LAYER_DEFS.map((def) => generateStarLayer(Math.round(cssW * cssH * density * def.densityMul / 10000), cssW, cssH));
   }
 
-  function handleResize() {
-    const dpr = canvasPixelRatio();
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
-    if (w === 0 || h === 0) return;
-    cssW = w;
-    cssH = h;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
-    seed();
-    if (rafId !== 0) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function tick(timestamp) {
-    rafId = requestAnimationFrame(tick);
-    ctx.clearRect(0, 0, cssW, cssH);
-    const [r, g, b] = rgb;
-
-    layers.forEach((stars, i) => {
-      const def = LAYER_DEFS[i];
-      // Le niveau accélère le défilement : la profondeur se lit comme une accélération.
-      const offset = (timestamp * 0.02 * speed * audio.boost('level', 1.1) * def.speedMul) % cssH;
-      ctx.fillStyle = `rgba(${r},${g},${b},${def.opacity})`;
-      for (const star of stars) {
-        const y = (star.y + offset) % cssH;
-        ctx.beginPath();
-        ctx.arc(star.x, y, def.radius, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    });
-  }
-
-  const observer = new ResizeObserver(handleResize);
-  observer.observe(canvas);
-
   return {
-    el: canvas,
+    resize(size) {
+      cssW = size.width;
+      cssH = size.height;
+      seed();
+    },
+
+    draw(ctx, { dt }) {
+      const [r, g, b] = rgb;
+      layers.forEach((stars, i) => {
+        const def = LAYER_DEFS[i];
+        // Le niveau accélère le défilement : la profondeur se lit comme une accélération.
+        const offset = scrolls[i].advance(dt * SCROLL_PX_PER_SECOND * speed * audio.boost('level', 1.1) * def.speedMul) % cssH;
+        ctx.fillStyle = `rgba(${r},${g},${b},${def.opacity})`;
+        for (const star of stars) {
+          const y = (star.y + offset) % cssH;
+          ctx.beginPath();
+          ctx.arc(star.x, y, def.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+    },
+
     /** @param {unknown} newOptions */
     update(newOptions) {
       const o = /** @type {Record<string, unknown>} */ (newOptions ?? {});
@@ -96,6 +77,7 @@ export function StarsParallaxBackground(options = {}) {
       if (typeof o.density === 'number' && o.density !== density) { density = o.density; seed(); }
       audio.readOptions(o);
     },
+
     /**
      * Le niveau accélère le défilement, comme une accélération de vitesse.
      * @param {import('../audio-levels.js').AudioLevels} levels
@@ -103,13 +85,8 @@ export function StarsParallaxBackground(options = {}) {
     setAudioLevel(levels) {
       audio.apply(levels);
     },
-
-    destroy() {
-      cancelAnimationFrame(rafId);
-      observer.disconnect();
-    },
   };
-}
+});
 
 /**
  * Génère `count` positions d'étoiles aléatoires dans un rectangle `width` × `height`. Pure au sens
