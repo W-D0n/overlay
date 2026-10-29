@@ -5,7 +5,7 @@ updated: 2026-10-29
 
 # Spec — Studio en trois zones (refonte de l'écran du tuner)
 
-Statut : **validée (ordre Z1 → Z3 → Z2 → Z4 → Z5, cadre 16:9 simple, scènes sans preset repliées) ; Z1 et Z3 livrés le 2026-10-29.** Traite les constats U2 à U6 de
+Statut : **validée (ordre Z1 → Z3 → Z2 → Z4 → Z5, cadre 16:9 simple, scènes sans preset repliées) ; Z1, Z2 et Z3 livrés le 2026-10-29.** Traite les constats U2 à U6 de
 [`../ux-review.md`](../ux-review.md) (U1, brouillon / publication, est livré). Étapes 1 à 3 du socle sont
 livrées : l'écran peut être refait sans le refaire deux fois.
 
@@ -51,7 +51,7 @@ Trois zones, un seul état visible : **ce qui est en antenne** et **ce qui est e
 - Vérification : le même preset, le même instant, dans le cadre et dans une source OBS 1920×1080 : même
   composition (comparaison de captures, pas de lecture à l'œil).
 
-### Z2. Bibliothèque unique (U2)
+### Z2. Bibliothèque unique (U2) — livré dans l'ancienne mise en page
 
 Une seule liste : « Points de départ » (intégrés) et « Mes presets » regroupés, avec filtre de texte. Une
 ligne = vignette, nom, effet, actions (Essayer, Enregistrer sous, Supprimer pour les personnels). La

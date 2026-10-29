@@ -282,6 +282,14 @@
     }
     .preset-edit { display: flex; width: 100%; gap: var(--space-sm); }
     .preset-edit input { flex: 1; }
+    .library-group {
+      margin: var(--space-md) 0 var(--space-xs);
+      font-size: var(--text-sm);
+      font-weight: 400;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--color-text-dim);
+    }
     .library-tools { display: flex; gap: var(--space-sm); margin: var(--space-md) 0; }
     .library-tools input { flex: 1; }
     .preset-empty { color: var(--color-text-dim); font-size: var(--text-base); padding: var(--space-sm) 0; }
@@ -472,7 +480,7 @@
     }
     .obs-scene-row-name { color: var(--color-text-primary); font-size: var(--text-base); overflow-wrap: anywhere; }
     .obs-scene-row[data-active="true"] { border-left: 2px solid var(--color-gold); padding-left: var(--space-xs); }
-    .obs-scene-row[data-active="true"] .obs-scene-row-name::before { content: '● en antenne · '; color: var(--color-gold); }
+    .obs-scene-row[data-active="true"] .obs-scene-row-name::before { content: '● en antenne'; display: block; color: var(--color-gold); font-size: var(--text-sm); }
     .obs-scene-row-preset { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .obs-scene-row-preset[data-empty="true"] { color: var(--color-text-dim); }
     .obs-scene-folded > summary { cursor: pointer; color: var(--color-text-dim); font-size: var(--text-base); margin-bottom: var(--space-xs); }
@@ -529,17 +537,74 @@
     </nav>
 
     <div class="workspace" data-workspace="fond">
-    <h2>Points de départ</h2>
-    <p class="section-intro">Essaie une ambiance, puis ajuste-la dans les réglages ci-dessous.</p>
+    <h2>Bibliothèque</h2>
+    <p class="section-intro">Essaie une ambiance ou reprends un de tes presets, puis ajuste-la dans les réglages ci-dessous.</p>
     <div class="library-tools">
       <input id="preset-search" type="search" aria-label="Rechercher dans les points de départ et les presets" placeholder="chercher par nom, effet ou tag">
     </div>
+    <h3 class="library-group">Mes presets</h3>
+    <div class="library-tools">
+      <button id="preset-export">Exporter</button>
+      <button id="preset-import-trigger">Importer</button>
+      <input id="preset-import" type="file" accept="application/json,.json" hidden>
+    </div>
+    <div id="preset-import-review" class="preset-import-review" hidden>
+      <p id="preset-import-summary"></p>
+      <div id="preset-import-details" class="preset-import-details" aria-label="Détail des changements"></div>
+      <div class="preset-import-actions">
+        <button id="preset-import-confirm">Confirmer l'import</button>
+        <button id="preset-import-cancel">Annuler</button>
+      </div>
+    </div>
+    <div id="preset-list"></div>
+    <h3 class="library-group">Points de départ</h3>
     <div id="builtin-list"></div>
 
     <h2>Réglages de l’effet</h2>
     <label for="effect-select">Effet</label>
     <select id="effect-select"></select>
     <div id="fields"></div>
+
+    <h2>Enregistrer ce réglage</h2>
+    <div class="save-row">
+      <input id="preset-name" type="text" placeholder="nom du preset" maxlength="60">
+      <button id="preset-save">Créer</button>
+      <button id="preset-new" title="Créer un nouveau preset">Nouveau</button>
+    </div>
+    <div class="save-row">
+      <input id="preset-tags" type="text" placeholder="tags séparés par des virgules">
+    </div>
+
+    <h2>Arrivée de ce preset</h2>
+    <p class="hint">
+      Comment ce preset remplace le fond précédent. Sans effet sur tes réglages en cours : la
+      transition se joue quand le preset arrive (clic sur un preset, ou changement de scène OBS).
+    </p>
+    <label>Type
+      <select id="transition-type">
+        <option value="fade">Fondu</option>
+        <option value="wipe">Balayage</option>
+      </select>
+    </label>
+    <label>Durée (ms)
+      <input id="transition-duration" type="number" min="0" max="2000" step="50">
+    </label>
+    <label>Courbe
+      <select id="transition-easing">
+        <option value="easeInOut">Douce (départ et arrivée)</option>
+        <option value="easeOut">Douce à l’arrivée</option>
+        <option value="easeIn">Douce au départ</option>
+        <option value="linear">Constante</option>
+      </select>
+    </label>
+    <label id="transition-direction-row">Sens du balayage
+      <select id="transition-direction">
+        <option value="right">Vers la droite</option>
+        <option value="left">Vers la gauche</option>
+        <option value="up">Vers le haut</option>
+        <option value="down">Vers le bas</option>
+      </select>
+    </label>
 
     <h2>Tester une réaction</h2>
     <p class="section-intro">Simule un événement stream. L’aperçu et l’URL OBS réagissent en direct.</p>
@@ -583,64 +648,9 @@
       Afficher sur ce preset
     </label>
 
-    <h2>Arrivée de ce preset</h2>
-    <p class="hint">
-      Comment ce preset remplace le fond précédent. Sans effet sur tes réglages en cours : la
-      transition se joue quand le preset arrive (clic sur un preset, ou changement de scène OBS).
-    </p>
-    <label>Type
-      <select id="transition-type">
-        <option value="fade">Fondu</option>
-        <option value="wipe">Balayage</option>
-      </select>
-    </label>
-    <label>Durée (ms)
-      <input id="transition-duration" type="number" min="0" max="2000" step="50">
-    </label>
-    <label>Courbe
-      <select id="transition-easing">
-        <option value="easeInOut">Douce (départ et arrivée)</option>
-        <option value="easeOut">Douce à l’arrivée</option>
-        <option value="easeIn">Douce au départ</option>
-        <option value="linear">Constante</option>
-      </select>
-    </label>
-    <label id="transition-direction-row">Sens du balayage
-      <select id="transition-direction">
-        <option value="right">Vers la droite</option>
-        <option value="left">Vers la gauche</option>
-        <option value="up">Vers le haut</option>
-        <option value="down">Vers le bas</option>
-      </select>
-    </label>
-
     </div>
 
     <div class="workspace" data-workspace="diffusion" hidden>
-    <h2>Mes presets</h2>
-    <div class="library-tools">
-      <button id="preset-export">Exporter</button>
-      <button id="preset-import-trigger">Importer</button>
-      <input id="preset-import" type="file" accept="application/json,.json" hidden>
-    </div>
-    <div id="preset-import-review" class="preset-import-review" hidden>
-      <p id="preset-import-summary"></p>
-      <div id="preset-import-details" class="preset-import-details" aria-label="Détail des changements"></div>
-      <div class="preset-import-actions">
-        <button id="preset-import-confirm">Confirmer l'import</button>
-        <button id="preset-import-cancel">Annuler</button>
-      </div>
-    </div>
-    <div id="preset-list"></div>
-    <div class="save-row">
-      <input id="preset-name" type="text" placeholder="nom du preset" maxlength="60">
-      <button id="preset-save">Créer</button>
-      <button id="preset-new" title="Créer un nouveau preset">Nouveau</button>
-    </div>
-    <div class="save-row">
-      <input id="preset-tags" type="text" placeholder="tags séparés par des virgules">
-    </div>
-
     <h2>Scènes OBS</h2>
     <p class="hint">
       Associe une scène OBS à un preset : changer de scène change le fond automatiquement.
