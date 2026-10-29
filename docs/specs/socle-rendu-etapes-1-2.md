@@ -5,7 +5,7 @@ updated: 2026-10-29
 
 # Spec — Socle de rendu : contrat d'URL, transport d'état, horloge unique (étapes 1 et 2)
 
-Statut : **étape 1 livrée le 2026-10-29** (render-url, render-transport, `background.html` réduit à l'assemblage) ; étape 2 livrée le 2026-10-29 : horloge (`render-clock.js`), `defineCanvasLayer`, neuf effets canvas migrés un par un (Rain, Stars, Orbiting, Fireflies, Bubble, ShapeMorph, DotGrid) et `ReactionOverlay` sur la boucle commune ; reste à contrôler dans OBS (FPS, ressenti). Ordre réel : Rain en pilote, puis les effets fautifs. Emplacement des modules : à plat à la racine, validé (recommandation acceptée). Étapes 1 et 2 du chemin de migration de
+Statut : **étape 1 livrée le 2026-10-29** (render-url, render-transport, `background.html` réduit à l'assemblage) ; étape 2 livrée le 2026-10-29 : horloge (`render-clock.js`), `defineCanvasLayer`, les dix effets canvas migrés (Rain en pilote, puis les cinq effets fautifs, DotGrid, ColorDrops, FloatingSymbols, WaterRipple) et `ReactionOverlay` sur la boucle commune ; GeometricPattern reste hors périmètre (CSS). Boucles propres restantes, hors effets : l'échantillonnage audio (`background-audio.js`, actif seulement avec le micro), les transitions de `background-mount.js` et la mesure de FPS du tuner. Reste à contrôler dans OBS : FPS et ressenti. Emplacement des modules : à plat à la racine, validé (recommandation acceptée). Étapes 1 et 2 du chemin de migration de
 `docs/architecture-review.md` §5, décisions D1 à D6 acceptées. Ces deux étapes sont indépendantes du
 reste du Studio : elles apportent seules de la stabilité et de la maintenabilité, et posent les deux
 briques dont dépendent les couches (étape 4) et la timeline (étape 8).

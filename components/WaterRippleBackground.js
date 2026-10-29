@@ -1,6 +1,6 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
-import { canvasPixelRatio } from './canvas-runtime.js';
+import { defineCanvasLayer } from './canvas-layer.js';
 import { isAudioPeak } from '../audio-levels.js';
 
 /**
@@ -21,11 +21,8 @@ import { isAudioPeak } from '../audio-levels.js';
  * Un seul canvas contient les deux couches visuelles (chute + propagation), conformément au mode
  * background-only : aucune superposition de Browser Sources ou d'effets externes. L'animation est
  * intégrée avec un delta-temps borné, donc sa vitesse ne dépend pas du framerate du navigateur/OBS.
- *
- * @param {WaterRippleBackgroundOptions} [options]
- * @returns {import('../types.js').ComponentInstance}
  */
-export function WaterRippleBackground(options = {}) {
+export const WaterRippleBackground = defineCanvasLayer((/** @type {WaterRippleBackgroundOptions} */ options = {}) => {
   let shape = isRippleShape(options.shape) ? options.shape : 'ellipse';
   let frequency = Math.max(0, options.frequency ?? 0.8);
   let speed = Math.max(0, options.speed ?? 1);
@@ -36,14 +33,8 @@ export function WaterRippleBackground(options = {}) {
   let audioIntensity = Math.max(0, options.audioIntensity ?? 1);
   let previousAudioLevel = 0;
 
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
-  const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
-
   let cssW = 0;
   let cssH = 0;
-  let rafId = 0;
-  let previousTimestamp = 0;
   let spawnBudget = 1;
   let rgb = resolveColor(color);
 
@@ -66,25 +57,8 @@ export function WaterRippleBackground(options = {}) {
     });
   }
 
-  function handleResize() {
-    const dpr = canvasPixelRatio();
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
-    if (w === 0 || h === 0) return;
-    cssW = w;
-    cssH = h;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
-    events = [];
-    previousTimestamp = 0;
-    spawnBudget = 1;
-    if (rafId !== 0) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(tick);
-  }
-
-  /** @param {RippleEvent} event */
-  function drawFallingDrop(event) {
+  /** @param {CanvasRenderingContext2D} ctx @param {RippleEvent} event */
+  function drawFallingDrop(ctx, event) {
     const progress = clamp(event.age / event.fallDuration, 0, 1);
     const eased = progress * progress;
     const y = event.impactY - event.dropDistance * (1 - eased);
@@ -98,8 +72,8 @@ export function WaterRippleBackground(options = {}) {
     ctx.stroke();
   }
 
-  /** @param {RippleEvent} event */
-  function drawRipple(event) {
+  /** @param {CanvasRenderingContext2D} ctx @param {RippleEvent} event */
+  function drawRipple(ctx, event) {
     const waveAge = event.age - event.fallDuration;
     const radius = waveAge * RIPPLE_SPEED;
     if (radius < 0 || radius > maxRadius) return;
@@ -120,33 +94,30 @@ export function WaterRippleBackground(options = {}) {
     }
   }
 
-  function tick(timestamp) {
-    rafId = requestAnimationFrame(tick);
-    const rawDelta = previousTimestamp === 0 ? 0 : (timestamp - previousTimestamp) / 1000;
-    const delta = Math.min(Math.max(rawDelta, 0), 0.1);
-    previousTimestamp = timestamp;
-
-    spawnBudget += delta * frequency * speed;
-    while (spawnBudget >= 1) {
-      spawn();
-      spawnBudget -= 1;
-    }
-
-    ctx.clearRect(0, 0, cssW, cssH);
-    const maxWaveAge = maxRadius / RIPPLE_SPEED;
-    for (const event of events) {
-      event.age += delta * speed;
-      if (event.age < event.fallDuration) drawFallingDrop(event);
-      else drawRipple(event);
-    }
-    events = events.filter((event) => event.age <= event.fallDuration + maxWaveAge);
-  }
-
-  const observer = new ResizeObserver(handleResize);
-  observer.observe(canvas);
-
   return {
-    el: canvas,
+    resize(size) {
+      cssW = size.width;
+      cssH = size.height;
+      events = [];
+      spawnBudget = 1;
+    },
+
+    draw(ctx, { dt }) {
+      spawnBudget += dt * frequency * speed;
+      while (spawnBudget >= 1) {
+        spawn();
+        spawnBudget -= 1;
+      }
+
+      const maxWaveAge = maxRadius / RIPPLE_SPEED;
+      for (const event of events) {
+        event.age += dt * speed;
+        if (event.age < event.fallDuration) drawFallingDrop(ctx, event);
+        else drawRipple(ctx, event);
+      }
+      events = events.filter((event) => event.age <= event.fallDuration + maxWaveAge);
+    },
+
     /** @param {unknown} newOptions */
     update(newOptions) {
       const next = /** @type {Record<string, unknown>} */ (newOptions ?? {});
@@ -178,13 +149,8 @@ export function WaterRippleBackground(options = {}) {
       }
       previousAudioLevel = level;
     },
-
-    destroy() {
-      cancelAnimationFrame(rafId);
-      observer.disconnect();
-    },
   };
-}
+});
 
 const RIPPLE_SPEED = 92;
 export const WATER_RIPPLE_SHAPES = /** @type {const} */ (['circle', 'ellipse', 'diamond']);
