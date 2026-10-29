@@ -10,6 +10,7 @@ import {
 import { createBackgroundFieldRenderer } from './background-field-renderer.js';
 import { createBackgroundPreviewSession } from './background-preview-session.js';
 import { createDraftTracker } from './background-draft.js';
+import { parseRenderUrl } from '../render-url.js';
 
 const NONE_VALUE = '__none__';
 
@@ -133,8 +134,7 @@ export function createBackgroundPreviewController(input) {
     notifyDraft();
   };
 
-  const pageParams = new URLSearchParams(windowRef.location.search);
-  input.qualitySelect.value = pageParams.get('quality') === 'performance' ? 'performance' : 'auto';
+  input.qualitySelect.value = parseRenderUrl(windowRef.location.search).quality;
   input.qualitySelect.onchange = () => {
     const next = new URL(windowRef.location.href);
     if (input.qualitySelect.value === 'performance') {

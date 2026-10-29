@@ -1,6 +1,7 @@
 // @ts-check
 
 import { STATIC_PORT } from './ports.config.js';
+import { buildRenderUrl } from './render-url.js';
 
 const DEFAULT_BACKGROUND_URL = `http://localhost:${STATIC_PORT}/background.html`;
 
@@ -20,15 +21,16 @@ export function selectBackground(file, presetRef) {
 }
 
 /**
- * @param {string} [baseUrl]
- * @param {{ performance?: boolean }} [options]
+ * @param {string | null} presetId
+ * @param {string} baseUrl
+ * @param {{ performance?: boolean }} options
  */
 function backgroundUrl(presetId, baseUrl, options) {
-  const url = new URL(baseUrl);
-  if (presetId !== null) url.searchParams.set('preset', presetId);
-  url.searchParams.set('transparent', '1');
-  if (options.performance === true) url.searchParams.set('quality', 'performance');
-  return url.toString();
+  return buildRenderUrl({
+    base: baseUrl,
+    presetRef: presetId,
+    quality: options.performance === true ? 'performance' : 'auto',
+  });
 }
 
 /**

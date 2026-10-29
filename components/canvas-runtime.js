@@ -1,4 +1,5 @@
 // @ts-check
+import { parseRenderUrl } from '../render-url.js';
 
 /**
  * Ratio de pixels partagé par les canvas animés. Le plafond évite de rendre 4× plus de pixels
@@ -11,6 +12,6 @@ export function canvasPixelRatio(
   search = globalThis.location?.search ?? '',
 ) {
   const safeRatio = Number.isFinite(deviceRatio) && deviceRatio > 0 ? deviceRatio : 1;
-  const cap = new URLSearchParams(search).get('quality') === 'performance' ? 1 : 2;
+  const cap = parseRenderUrl(search).quality === 'performance' ? 1 : 2;
   return Math.min(safeRatio, cap);
 }
