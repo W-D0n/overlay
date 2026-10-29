@@ -3,8 +3,9 @@
  * Lancement : `bun test`
  */
 
-import { test, expect } from 'bun:test';
-import { buildPatternLayout, computeRadii, lerpRadii, SAMPLES, SHAPE_NAMES } from './ShapeMorphBackground.js';
+import { test, expect, afterEach } from 'bun:test';
+import { buildPatternLayout, computeRadii, lerpRadii, SAMPLES, SHAPE_NAMES, ShapeMorphBackground } from './ShapeMorphBackground.js';
+import { createLayerHarness } from './layer-test-harness.js';
 
 test('T01 [Track B B8] computeRadii — chaque silhouette retourne SAMPLES rayons', () => {
   for (const shape of SHAPE_NAMES) {
@@ -66,4 +67,25 @@ test('buildPatternLayout distribue toutes les formes dans les bornes demandées'
 
 test('buildPatternLayout centre le cas à une seule forme', () => {
   expect(buildPatternLayout(1, 1)[0]).toMatchObject({ x: 0, y: 0 });
+});
+
+const SPIN_ORIGINALS = { document: globalThis.document, getComputedStyle: globalThis.getComputedStyle };
+afterEach(() => {
+  globalThis.document = SPIN_ORIGINALS.document;
+  globalThis.getComputedStyle = SPIN_ORIGINALS.getComputedStyle;
+});
+
+test('[A2] changer la vitesse de rotation en cours de route ne fait pas sauter les formes : seul l’avenir change', () => {
+  globalThis.document = /** @type {*} */ ({ createElement: () => ({ style: {}, remove() {} }), body: { appendChild() {} } });
+  globalThis.getComputedStyle = /** @type {*} */ (() => ({ color: 'rgb(200, 185, 122)' }));
+  const harness = createLayerHarness();
+  const instance = ShapeMorphBackground({ rotationSpeed: 0.3, count: 1 }, harness.environment);
+  const firstRotation = (calls) => calls.find(([name]) => name === 'rotate')[1];
+  let previous = 0;
+  for (let frame = 0; frame < 60; frame += 1) previous = firstRotation(harness.tick(frame * 16.7));
+
+  instance.update?.({ rotationSpeed: 0.6 });
+  const after = firstRotation(harness.tick(60 * 16.7));
+  // 0,6 rad/s × 16,7 ms ≈ 0,01 rad ; l'ancien calcul sautait de ≈ 0,3 rad (timestamp × vitesse).
+  expect(Math.abs(after - previous)).toBeLessThan(0.05);
 });

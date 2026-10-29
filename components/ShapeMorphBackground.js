@@ -1,7 +1,8 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
 import { easeProgress } from './DotGridAnimated.js';
-import { canvasPixelRatio } from './canvas-runtime.js';
+import { defineCanvasLayer } from './canvas-layer.js';
+import { createPhase } from '../render-clock.js';
 import { createAudioReaction } from './audio-reaction.js';
 
 /**
@@ -36,11 +37,8 @@ import { createAudioReaction } from './audio-reaction.js';
  * construction (fonctions radiales simples, pas de tracé vectoriel fidèle). Le pari est que la
  * forme générale (triangle de pizza, étoile à pointes, dôme segmenté, oreilles pointues) suffit à
  * évoquer le sujet dans un style minimaliste, pas à le reproduire fidèlement.
- *
- * @param {ShapeMorphBackgroundOptions} [options]
- * @returns {import('../types.js').ComponentInstance}
  */
-export function ShapeMorphBackground(options = {}) {
+export const ShapeMorphBackground = defineCanvasLayer((/** @type {ShapeMorphBackgroundOptions} */ options = {}) => {
   let shapeName = options.shape ?? 'pizza';
   let count = Math.max(1, Math.round(options.count ?? 12));
   let spread = clamp(options.spread ?? 0.82, 0, 1);
@@ -55,91 +53,74 @@ export function ShapeMorphBackground(options = {}) {
   let morphEasing = options.morphEasing ?? 'easeInOut';
   const audio = createAudioReaction(options);
 
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
-  const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
-
   let cssW = 0;
   let cssH = 0;
-  let rafId = 0;
   let rgb = resolveColor(color);
 
   let currentRadii = computeRadii(shapeName);
   let layout = buildPatternLayout(count, spread);
-  /** @type {{ from: Float32Array, to: Float32Array, startTime: number } | null} */
+  /** @type {{ from: Float32Array, to: Float32Array, elapsedMs: number } | null} */
   let morphState = null;
-
-  function handleResize() {
-    const dpr = canvasPixelRatio();
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
-    if (w === 0 || h === 0) return;
-    cssW = w;
-    cssH = h;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
-    if (rafId !== 0) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function tick(timestamp) {
-    rafId = requestAnimationFrame(tick);
-
-    let radii = currentRadii;
-    if (morphState !== null) {
-      const raw = morphDuration > 0 ? (timestamp - morphState.startTime) / morphDuration : 1;
-      const eased = easeProgress(morphEasing, raw);
-      radii = lerpRadii(morphState.from, morphState.to, eased);
-      if (raw >= 1) {
-        currentRadii = morphState.to;
-        morphState = null;
-      }
-    }
-
-    ctx.clearRect(0, 0, cssW, cssH);
-    const [r, g, b] = rgb;
-
-    for (const item of layout) {
-      const cx = cssW * (posX + item.x);
-      const cy = cssH * (posY + item.y);
-      const rotation = item.rotation
-        + timestamp * 0.001 * rotationSpeed * audio.boost('level', 1.2) * item.direction;
-
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate(rotation);
-      ctx.beginPath();
-      for (let i = 0; i < SAMPLES; i++) {
-        const theta = (i / SAMPLES) * Math.PI * 2;
-        // Le grave gonfle les formes autour de leur taille réglée.
-        const radius = radii[i] * size * item.scale * audio.boost('bass', 0.3);
-        const x = Math.cos(theta) * radius;
-        const y = Math.sin(theta) * radius;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-
-      if (style === 'fill' || style === 'mixed') {
-        const fillAlpha = style === 'fill' ? opacity : opacity * 0.22;
-        ctx.fillStyle = `rgba(${r},${g},${b},${fillAlpha.toFixed(3)})`;
-        ctx.fill();
-      }
-      if (style === 'outline' || style === 'mixed') {
-        ctx.strokeStyle = `rgba(${r},${g},${b},${opacity.toFixed(3)})`;
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-  }
-
-  const observer = new ResizeObserver(handleResize);
-  observer.observe(canvas);
+  /** Rotation, intégrée : un changement de vitesse n'affecte que l'avenir. */
+  const spin = createPhase();
 
   return {
-    el: canvas,
+    resize(area) {
+      cssW = area.width;
+      cssH = area.height;
+    },
+
+    draw(ctx, { dt }) {
+      let radii = currentRadii;
+      if (morphState !== null) {
+        morphState.elapsedMs += dt * 1000;
+        const raw = morphDuration > 0 ? morphState.elapsedMs / morphDuration : 1;
+        const eased = easeProgress(morphEasing, raw);
+        radii = lerpRadii(morphState.from, morphState.to, eased);
+        if (raw >= 1) {
+          currentRadii = morphState.to;
+          morphState = null;
+        }
+      }
+
+      const [r, g, b] = rgb;
+
+      const spinAngle = spin.advance(dt * rotationSpeed * audio.boost('level', 1.2));
+
+      for (const item of layout) {
+        const cx = cssW * (posX + item.x);
+        const cy = cssH * (posY + item.y);
+        const rotation = item.rotation + spinAngle * item.direction;
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rotation);
+        ctx.beginPath();
+        for (let i = 0; i < SAMPLES; i++) {
+          const theta = (i / SAMPLES) * Math.PI * 2;
+          // Le grave gonfle les formes autour de leur taille réglée.
+          const radius = radii[i] * size * item.scale * audio.boost('bass', 0.3);
+          const x = Math.cos(theta) * radius;
+          const y = Math.sin(theta) * radius;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+
+        if (style === 'fill' || style === 'mixed') {
+          const fillAlpha = style === 'fill' ? opacity : opacity * 0.22;
+          ctx.fillStyle = `rgba(${r},${g},${b},${fillAlpha.toFixed(3)})`;
+          ctx.fill();
+        }
+        if (style === 'outline' || style === 'mixed') {
+          ctx.strokeStyle = `rgba(${r},${g},${b},${opacity.toFixed(3)})`;
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+    },
+
     /** @param {unknown} newOptions */
     update(newOptions) {
       const o = /** @type {Record<string, unknown>} */ (newOptions ?? {});
@@ -166,7 +147,7 @@ export function ShapeMorphBackground(options = {}) {
       if (isValidShape(o.shape) && o.shape !== shapeName) {
         const from = morphState ? lerpRadii(morphState.from, morphState.to, 0) : currentRadii;
         shapeName = o.shape;
-        morphState = { from, to: computeRadii(shapeName), startTime: performance.now() };
+        morphState = { from, to: computeRadii(shapeName), elapsedMs: 0 };
       }
       audio.readOptions(o);
     },
@@ -177,13 +158,8 @@ export function ShapeMorphBackground(options = {}) {
     setAudioLevel(levels) {
       audio.apply(levels);
     },
-
-    destroy() {
-      cancelAnimationFrame(rafId);
-      observer.disconnect();
-    },
   };
-}
+});
 
 /** Échantillons radiaux par silhouette — résolution du polygone. */
 export const SAMPLES = 48;
