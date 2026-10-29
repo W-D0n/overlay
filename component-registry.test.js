@@ -1,18 +1,15 @@
 // @ts-check
 import { test, expect, afterEach } from 'bun:test';
 import { COMPONENT_REGISTRY } from './component-registry.js';
-import { COMPONENT_NAMES } from './component-names.js';
+import { LAYER_KIND_IDS } from './layer-kinds.js';
 import { LAYER_KINDS } from './layer-kinds.js';
 import { createLayerHarness } from './components/layer-test-harness.js';
 
-test('every name in COMPONENT_NAMES resolves to a factory in COMPONENT_REGISTRY', () => {
-  for (const name of COMPONENT_NAMES) {
-    expect(typeof COMPONENT_REGISTRY[name]).toBe('function');
-  }
-});
-
-test('COMPONENT_REGISTRY exposes no factory missing from component-names.js', () => {
-  expect(new Set(Object.keys(COMPONENT_REGISTRY))).toEqual(new Set(COMPONENT_NAMES));
+// Le typage (`Record<LayerKindId, …>`, vérifié par `bun dev/typecheck.js`) garantit déjà cette égalité ;
+// ce test la rejoue dans la suite par défaut, que le contrôle de types ne fait pas partie de `bun test`.
+test('le registre contient exactement une fabrique par type de couche décrit', () => {
+  expect(new Set(Object.keys(COMPONENT_REGISTRY))).toEqual(new Set(LAYER_KIND_IDS));
+  for (const id of LAYER_KIND_IDS) expect(typeof COMPONENT_REGISTRY[id]).toBe('function');
 });
 
 const ORIGINALS = { document: globalThis.document, getComputedStyle: globalThis.getComputedStyle };
@@ -26,7 +23,7 @@ test('contrat : chaque effet expose setAudioLevel et trigger exactement comme so
   globalThis.document = /** @type {*} */ ({ createElement: element, body: { appendChild() {} } });
   globalThis.getComputedStyle = /** @type {*} */ (() => ({ color: 'rgb(200, 185, 122)' }));
 
-  for (const name of COMPONENT_NAMES) {
+  for (const name of LAYER_KIND_IDS) {
     const { capabilities } = LAYER_KINDS[name];
     const instance = COMPONENT_REGISTRY[name]({}, createLayerHarness().environment);
     expect(`${name} setAudioLevel ${typeof instance.setAudioLevel === 'function'}`).toBe(`${name} setAudioLevel ${capabilities.audio}`);

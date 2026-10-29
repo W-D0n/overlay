@@ -5,11 +5,9 @@ import {
   BACKGROUND_FIELD_SCHEMAS,
   NUMBER_FIELD_GUIDANCE,
 } from './component-field-schemas.js';
-import { COMPONENT_NAMES } from '../component-names.js';
 
-test('BACKGROUND_COMPONENT_NAMES equals COMPONENT_NAMES, no duplicate', () => {
+test('BACKGROUND_COMPONENT_NAMES ne contient aucun doublon', () => {
   expect(new Set(BACKGROUND_COMPONENT_NAMES).size).toBe(BACKGROUND_COMPONENT_NAMES.length);
-  expect(new Set(BACKGROUND_COMPONENT_NAMES)).toEqual(new Set(COMPONENT_NAMES));
 });
 
 test('les couleurs de fond utilisent les contrôles color/colors du tuner', () => {

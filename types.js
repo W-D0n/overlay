@@ -12,8 +12,8 @@
 
 /**
  * Noms des effets de fond montables.
- * Dérivé de `component-names.js` (source unique) — ne plus étendre cette liste ici, éditer
- * `COMPONENT_NAMES`.
+ * Identifiants neutres décrits dans `layer-kinds.js` (source unique) : pour ajouter un effet, éditer
+ * sa description là-bas et sa fabrique dans `component-registry.js`.
  * @typedef {import('./layer-kinds.js').LayerKindId} ComponentName
  */
 
