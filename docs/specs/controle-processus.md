@@ -5,7 +5,7 @@ updated: 2026-10-30
 
 # Spec — Démarrer, redémarrer, arrêter les serveurs depuis le produit
 
-Statut : **Draft, à valider par l'owner avant code.** Besoin (owner, 2026-10-30) : les scripts lancés à la
+Statut : **D1 tranchée le 2026-10-30 : une application (coquille Tauri) qui lance et arrête les serveurs ; C1 et C2 livrés.** Besoin (owner, 2026-10-30) : les scripts lancés à la
 main (`start-stream.bat`, `kill-servers.bat`) doivent devenir des fonctions du produit.
 
 ## Ce qui est possible, et la limite
@@ -62,11 +62,13 @@ depuis le lanceur ou la coquille (D1).
 
 ## Ordre de livraison
 
-1. **C1 + C2** : supervision par code de sortie et routes de contrôle, avec tests d'intégration (un serveur
-   supervisé qui s'arrête à `0`, qui est relancé à `75`, qui répond 501 hors lanceur).
+1. **C1 + C2 — livré** : `dev/supervisor.js` (supervision par code de sortie) et routes `/control/restart` et
+   `/control/stop`, avec tests d'intégration (arrêt à `0`, relance à `75`, 501 hors lanceur, refus sans en-tête
+   et d'une autre origine) et preuve de bout en bout (les deux PID changent au redémarrage, zéro port à l'arrêt).
 2. **C4** : remplacement guidé de l'instance précédente.
 3. **C5 + C3** : menu du Studio et confirmation en direct.
-4. **D1** (démarrer) : selon la décision.
+4. **Coquille Tauri** : lance `start-stream`, arrête à la fermeture, bascule « démarrer avec Windows » (désactivée
+   par défaut), menu Redémarrer / Arrêter, instance unique (déjà en place).
 
 ## Critères de succès (observés)
 
@@ -88,11 +90,12 @@ depuis le lanceur ou la coquille (D1).
 
 ## Décisions à prendre
 
-1. **D1 — Comment démarrer sans terminal ?** (a) **Coquille Tauri** : une application qui ouvre le Studio et
-   lance et arrête les serveurs avec elle (la fenêtre fermée, tout s'arrête). C'est la solution complète
-   et elle règle aussi « libérer un port » ; elle introduit un outil de build (décision Tauri en attente).
-   (b) **Démarrage automatique de Windows** : un raccourci dans le dossier Démarrage lance `start-stream`
-   à l'ouverture de session ; le Studio est alors toujours disponible, sans nouvel outil. *Recommandation :
-   (b) tout de suite, (a) si vous décidez Tauri.*
+1. **D1 — Comment démarrer sans terminal ? Tranché (owner, 2026-10-30) : une application.** Une coquille
+   Tauri (`src-tauri/`, déjà présente et non suivie) ouvre le Studio, lance les serveurs à son ouverture et les
+   arrête à sa fermeture, sans terminal. Le **démarrage avec Windows est une option de l'application, désactivée
+   par défaut et réversible depuis celle-ci** ; rien ne s'installe de façon cachée. Conséquences : la position
+   « ne pas engager Tauri » de `zero-install-local-first.md` est levée ; Tauri est un outil de packaging (permis
+   par `CLAUDE.md` §1, amendement du 2026-10-29) ; la coquille lance d'abord `bun dev/start-stream.js` (phase
+   « Bun présent »), l'exécutable sans Bun (phase 2 de la spec zéro-installation) venant ensuite.
 2. **D2 — Arrêt en direct** : confirmation (proposé) ou blocage tant qu'une source est connectée ?
    *Recommandation : confirmation.*

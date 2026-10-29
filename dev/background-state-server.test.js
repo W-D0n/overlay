@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -627,4 +627,69 @@ test('GET /live-status compte les pages de rendu connectées, pas les pages du S
     await child.exited;
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+describe('contrôle depuis le Studio (arrêt et redémarrage)', () => {
+  async function startServer(extraEnv) {
+    const directory = mkdtempSync(join(tmpdir(), 'overlay-background-state-'));
+    const port = await reserveFreePort();
+    const baseUrl = `http://localhost:${port}`;
+    const child = Bun.spawn(['bun', 'dev/background-state-server.js'], {
+      cwd: join(import.meta.dir, '..'),
+      env: { ...process.env, BACKGROUND_STATE_PORT: String(port), BACKGROUND_STATE_FILE: join(directory, 'state.json'), ...extraEnv },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    await waitForServer(baseUrl);
+    const post = (path, headers = { 'X-Overlay-Control': '1' }) => fetch(`${baseUrl}${path}`, { method: 'POST', headers });
+    const cleanup = () => { child.kill(); rmSync(directory, { recursive: true, force: true }); };
+    return { child, post, baseUrl, cleanup };
+  }
+
+  test('supervisé : /control/stop répond 202 puis le serveur sort avec le code 0', async () => {
+    const { child, post, cleanup } = await startServer({ OVERLAY_SUPERVISED: '1' });
+    try {
+      expect((await post('/control/stop')).status).toBe(202);
+      expect(await child.exited).toBe(0);
+    } finally { cleanup(); }
+  });
+
+  test('supervisé : /control/restart répond 202 puis le serveur sort avec le code 75', async () => {
+    const { child, post, cleanup } = await startServer({ OVERLAY_SUPERVISED: '1' });
+    try {
+      expect((await post('/control/restart')).status).toBe(202);
+      expect(await child.exited).toBe(75);
+    } finally { cleanup(); }
+  });
+
+  test('sans l’en-tête de contrôle, la demande est refusée et le serveur reste en vie', async () => {
+    const { child, post, cleanup } = await startServer({ OVERLAY_SUPERVISED: '1' });
+    try {
+      expect((await post('/control/stop', {})).status).toBe(400);
+      await delay(400);
+      expect(child.exitCode).toBeNull();
+    } finally { cleanup(); }
+  });
+
+  test('hors lanceur : 501 et le serveur reste en vie (personne ne le relancerait)', async () => {
+    const { child, post, cleanup } = await startServer({ OVERLAY_SUPERVISED: '' });
+    try {
+      expect((await post('/control/restart')).status).toBe(501);
+      await delay(400);
+      expect(child.exitCode).toBeNull();
+    } finally { cleanup(); }
+  });
+
+  test('une page d’une autre origine ne peut pas arrêter le serveur', async () => {
+    const { child, baseUrl, cleanup } = await startServer({ OVERLAY_SUPERVISED: '1' });
+    try {
+      const response = await fetch(`${baseUrl}/control/stop`, {
+        method: 'POST',
+        headers: { 'X-Overlay-Control': '1', Origin: 'https://evil.example' },
+      });
+      expect(response.status).toBe(403);
+      await delay(400);
+      expect(child.exitCode).toBeNull();
+    } finally { cleanup(); }
+  });
 });

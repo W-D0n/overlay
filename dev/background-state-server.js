@@ -53,6 +53,7 @@ import {
   parseBackgroundPresetBundle,
 } from './background-preset-library.js';
 import { createObsSceneClient } from './obs-scene-client.js';
+import { EXIT_RESTART, EXIT_STOP, SUPERVISED_ENV } from './supervisor.js';
 import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
 import { validateBranding } from '../branding-format.js';
 import { BACKGROUND_STATE_PORT } from '../ports.config.js';
@@ -402,7 +403,26 @@ async function handlePostSceneMap(req) {
   return withStateUpdate((file) => ({ ...file, sceneMap: body.sceneMap }));
 }
 
+/**
+ * POST /control/restart | /control/stop — demande au lanceur (`dev/start-stream.js`) de relancer ou d'arrêter
+ * les serveurs, par code de sortie (75 / 0). Un en-tête personnalisé est exigé : il force une requête
+ * préalable CORS qu'une page étrangère ne passe pas. Hors lanceur, personne ne relancerait : refus.
+ * Le serveur ne demande que sa propre sortie, jamais celle d'un autre processus.
+ * @param {'restart' | 'stop'} action
+ * @returns {(req: Request) => Promise<Response>}
+ */
+function controlHandler(action) {
+  return async (req) => {
+    if (req.headers.get('X-Overlay-Control') !== '1') return jsonError('en-tête X-Overlay-Control requis', 400);
+    if (process.env[SUPERVISED_ENV] !== '1') return jsonError('serveur non supervisé : lancé hors de start-stream', 501);
+    setTimeout(() => process.exit(action === 'restart' ? EXIT_RESTART : EXIT_STOP), 100);
+    return Response.json({ ok: true, action }, { status: 202, headers: CORS_HEADERS });
+  };
+}
+
 const POST_ROUTES = {
+  '/control/restart': controlHandler('restart'),
+  '/control/stop': controlHandler('stop'),
   '/scene-map': handlePostSceneMap,
   '/branding': handlePostBranding,
   '/state': handlePostState,

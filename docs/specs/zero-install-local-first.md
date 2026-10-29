@@ -143,7 +143,7 @@ Avec T1 en exécutable, Tauri change de rôle : il pourrait l'embarquer comme **
 l'enveloppe unique. Il faut alors justifier le coût de l'ensemble (toolchain Rust, WebView2) par
 ces trois fonctions.
 
-Position de ce spec : **ne pas engager Tauri, ne pas supprimer `src-tauri/`**. Décider après la
+**Décision de l'owner (2026-10-30) : Tauri est engagé comme enveloppe de l'application** (lancement et arrêt des serveurs, démarrage avec Windows optionnel) ; voir `controle-processus.md`. Position initiale de ce spec, levée : ne pas engager Tauri, ne pas supprimer `src-tauri/`. Décider après la
 phase 2, avec ce critère : si les raccourcis globaux et les notifications manquent à l'usage réel,
 Tauri devient une enveloppe facultative autour de T1 ; sinon `src-tauri/` est retiré et taggé
 (règle « un seul fil » de `CLAUDE.md`). `src-tauri/` est aujourd'hui non suivi par git.

@@ -12,10 +12,14 @@
  * ouvrait des fenêtres détachées hors du Job Object, laissant `bun.exe` tourner après fermeture
  * (root cause de l'orphelin sur le port 5500 constaté le 2026-07-10, voir docs/backlog-history.md).
  *
+ * Le lanceur supervise les serveurs par code de sortie (`dev/supervisor.js`) : le Studio peut demander
+ * un arrêt (code 0) ou un redémarrage (code 75) via `POST /control/*` (docs/specs/controle-processus.md).
+ *
  * Lancement : `bun dev/start-stream.js` (ou double-clic sur start-stream.bat).
  */
 import { findBusyPorts } from './port-check.js';
 import { STATIC_PORT, BACKGROUND_STATE_PORT } from '../ports.config.js';
+import { createSupervisor, SUPERVISED_ENV } from './supervisor.js';
 
 const ROOT = `${import.meta.dir}/..`;
 
@@ -35,9 +39,6 @@ if (busy.length > 0) {
   console.error('Ferme la fenêtre/l\'instance précédente avant de relancer, ou lance kill-servers.bat (tue uniquement un bun.exe orphelin, jamais un autre process).');
   process.exit(1);
 }
-
-/** @type {import('bun').Subprocess[]} */
-const children = [];
 
 /**
  * Lit un flux ligne par ligne et l'imprime préfixé par le nom du serveur.
@@ -60,21 +61,30 @@ async function pipeWithPrefix(stream, name) {
   if (buffer) console.log(`[${name}] ${buffer}`);
 }
 
-for (const { name, cmd } of SERVERS) {
-  const proc = Bun.spawn(cmd, { cwd: ROOT, stdout: 'pipe', stderr: 'pipe' });
-  children.push(proc);
-  pipeWithPrefix(proc.stdout, name);
-  pipeWithPrefix(proc.stderr, name);
-  console.log(`[start-stream] ${name} lancé (pid ${proc.pid})`);
-}
+const supervisor = createSupervisor({
+  servers: SERVERS,
+  spawn(server) {
+    const proc = Bun.spawn(server.cmd, {
+      cwd: ROOT,
+      stdout: 'pipe',
+      stderr: 'pipe',
+      env: { ...process.env, [SUPERVISED_ENV]: '1' },
+    });
+    pipeWithPrefix(proc.stdout, server.name);
+    pipeWithPrefix(proc.stderr, server.name);
+    return { pid: proc.pid, kill: () => proc.kill(), exited: proc.exited };
+  },
+  log: (message) => console.log(`[start-stream] ${message}`),
+  onExit: (code) => process.exit(code),
+});
 
-/** Tue tous les enfants proprement — appelé sur Ctrl+C/SIGTERM, jamais de process orphelin. */
+/** Ctrl+C / SIGTERM : tous les enfants sont tués proprement, jamais de process orphelin. */
 function shutdown() {
   console.log('\n[start-stream] arrêt demandé — fermeture des serveurs...');
-  for (const proc of children) proc.kill();
-  process.exit(0);
+  supervisor.stop();
 }
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
+supervisor.start();
 console.log('[start-stream] serveur statique + état du fond lancés dans ce terminal — Ctrl+C ici les arrête tous proprement.');
