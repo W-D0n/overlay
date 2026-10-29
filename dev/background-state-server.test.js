@@ -488,3 +488,45 @@ test('une page web étrangère ne peut ni lire ni modifier l’état, ni ouvrir 
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('un fichier d’état version 1 est migré en version 2 et sauvegardé une seule fois avant toute écriture', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-background-state-'));
+  const stateFile = join(directory, 'state.json');
+  const original = JSON.stringify({
+    current: { component: 'RainBackground', options: { audioReactive: 'Oui', speed: 1 } },
+    presets: [{ id: 'calme', name: 'Calme', component: 'BubbleBackground', options: { audioReactive: 'Non' } }],
+  }, null, 2);
+  await Bun.write(stateFile, original);
+  const port = await reserveFreePort();
+  const baseUrl = `http://localhost:${port}`;
+  const child = Bun.spawn(['bun', 'dev/background-state-server.js'], {
+    cwd: join(import.meta.dir, '..'),
+    env: { ...process.env, BACKGROUND_STATE_PORT: String(port), BACKGROUND_STATE_FILE: stateFile },
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+
+  try {
+    await waitForServer(baseUrl);
+    const state = await (await fetch(`${baseUrl}/state`)).json();
+    expect(state.version).toBe(2);
+    expect(state.current.options.audioReactive).toBe(true);
+    expect(state.presets[0].options.audioReactive).toBe(false);
+
+    const backup = `${stateFile}.pre-v2.bak`;
+    expect(existsSync(backup)).toBe(true);
+    expect(readFileSync(backup, 'utf8')).toBe(original);
+
+    // Une écriture ultérieure ne doit jamais écraser la sauvegarde d'origine.
+    await fetch(`${baseUrl}/state`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current: { component: 'RainBackground', options: { speed: 3 } } }),
+    });
+    expect(readFileSync(backup, 'utf8')).toBe(original);
+    expect(JSON.parse(readFileSync(stateFile, 'utf8')).version).toBe(2);
+  } finally {
+    child.kill();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

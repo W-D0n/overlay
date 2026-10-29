@@ -24,7 +24,7 @@ test('un export de presets se relit avec son format versionné sans partager les
   const bundle = createBackgroundPresetBundle(presets);
   expect(bundle).toEqual({
     format: 'overlay-background-presets',
-    version: 1,
+    version: 2,
     presets,
   });
   bundle.presets[0].options.changed = true;
@@ -252,4 +252,23 @@ test('un import qui ne change que la transition ou showBranding est une mise à 
   expect(plan.unchanged).toBe(0);
   expect(plan.presets[0]).toEqual(imported);
   expect(plan.changes[0].differences.map(({ field }) => field).sort()).toEqual(['showBranding', 'transition']);
+});
+
+test('un export est en version 2 ; un lot version 1 s’importe en convertissant « Oui » en booléen', () => {
+  const exported = createBackgroundPresetBundle([{ id: 'a', name: 'A', component: 'RainBackground', options: { audioReactive: true } }]);
+  expect(exported.version).toBe(2);
+
+  const legacyBundle = JSON.stringify({
+    format: 'overlay-background-presets',
+    version: 1,
+    presets: [{ id: 'a', name: 'A', component: 'RainBackground', options: { audioReactive: 'Oui', speed: 2 } }],
+  });
+  const parsed = parseBackgroundPresetBundle(legacyBundle);
+  expect(parsed.ok).toBe(true);
+  expect(parsed.presets[0].options).toEqual({ audioReactive: true, speed: 2 });
+});
+
+test('une version de lot inconnue est refusée', () => {
+  const result = parseBackgroundPresetBundle(JSON.stringify({ format: 'overlay-background-presets', version: 9, presets: [] }));
+  expect(result.ok).toBe(false);
 });

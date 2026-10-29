@@ -14,7 +14,7 @@ describe('session d’aperçu du tuner', () => {
       speed: 1,
       color: '#C8B97A',
       angle: 8,
-      audioReactive: 'Non',
+      audioReactive: false,
       audioIntensity: 1,
     });
     expect(second).toEqual(first);
@@ -32,7 +32,7 @@ describe('session d’aperçu du tuner', () => {
         component: 'RainBackground',
         options: {
           intensity: 0.5, speed: 1, color: '#C8B97A', angle: 8,
-          audioReactive: 'Non', audioIntensity: 1,
+          audioReactive: false, audioIntensity: 1,
         },
         showBranding: true,
       },

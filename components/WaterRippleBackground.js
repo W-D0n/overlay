@@ -1,13 +1,14 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
 import { defineCanvasLayer } from './canvas-layer.js';
+import { isAudioOn } from '../layer-kinds.js';
 import { isAudioPeak } from '../audio-levels.js';
 
 /**
  * @typedef {object} WaterRippleBackgroundOptions
  * @property {'circle' | 'ellipse' | 'diamond'} [shape]
  * @property {number} [frequency] - impacts par seconde (défaut 0.8)
- * @property {string} [audioReactive] - 'Oui' pour engendrer une goutte à chaque pic sonore (défaut 'Non')
+ * @property {boolean} [audioReactive] - engendrer une goutte à chaque pic sonore (défaut false)
  * @property {number} [audioIntensity] - amplitude de la réaction audio (défaut 1)
  * @property {number} [speed] - multiplicateur temporel global (défaut 1)
  * @property {number} [amplitude] - intensité visuelle des ondes, 0-1 (défaut 0.7)
@@ -128,7 +129,7 @@ export const WaterRippleBackground = defineCanvasLayer((/** @type {WaterRippleBa
       if (typeof next.maxRadius === 'number') maxRadius = Math.max(1, next.maxRadius);
       if (typeof next.lineWidth === 'number') lineWidth = Math.max(0.1, next.lineWidth);
       if (typeof next.audioIntensity === 'number' && next.audioIntensity >= 0) audioIntensity = next.audioIntensity;
-      if (next.audioReactive !== undefined && next.audioReactive !== 'Oui') previousAudioLevel = 0;
+      if (next.audioReactive !== undefined && !isAudioOn(next.audioReactive)) previousAudioLevel = 0;
       if (typeof next.color === 'string' && next.color !== color) {
         color = next.color;
         rgb = resolveColor(color);

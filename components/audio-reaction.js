@@ -1,5 +1,6 @@
 // @ts-check
 import { isAudioPeak } from '../audio-levels.js';
+import { isAudioOn } from '../layer-kinds.js';
 
 /**
  * components/audio-reaction.js — État audio partagé par les effets réactifs.
@@ -55,7 +56,7 @@ export function createAudioReaction(options = {}) {
       }
       // Le preset repasse en non réactif : plus aucun niveau ne viendra, on efface le dernier reçu
       // pour que l'effet retrouve son animation normale au lieu de figer sur un pic.
-      if (next.audioReactive !== undefined && next.audioReactive !== 'Oui') reset();
+      if (next.audioReactive !== undefined && !isAudioOn(next.audioReactive)) reset();
     },
 
     apply(levels) {

@@ -99,6 +99,18 @@ function broadcastPresetChange(preset, action) {
 }
 
 /**
+ * Copie le fichier d'origine à côté de lui avant que la version migrée ne soit écrite. Une seule
+ * sauvegarde : si elle existe déjà, elle est la plus ancienne et ne doit jamais être écrasée.
+ * @param {Blob} file
+ */
+async function backupBeforeMigration(file) {
+  const backup = Bun.file(`${STATE_FILE}.pre-v2.bak`);
+  if (await backup.exists()) return;
+  await Bun.write(`${STATE_FILE}.pre-v2.bak`, await file.text());
+  console.info(`[background-state-server] fichier d'état migré en version 2 — original conservé : ${STATE_FILE}.pre-v2.bak`);
+}
+
+/**
  * Lit le fichier d'état. Absent → état par défaut ; présent mais invalide → erreurs remontées
  * à l'appelant (qui en fait une réponse d'erreur), jamais de réparation silencieuse.
  * @returns {Promise<{ ok: true, file: import('./background-state-format.js').BackgroundFile } | { ok: false, errors: string[] }>}
@@ -118,6 +130,7 @@ async function readStateFile() {
   const migration = migrateBackgroundFile(raw);
   const validation = validateBackgroundFile(migration.file);
   if (!validation.ok) return { ok: false, errors: validation.errors };
+  if (migration.migrated) await backupBeforeMigration(file);
   return { ok: true, file: /** @type {import('./background-state-format.js').BackgroundFile} */ (migration.file) };
 }
 

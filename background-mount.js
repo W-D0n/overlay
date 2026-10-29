@@ -1,7 +1,7 @@
 // @ts-check
 import { COMPONENT_REGISTRY } from './component-registry.js';
 import { cssEasing, normalizeTransition, transitionStyles } from './background-transition.js';
-import { kindCapabilities } from './layer-kinds.js';
+import { isAudioOn, kindCapabilities } from './layer-kinds.js';
 
 /**
  * background-mount.js — Montage d'un effet de fond standalone dans un conteneur (2026-07-14).
@@ -232,8 +232,6 @@ function defaultCreateLayer() {
  * @returns {boolean}
  */
 export function isAudioEnabled(options) {
-  return options?.audioReactive === AUDIO_REACTIVE_ON;
+  return isAudioOn(options?.audioReactive);
 }
 
-/** Valeur du champ `audioReactive` qui active la réactivité (voir dev/component-field-schemas.js). */
-export const AUDIO_REACTIVE_ON = 'Oui';

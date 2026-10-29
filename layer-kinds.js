@@ -8,7 +8,7 @@
  * (`component-registry.js`) et est typée `Record<LayerKindId, …>` : oublier ou ajouter une fabrique
  * échoue au contrôle de types (`bun dev/typecheck.js`).
  *
- * `type` d'un champ : `text` (input texte), `number` (input numérique), `select` (liste, `choices`),
+ * `type` d'un champ : `text` (input texte), `number` (input numérique), `select` (liste, `choices`), `boolean` (case à cocher),
  * `textarea` (une ligne par élément d'un tableau de chaînes), `token` (liste des tokens `tokens.css`
  * d'une catégorie), `color` (picker + couleurs nommées + saisie CSS libre), `colors` (liste dynamique).
  * Aucune logique ici (pattern « configuration hors composant », CLAUDE.md).
@@ -23,7 +23,7 @@
  * @property {string} key - Clé dans `ComponentMount.options`
  * @property {string} label - Libellé affiché
  * @property {string} [description] - Aide courte affichée sous le champ
- * @property {'text'|'number'|'select'|'textarea'|'token'|'color'|'colors'} type
+ * @property {'text'|'number'|'select'|'boolean'|'textarea'|'token'|'color'|'colors'} type
  * @property {string[]} [choices] - Valeurs possibles si `type === 'select'`
  * @property {'color'|'border'|'radius'} [tokenCategory] - Catégorie si `type === 'token'`
  * @property {number} [min] - Borne basse si `type === 'number'`
@@ -137,9 +137,8 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
-        type: 'select',
-        choices: ['Non', 'Oui'],
-        default: 'Non',
+        type: 'boolean',
+        default: false,
       },
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
@@ -156,9 +155,8 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
-        type: 'select',
-        choices: ['Non', 'Oui'],
-        default: 'Non',
+        type: 'boolean',
+        default: false,
       },
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
@@ -180,9 +178,8 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
-        type: 'select',
-        choices: ['Non', 'Oui'],
-        default: 'Non',
+        type: 'boolean',
+        default: false,
       },
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
@@ -199,9 +196,8 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
-        type: 'select',
-        choices: ['Non', 'Oui'],
-        default: 'Non',
+        type: 'boolean',
+        default: false,
       },
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
@@ -220,9 +216,8 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
-        type: 'select',
-        choices: ['Non', 'Oui'],
-        default: 'Non',
+        type: 'boolean',
+        default: false,
       },
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
@@ -249,9 +244,8 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
-        type: 'select',
-        choices: ['Non', 'Oui'],
-        default: 'Non',
+        type: 'boolean',
+        default: false,
       },
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
@@ -268,9 +262,8 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
-        type: 'select',
-        choices: ['Non', 'Oui'],
-        default: 'Non',
+        type: 'boolean',
+        default: false,
       },
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
@@ -286,9 +279,8 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
-        type: 'select',
-        choices: ['Non', 'Oui'],
-        default: 'Non',
+        type: 'boolean',
+        default: false,
       },
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
@@ -308,9 +300,8 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
-        type: 'select',
-        choices: ['Non', 'Oui'],
-        default: 'Non',
+        type: 'boolean',
+        default: false,
       },
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
@@ -335,9 +326,8 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
-        type: 'select',
-        choices: ['Non', 'Oui'],
-        default: 'Non',
+        type: 'boolean',
+        default: false,
       },
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
@@ -357,9 +347,8 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le fond suit le micro. OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
-        type: 'select',
-        choices: ['Non', 'Oui'],
-        default: 'Non',
+        type: 'boolean',
+        default: false,
       },
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
@@ -404,4 +393,25 @@ export function kindCapabilities(id) {
 /** @param {unknown} value @returns {value is LayerKindId} */
 export function isLayerKindId(value) {
   return typeof value === 'string' && Object.hasOwn(KIND_DEFINITIONS, value);
+}
+
+/**
+ * La réactivité audio d'un preset. Le booléen est la forme persistée ; l'ancien libellé « Oui » reste
+ * lu (fichiers et pages antérieurs à la version 2). Seul point qui connaît cette équivalence.
+ * @param {unknown} value
+ * @returns {boolean}
+ */
+export function isAudioOn(value) {
+  return value === true || value === 'Oui';
+}
+
+/**
+ * Options d'un preset ramenées aux valeurs persistées neutres (version 2) : `audioReactive`
+ * « Oui » / « Non » devient un booléen. Les autres valeurs sont conservées telles quelles.
+ * @param {Record<string, unknown>} options
+ * @returns {Record<string, unknown>}
+ */
+export function neutralizeOptions(options) {
+  if (options.audioReactive !== 'Oui' && options.audioReactive !== 'Non') return options;
+  return { ...options, audioReactive: options.audioReactive === 'Oui' };
 }

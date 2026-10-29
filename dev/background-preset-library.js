@@ -1,13 +1,16 @@
 // @ts-check
 import { PRESET_NAME_MAX_LENGTH, validateBackgroundFile } from './background-state-format.js';
+import { neutralizeOptions } from '../layer-kinds.js';
 
 export const BACKGROUND_PRESET_BUNDLE_FORMAT = 'overlay-background-presets';
-export const BACKGROUND_PRESET_BUNDLE_VERSION = 1;
+export const BACKGROUND_PRESET_BUNDLE_VERSION = 2;
+/** Versions de lot lues à l'import : la 1 porte encore `audioReactive` « Oui » / « Non ». */
+const READABLE_BUNDLE_VERSIONS = [1, 2];
 
 /**
  * @typedef {object} BackgroundPresetBundle
  * @property {'overlay-background-presets'} format
- * @property {1} version
+ * @property {2} version
  * @property {import('./background-state-format.js').BackgroundPreset[]} presets
  */
 
@@ -199,7 +202,7 @@ export function parseBackgroundPresetBundle(input) {
   if (bundle.format !== BACKGROUND_PRESET_BUNDLE_FORMAT) {
     return { ok: false, errors: [`format de presets inconnu : ${String(bundle.format)}`] };
   }
-  if (bundle.version !== BACKGROUND_PRESET_BUNDLE_VERSION) {
+  if (typeof bundle.version !== 'number' || !READABLE_BUNDLE_VERSIONS.includes(bundle.version)) {
     return { ok: false, errors: [`version de presets non supportée : ${String(bundle.version)}`] };
   }
   if (!Array.isArray(bundle.presets)) return { ok: false, errors: ['presets : tableau attendu'] };
@@ -208,7 +211,9 @@ export function parseBackgroundPresetBundle(input) {
   if (!validation.ok) return { ok: false, errors: validation.errors };
   return {
     ok: true,
-    presets: /** @type {import('./background-state-format.js').BackgroundPreset[]} */ (bundle.presets).map(clonePreset),
+    presets: /** @type {import('./background-state-format.js').BackgroundPreset[]} */ (bundle.presets)
+      .map(clonePreset)
+      .map((preset) => ({ ...preset, options: neutralizeOptions(preset.options) })),
   };
 }
 

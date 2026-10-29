@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createBackgroundMount } from './background-mount.js';
+import { createBackgroundMount, isAudioEnabled } from './background-mount.js';
 
 /** Calque factice : le montage n'a pas besoin d'un vrai DOM pour être testé. */
 function fakeLayer() {
@@ -423,5 +423,14 @@ describe('background mount transitions', () => {
     expect(mount.layerCount()).toBe(0);
     expect(created[0].destroyed).toBe(1);
     expect(created[1].destroyed).toBe(1);
+  });
+});
+
+describe('isAudioEnabled', () => {
+  test('le booléen true et l’ancien libellé « Oui » activent la réactivité, le reste non', () => {
+    expect(isAudioEnabled({ audioReactive: true })).toBe(true);
+    expect(isAudioEnabled({ audioReactive: 'Oui' })).toBe(true);
+    for (const value of [false, 'Non', undefined, 1]) expect(isAudioEnabled({ audioReactive: value })).toBe(false);
+    expect(isAudioEnabled(undefined)).toBe(false);
   });
 });

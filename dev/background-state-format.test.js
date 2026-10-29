@@ -340,3 +340,38 @@ test('showBranding n’accepte qu’un booléen, sur le preset comme sur l’ét
     id: 'alpha', name: 'Alpha', component: 'RainBackground', options: {}, showBranding: 1,
   }).ok).toBe(false);
 });
+
+// ── version 2 : valeurs persistées neutres ───────────────────────────────
+
+test('defaultBackgroundFile porte la version 2', () => {
+  expect(defaultBackgroundFile().version).toBe(2);
+});
+
+test('la migration 1 → 2 convertit « Oui » / « Non » en booléens dans l’état courant et tous les presets', () => {
+  const legacy = {
+    current: { component: 'RainBackground', options: { audioReactive: 'Oui', speed: 1 } },
+    presets: [
+      preset({ id: 'a', name: 'a', options: { audioReactive: 'Non' } }),
+      preset({ id: 'b', name: 'b', component: 'BubbleBackground', options: { audioReactive: 'Oui', count: 5 } }),
+      preset({ id: 'c', name: 'c', options: { intensity: 0.2 } }),
+    ],
+  };
+  const { file, migrated } = migrateBackgroundFile(legacy);
+  expect(migrated).toBe(true);
+  expect(file.version).toBe(2);
+  expect(file.current.options).toEqual({ audioReactive: true, speed: 1 });
+  expect(file.presets.map((entry) => entry.options)).toEqual([
+    { audioReactive: false },
+    { audioReactive: true, count: 5 },
+    { intensity: 0.2 },
+  ]);
+  expect(validateBackgroundFile(file)).toEqual({ ok: true, errors: [] });
+  expect(legacy.current.options.audioReactive).toBe('Oui');
+});
+
+test('un fichier déjà en version 2 n’est pas modifié, et la migration est idempotente', () => {
+  const current = { version: 2, current: { component: 'RainBackground', options: { audioReactive: true } }, presets: [] };
+  expect(migrateBackgroundFile(current)).toEqual({ file: current, migrated: false });
+  const once = migrateBackgroundFile({ current: { component: null, options: {} }, presets: [] });
+  expect(migrateBackgroundFile(once.file).migrated).toBe(false);
+});

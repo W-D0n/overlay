@@ -1,6 +1,7 @@
 // @ts-check
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 import { isHexColor } from './color-palette-format.js';
+import { isAudioOn } from '../layer-kinds.js';
 import { DESIGN_TOKENS, tokenLabel } from './design-tokens.js';
 import { buildNumericFieldControl } from './numeric-field-control.js';
 
@@ -211,6 +212,13 @@ export function createBackgroundFieldRenderer(input) {
       }
       select.onchange = () => input.onChange(field.key, select.value);
       return select;
+    }
+    if (field.type === 'boolean') {
+      const checkbox = documentRef.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = isAudioOn(value);
+      checkbox.onchange = () => input.onChange(field.key, checkbox.checked);
+      return checkbox;
     }
     if (field.type === 'textarea') {
       const textarea = documentRef.createElement('textarea');

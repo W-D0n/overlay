@@ -1,5 +1,5 @@
 // @ts-check
-import { isLayerKindId } from '../layer-kinds.js';
+import { isLayerKindId, neutralizeOptions } from '../layer-kinds.js';
 import { validateSceneMap } from '../obs-scene-mapping.js';
 import { validateTransition } from '../background-transition.js';
 import { normalizeBranding, validateBranding } from '../branding-format.js';
@@ -15,7 +15,7 @@ import { normalizeBranding, validateBranding } from '../branding-format.js';
  * @typedef {{ component: string | null, options: Record<string, unknown>, transition?: BackgroundTransition, showBranding?: boolean }} BackgroundCurrent
  * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[], transition?: BackgroundTransition, showBranding?: boolean }} BackgroundPreset
  * @typedef {import('../branding-format.js').Branding} Branding
- * @typedef {{ current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string>, branding?: Branding }} BackgroundFile
+ * @typedef {{ version?: number, current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string>, branding?: Branding }} BackgroundFile
  */
 
 /** Longueur maximale d'un nom de preset — borne UI (liste lisible), pas une contrainte technique. */
@@ -24,9 +24,12 @@ export const PRESET_ID_MAX_LENGTH = 80;
 const PRESET_ID_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/;
 const RETIRED_BACKGROUND_COMPONENT = 'MatrixGridBackground';
 
+/** Version du fichier d'état : 2 = valeurs persistées neutres (`audioReactive` booléen). */
+export const BACKGROUND_FILE_VERSION = 2;
+
 /** @returns {BackgroundFile} */
 export function defaultBackgroundFile() {
-  return { current: { component: 'DotGridBackground', options: {} }, presets: [], sceneMap: {} };
+  return { version: BACKGROUND_FILE_VERSION, current: { component: 'DotGridBackground', options: {} }, presets: [], sceneMap: {} };
 }
 
 /**
@@ -89,6 +92,7 @@ export function migrateBackgroundFile(raw) {
   if (!isPlainObject(raw) || !Array.isArray(raw.presets)) return { file: raw, migrated: false };
 
   let migrated = false;
+  const needsNeutralValues = raw.version === undefined;
   const survivingPresets = raw.presets.filter((preset) => {
     const retired = isPlainObject(preset) && preset.component === RETIRED_BACKGROUND_COMPONENT;
     if (retired) migrated = true;
@@ -110,7 +114,15 @@ export function migrateBackgroundFile(raw) {
     && raw.current.component === RETIRED_BACKGROUND_COMPONENT;
   if (retireCurrent) migrated = true;
   const current = retireCurrent ? { component: null, options: {} } : raw.current;
-  return { file: migrated ? { ...raw, current, presets } : raw, migrated };
+  if (!needsNeutralValues) return { file: migrated ? { ...raw, current, presets } : raw, migrated };
+
+  const neutral = (/** @type {unknown} */ entry) => (
+    isPlainObject(entry) && isPlainObject(entry.options) ? { ...entry, options: neutralizeOptions(entry.options) } : entry
+  );
+  return {
+    file: { ...raw, version: BACKGROUND_FILE_VERSION, current: neutral(current), presets: presets.map(neutral) },
+    migrated: true,
+  };
 }
 
 /**

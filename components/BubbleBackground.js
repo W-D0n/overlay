@@ -2,6 +2,7 @@
 import { resolveColor } from './color-utils.js';
 import { defineCanvasLayer } from './canvas-layer.js';
 import { createPhase } from '../render-clock.js';
+import { isAudioOn } from '../layer-kinds.js';
 import { isAudioPeak } from '../audio-levels.js';
 
 /**
@@ -22,7 +23,7 @@ import { isAudioPeak } from '../audio-levels.js';
  * @property {number} [burstMaxTravel] - trajet maximum avant éclatement, ratio 0-1 (défaut 0.9)
  * @property {number} [burstDuration] - durée de l'anneau d'éclatement en secondes (défaut 0.37)
  * @property {number} [burstScale] - expansion finale de l'anneau (défaut 1.8)
- * @property {string} [audioReactive] - 'Oui' pour réagir au son (défaut 'Non')
+ * @property {boolean} [audioReactive] - réagir au son (défaut false)
  * @property {number} [audioIntensity] - amplitude de la réaction audio (défaut 1)
  */
 /** Accélération maximale de la montée à `audioIntensity` 1 et niveau saturé (+70 %). */
@@ -144,7 +145,7 @@ export const BubbleBackground = defineCanvasLayer((/** @type {BubbleBackgroundOp
       if (typeof o.burstDuration === 'number') burstDuration = Math.max(0.05, o.burstDuration);
       if (typeof o.burstScale === 'number') burstScale = Math.max(0, o.burstScale);
       if (typeof o.audioIntensity === 'number' && o.audioIntensity >= 0) audioIntensity = o.audioIntensity;
-      if (o.audioReactive !== undefined && o.audioReactive !== 'Oui') { audioLevel = 0; previousAudioBass = 0; }
+      if (o.audioReactive !== undefined && !isAudioOn(o.audioReactive)) { audioLevel = 0; previousAudioBass = 0; }
       if (typeof o.color === 'string' && o.color !== color) { color = o.color; rgb = resolveColor(color); }
       if (typeof o.count === 'number' && Math.round(o.count) !== count) {
         count = Math.max(1, Math.round(o.count));

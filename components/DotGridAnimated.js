@@ -2,7 +2,7 @@
 import { simplex2 } from './simplex.js';
 import { resolveColor } from './color-utils.js';
 import { defineCanvasLayer } from './canvas-layer.js';
-import { GRID_MODES } from '../layer-kinds.js';
+import { GRID_MODES, isAudioOn } from '../layer-kinds.js';
 import { createPhase } from '../render-clock.js';
 
 /** Fréquences de la variabilité de couleur par bruit — indépendantes de `MODE_PARAMS` (opacité)
@@ -255,7 +255,7 @@ export function lerpModeParams(from, to, progress) {
  *   reactionMode?: 'none'|'ambient'|'follow'|'sub'|'raid'|'bits',
  *   reactionInterval?: number,
  *   reactionIntensity?: number,
- *   audioReactive?: string,
+ *   audioReactive?: boolean,
  *   audioIntensity?: number,
  * }} DotGridOptions
  */
@@ -571,7 +571,7 @@ export const DotGridAnimated = defineCanvasLayer((/** @type {DotGridOptions} */ 
       }
       // Le preset repasse en non réactif : plus aucun niveau ne sera diffusé, on efface le dernier
       // reçu pour que la grille retrouve son animation normale.
-      if (opts.audioReactive !== undefined && opts.audioReactive !== 'Oui') {
+      if (opts.audioReactive !== undefined && !isAudioOn(opts.audioReactive)) {
         audioBass = 0;
         audioTreble = 0;
       }

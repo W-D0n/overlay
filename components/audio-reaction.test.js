@@ -69,3 +69,12 @@ test('8. rester réactif ne remet pas les niveaux à zéro', () => {
   reaction.readOptions({ audioReactive: 'Oui', audioIntensity: 1 });
   expect(reaction.level()).toBe(0.5);
 });
+
+test('la réactivité s’arrête avec le booléen false comme avec l’ancien « Non », et reste active avec true', () => {
+  const reaction = createAudioReaction({ audioReactive: true });
+  reaction.apply({ level: 0.8, bass: 0, treble: 0 });
+  reaction.readOptions({ audioReactive: true });
+  expect(reaction.level()).toBeGreaterThan(0);
+  reaction.readOptions({ audioReactive: false });
+  expect(reaction.level()).toBe(0);
+});
