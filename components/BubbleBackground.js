@@ -1,7 +1,7 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
-import { frameDeltaSeconds } from './animation-time.js';
-import { canvasPixelRatio } from './canvas-runtime.js';
+import { defineCanvasLayer } from './canvas-layer.js';
+import { createPhase } from '../render-clock.js';
 import { isAudioPeak } from '../audio-levels.js';
 
 /**
@@ -28,11 +28,7 @@ import { isAudioPeak } from '../audio-levels.js';
 /** Accélération maximale de la montée à `audioIntensity` 1 et niveau saturé (+70 %). */
 const AUDIO_SPEED_GAIN = 0.7;
 
-/**
- * @param {BubbleBackgroundOptions} [options]
- * @returns {import('../types.js').ComponentInstance}
- */
-export function BubbleBackground(options = {}) {
+export const BubbleBackground = defineCanvasLayer((/** @type {BubbleBackgroundOptions} */ options = {}) => {
   let count = Math.max(1, Math.round(options.count ?? 15));
   let speed = options.speed ?? 1;
   let color = options.color ?? 'var(--color-gold)';
@@ -46,20 +42,15 @@ export function BubbleBackground(options = {}) {
   let audioLevel = 0;
   let previousAudioBass = 0;
 
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
-  const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
-
   let cssW = 0;
   let cssH = 0;
-  let rafId = 0;
-  /** @type {number | null} */
-  let previousTimestamp = null;
   let rgb = resolveColor(color);
 
   /** @typedef {{x:number,y:number,r:number,vy:number,driftSpeed:number,phase:'rising'|'bursting',burstT:number,burstY:number}} Bubble */
   /** @type {Bubble[]} */
   let bubbles = [];
+  /** Phase de l'oscillation latérale, intégrée : un changement de vitesse n'affecte que l'avenir. */
+  const wobble = createPhase();
 
   /** @returns {Bubble} */
   function spawn(fromBottom = true) {
@@ -81,38 +72,20 @@ export function BubbleBackground(options = {}) {
     bubbles = Array.from({ length: count }, () => spawn(false));
   }
 
-  function handleResize() {
-    const dpr = canvasPixelRatio();
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
-    if (w === 0 || h === 0) return;
-    cssW = w;
-    cssH = h;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
-    seed();
-    previousTimestamp = null;
-    if (rafId !== 0) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(tick);
-  }
-
-  function tick(timestamp) {
-    rafId = requestAnimationFrame(tick);
-    const delta = frameDeltaSeconds(previousTimestamp, timestamp);
-    previousTimestamp = timestamp;
-    ctx.clearRect(0, 0, cssW, cssH);
+  /** @param {CanvasRenderingContext2D} ctx @param {import('../render-clock.js').RenderFrame} frame */
+  function drawBubbles(ctx, { dt }) {
     const [r, g, b] = rgb;
+    // Le son accélère la montée sans jamais la ralentir : à niveau nul, le rendu est celui
+    // d'un preset non réactif (docs/specs/background-audio-reactivity.md).
+    const audioSpeed = speed * (1 + audioLevel * audioIntensity * AUDIO_SPEED_GAIN);
+    const wobblePhase = wobble.advance(dt * audioSpeed);
 
     for (let i = 0; i < bubbles.length; i++) {
       const bub = bubbles[i];
 
       if (bub.phase === 'rising') {
-        // Le son accélère la montée sans jamais la ralentir : à niveau nul, le rendu est celui
-        // d'un preset non réactif (docs/specs/background-audio-reactivity.md).
-        const audioSpeed = speed * (1 + audioLevel * audioIntensity * AUDIO_SPEED_GAIN);
-        bub.y -= bub.vy * audioSpeed * delta;
-        bub.x += Math.sin(timestamp * 0.001 * audioSpeed + bub.y * 0.02) * bub.driftSpeed * audioSpeed * delta;
+        bub.y -= bub.vy * audioSpeed * dt;
+        bub.x += Math.sin(wobblePhase + bub.y * 0.02) * bub.driftSpeed * audioSpeed * dt;
 
         ctx.strokeStyle = `rgba(${r},${g},${b},0.55)`;
         ctx.lineWidth = 1.5;
@@ -126,7 +99,7 @@ export function BubbleBackground(options = {}) {
         // la hauteur, le bord haut ne servant plus que de filet de sécurité.
         if (shouldBurstBubble(bub.y, bub.r, bub.burstY)) bub.phase = 'bursting';
       } else {
-        bub.burstT += delta * speed;
+        bub.burstT += dt * speed;
         const t = bub.burstT / burstDuration;
         const ringRadius = bub.r * (1 + t * burstScale);
         const opacity = Math.max(0, 0.6 * (1 - t));
@@ -139,7 +112,7 @@ export function BubbleBackground(options = {}) {
         if (bub.burstT >= burstDuration) bubbles[i] = spawn(true);
       }
     }
-  }
+};
 
   /** Fait éclater la bulle la plus haute encore en montée — la plus visible à l'écran. */
   function burstOneRisingBubble() {
@@ -151,11 +124,15 @@ export function BubbleBackground(options = {}) {
     if (highest !== null) highest.phase = 'bursting';
   }
 
-  const observer = new ResizeObserver(handleResize);
-  observer.observe(canvas);
-
   return {
-    el: canvas,
+    resize(size) {
+      cssW = size.width;
+      cssH = size.height;
+      seed();
+    },
+
+    draw: drawBubbles,
+
     /** @param {unknown} newOptions */
     update(newOptions) {
       const o = /** @type {Record<string, unknown>} */ (newOptions ?? {});
@@ -190,13 +167,8 @@ export function BubbleBackground(options = {}) {
       if (isAudioPeak(previousAudioBass, bass)) burstOneRisingBubble();
       previousAudioBass = bass;
     },
-
-    destroy() {
-      cancelAnimationFrame(rafId);
-      observer.disconnect();
-    },
   };
-}
+});
 
 /**
  * Tire une distance de trajet normalisée, indépendante du framerate.

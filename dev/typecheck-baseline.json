@@ -3,7 +3,6 @@
   "background-audio.js": 3,
   "background-mount.js": 9,
   "background-transition.js": 2,
-  "components/BubbleBackground.js": 1,
   "components/ColorDropsBackground.js": 1,
   "components/DotGridAnimated.js": 1,
   "components/FloatingSymbolsBackground.js": 1,
