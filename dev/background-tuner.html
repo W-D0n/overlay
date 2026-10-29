@@ -13,12 +13,14 @@
   -->
   <link rel="stylesheet" href="../tokens.css">
   <style>
-    body { margin: 0; overflow: hidden; }
+    body { margin: 0; overflow: hidden; background: var(--color-bg); }
 
+    /* Cadre d'aperçu : taille, position et échelle sont posées par preview-stage.js (1920×1080 réel). */
     #bg-layer {
       position: fixed;
-      inset: 0;
+      overflow: hidden;
       pointer-events: none;
+      box-shadow: 0 0 0 1px var(--color-rule);
     }
 
     /* ── Sidebar rétractable ─────────────────────────────────── */
@@ -199,7 +201,7 @@
       overflow: hidden;
       border: 1px solid var(--color-rule);
       border-radius: 2px;
-      background: var(--color-bg-deep);
+      background: var(--color-bg);
     }
     .preset-thumb-still, .preset-thumb-stage { position: absolute; inset: 0; }
     .preset-thumb-still { width: 100%; height: 100%; object-fit: cover; }

@@ -5,7 +5,7 @@ updated: 2026-10-29
 
 # Spec — Studio en trois zones (refonte de l'écran du tuner)
 
-Statut : **Draft, à valider par l'owner avant code.** Traite les constats U2 à U6 de
+Statut : **validée (ordre Z1 → Z3 → Z2 → Z4 → Z5, cadre 16:9 simple, scènes sans preset repliées) ; Z1 livré le 2026-10-29.** Traite les constats U2 à U6 de
 [`../ux-review.md`](../ux-review.md) (U1, brouillon / publication, est livré). Étapes 1 à 3 du socle sont
 livrées : l'écran peut être refait sans le refaire deux fois.
 
@@ -40,7 +40,7 @@ Trois zones, un seul état visible : **ce qui est en antenne** et **ce qui est e
 └──────────────────────┴────────────────────────────┴─────────────────────────┘
 ```
 
-### Z1. Cadre 16:9 fidèle (U3) — premier pas, indépendant des autres
+### Z1. Cadre 16:9 fidèle (U3) — livré (`dev/preview-stage.js`)
 
 - Le fond est rendu dans un conteneur **1920×1080 réel** (mêmes dimensions que la source OBS), mis à
   l'échelle par une transformation CSS pour tenir dans la zone centrale. Les effets calculent donc leur
@@ -103,6 +103,16 @@ restent utiles.
 - Le brouillon / publication (`#publish-bar`) garde exactement son comportement : tests existants
   `background-draft.test.js` inchangés et verts.
 - Contraste : textes ≥ 4,5:1 (tokens existants), contrôlé par la mesure du DOM comme dans la revue.
+
+## Revue produit des éléments existants (2026-10-29, à trancher)
+
+Constats tirés du code, pas de mesures dans OBS.
+
+| Élément | Constat | Recommandation |
+|---|---|---|
+| **Qualité de rendu** (`Auto` / `Performance OBS`) | Son seul effet est le plafond du ratio de pixels (2 en auto, 1 en performance, `render-clock.js`, `canvas-runtime.js`). Il ne joue que si `devicePixelRatio` > 1. Hypothèse (non mesurée) : une Browser Source OBS rend à 1, auquel cas le réglage ne change rien dans OBS. Le menu recharge l'aperçu et ajoute `quality=performance` à l'URL | Retirer du Studio ; garder `?quality=performance` dans l'URL (coût nul, déjà documenté). À mesurer d'abord : afficher `devicePixelRatio` dans `storage-probe.html` et le lire dans OBS |
+| **Avant le live** | Quatre contrôles : serveur d'état lisible, effet connu, URL copiable, mesure locale. Il ne vérifie ni qu'OBS affiche la page ni que la page est connectée au serveur ; la mesure « FPS » est celle de l'aperçu du Studio, pas d'OBS. Il vérifie surtout ce que l'écran montre déjà (statut serveur, état du brouillon) | Remplacer par un bandeau d'antenne permanent : serveur d'état, connexion OBS, scène active, bouton « Copier l'URL ». Un contrôle de bout en bout (la page OBS est-elle connectée ?) a plus de valeur que quatre vérifications locales. Demande que le serveur expose le nombre de pages connectées : à vérifier |
+| **Onglets Fond / Habillage / Diffusion** | Découpage par thème technique : le branding et la transition d'un preset sont ensemble, la bibliothèque et l'association de scènes aussi | Supprimés au pas Z4 (voir plus haut) |
 
 ## Hors périmètre
 

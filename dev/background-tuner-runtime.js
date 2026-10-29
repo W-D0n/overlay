@@ -7,6 +7,7 @@ import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
 import { createBrandingController } from './branding-controller.js';
 import { createWorkspaceTabs } from './workspace-tabs.js';
+import { createPreviewStage } from './preview-stage.js';
 import {
   BackgroundStateClientError,
   createBackgroundStateClient,
@@ -61,9 +62,11 @@ export async function startBackgroundTuner(environment = {}) {
 
   const sidebar = byId('sidebar');
   const sidebarToggle = byId('sidebar-toggle');
+  const stage = createPreviewStage({ layer: byId('bg-layer'), sidebar, windowRef });
   sidebarToggle.onclick = () => {
     sidebar.classList.toggle('collapsed');
     sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
+    stage.refresh();
   };
 
   createWorkspaceTabs({
