@@ -8,8 +8,7 @@ Direction artistique **Atelier** : noir profond, or patiné, typographie serif +
 Le flux principal ne rend qu'une animation de fond :
 
 - `background.html` — URL à utiliser dans OBS ;
-- `dev/studio.html` — entrée unique de création ;
-- `dev/background-tuner.html` — aperçu plein écran, points de départ, réglages guidés et presets ;
+- `dev/studio.html` — entrée unique de création : rail (antenne, bibliothèque, scènes OBS, branding), aperçu 1920×1080 et réglages du preset ;
 - `dev/background-state-server.js` — persistance JSON et synchronisation WebSocket.
 
 Le moteur de scènes a été retiré du dépôt le 2026-07-25. Son code reste restaurable via le tag
@@ -86,8 +85,6 @@ branding-format.js
 
 dev/
   studio.html
-  studio.config.js
-  background-tuner.html
   builtin-background-presets.js
   background-preset-import-flow.js
   background-preset-library.js

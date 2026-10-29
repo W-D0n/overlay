@@ -7,7 +7,7 @@ import { isAudioOn, kindCapabilities, resolveKindId } from './layer-kinds.js';
  * background-mount.js — Montage d'un effet de fond standalone dans un conteneur (2026-07-14).
  *
  * Logique AD-B2 (docs/specs/background-effects-library.md) extraite hors du moteur de scènes,
- * partagée par `background.html` (URL OBS) et `dev/background-tuner.html` :
+ * partagée par `background.html` (URL OBS) et `dev/studio.html` :
  *   - même `component` qu'avant → `update(options)`, jamais de recréation inutile ;
  *   - `component` différent → montage du nouveau, démontage de l'ancien ;
  *   - `component: null` → démontage, conteneur vide.

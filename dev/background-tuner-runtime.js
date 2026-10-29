@@ -7,7 +7,6 @@ import { createAntennaController } from './antenna-controller.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
 import { createBrandingController } from './branding-controller.js';
-import { createWorkspaceTabs } from './workspace-tabs.js';
 import { createPreviewStage } from './preview-stage.js';
 import {
   BackgroundStateClientError,
@@ -61,20 +60,7 @@ export async function startBackgroundTuner(environment = {}) {
     },
   };
 
-  const sidebar = byId('sidebar');
-  const sidebarToggle = byId('sidebar-toggle');
-  const stage = createPreviewStage({ layer: byId('bg-layer'), sidebar, windowRef });
-  sidebarToggle.onclick = () => {
-    sidebar.classList.toggle('collapsed');
-    sidebarToggle.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
-    stage.refresh();
-  };
-
-  createWorkspaceTabs({
-    nav: /** @type {HTMLElement} */ (documentRef.querySelector('.workspaces')),
-    panels: /** @type {HTMLElement[]} */ ([...documentRef.querySelectorAll('.workspace')]),
-    storage: windowRef.localStorage,
-  });
+  const stage = createPreviewStage({ layer: byId('bg-layer'), container: byId('stage-area'), windowRef: /** @type {Window & typeof globalThis} */ (windowRef) });
 
   const client = createBackgroundStateClient({ baseUrl: STATE_SERVER });
   const preview = createBackgroundPreviewController({
@@ -231,6 +217,7 @@ export async function startBackgroundTuner(environment = {}) {
 
   function destroy() {
     antenna.destroy();
+    stage.destroy();
     unsubscribe();
     preview.destroy();
   }

@@ -41,8 +41,8 @@ l'URL `?preset=` l'ignore).
 | Élément | Rôle | Usage owner | Proposition |
 |---|---|---|---|
 | `background.html` | La source OBS | Oui | Garder |
-| `dev/studio.html` | Cadre (en-tête + iframe) autour du tuner | Probable | **Fusionner avec le tuner** : `STUDIO_VIEWS` n'a qu'**une** entrée, le cadre n'ajoute qu'une couche et une URL de plus |
-| `dev/background-tuner.html` | Tuner du fond | Oui | Garder, devient l'entrée unique |
+| `dev/studio.html` | Cadre (en-tête + iframe) autour du tuner | Probable | **Fusionné avec le tuner le 2026-10-29** (`studio.html` est la page, `studio.config.js` supprimé) : `STUDIO_VIEWS` n'a qu'**une** entrée, le cadre n'ajoute qu'une couche et une URL de plus |
+| `dev/background-tuner.html` | Tuner du fond | Oui | Devenu `dev/studio.html` (2026-10-29) |
 | `dev/dotgrid-tuner.html` + `tuner-server.js` | Tuner DotGrid historique, **réécrit du code source** (`components/DotGridAnimated.js`) | Non | **Retirer et tagger** : outil de dev qui écrit sur disque, hors du flux fond |
 | `start-stream.bat` | Serveurs du live | Oui | Garder (remplacé à terme par l'exécutable, voir spec zéro-installation) |
 | `start-dev.bat` | Session de création | Non | Fusionner avec `start-stream.bat` : un seul lanceur, deux lanceurs prêtent à confusion |

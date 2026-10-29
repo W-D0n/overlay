@@ -10,7 +10,7 @@ description: Cadre toute session de recherche graphique, de design, ou de propos
 Le moteur de scènes (scènes, transitions, panneau `overlay-setting.html`) est **mis de côté** — il
 reste dans le repo mais n'évolue plus. Le focus est le mode **background-only**
 (`docs/specs/background-standalone.md`) : une URL OBS (`background.html`) qui ne rend que l'effet
-de fond courant, piloté en live depuis `dev/background-tuner.html` (dropdown des effets, formulaire
+de fond courant, piloté en live depuis `dev/studio.html` (dropdown des effets, formulaire
 généré, presets). Une session de recherche graphique typique porte donc sur **un nouvel effet de
 fond** ou une variation d'un effet existant.
 
@@ -72,7 +72,7 @@ Un nouvel effet de fond n'est livré que si les 3 pièces sont là :
 
 Une proposition sans schéma de champs est invisible dans le tuner et injouable dans OBS — elle
 n'est pas livrée. Vérification : `bun test` + l'effet apparaît dans le dropdown de
-`dev/background-tuner.html`.
+`dev/studio.html`.
 
 (Le format `ComponentMount`/`placement` des scènes existe toujours dans `types.js`, mais le moteur
 de scènes est mis de côté — ne livre dans ce format que si l'owner demande explicitement du travail
@@ -126,7 +126,7 @@ délibérément laissé de côté pour cette raison (textures externes, jQuery, 
 2. **Regarder l'existant d'abord** — les `components/*Background.js` couvrent déjà beaucoup de
    terrain (11 effets). Une nouvelle demande est souvent une variation de réglages d'un effet
    existant — dans ce cas la livraison est un preset (options exactes à saisir dans
-   `dev/background-tuner.html`), pas un nouveau composant.
+   `dev/studio.html`), pas un nouveau composant.
 3. **Si une vraie inspiration externe est utile** (CodePen, capture, description), l'analyser pour
    en extraire la **technique** (quel mouvement, quelle formule, quel timing), pas pour copier une
    image — puis la retraduire immédiatement dans le contrat `ComponentInstance` ci-dessus.

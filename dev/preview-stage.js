@@ -26,27 +26,27 @@ export function fitStage({ areaWidth, areaHeight, insetLeft = 0 }) {
 }
 
 /**
- * @param {{ layer: HTMLElement, sidebar: HTMLElement, windowRef: Window }} input
- * @returns {{ refresh(): void }}
+ * Place le cadre dans `container` et le remet à l'échelle quand celui-ci change de taille.
+ * @param {{ layer: HTMLElement, container: HTMLElement, windowRef: Window & typeof globalThis }} input
+ * @returns {{ refresh(): void, destroy(): void }}
  */
-export function createPreviewStage({ layer, sidebar, windowRef }) {
+export function createPreviewStage({ layer, container, windowRef }) {
   layer.style.width = `${STAGE_WIDTH}px`;
   layer.style.height = `${STAGE_HEIGHT}px`;
   layer.style.transformOrigin = '0 0';
 
   function refresh() {
-    const insetLeft = sidebar.classList.contains('collapsed') ? 0 : sidebar.offsetWidth;
     const { scale, left, top } = fitStage({
-      areaWidth: windowRef.innerWidth,
-      areaHeight: windowRef.innerHeight,
-      insetLeft,
+      areaWidth: container.clientWidth,
+      areaHeight: container.clientHeight,
     });
     layer.style.left = `${left}px`;
     layer.style.top = `${top}px`;
     layer.style.transform = `scale(${scale})`;
   }
 
-  windowRef.addEventListener('resize', refresh);
+  const observer = new windowRef.ResizeObserver(refresh);
+  observer.observe(container);
   refresh();
-  return { refresh };
+  return { refresh, destroy: () => observer.disconnect() };
 }

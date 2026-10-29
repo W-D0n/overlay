@@ -5,7 +5,7 @@ updated: 2026-10-29
 
 # Spec — Studio en trois zones (refonte de l'écran du tuner)
 
-Statut : **validée (ordre Z1 → Z3 → Z2 → Z4 → Z5, cadre 16:9 simple, scènes sans preset repliées) ; Z1, Z2 et Z3 livrés le 2026-10-29.** Traite les constats U2 à U6 de
+Statut : **validée (ordre Z1 → Z3 → Z2 → Z4 → Z5, cadre 16:9 simple, scènes sans preset repliées) ; Z1 à Z4 livrés le 2026-10-29 (Z5, vignettes, reste à faire).** Traite les constats U2 à U6 de
 [`../ux-review.md`](../ux-review.md) (U1, brouillon / publication, est livré). Étapes 1 à 3 du socle sont
 livrées : l'écran peut être refait sans le refaire deux fois.
 
@@ -66,14 +66,14 @@ forme de vignette + nom, une seule action « Associer… » par ligne au lieu d'
 scènes sans association sont repliées sous un compteur (« 38 sans preset »). La logique de
 `obs-scene-map-controller.js` reste ; seule la présentation change.
 
-### Z4. Mise en page (U5)
+### Z4. Mise en page (U5) — livré
 
 - Une seule page, sans `<iframe>` : le Studio devient l'hôte du tuner (grille CSS à trois colonnes),
   ce qui supprime la double barre de défilement et le titre redondant.
 - Les onglets `Fond / Habillage / Diffusion` disparaissent ; le rail gauche remplace « Diffusion » et
   « Habillage » (branding), le panneau droit remplace « Fond ».
 - `studio.config.js` (liste de vues) devient inutile : seule vue restante, à supprimer plutôt qu'à vider.
-- Repli : un seul rail repliable, état mémorisé par préférence de confort (`localStorage` toléré).
+- Livré : `studio.html` est la page (le tuner y est fusionné, `background-tuner.html` et `studio.config.js` supprimés) ; le rail est fait de sections repliables, sans mémoire de leur état.
 
 ### Z5. Vignettes discrètes (U6) — chantier séparé
 

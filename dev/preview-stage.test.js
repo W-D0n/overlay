@@ -21,21 +21,27 @@ test('une zone libre nulle donne une échelle nulle, pas négative', () => {
   expect(fitStage({ areaWidth: 100, areaHeight: 100, insetLeft: 340 }).scale).toBe(0);
 });
 
-test('createPreviewStage dimensionne le conteneur à 1920×1080 et suit le repli du panneau', () => {
+test('createPreviewStage dimensionne le conteneur à 1920×1080 et suit la taille de la zone', () => {
   const layer = { style: {} };
-  const sidebar = { offsetWidth: 340, classList: { contains: (name) => name === 'collapsed' && collapsed } };
-  let collapsed = false;
-  const listeners = {};
-  const windowRef = { innerWidth: 1920, innerHeight: 1080, addEventListener: (type, fn) => { listeners[type] = fn; } };
-  const stage = createPreviewStage({ layer, sidebar, windowRef });
+  const container = { clientWidth: 1920, clientHeight: 1080 };
+  let notify = () => {};
+  let disconnected = false;
+  class FakeObserver {
+    constructor(callback) { notify = callback; }
+    observe() {}
+    disconnect() { disconnected = true; }
+  }
+  const stage = createPreviewStage({ layer, container, windowRef: { ResizeObserver: FakeObserver } });
   expect(layer.style.width).toBe('1920px');
   expect(layer.style.height).toBe('1080px');
-  const withSidebar = layer.style.transform;
-  collapsed = true;
-  stage.refresh();
-  expect(layer.style.transform).not.toBe(withSidebar);
   expect(layer.style.transform).toBe(`scale(${(1080 - 32) / 1080})`);
-  windowRef.innerWidth = 1000;
-  listeners.resize();
+
+  container.clientWidth = 1000;
+  container.clientHeight = 1000;
+  notify();
+  expect(layer.style.transform).toBe(`scale(${(1000 - 32) / 1920})`);
   expect(layer.style.left).toBe('16px');
+
+  stage.destroy();
+  expect(disconnected).toBe(true);
 });

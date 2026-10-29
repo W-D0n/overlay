@@ -16,9 +16,8 @@ concerné ici.
 Quatre pièces communiquent :
 
 - `background.html` — la page à mettre dans OBS. Affiche l'effet de fond courant, rien d'autre.
-- `dev/studio.html` — l'entrée de création commune aux fonds et aux scènes complètes.
-- `dev/background-tuner.html` — l'espace de tuning. Aperçu plein écran + barre latérale
-  rétractable (liste des effets, paramètres, presets).
+- `dev/studio.html` — la page de création : rail de gauche (antenne, bibliothèque, scènes OBS,
+  branding), aperçu 1920×1080 au centre, réglages du preset à droite.
 - Le **serveur d'état** (port 5932, lancé automatiquement) — retient le dernier état publié dans
   `dev/data/background-state.json` et le pousse vers OBS à chaque **Publier**.
 
@@ -44,10 +43,11 @@ toute seule (1 s → 30 s max entre les tentatives).
 ## La page de tuning
 
 Ouvrir `http://localhost:5931/dev/studio.html` (s'ouvre aussi automatiquement avec
-`start-dev.bat`), puis choisir **Fonds & presets**. L'URL directe
-`http://localhost:5931/dev/background-tuner.html` reste utilisable.
+`start-dev.bat`).
 
-- **La barre latérale se rétracte** avec le bouton `◀` / `▶` sur son bord.
+- **Trois zones** : le rail de gauche (Bibliothèque, Scènes OBS, Branding : sections repliables), l'aperçu au centre
+  avec le bandeau En antenne / Brouillon, les réglages du preset à droite. L'aperçu est un cadre 16:9 à l'échelle de
+  1920×1080, comme la source OBS.
 - **Points de départ** : **Essayer** charge une ambiance dans l’aperçu (brouillon, rien n’est envoyé à OBS) ; **Ajouter à mes
   presets** en crée une copie personnelle modifiable.
 - **Recherche** : le champ filtre les points de départ et les presets personnels par nom, effet ou
@@ -248,7 +248,7 @@ presets — `background.html`, le tuner et le serveur n'ont pas bougé.
 
 ## Faire évoluer le tuner
 
-La page `dev/background-tuner.html` ne contient plus sa logique métier. Selon le changement :
+La page `dev/studio.html` ne contient plus sa logique métier. Selon le changement :
 
 - **ajouter ou modifier un champ** : déclarer le champ dans `dev/component-field-schemas.js` ; son
   rendu commun vit dans `dev/background-field-renderer.js` ;

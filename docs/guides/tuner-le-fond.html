@@ -23,9 +23,8 @@
 <ul>
   <li><code>background.html</code> — la page à mettre dans OBS. Elle ne fait qu'une chose :
       afficher l'effet de fond courant.</li>
-  <li><code>dev/studio.html</code> — l'entrée de création commune aux fonds et aux scènes.</li>
-  <li><code>dev/background-tuner.html</code> — la page de tuning. Aperçu plein écran +
-      barre latérale rétractable avec la liste des effets, leurs paramètres et les presets.</li>
+  <li><code>dev/studio.html</code> — la page de création : rail de gauche (antenne, bibliothèque, scènes OBS,
+      branding), aperçu 1920×1080 au centre, réglages du preset à droite.</li>
   <li>Le <strong>serveur d'état</strong> (port 5932, lancé automatiquement) — retient le dernier
       réglage dans <code>dev/data/background-state.json</code> et pousse chaque changement en
       direct vers OBS.</li>
@@ -52,11 +51,11 @@ CSS.</p>
 
 <h2>La page de tuning</h2>
 <p>Ouvrir <code>http://localhost:5931/dev/studio.html</code> (s'ouvre automatiquement avec
-<code>start-dev.bat</code>), puis choisir <strong>Fonds &amp; presets</strong>. L'URL directe
-<code>dev/background-tuner.html</code> reste disponible pour le diagnostic.</p>
+<code>start-dev.bat</code>).</p>
 <ul>
-  <li><strong>La barre latérale se rétracte</strong> avec le bouton <code>◀</code> / <code>▶</code>
-      sur son bord — pratique pour juger le rendu plein écran.</li>
+  <li><strong>Trois zones</strong> : le rail de gauche (Bibliothèque, Scènes OBS, Branding : sections repliables),
+      l'aperçu au centre avec le bandeau En antenne / Brouillon, les réglages du preset à droite. L'aperçu est un
+      cadre 16:9 à l'échelle de 1920×1080, comme la source OBS.</li>
   <li><strong>Points de départ</strong> : <strong>Essayer</strong> charge une ambiance sans la
       sauvegarder ; <strong>Ajouter à mes presets</strong> en crée une copie personnelle.</li>
   <li><strong>Recherche</strong> : le champ filtre les points de départ et les presets personnels
@@ -245,7 +244,7 @@ factory sans schéma, etc. Ensuite, recharger le tuner — le nouvel effet est d
 déroulant, avec son formulaire, ses presets, et l'URL OBS le prend en charge sans rien toucher.</p>
 
 <h2>Faire évoluer le tuner</h2>
-<p><code>dev/background-tuner.html</code> ne contient plus sa logique métier. Selon le changement :</p>
+<p><code>dev/studio.html</code> ne contient plus sa logique métier. Selon le changement :</p>
 <ul>
   <li><strong>Champ</strong> : déclaration dans <code>dev/component-field-schemas.js</code>, rendu
       commun dans <code>dev/background-field-renderer.js</code>.</li>
