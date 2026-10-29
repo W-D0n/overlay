@@ -35,11 +35,17 @@
     .studio-link { color: var(--color-text-mid); font-size: var(--text-base); text-decoration: none; }
     .studio-link:hover { color: var(--color-gold); }
 
+    /* Les colonnes suivent la largeur de la fenêtre : aucune largeur de panneau n'est figée. Sous
+       1100 px le rail et les réglages passent sous l'aperçu, sous 720 px tout s'empile. */
     .studio-zones {
       display: grid;
-      grid-template-columns: 340px minmax(0, 1fr) 360px;
+      grid-template-columns: clamp(15rem, 17vw, 24rem) minmax(0, 1fr) clamp(16rem, 19vw, 26rem);
+      grid-template-areas: "rail stage inspector";
       min-height: 0;
     }
+    .rail { grid-area: rail; }
+    .stage-zone { grid-area: stage; }
+    .inspector { grid-area: inspector; }
     .rail, .inspector {
       min-height: 0;
       overflow-y: auto;
@@ -75,6 +81,24 @@
       gap: var(--space-sm);
     }
     #stage-area { position: relative; min-height: 0; min-width: 0; }
+
+    @media (max-width: 1100px) {
+      body { display: block; overflow-y: auto; }
+      .studio-bar { position: sticky; top: 0; z-index: 5; height: 44px; box-sizing: border-box; }
+      .studio-zones {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-areas: "stage stage" "rail inspector";
+      }
+      .rail, .inspector { overflow-y: visible; }
+      .rail { border-right: 1px solid var(--color-rule); }
+      .stage-zone { grid-template-rows: auto auto auto; }
+      #stage-area { aspect-ratio: 16 / 9; }
+    }
+    @media (max-width: 720px) {
+      .studio-zones { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "rail" "inspector"; }
+      .rail { border-right: 0; }
+      .inspector { border-left: 0; border-top: 1px solid var(--color-rule); }
+    }
     /* Cadre d'aperçu : taille, position et échelle sont posées par preview-stage.js (1920×1080 réel). */
     #bg-layer {
       position: absolute;
