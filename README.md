@@ -52,8 +52,8 @@ Créer une source Navigateur par preset utile, puis placer la bonne source dans 
 Activer **Arrêter la source lorsqu'elle n'est pas visible** pour que les scènes masquées ne
 consomment pas de ressources.
 
-Le profil **Performance OBS** limite aussi la densité des canvas à DPR 1. L'URL copiée depuis le
-tuner conserve ce choix avec `quality=performance`. Les animations se mettent automatiquement en
+Dans OBS, la densité des canvas est déjà à DPR 1 (mesuré le 2026-10-29) ; le paramètre
+`?quality=performance` reste lu mais n'est plus proposé. Les animations se mettent automatiquement en
 pause lorsque leur page devient invisible.
 
 Le serveur d'état doit rester ouvert pendant le live. Il ne modifie que

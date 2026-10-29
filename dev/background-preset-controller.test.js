@@ -58,7 +58,7 @@ test('initialise le parcours d’import avec son panneau de détails', () => {
     preview: {
       apply() {},
       persistNow: async () => true,
-      quality: () => 'auto',
+     
       setActivePresetId() {},
       snapshot: () => ({ activePresetId: null, current: { component: null, options: {} } }),
     },
@@ -86,7 +86,7 @@ test('présente chaque point de départ comme une ligne cliquable plus un ajout 
     elements,
     client: {},
     preview: {
-      apply() {}, persistNow: async () => true, quality: () => 'auto', setActivePresetId() {},
+      apply() {}, persistNow: async () => true, setActivePresetId() {},
       snapshot: () => ({ activePresetId: null, current: { component: null, options: {} } }),
     },
     report: { ok() {}, error() {} },
@@ -127,7 +127,7 @@ test('re-rendre les presets personnels ne détruit pas les vignettes des points 
     elements,
     client: {},
     preview: {
-      apply() {}, persistNow: async () => true, quality: () => 'auto', setActivePresetId() {},
+      apply() {}, persistNow: async () => true, setActivePresetId() {},
       snapshot: () => ({ activePresetId: null, current: { component: null, options: {} } }),
     },
     report: { ok() {}, error() {} },

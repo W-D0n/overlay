@@ -39,15 +39,7 @@ describe('sélection du fond standalone', () => {
     expect(url.searchParams.get('transparent')).toBe('1');
   });
 
-  test('backgroundPresetUrl peut demander le profil performance', () => {
-    const url = new URL(backgroundPresetUrl('discussion-calme', undefined, { performance: true }));
-    expect(url.searchParams.get('quality')).toBe('performance');
-  });
-
-  test('backgroundCurrentUrl suit le tuner avec transparence et profil performance optionnel', () => {
+  test('backgroundCurrentUrl suit le tuner avec transparence', () => {
     expect(backgroundCurrentUrl()).toBe(`http://localhost:${STATIC_PORT}/background.html?transparent=1`);
-    expect(backgroundCurrentUrl(undefined, { performance: true })).toBe(
-      `http://localhost:${STATIC_PORT}/background.html?transparent=1&quality=performance`,
-    );
   });
 });

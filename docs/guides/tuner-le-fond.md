@@ -1,6 +1,6 @@
 ---
 created: 2026-07-17
-updated: 2026-08-24
+updated: 2026-10-29
 ---
 
 # Fond seul dans OBS et page de tuning
@@ -73,8 +73,7 @@ Ouvrir `http://localhost:5931/dev/studio.html` (s'ouvre aussi automatiquement av
   confirmation ; un fichier invalide ne modifie rien non plus. Si la bibliothèque change dans un
   autre onglet entre l'aperçu et la confirmation, le serveur refuse l'ancienne révision, recalcule
   tout le détail et demande une nouvelle confirmation.
-- **Qualité de rendu** : **Auto** plafonne le DPR à 2 ; **Performance OBS** le limite à 1. La
-  ligne voisine affiche les FPS mesurés et la densité active.
+- **FPS et densité** : la ligne en haut du panneau affiche les FPS mesurés de l'aperçu et la densité de pixels active.
 
 La ligne de statut en bas de la barre indique si le serveur d'état répond.
 
@@ -276,6 +275,6 @@ les parcours du Studio.
 ## Performance et cycle de vie
 
 Les canvas utilisent `components/canvas-runtime.js` : DPR plafonné à 2 par défaut, ou à 1 avec
-`?quality=performance`. `background.html` et le tuner démontent l'effet lorsque l'onglet devient
+`?quality=performance` (paramètre toujours lu, plus proposé dans le Studio : dans OBS le DPR vaut déjà 1, mesuré le 2026-10-29). `background.html` et le tuner démontent l'effet lorsque l'onglet devient
 invisible, puis remontent le dernier état reçu à la reprise. Dans OBS, conserver en plus l'option
 **Arrêter la source lorsqu'elle n'est pas visible** : OBS évite alors de garder la page active.

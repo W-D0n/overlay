@@ -32,7 +32,7 @@ function readinessHarness(status) {
     checks: { replaceChildren() {}, appendChild() {} },
     runButton: { disabled: false, textContent: '', onclick: null },
     stateServer: 'http://localhost:4174',
-    getSelection: () => ({ presetId: null, quality: 'auto' }),
+    getSelection: () => ({ presetId: null }),
     getRuntime: () => ({ fps: 60, pixelRatio: 1, paused: false }),
     focusEffect() {},
     focusPresets() {},

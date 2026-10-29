@@ -20,13 +20,13 @@ const file = {
 test('un preset valide produit un diagnostic prêt et son URL OBS stable', () => {
   const report = evaluateBackgroundLiveReadiness({
     state: { ok: true, file },
-    selection: { presetId: 'discussion-calme', quality: 'performance' },
+    selection: { presetId: 'discussion-calme' },
     runtime: { fps: 60, pixelRatio: 1, paused: false },
   });
 
   expect(report.status).toBe('ready');
   expect(report.obsUrl).toBe(
-    `http://localhost:${STATIC_PORT}/background.html?preset=discussion-calme&transparent=1&quality=performance`,
+    `http://localhost:${STATIC_PORT}/background.html?preset=discussion-calme&transparent=1`,
   );
   expect(report.checks.map(({ id, status }) => [id, status])).toEqual([
     ['state', 'ready'],
@@ -39,7 +39,7 @@ test('un preset valide produit un diagnostic prêt et son URL OBS stable', () =>
 test('un service d’état indisponible bloque le départ sans masquer la marche à suivre', () => {
   const report = evaluateBackgroundLiveReadiness({
     state: { ok: false, error: 'Failed to fetch' },
-    selection: { presetId: null, quality: 'auto' },
+    selection: { presetId: null },
     runtime: { fps: 60, pixelRatio: 2, paused: false },
   });
 
@@ -61,7 +61,7 @@ test('un service d’état indisponible bloque le départ sans masquer la marche
 test('un identifiant de preset absent bloque une URL OBS trompeuse', () => {
   const report = evaluateBackgroundLiveReadiness({
     state: { ok: true, file },
-    selection: { presetId: 'preset-absent', quality: 'auto' },
+    selection: { presetId: 'preset-absent' },
     runtime: { fps: 60, pixelRatio: 2, paused: false },
   });
 
@@ -83,7 +83,7 @@ test('un identifiant de preset absent bloque une URL OBS trompeuse', () => {
 test('le fond courant fournit aussi une URL OBS transparente sans faux preset', () => {
   const report = evaluateBackgroundLiveReadiness({
     state: { ok: true, file },
-    selection: { presetId: null, quality: 'auto' },
+    selection: { presetId: null },
     runtime: { fps: 58, pixelRatio: 2, paused: false },
   });
 
@@ -105,7 +105,7 @@ test('un effet inconnu bloque le diagnostic avant de copier son URL', () => {
       ok: true,
       file: { ...file, current: { component: 'UnknownBackground', options: {} } },
     },
-    selection: { presetId: null, quality: 'auto' },
+    selection: { presetId: null },
     runtime: { fps: 60, pixelRatio: 2, paused: false },
   });
 
@@ -124,7 +124,7 @@ test('un fond vide ou une mesure en pause demande une attention sans inventer un
       ok: true,
       file: { ...file, current: { component: null, options: {} } },
     },
-    selection: { presetId: null, quality: 'auto' },
+    selection: { presetId: null },
     runtime: { fps: null, pixelRatio: null, paused: true },
   });
 
@@ -144,7 +144,7 @@ test('la collecte interroge seulement les services en lecture', async () => {
   const requests = [];
   const report = await collectBackgroundLiveReadiness({
     stateServer: 'http://state.test',
-    selection: { presetId: 'discussion-calme', quality: 'auto' },
+    selection: { presetId: 'discussion-calme' },
     runtime: { fps: 60, pixelRatio: 2, paused: false },
     fetchImpl: async (url, init) => {
       requests.push([String(url), init?.method]);
@@ -161,7 +161,7 @@ test('la collecte interroge seulement les services en lecture', async () => {
 test('une coupure réseau produit un diagnostic complet sans faire échouer la collecte', async () => {
   const report = await collectBackgroundLiveReadiness({
     stateServer: 'http://state.test',
-    selection: { presetId: null, quality: 'auto' },
+    selection: { presetId: null },
     runtime: { fps: 60, pixelRatio: 2, paused: false },
     fetchImpl: async () => {
       throw new TypeError('Failed to fetch');
@@ -191,7 +191,7 @@ const reactiveFile = {
 test('un preset non réactif n’affiche aucun point micro', () => {
   const report = evaluateBackgroundLiveReadiness({
     state: { ok: true, file },
-    selection: { presetId: null, quality: 'auto' },
+    selection: { presetId: null },
     runtime: { fps: 60, pixelRatio: 1, paused: false },
     audio: { status: 'idle', reason: null },
   });
@@ -201,7 +201,7 @@ test('un preset non réactif n’affiche aucun point micro', () => {
 test('un fond réactif avec micro actif ajoute un point prêt', () => {
   const report = evaluateBackgroundLiveReadiness({
     state: { ok: true, file: reactiveFile },
-    selection: { presetId: null, quality: 'auto' },
+    selection: { presetId: null },
     runtime: { fps: 60, pixelRatio: 1, paused: false },
     audio: { status: 'active', reason: null },
   });
@@ -213,7 +213,7 @@ test('un fond réactif avec micro actif ajoute un point prêt', () => {
 test('un micro refusé demande de l’attention sans bloquer le live', () => {
   const report = evaluateBackgroundLiveReadiness({
     state: { ok: true, file: reactiveFile },
-    selection: { presetId: null, quality: 'auto' },
+    selection: { presetId: null },
     runtime: { fps: 60, pixelRatio: 1, paused: false },
     audio: { status: 'unavailable', reason: 'NotAllowedError' },
   });
@@ -231,7 +231,7 @@ test('un état lu sur un serveur pas encore migré (anciens noms) est diagnostiq
   const report = await collectBackgroundLiveReadiness({
     stateServer: 'http://state.test',
     fetchImpl: async () => Response.json(legacy),
-    selection: { presetId: null, quality: 'auto' },
+    selection: { presetId: null },
     runtime: { fps: 60, pixelRatio: 1, paused: false },
   });
   expect(report.checks.find(({ id }) => id === 'selection')?.status).toBe('ready');

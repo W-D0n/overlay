@@ -83,7 +83,6 @@ export async function startBackgroundTuner(environment = {}) {
     presetName: byId('preset-name'),
     presetTags: byId('preset-tags'),
     presetSave: byId('preset-save'),
-    qualitySelect: byId('quality-select'),
     runtimeStatus: byId('runtime-status'),
     onDraftChange(isDraft) {
       byId('publish-bar').dataset.state = isDraft ? 'draft' : 'live';
@@ -143,10 +142,7 @@ export async function startBackgroundTuner(environment = {}) {
     runButton: byId('live-readiness-run'),
     stateServer: STATE_SERVER,
     getSelection() {
-      return {
-        presetId: preview.snapshot().activePresetId,
-        quality: preview.quality(),
-      };
+      return { presetId: preview.snapshot().activePresetId };
     },
     getRuntime: preview.runtimeMeasurement,
     getAudioState: preview.audioState,

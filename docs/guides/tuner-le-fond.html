@@ -76,8 +76,7 @@ CSS.</p>
       indépendamment afin que Confirmer l'import et Annuler restent accessibles sur un gros fichier.
       Rien n'est écrit avant confirmation. Si un autre onglet change la bibliothèque entre-temps,
       tout le détail est recalculé et doit être confirmé à nouveau.</li>
-  <li><strong>Qualité de rendu</strong> : Auto plafonne le DPR à 2 ; Performance OBS le limite à 1.
-      La ligne voisine affiche FPS et DPR.</li>
+  <li><strong>FPS et densité</strong> : la ligne en haut du panneau affiche les FPS mesurés de l'aperçu et la densité de pixels active.</li>
 </ul>
 <p>La ligne de statut en bas de la barre indique si le serveur d'état répond. Si elle est rouge,
 lancer <code>start-dev.bat</code> ou <code>start-stream.bat</code>.</p>
@@ -273,7 +272,7 @@ les parcours du Studio à 1920×1080.</p>
 
 <h2>Performance et cycle de vie</h2>
 <p>Les canvas utilisent <code>components/canvas-runtime.js</code> : DPR 2 maximum en Auto, DPR 1
-avec <code>?quality=performance</code>. Le tuner et <code>background.html</code> démontent l'effet
+avec <code>?quality=performance</code> (paramètre toujours lu, plus proposé dans le Studio : dans OBS le DPR vaut déjà 1, mesuré le 2026-10-29). Le tuner et <code>background.html</code> démontent l'effet
 quand leur page devient invisible, puis remontent le dernier état à la reprise. Dans OBS, conserver
 également <strong>Arrêter la source lorsqu'elle n'est pas visible</strong>.</p>
 

@@ -22,7 +22,6 @@ const NONE_VALUE = '__none__';
  *   presetName: HTMLInputElement,
  *   presetTags: HTMLInputElement,
  *   presetSave: HTMLButtonElement,
- *   qualitySelect: HTMLSelectElement,
  *   runtimeStatus: HTMLElement,
  *   onDraftChange?: (isDraft: boolean) => void,
  *   client: ReturnType<typeof import('./background-state-client.js').createBackgroundStateClient>,
@@ -134,17 +133,6 @@ export function createBackgroundPreviewController(input) {
     notifyDraft();
   };
 
-  input.qualitySelect.value = parseRenderUrl(windowRef.location.search).quality;
-  input.qualitySelect.onchange = () => {
-    const next = new URL(windowRef.location.href);
-    if (input.qualitySelect.value === 'performance') {
-      next.searchParams.set('quality', 'performance');
-    } else {
-      next.searchParams.delete('quality');
-    }
-    windowRef.location.replace(next);
-  };
-
   function onVisibilityChange() {
     mount.setPaused(documentRef.hidden);
     if (documentRef.hidden) {
@@ -161,17 +149,13 @@ export function createBackgroundPreviewController(input) {
       measuredFps = Math.round((fpsFrames * 1000) / (now - fpsSince));
       input.runtimeStatus.textContent = documentRef.hidden
         ? 'en pause'
-        : `${measuredFps} FPS · DPR ${quality() === 'performance' ? '1' : Math.min(windowRef.devicePixelRatio || 1, 2)}`;
+        : `${measuredFps} FPS · DPR ${Math.min(windowRef.devicePixelRatio || 1, 2)}`;
       fpsFrames = 0;
       fpsSince = now;
     }
     frameId = windowRef.requestAnimationFrame(measureFps);
   }
   frameId = windowRef.requestAnimationFrame(measureFps);
-
-  function quality() {
-    return input.qualitySelect.value === 'performance' ? 'performance' : 'auto';
-  }
 
   return {
     apply,
@@ -225,13 +209,12 @@ export function createBackgroundPreviewController(input) {
       if (onAir !== null) apply(onAir);
     },
     isDraft: draft.isDraft,
-    quality,
     runtimeMeasurement() {
       return {
         fps: measuredFps,
         pixelRatio: documentRef.hidden
           ? null
-          : (quality() === 'performance' ? 1 : Math.min(windowRef.devicePixelRatio || 1, 2)),
+          : Math.min(windowRef.devicePixelRatio || 1, 2),
         paused: documentRef.hidden,
       };
     },

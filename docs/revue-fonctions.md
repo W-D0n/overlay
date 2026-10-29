@@ -61,7 +61,7 @@ l'URL `?preset=` l'ignore).
 | Diffusion · Export/import | Sauvegarde portable avec prévisualisation | Non | Garder (chemin de migration prévu par la spec zéro-installation) |
 | Diffusion · Scènes OBS | Association scène → preset | Non (`sceneMap` vide) | Garder **ou** retirer au profit des URLs de preset : à trancher |
 | « Avant le live » | Diagnostic en lecture seule | Inconnu | Garder, **corriger** (voir dette) |
-| Qualité Auto / Performance OBS | Plafond DPR 2 ou 1 | Non | Garder |
+| Qualité Auto / Performance OBS | Plafond DPR 2 ou 1 | Sans effet dans OBS (DPR = 1, mesuré 2026-10-29) | **Retiré du Studio** ; le paramètre d'URL reste lu |
 | Vignettes de presets | Image au repos, animation au survol | Inconnu | Garder |
 
 ### Paramètres d'URL

@@ -20,32 +20,15 @@ export function selectBackground(file, presetRef) {
   return preset === undefined ? null : { component: preset.component, options: preset.options };
 }
 
-/**
- * @param {string | null} presetId
- * @param {string} baseUrl
- * @param {{ performance?: boolean }} options
- */
-function backgroundUrl(presetId, baseUrl, options) {
-  return buildRenderUrl({
-    base: baseUrl,
-    presetRef: presetId,
-    quality: options.performance === true ? 'performance' : 'auto',
-  });
-}
-
-/**
- * @param {string} [baseUrl]
- * @param {{ performance?: boolean }} [options]
- */
-export function backgroundCurrentUrl(baseUrl = DEFAULT_BACKGROUND_URL, options = {}) {
-  return backgroundUrl(null, baseUrl, options);
+/** @param {string} [baseUrl] */
+export function backgroundCurrentUrl(baseUrl = DEFAULT_BACKGROUND_URL) {
+  return buildRenderUrl({ base: baseUrl, presetRef: null });
 }
 
 /**
  * @param {string} presetId
  * @param {string} [baseUrl]
- * @param {{ performance?: boolean }} [options]
  */
-export function backgroundPresetUrl(presetId, baseUrl = DEFAULT_BACKGROUND_URL, options = {}) {
-  return backgroundUrl(presetId, baseUrl, options);
+export function backgroundPresetUrl(presetId, baseUrl = DEFAULT_BACKGROUND_URL) {
+  return buildRenderUrl({ base: baseUrl, presetRef: presetId });
 }

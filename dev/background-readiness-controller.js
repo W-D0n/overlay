@@ -44,7 +44,7 @@ function cssTimeToMs(value) {
  *   checks: HTMLElement,
  *   runButton: HTMLButtonElement,
  *   stateServer: string,
- *   getSelection: () => { presetId: string | null, quality: 'auto' | 'performance' },
+ *   getSelection: () => { presetId: string | null },
  *   getRuntime: () => { fps: number | null, pixelRatio: number | null, paused: boolean },
  *   getAudioState?: () => { status: 'idle' | 'active' | 'unavailable', reason: string | null },
  *   focusEffect: () => void,

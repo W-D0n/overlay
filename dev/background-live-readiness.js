@@ -41,7 +41,7 @@ function reportStatus(checks) {
  *
  * @param {{
  *   stateServer: string,
- *   selection: { presetId: string | null, quality: 'auto' | 'performance' },
+ *   selection: { presetId: string | null },
  *   runtime: { fps: number | null, pixelRatio: number | null, paused: boolean },
  *   audio?: { status: 'idle' | 'active' | 'unavailable', reason: string | null },
  *   fetchImpl?: typeof fetch,
@@ -111,7 +111,7 @@ function audioCheck(audio, options) {
  *
  * @param {{
  *   state: { ok: true, file: import('./background-state-format.js').BackgroundFile } | { ok: false, error: string },
- *   selection: { presetId: string | null, quality: 'auto' | 'performance' },
+ *   selection: { presetId: string | null },
  *   runtime: { fps: number | null, pixelRatio: number | null, paused: boolean },
  *   audio?: { status: 'idle' | 'active' | 'unavailable', reason: string | null },
  * }} input
@@ -204,16 +204,7 @@ export function evaluateBackgroundLiveReadiness(input) {
     };
   }
 
-  const obsUrl = preset === undefined
-    ? backgroundCurrentUrl(
-      undefined,
-      { performance: input.selection.quality === 'performance' },
-    )
-    : backgroundPresetUrl(
-      preset.id,
-      undefined,
-      { performance: input.selection.quality === 'performance' },
-    );
+  const obsUrl = preset === undefined ? backgroundCurrentUrl() : backgroundPresetUrl(preset.id);
   const selectionNeedsAttention = selectedComponent === null;
   const checks = [
     stateReadyCheck(input.state.file),

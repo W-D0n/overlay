@@ -110,11 +110,7 @@ export function createBackgroundPresetController(input) {
       copyUrl.textContent = 'URL';
       copyUrl.title = `Copier l'URL OBS stable du preset « ${preset.name} »`;
       copyUrl.onclick = async () => {
-        const url = backgroundPresetUrl(
-          preset.id,
-          input.backgroundPageUrl,
-          { performance: input.preview.quality() === 'performance' },
-        );
+        const url = backgroundPresetUrl(preset.id, input.backgroundPageUrl);
         await navigatorRef.clipboard.writeText(url);
         copyUrl.textContent = '✓';
         windowRef.setTimeout(() => { copyUrl.textContent = 'URL'; }, 1200);
