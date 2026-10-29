@@ -36,13 +36,14 @@ export function createBackgroundStateClient(options) {
   /**
    * @param {string} operation
    * @param {unknown} [body]
+   * @param {Record<string, string>} [extraHeaders]
    */
-  async function request(operation, body) {
+  async function request(operation, body, extraHeaders = {}) {
     const init = body === undefined
       ? { method: 'GET' }
       : {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...extraHeaders },
           body: JSON.stringify(body),
         };
 
@@ -76,6 +77,14 @@ export function createBackgroundStateClient(options) {
     /** L'état lu est toujours sous forme neutre, même si le serveur n'a pas encore migré son fichier. */
     async readState() {
       return canonicalBackgroundState(await request('state'));
+    },
+    /**
+     * Demande au lanceur de relancer ou d'arrêter les serveurs. L'en-tête personnalisé est exigé par le
+     * serveur : il force une requête préalable CORS qu'une page étrangère ne passe pas.
+     * @param {'restart' | 'stop'} action
+     */
+    control(action) {
+      return request(`control/${action}`, {}, { 'X-Overlay-Control': '1' });
     },
     /** @returns {Promise<{ renderPages: number }>} */
     readLiveStatus() {

@@ -17,8 +17,6 @@
   "dev/background-transition-controller.js": 2,
   "dev/numeric-field-control.js": 1,
   "dev/obs-scene-client.js": 4,
-  "dev/port-check.js": 3,
   "dev/start-dev.js": 1,
-  "dev/start-stream.js": 1,
   "dev/static-server.js": 1
 }

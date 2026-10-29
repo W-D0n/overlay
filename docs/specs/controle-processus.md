@@ -5,7 +5,7 @@ updated: 2026-10-30
 
 # Spec — Démarrer, redémarrer, arrêter les serveurs depuis le produit
 
-Statut : **D1 tranchée le 2026-10-30 : une application (coquille Tauri) qui lance et arrête les serveurs ; C1 et C2 livrés.** Besoin (owner, 2026-10-30) : les scripts lancés à la
+Statut : **D1 tranchée le 2026-10-30 : une application (coquille Tauri) qui lance et arrête les serveurs ; C1, C2, C3, C4 (kill) et C5 livrés ; reste la coquille Tauri.** Besoin (owner, 2026-10-30) : les scripts lancés à la
 main (`start-stream.bat`, `kill-servers.bat`) doivent devenir des fonctions du produit.
 
 ## Ce qui est possible, et la limite
@@ -65,8 +65,8 @@ depuis le lanceur ou la coquille (D1).
 1. **C1 + C2 — livré** : `dev/supervisor.js` (supervision par code de sortie) et routes `/control/restart` et
    `/control/stop`, avec tests d'intégration (arrêt à `0`, relance à `75`, 501 hors lanceur, refus sans en-tête
    et d'une autre origine) et preuve de bout en bout (les deux PID changent au redémarrage, zéro port à l'arrêt).
-2. **C4** : remplacement guidé de l'instance précédente.
-3. **C5 + C3** : menu du Studio et confirmation en direct.
+2. **C4 — partiellement livré** : `kill-servers` demande l'arrêt au lanceur avant de tuer (`dev/stop-servers.js`) ; l'invite « remplacer l'instance ? » au lancement de `start-stream` reste à faire.
+3. **C5 + C3 — livré** : menu « Serveurs » du Studio (Redémarrer / Arrêter), confirmation qui nomme la source OBS connectée ; vérifié de bout en bout (les deux PID changent au redémarrage, zéro port après l'arrêt).
 4. **Coquille Tauri** : lance `start-stream`, arrête à la fermeture, bascule « démarrer avec Windows » (désactivée
    par défaut), menu Redémarrer / Arrêter, instance unique (déjà en place).
 

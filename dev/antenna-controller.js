@@ -32,6 +32,9 @@ export function createAntennaController(input) {
   const navigatorRef = input.navigatorRef ?? navigator;
   const windowRef = input.windowRef ?? window;
 
+  /** @type {number | null} */
+  let lastRenderPages = null;
+
   async function refresh() {
     const obs = await input.client.readObsStatus().catch(() => null);
     const serverReachable = obs !== null;
@@ -39,6 +42,7 @@ export function createAntennaController(input) {
       ? await input.client.readLiveStatus().then(({ renderPages: count }) => count).catch(() => null)
       : null;
 
+    lastRenderPages = renderPages;
     const items = antennaItems({ serverReachable, obs, renderPages, audio: input.getAudio() });
     const summary = antennaSummary(items);
     input.root.dataset.tone = summary.tone;
@@ -76,6 +80,7 @@ export function createAntennaController(input) {
 
   return {
     refresh,
+    renderPages: () => lastRenderPages,
     destroy() {
       windowRef.clearInterval(timer);
     },

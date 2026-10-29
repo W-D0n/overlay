@@ -13,6 +13,7 @@ declare const Bun: {
   file(path: string): Blob & { exists(): Promise<boolean>; text(): Promise<string>; json(): Promise<any> };
   write(path: string, data: string | Blob | ArrayBufferLike): Promise<number>;
   spawn(command: string[], options?: Record<string, any>): any;
+  spawnSync(command: string[], options?: Record<string, any>): { stdout: { toString(): string } };
   sleep(ms: number): Promise<void>;
 };
 

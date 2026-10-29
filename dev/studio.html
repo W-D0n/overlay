@@ -413,6 +413,26 @@
     .antenna-item[data-tone="bad"] .antenna-mark { color: var(--color-danger); }
     .antenna-item[data-tone="warn"] .antenna-mark { color: var(--color-text-primary); }
     #antenna-copy { padding: 3px 10px; }
+    .servers { position: relative; }
+    #servers-toggle { padding: 3px 10px; }
+    .servers-panel {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      z-index: 20;
+      display: grid;
+      gap: var(--space-xs);
+      min-width: 16rem;
+      max-width: 22rem;
+      padding: var(--space-sm);
+      background: #0B0B0D;
+      border: 1px solid var(--color-rule);
+      border-radius: var(--radius-sm);
+      font-size: var(--text-base);
+    }
+    .servers-panel[hidden] { display: none; }
+    #servers-status p { margin: var(--space-xs) 0; color: var(--color-text-mid); }
+    #servers-status button { margin-right: var(--space-xs); }
 
     .branding-toggle { display: flex; align-items: center; gap: var(--space-xs); }
     #branding-position { margin-bottom: var(--space-xs); }
@@ -451,6 +471,14 @@
       <strong id="antenna-summary">…</strong>
       <div id="antenna-items"></div>
       <button id="antenna-copy" type="button">Copier l’URL OBS</button>
+    </div>
+    <div id="servers" class="servers">
+      <button id="servers-toggle" type="button" aria-expanded="false" aria-controls="servers-panel">Serveurs ▾</button>
+      <div id="servers-panel" class="servers-panel" hidden>
+        <button type="button" data-control="restart">Redémarrer</button>
+        <button type="button" data-control="stop">Arrêter</button>
+        <div id="servers-status" role="status" aria-live="polite"></div>
+      </div>
     </div>
     <span class="studio-spacer"></span>
     <div id="server-status"></div>

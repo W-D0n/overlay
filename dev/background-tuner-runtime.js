@@ -4,6 +4,7 @@ import { createBackgroundPresetController } from './background-preset-controller
 import { isAudioOn, kindCapabilities } from '../layer-kinds.js';
 import { createBackgroundPreviewController } from './background-preview-controller.js';
 import { createAntennaController } from './antenna-controller.js';
+import { createServerControlController } from './server-control-controller.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
 import { createBrandingController } from './branding-controller.js';
@@ -121,6 +122,17 @@ export async function startBackgroundTuner(environment = {}) {
     });
   }
 
+  const serverControl = createServerControlController({
+    root: byId('servers'),
+    toggle: byId('servers-toggle'),
+    panel: byId('servers-panel'),
+    status: byId('servers-status'),
+    client,
+    getRenderPages: () => antenna.renderPages(),
+    documentRef,
+    windowRef,
+  });
+
   const antenna = createAntennaController({
     root: byId('antenna'),
     summary: byId('antenna-summary'),
@@ -217,6 +229,7 @@ export async function startBackgroundTuner(environment = {}) {
 
   function destroy() {
     antenna.destroy();
+    serverControl.closePanel();
     stage.destroy();
     unsubscribe();
     preview.destroy();

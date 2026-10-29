@@ -162,3 +162,29 @@ describe('client d’état du tuner', () => {
     expect(sockets.every(({ closed }) => closed)).toBeTrue();
   });
 });
+
+describe('contrôle des serveurs', () => {
+  test('la demande d’arrêt ou de redémarrage porte l’en-tête de contrôle', async () => {
+    const requests = [];
+    const client = createBackgroundStateClient({
+      baseUrl: 'http://state.test',
+      fetchImpl: async (url, init) => {
+        requests.push({ url: String(url), method: init?.method, headers: init?.headers });
+        return Response.json({ ok: true }, { status: 202 });
+      },
+    });
+    await client.control('restart');
+    await client.control('stop');
+    expect(requests.map(({ url }) => url)).toEqual(['http://state.test/control/restart', 'http://state.test/control/stop']);
+    expect(requests.every(({ method, headers }) => method === 'POST' && headers['X-Overlay-Control'] === '1')).toBe(true);
+  });
+
+  test('un refus remonte son code HTTP pour que l’interface le explique', async () => {
+    const client = createBackgroundStateClient({
+      baseUrl: 'http://state.test',
+      fetchImpl: async () => Response.json({ error: 'serveur non supervisé' }, { status: 501 }),
+    });
+    const error = await client.control('stop').catch((caught) => caught);
+    expect(error.status).toBe(501);
+  });
+});
