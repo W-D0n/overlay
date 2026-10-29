@@ -391,6 +391,16 @@ export const LAYER_KINDS = /** @type {*} */ (Object.fromEntries(
 /** Identifiants des types de couche, dans l'ordre d'affichage du sélecteur. */
 export const LAYER_KIND_IDS = /** @type {LayerKindId[]} */ (Object.keys(KIND_DEFINITIONS));
 
+/**
+ * Capacités déclarées d'un type de couche ; un type inconnu n'en a aucune (aucune réaction native,
+ * pas de micro).
+ * @param {unknown} id
+ * @returns {LayerCapabilities}
+ */
+export function kindCapabilities(id) {
+  return isLayerKindId(id) ? LAYER_KINDS[id].capabilities : { audio: false, reactions: 'overlay' };
+}
+
 /** @param {unknown} value @returns {value is LayerKindId} */
 export function isLayerKindId(value) {
   return typeof value === 'string' && Object.hasOwn(KIND_DEFINITIONS, value);

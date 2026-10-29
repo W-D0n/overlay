@@ -1,6 +1,7 @@
 // @ts-check
 import { COMPONENT_REGISTRY } from './component-registry.js';
 import { cssEasing, normalizeTransition, transitionStyles } from './background-transition.js';
+import { kindCapabilities } from './layer-kinds.js';
 
 /**
  * background-mount.js — Montage d'un effet de fond standalone dans un conteneur (2026-07-14).
@@ -21,6 +22,7 @@ import { cssEasing, normalizeTransition, transitionStyles } from './background-t
  *   registry?: typeof COMPONENT_REGISTRY,
  *   onMountChange?: () => void,
  *   createLayer?: () => *,
+ *   capabilitiesOf?: (component: string) => import('./layer-kinds.js').LayerCapabilities,
  *   scheduleFrame?: (callback: () => void) => void,
  *   scheduleTimeout?: (callback: () => void, delayMs: number) => void,
  * }} [options] - Points d'injection pour les tests du cycle de vie (aucun DOM requis).
@@ -29,6 +31,7 @@ export function createBackgroundMount(container, options = {}) {
   const registry = options.registry ?? COMPONENT_REGISTRY;
   const onMountChange = options.onMountChange ?? (() => {});
   const createLayer = options.createLayer ?? defaultCreateLayer;
+  const capabilitiesOf = options.capabilitiesOf ?? kindCapabilities;
   const scheduleFrame = options.scheduleFrame
     ?? ((callback) => globalThis.requestAnimationFrame?.(callback) ?? callback());
   const scheduleTimeout = options.scheduleTimeout ?? ((callback, delayMs) => setTimeout(callback, delayMs));
@@ -158,19 +161,17 @@ export function createBackgroundMount(container, options = {}) {
       onMountChange();
     },
     react(event) {
-      if (mounted !== null && typeof mounted.instance.trigger === 'function') {
-        mounted.instance.trigger(event);
-        return true;
-      }
-      return false;
+      if (mounted === null || capabilitiesOf(mounted.component).reactions !== 'native') return false;
+      mounted.instance.trigger?.(event);
+      return true;
     },
     isAudioReactive() {
-      if (mounted === null || typeof mounted.instance.setAudioLevel !== 'function') return false;
+      if (mounted === null || !capabilitiesOf(mounted.component).audio) return false;
       return isAudioEnabled(latestState?.options);
     },
     applyAudio(levels) {
       if (!this.isAudioReactive()) return false;
-      /** @type {*} */ (mounted).instance.setAudioLevel(levels);
+      /** @type {*} */ (mounted).instance.setAudioLevel?.(levels);
       return true;
     },
     setPaused(nextPaused) {

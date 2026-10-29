@@ -113,10 +113,10 @@ describe('background mount react routing', () => {
 describe('background mount audio routing', () => {
   const levels = { level: 0.5, bass: 0.4, mid: 0.3, treble: 0.2 };
 
-  function mountWith(instance, options = { audioReactive: 'Oui' }) {
+  function mountWith(instance, options = { audioReactive: 'Oui' }, capabilitiesOf = undefined) {
     const container = { appendChild: () => {} };
     const registry = { RainBackground: () => instance };
-    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
+    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer, capabilitiesOf });
     mount.apply({ component: 'RainBackground', options });
     return mount;
   }
@@ -132,8 +132,12 @@ describe('background mount audio routing', () => {
     expect(received).toEqual([levels]);
   });
 
-  test('applyAudio ne fait rien quand l’effet n’expose pas setAudioLevel', () => {
-    const mount = mountWith({ el: { name: 'rain', remove: () => {} } });
+  test('applyAudio ne fait rien quand le type de couche ne déclare pas la capacité audio', () => {
+    const mount = mountWith(
+      { el: { name: 'rain', remove: () => {} }, setAudioLevel: () => { throw new Error('ne doit pas être appelé'); } },
+      { audioReactive: 'Oui' },
+      () => ({ audio: false, reactions: 'overlay' }),
+    );
     expect(mount.isAudioReactive()).toBe(false);
     expect(mount.applyAudio(levels)).toBe(false);
   });
