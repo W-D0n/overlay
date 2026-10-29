@@ -4,6 +4,12 @@ import { canvasPixelRatio } from './canvas-runtime.js';
 import { createAudioReaction } from './audio-reaction.js';
 
 /**
+ * @typedef {object} StarsParallaxBackgroundOptions
+ * @property {string} [color] - couleur des étoiles, token CSS ou valeur brute (défaut '#ffffff')
+ * @property {number} [density] - étoiles par 10 000px² sur la couche la plus dense (défaut 0.06)
+ * @property {number} [speed] - vitesse de défilement, multiplicateur (défaut 1)
+ */
+/**
  * StarsParallaxBackground.js — Champ d'étoiles en parallaxe, 3 couches (Track B, session B6).
  *
  * Inspiration technique : CodePen sarazond (parallax stars) — positions générées PROCÉDURALEMENT
@@ -11,11 +17,7 @@ import { createAudioReaction } from './audio-reaction.js';
  * comme le CodePen source (LAC-03 de `docs/specs/background-effects-library.md` : composante
  * non-déterministe acceptée, pas besoin de reproductibilité pixel-perfect entre deux lancements).
  *
- * @param {{
- *   color?: string,   - couleur des étoiles, token CSS ou valeur brute (défaut '#ffffff')
- *   density?: number, - étoiles par 10 000px² sur la couche la plus dense (défaut 0.06)
- *   speed?: number,   - vitesse de défilement, multiplicateur (défaut 1)
- * }} [options]
+ * @param {StarsParallaxBackgroundOptions} [options]
  * @returns {import('../types.js').ComponentInstance}
  */
 export function StarsParallaxBackground(options = {}) {

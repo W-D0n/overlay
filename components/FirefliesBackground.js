@@ -5,6 +5,13 @@ import { canvasPixelRatio } from './canvas-runtime.js';
 import { createAudioReaction } from './audio-reaction.js';
 
 /**
+ * @typedef {object} FirefliesBackgroundOptions
+ * @property {number} [count] - nombre de lucioles (défaut 25)
+ * @property {number} [speed] - vitesse de dérive, multiplicateur (défaut 1)
+ * @property {string} [color] - couleur des lucioles, token CSS ou valeur brute (défaut var(--color-gold))
+ * @property {number} [flashChance] - probabilité de déclencher un flash par frame et par luciole (défaut 0.006)
+ */
+/**
  * FirefliesBackground.js — Particules lumineuses dérivantes, avec flash (Track B, session B4).
  *
  * Inspiration technique : CodePen mikegolus (CSS Fireflies) — portée en canvas/rAF (même pattern
@@ -12,12 +19,7 @@ import { createAudioReaction } from './audio-reaction.js';
  * (fréquences/phases propres, comme la Couche 1 de DotGrid) et émet des flashs lumineux
  * intermittents plutôt qu'une opacité constante.
  *
- * @param {{
- *   count?: number,       - nombre de lucioles (défaut 25)
- *   speed?: number,       - vitesse de dérive, multiplicateur (défaut 1)
- *   color?: string,       - couleur des lucioles, token CSS ou valeur brute (défaut var(--color-gold))
- *   flashChance?: number, - probabilité de déclencher un flash par frame et par luciole (défaut 0.006)
- * }} [options]
+ * @param {FirefliesBackgroundOptions} [options]
  * @returns {import('../types.js').ComponentInstance}
  */
 export function FirefliesBackground(options = {}) {

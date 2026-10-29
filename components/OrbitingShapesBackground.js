@@ -4,6 +4,16 @@ import { canvasPixelRatio } from './canvas-runtime.js';
 import { createAudioReaction } from './audio-reaction.js';
 
 /**
+ * @typedef {object} OrbitingShapesBackgroundOptions
+ * @property {'circle' | 'triangle'} [shape]
+ * @property {number} [count] - nombre de formes simultanées (défaut 10)
+ * @property {number} [speed] - vitesse de rotation orbitale, multiplicateur (défaut 1)
+ * @property {string} [color] - couleur des formes, token CSS ou valeur brute (défaut var(--color-gold))
+ * @property {number} [minSize] - taille minimum en px, à profondeur maximale (défaut 8)
+ * @property {number} [maxSize] - taille maximum en px, au plus proche (défaut 28)
+ * @property {number} [opacity] - opacité globale, 0-1 (défaut 1)
+ */
+/**
  * OrbitingShapesBackground.js — Formes en orbite pseudo-3D (Track B, session B7).
  *
  * Consolide 3 CodePen en un seul composant paramétré par `shape` (nefejames floating-balls,
@@ -12,15 +22,7 @@ import { createAudioReaction } from './audio-reaction.js';
  * une profondeur (avant = grand/opaque, arrière = petit/discret) — même principe que
  * `natewiley` (translate3d + scale), porté en canvas 2D (pas de vrai 3D nécessaire ici).
  *
- * @param {{
- *   shape?: 'circle' | 'triangle',
- *   count?: number,     - nombre de formes simultanées (défaut 10)
- *   speed?: number,     - vitesse de rotation orbitale, multiplicateur (défaut 1)
- *   color?: string,     - couleur des formes, token CSS ou valeur brute (défaut var(--color-gold))
- *   minSize?: number,   - taille minimum en px, à profondeur maximale (défaut 8)
- *   maxSize?: number,   - taille maximum en px, au plus proche (défaut 28)
- *   opacity?: number,   - opacité globale, 0-1 (défaut 1)
- * }} [options]
+ * @param {OrbitingShapesBackgroundOptions} [options]
  * @returns {import('../types.js').ComponentInstance}
  */
 export function OrbitingShapesBackground(options = {}) {

@@ -5,6 +5,15 @@ import { canvasPixelRatio } from './canvas-runtime.js';
 import { createAudioReaction } from './audio-reaction.js';
 
 /**
+ * @typedef {object} FloatingSymbolsBackgroundOptions
+ * @property {string} [symbol] - glyphe/emoji affiché (défaut '✽')
+ * @property {number} [count] - nombre de symboles simultanés (défaut 12)
+ * @property {number} [speed] - vitesse de chute, multiplicateur (défaut 1)
+ * @property {string} [color] - couleur des symboles, token CSS ou valeur brute (défaut var(--color-gold))
+ * @property {number} [minSize] - taille minimum en px (défaut 24)
+ * @property {number} [maxSize] - taille maximum en px (défaut 64)
+ */
+/**
  * FloatingSymbolsBackground.js — Glyphes/emoji flottants configurables (Track B, session B5).
  *
  * Inspiration technique : CodePen wakana-k (Foil Stamping Effect) — généralisée SANS texture
@@ -13,14 +22,7 @@ import { createAudioReaction } from './audio-reaction.js';
  * place. Le « motif » demandé par l'owner devient le champ `symbol` (un caractère ou emoji), pas
  * une texture — configurable dès la v1.
  *
- * @param {{
- *   symbol?: string,   - glyphe/emoji affiché (défaut '✽')
- *   count?: number,     - nombre de symboles simultanés (défaut 12)
- *   speed?: number,     - vitesse de chute, multiplicateur (défaut 1)
- *   color?: string,     - couleur des symboles, token CSS ou valeur brute (défaut var(--color-gold))
- *   minSize?: number,   - taille minimum en px (défaut 24)
- *   maxSize?: number,   - taille maximum en px (défaut 64)
- * }} [options]
+ * @param {FloatingSymbolsBackgroundOptions} [options]
  * @returns {import('../types.js').ComponentInstance}
  */
 export function FloatingSymbolsBackground(options = {}) {

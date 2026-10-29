@@ -5,6 +5,13 @@ import { canvasPixelRatio } from './canvas-runtime.js';
 import { createAudioReaction } from './audio-reaction.js';
 
 /**
+ * @typedef {object} RainBackgroundOptions
+ * @property {number} [intensity] - densité des gouttes, 0-1 (défaut 0.5)
+ * @property {number} [speed] - vitesse de chute, multiplicateur (défaut 1)
+ * @property {string} [color] - couleur des gouttes, token CSS ou valeur brute (défaut var(--color-gold))
+ * @property {number} [angle] - inclinaison du vent en degrés (défaut 8)
+ */
+/**
  * RainBackground.js — Effet de fond « pluie » ambiante (Track B, session B3).
  *
  * Inspiration technique : CodePen vishwaoffl (CSS rain) — réinterprété en canvas/rAF (même pattern
@@ -12,12 +19,7 @@ import { createAudioReaction } from './audio-reaction.js';
  * (`pointer-events: none` partout), l'effet est donc strictement ambiant (voir
  * docs/specs/background-effects-library.md §Exclu).
  *
- * @param {{
- *   intensity?: number, - densité des gouttes, 0-1 (défaut 0.5)
- *   speed?: number,     - vitesse de chute, multiplicateur (défaut 1)
- *   color?: string,     - couleur des gouttes, token CSS ou valeur brute (défaut var(--color-gold))
- *   angle?: number,     - inclinaison du vent en degrés (défaut 8)
- * }} [options]
+ * @param {RainBackgroundOptions} [options]
  * @returns {import('../types.js').ComponentInstance}
  */
 export function RainBackground(options = {}) {

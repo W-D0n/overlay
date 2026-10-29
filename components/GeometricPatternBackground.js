@@ -2,6 +2,17 @@
 import { createAudioReaction } from './audio-reaction.js';
 
 /**
+ * @typedef {object} GeometricPatternBackgroundOptions
+ * @property {'diamonds' | 'dots' | 'chevrons' | 'eyes'} [pattern]
+ * @property {string} [colorA] - première couleur du motif (défaut var(--color-gold))
+ * @property {string} [colorB] - seconde couleur / fond (défaut '#0b0b0c')
+ * @property {number} [size] - taille d'une cellule en px (défaut 100)
+ * @property {number} [speed] - vitesse de défilement, multiplicateur (défaut 1)
+ * @property {'left' | 'right' | 'up' | 'down'} [direction] - direction du mouvement (défaut 'right')
+ * @property {number} [angle] - orientation des lignes en degrés (défaut 45)
+ * @property {number} [opacity] - opacité globale du motif, 0-1 (défaut 0.15 — reste un fond, pas un habillage plein cadre comme dans les CodePen source, qui sont des démos, pas des arrière-plans)
+ */
+/**
  * GeometricPatternBackground.js — Motif géométrique répétitif animé (Track B, session B5).
  *
  * Consolide 4 CodePen en un seul composant paramétré par `pattern` (rule of three dépassée —
@@ -15,17 +26,7 @@ import { createAudioReaction } from './audio-reaction.js';
  * `backgroundPositionX`/`filter` — pas de `@keyframes` global à injecter dans `<head>` ;
  * le composant reste autonome.
  *
- * @param {{
- *   pattern?: 'diamonds' | 'dots' | 'chevrons' | 'eyes',
- *   colorA?: string,  - première couleur du motif (défaut var(--color-gold))
- *   colorB?: string,  - seconde couleur / fond (défaut '#0b0b0c')
- *   size?: number,    - taille d'une cellule en px (défaut 100)
- *   speed?: number,   - vitesse de défilement, multiplicateur (défaut 1)
- *   direction?: 'left' | 'right' | 'up' | 'down', - direction du mouvement (défaut 'right')
- *   angle?: number,   - orientation des lignes en degrés (défaut 45)
- *   opacity?: number, - opacité globale du motif, 0-1 (défaut 0.15 — reste un fond, pas un
- *     habillage plein cadre comme dans les CodePen source, qui sont des démos, pas des arrière-plans)
- * }} [options]
+ * @param {GeometricPatternBackgroundOptions} [options]
  * @returns {import('../types.js').ComponentInstance}
  */
 export function GeometricPatternBackground(options = {}) {

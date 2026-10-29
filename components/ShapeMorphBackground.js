@@ -5,6 +5,21 @@ import { canvasPixelRatio } from './canvas-runtime.js';
 import { createAudioReaction } from './audio-reaction.js';
 
 /**
+ * @typedef {object} ShapeMorphBackgroundOptions
+ * @property {'pizza' | 'ninjaStar' | 'helmet' | 'shell' | 'batmanMask'} [shape]
+ * @property {number} [count] - nombre de formes dans le pattern (défaut 12)
+ * @property {number} [spread] - étendue du pattern, fraction 0-1 (défaut 0.82)
+ * @property {number} [size] - rayon de base en px (défaut 72)
+ * @property {string} [color] - couleur de la silhouette, token CSS ou valeur brute (défaut var(--color-gold))
+ * @property {number} [opacity] - opacité globale, 0-1 (défaut 0.45)
+ * @property {'outline' | 'fill' | 'mixed'} [style] - traitement visuel (défaut 'mixed')
+ * @property {number} [rotationSpeed] - vitesse de rotation alternée (défaut 0.08)
+ * @property {number} [x] - centre horizontal du pattern, fraction 0-1 (défaut 0.5)
+ * @property {number} [y] - centre vertical du pattern, fraction 0-1 (défaut 0.5)
+ * @property {number} [morphDuration] - durée du morph entre deux formes, ms (défaut 700)
+ * @property {import('../types.js').TransitionEasing} [morphEasing] - (défaut 'easeInOut')
+ */
+/**
  * ShapeMorphBackground.js — Cycle de silhouettes qui morphent (Track B, session B8, idée
  * originale du chantier : pizza ↔ étoile ninja ↔ casque Shredder ↔ carapace tortue ninja ↔
  * masque Batman). Session la plus incertaine techniquement du Track B — séquencée en dernier,
@@ -22,20 +37,7 @@ import { createAudioReaction } from './audio-reaction.js';
  * forme générale (triangle de pizza, étoile à pointes, dôme segmenté, oreilles pointues) suffit à
  * évoquer le sujet dans un style minimaliste, pas à le reproduire fidèlement.
  *
- * @param {{
- *   shape?: 'pizza' | 'ninjaStar' | 'helmet' | 'shell' | 'batmanMask',
- *   count?: number,         - nombre de formes dans le pattern (défaut 12)
- *   spread?: number,        - étendue du pattern, fraction 0-1 (défaut 0.82)
- *   size?: number,          - rayon de base en px (défaut 72)
- *   color?: string,         - couleur de la silhouette, token CSS ou valeur brute (défaut var(--color-gold))
- *   opacity?: number,       - opacité globale, 0-1 (défaut 0.45)
- *   style?: 'outline' | 'fill' | 'mixed', - traitement visuel (défaut 'mixed')
- *   rotationSpeed?: number, - vitesse de rotation alternée (défaut 0.08)
- *   x?: number,             - centre horizontal du pattern, fraction 0-1 (défaut 0.5)
- *   y?: number,             - centre vertical du pattern, fraction 0-1 (défaut 0.5)
- *   morphDuration?: number, - durée du morph entre deux formes, ms (défaut 700)
- *   morphEasing?: import('../types.js').TransitionEasing, - (défaut 'easeInOut')
- * }} [options]
+ * @param {ShapeMorphBackgroundOptions} [options]
  * @returns {import('../types.js').ComponentInstance}
  */
 export function ShapeMorphBackground(options = {}) {

@@ -4,23 +4,25 @@ import { canvasPixelRatio } from './canvas-runtime.js';
 import { isAudioPeak } from '../audio-levels.js';
 
 /**
+ * @typedef {object} WaterRippleBackgroundOptions
+ * @property {'circle' | 'ellipse' | 'diamond'} [shape]
+ * @property {number} [frequency] - impacts par seconde (défaut 0.8)
+ * @property {string} [audioReactive] - 'Oui' pour engendrer une goutte à chaque pic sonore (défaut 'Non')
+ * @property {number} [audioIntensity] - amplitude de la réaction audio (défaut 1)
+ * @property {number} [speed] - multiplicateur temporel global (défaut 1)
+ * @property {number} [amplitude] - intensité visuelle des ondes, 0-1 (défaut 0.7)
+ * @property {string} [color] - couleur CSS des gouttes et ondes (défaut var(--color-gold))
+ * @property {number} [maxRadius] - rayon maximal d'une onde en px (défaut 180)
+ * @property {number} [lineWidth] - épaisseur des ondes en px (défaut 1.5)
+ */
+/**
  * WaterRippleBackground.js — Gouttes qui tombent puis propagent des ondes à la surface de l'eau.
  *
  * Un seul canvas contient les deux couches visuelles (chute + propagation), conformément au mode
  * background-only : aucune superposition de Browser Sources ou d'effets externes. L'animation est
  * intégrée avec un delta-temps borné, donc sa vitesse ne dépend pas du framerate du navigateur/OBS.
  *
- * @param {{
- *   shape?: 'circle' | 'ellipse' | 'diamond',
- *   frequency?: number, - impacts par seconde (défaut 0.8)
- *   audioReactive?: string, - 'Oui' pour engendrer une goutte à chaque pic sonore (défaut 'Non')
- *   audioIntensity?: number, - amplitude de la réaction audio (défaut 1)
- *   speed?: number,     - multiplicateur temporel global (défaut 1)
- *   amplitude?: number, - intensité visuelle des ondes, 0-1 (défaut 0.7)
- *   color?: string,     - couleur CSS des gouttes et ondes (défaut var(--color-gold))
- *   maxRadius?: number, - rayon maximal d'une onde en px (défaut 180)
- *   lineWidth?: number, - épaisseur des ondes en px (défaut 1.5)
- * }} [options]
+ * @param {WaterRippleBackgroundOptions} [options]
  * @returns {import('../types.js').ComponentInstance}
  */
 export function WaterRippleBackground(options = {}) {

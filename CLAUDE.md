@@ -22,6 +22,11 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 
 1. **Zero build, zero dépendance** — HTML/CSS/JS natif uniquement. Aucun `npm install`,
    aucun framework, aucune lib externe. Toute fonction (ex : Simplex noise) est portée from scratch.
+   Exception de périmètre (2026-10-29) : l'outillage de **dev** qui ne s'exécute ni dans OBS ni dans
+   le live (vérificateur de types, packaging) est permis, lancé à la demande sans rien installer dans
+   le dépôt (`bunx`). Aucun code d'outillage n'est importé par l'overlay.
+   Typage : `bun dev/typecheck.js` (TypeScript sur les JSDoc `// @ts-check`, `tsconfig.json` strict) ;
+   la dette connue est figée par fichier dans `dev/typecheck-baseline.json` et ne peut que baisser.
 2. **OBS Browser Source 1920×1080** — canvas de référence du projet depuis le 2026-10-29 (le
    2560×1440 posé le 2026-07-25 posait des problèmes avec certaines scènes et sources OBS). La page
    épouse la source, aucune dimension en dur ; raisonner et vérifier en 1080p.

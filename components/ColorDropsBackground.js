@@ -8,18 +8,21 @@ import { createAudioReaction } from './audio-reaction.js';
  * canvas/rAF (même pattern que `DotGridAnimated.js`/`RainBackground.js`). Différence avec
  * `RainBackground` : ici l'accent est la variété de couleurs par goutte (dégradé vers le bas,
  * palette multi-teintes), chute strictement verticale, pas d'inclinaison de vent.
- *
- * @param {{
- *   count?: number,   - nombre de gouttes simultanées (défaut 24)
- *   speed?: number,   - vitesse de chute, multiplicateur (défaut 1)
- *   colors?: string[], - palette de couleurs, tokens CSS ou valeurs brutes (défaut palette Atelier)
- *   length?: number,  - longueur de la traînée en px (défaut 90)
- * }} [options]
- * @returns {import('../types.js').ComponentInstance}
+ */
+/**
+ * @typedef {object} ColorDropsBackgroundOptions
+ * @property {number} [count] - nombre de gouttes simultanées (défaut 24)
+ * @property {number} [speed] - vitesse de chute, multiplicateur (défaut 1)
+ * @property {string[]} [colors] - palette de couleurs, tokens CSS ou valeurs brutes (défaut palette Atelier)
+ * @property {number} [length] - longueur de la traînée en px (défaut 90)
  */
 import { resolveColor } from './color-utils.js';
 import { frameDeltaSeconds } from './animation-time.js';
 
+/**
+ * @param {ColorDropsBackgroundOptions} [options]
+ * @returns {import('../types.js').ComponentInstance}
+ */
 export function ColorDropsBackground(options = {}) {
   let count = Math.max(1, Math.round(options.count ?? 24));
   let speed = options.speed ?? 1;

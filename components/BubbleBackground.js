@@ -10,25 +10,28 @@ import { isAudioPeak } from '../audio-levels.js';
  * Inspiration technique : CodePen diyorbek0309 (bulles montantes) — portée en canvas/rAF (même
  * pattern que `DotGridAnimated.js`) avec l'ajout explicite demandé par l'owner : chaque bulle
  * éclate (anneau qui s'étend puis s'estompe) au lieu de simplement disparaître en haut de l'écran.
- *
- * @param {{
- *   count?: number,     - nombre de bulles simultanées (défaut 15)
- *   speed?: number,     - vitesse de montée, multiplicateur (défaut 1)
- *   color?: string,     - couleur des bulles, token CSS ou valeur brute (défaut var(--color-gold))
- *   minRadius?: number, - rayon minimum en px (défaut 6)
- *   maxRadius?: number, - rayon maximum en px (défaut 22)
- *   burstMinTravel?: number, - trajet minimum avant éclatement, ratio 0-1 (défaut 0.15)
- *   burstMaxTravel?: number, - trajet maximum avant éclatement, ratio 0-1 (défaut 0.9)
- *   burstDuration?: number, - durée de l'anneau d'éclatement en secondes (défaut 0.37)
- *   burstScale?: number, - expansion finale de l'anneau (défaut 1.8)
- *   audioReactive?: string, - 'Oui' pour réagir au son (défaut 'Non')
- *   audioIntensity?: number, - amplitude de la réaction audio (défaut 1)
- * }} [options]
- * @returns {import('../types.js').ComponentInstance}
+ */
+/**
+ * @typedef {object} BubbleBackgroundOptions
+ * @property {number} [count] - nombre de bulles simultanées (défaut 15)
+ * @property {number} [speed] - vitesse de montée, multiplicateur (défaut 1)
+ * @property {string} [color] - couleur des bulles, token CSS ou valeur brute (défaut var(--color-gold))
+ * @property {number} [minRadius] - rayon minimum en px (défaut 6)
+ * @property {number} [maxRadius] - rayon maximum en px (défaut 22)
+ * @property {number} [burstMinTravel] - trajet minimum avant éclatement, ratio 0-1 (défaut 0.15)
+ * @property {number} [burstMaxTravel] - trajet maximum avant éclatement, ratio 0-1 (défaut 0.9)
+ * @property {number} [burstDuration] - durée de l'anneau d'éclatement en secondes (défaut 0.37)
+ * @property {number} [burstScale] - expansion finale de l'anneau (défaut 1.8)
+ * @property {string} [audioReactive] - 'Oui' pour réagir au son (défaut 'Non')
+ * @property {number} [audioIntensity] - amplitude de la réaction audio (défaut 1)
  */
 /** Accélération maximale de la montée à `audioIntensity` 1 et niveau saturé (+70 %). */
 const AUDIO_SPEED_GAIN = 0.7;
 
+/**
+ * @param {BubbleBackgroundOptions} [options]
+ * @returns {import('../types.js').ComponentInstance}
+ */
 export function BubbleBackground(options = {}) {
   let count = Math.max(1, Math.round(options.count ?? 15));
   let speed = options.speed ?? 1;
