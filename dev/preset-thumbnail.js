@@ -16,6 +16,31 @@ export const THUMBNAIL_WIDTH = 104;
 export const THUMBNAIL_HEIGHT = 58;
 
 /**
+ * Lance `capture` quand `el` devient visible. Un élément masqué (onglet du Studio non affiché) n'a pas
+ * de taille : l'effet ne dimensionnerait pas son canvas et la vignette serait un canvas vide de
+ * 300×150. Sans `IntersectionObserver` (tests), la capture démarre aussitôt.
+ * @param {Element} el
+ * @param {((callback: (entries: { isIntersecting: boolean }[]) => void) => { observe(el: Element): void, disconnect(): void }) | null} createObserver
+ * @param {() => void} capture
+ * @returns {() => void} annulation
+ */
+export function onceVisible(el, createObserver, capture) {
+  if (createObserver === null) {
+    capture();
+    return () => {};
+  }
+  let captured = false;
+  const observer = createObserver((entries) => {
+    if (captured || !entries.some(({ isIntersecting }) => isIntersecting)) return;
+    captured = true;
+    observer.disconnect();
+    capture();
+  });
+  observer.observe(el);
+  return () => observer.disconnect();
+}
+
+/**
  * Certains effets peignent rarement (une goutte toutes les deux secondes pour WaterRipple, des
  * étoiles très pâles pour StarsParallax) : une photo trop précoce donnait une vignette noire.
  * On réessaie jusqu'à trouver une image qui contient réellement quelque chose.
@@ -87,7 +112,16 @@ export function createPresetThumbnail(input) {
     el.dataset.live = 'true';
   }
 
-  queue.push(async () => {
+  const View = documentRef.defaultView;
+  const cancelCapture = onceVisible(
+    el,
+    typeof View?.IntersectionObserver === 'function'
+      ? (callback) => new View.IntersectionObserver(callback)
+      : null,
+    () => queue.push(captureStill),
+  );
+
+  async function captureStill() {
     if (destroyed) return;
     const mount = createBackgroundMount(stage);
     mount.apply({ component: input.preset.component, options: input.preset.options });
@@ -109,7 +143,7 @@ export function createPresetThumbnail(input) {
       }
     }
     mount.destroy();
-  });
+  }
 
   el.addEventListener('pointerenter', mountLive);
   el.addEventListener('pointerleave', unmountLive);
@@ -120,6 +154,7 @@ export function createPresetThumbnail(input) {
     el,
     destroy() {
       destroyed = true;
+      cancelCapture();
       unmountLive();
       el.remove();
     },
