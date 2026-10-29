@@ -103,8 +103,16 @@ Le branding reste une surcouche globale (état séparé, `showBranding` par scè
    page OBS non rafraîchie ne voit rien. **Écart assumé** : les lots d'export restent des presets (version 2) ; une version 3 de
    lot n'aurait que le même contenu sous un autre nom tant qu'une scène ne peut avoir qu'une couche, elle arrive avec 4d/étape 6. **Vérifié sur une copie** de votre fichier réel avant tout contact avec l'original ;
    aller-retour export → import des lots version 1, 2 et 3.
-3. **4c** `scene-runtime.js` : réconciliation, z-order, placement, visibilité, opacité (sans transition),
-   testé avec un registre factice.
+3. **4c — livré** : `scene-runtime.js` (`createSceneRuntime` : `apply`, `layers`, `destroy`) — réconciliation par `id`,
+   z-order par `z-index` sans déplacer de nœud, placement en pourcentages, visibilité, opacité ; une couche en panne est
+   signalée sans arrêter les autres. 13 tests sur registre factice (4 mutations vues rouges) et preuve en navigateur avec
+   les vrais effets : trois couches (dotgrid, fireflies, pluie placée en coin) à 1080p et 1440p, coin à 1344×54 puis
+   1792×72 px (= 70 % / 5 %), canvas non vides, masquer puis remontrer la couche du milieu ne recrée aucun canvas.
+   Le masquage laisse l'effet tourner (spec) : son coût reste à mesurer dans OBS.
+   **Mesure de charge indicative** (Chrome sans interface, 1080p, capacité libre du fil principal en messages/s, médiane de
+   3 passes ; sans couche 296 000) : 1 couche 100 000, 3 couches 86 500, 8 couches 62 000. Une couche de plus coûte peu devant
+   la première ; hypothèse : la borne de 8 tient. Ce n'est pas le CPU d'OBS (CEF) : votre protocole habituel reste le critère
+   avant l'éditeur multi-couches.
 4. **4d** Transitions de scène ; bascule de `background.html` et du Studio sur le moteur ; retrait de
    `background-mount.js`. **Sonde d'équivalence** : pour chaque effet et chaque preset intégré, le DOM et la
    suite d'appels de dessin produits par l'ancien montage et par le moteur sont identiques (méthode déjà utilisée
