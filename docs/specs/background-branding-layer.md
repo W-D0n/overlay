@@ -1,6 +1,18 @@
+---
+created: 2026-07-26
+updated: 2026-10-29
+---
+
 # Spec — Couche branding (⑤ de l'audit produit)
 
 Statut : **livrée et validée en Browser Source réelle** (owner, 2026-07-26). Créée le 2026-07-26.
+
+> **Mise à jour 2026-10-29 — référence passée à 1920×1080.** Tout ce qui suit dit « 2560×1440 » ;
+> lire **1920×1080** : `BRANDING_REFERENCE_HEIGHT = 1080`. L'aspect à l'écran est conservé en
+> multipliant par 0,75 les tailles exprimées en pixels : défauts `27` / `13,5` (au lieu de 36 / 18),
+> bornes `8 à 72` / `6 à 36` (au lieu de 10 à 96 / 8 à 48), valeurs enregistrées de l'owner migrées au
+> même coefficient (36 → 27, 26 → 19,5). Mesuré sur la vraie page à 1920×1080 : 27 px et 19,5 px,
+> identiques au rendu précédent (36 × 0,75 et 26 × 0,75).
 
 LAC-01 **résolue à la livraison** : le bloc est rendu dans un espace de conception 2560×1440 puis
 mis à l'échelle du canvas réel (`components/BrandingLayer.js`), donc les tailles suivent la

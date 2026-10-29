@@ -20,15 +20,15 @@
 export const MAX_BRANDING_LINES = 4;
 export const MAX_BRANDING_TEXT_LENGTH = 40;
 
-/** Tailles pensées pour le canvas de référence 2560×1440 (voir LAC-01 de la spec). */
+/** Tailles pensées pour le canvas de référence 1920×1080 (voir LAC-01 de la spec). */
 /** @type {Branding} */
 export const DEFAULT_BRANDING = Object.freeze({
   name: '',
   lines: [],
   x: 3,
   y: 92,
-  nameSize: 36,
-  lineSize: 18,
+  nameSize: 27,
+  lineSize: 13.5,
   color: 'var(--color-gold)',
   opacity: 0.9,
 });
@@ -36,8 +36,8 @@ export const DEFAULT_BRANDING = Object.freeze({
 const BOUNDS = {
   x: [0, 100],
   y: [0, 100],
-  nameSize: [10, 96],
-  lineSize: [8, 48],
+  nameSize: [8, 72],
+  lineSize: [6, 36],
   opacity: [0, 1],
 };
 

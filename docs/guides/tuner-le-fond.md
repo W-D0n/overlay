@@ -1,3 +1,8 @@
+---
+created: 2026-07-17
+updated: 2026-08-24
+---
+
 # Fond seul dans OBS et page de tuning
 
 > Version HTML mise en page : `tuner-le-fond.html` (même contenu).
@@ -25,7 +30,7 @@ la seconde → au prochain démarrage, OBS recharge le dernier état sauvegardé
 1. Lancer `start-stream.bat` (ou `start-dev.bat` pour bricoler).
 2. Dans OBS : Source → **Navigateur** (Browser Source).
 3. URL : `http://localhost:5931/background.html`
-4. Largeur et hauteur : celles de ton canvas OBS — `2560 × 1440`. Le fond remplit la source quelle
+4. Largeur et hauteur : celles de ton canvas OBS — `1920 × 1080`. Le fond remplit la source quelle
    que soit sa taille.
 
 Laisser le champ **CSS personnalisé** vide. OBS injecte ce CSS après celui de la page : une règle
@@ -118,7 +123,7 @@ les presets** : c'est ton identité, elle ne change pas d'une scène à l'autre.
   tout seul pour ne pas déborder ; posé en bas, il remonte au-dessus de son point d'ancrage.
 - **Masquer sur un preset** : la case « Afficher sur ce preset ». Le branding disparaît alors dans
   OBS, mais reste visible en estompé dans l'aperçu — sinon tu ne pourrais plus le repositionner.
-- Les tailles sont en pixels, calibrées pour un canvas **2560×1440**, et le bloc est mis à l'échelle
+- Les tailles sont en pixels, calibrées pour un canvas **1920×1080**, et le bloc est mis à l'échelle
   automatiquement si ton canvas change de taille.
 
 Trois adresses, selon l'usage :

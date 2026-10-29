@@ -1,3 +1,8 @@
+---
+created: 2026-07-26
+updated: 2026-07-26
+---
+
 # Roadmap — Overlay Stream D0n / Mozaïk
 
 État d'avancement vivant. L'historique détaillé des lots vit dans [`MAP.md`](MAP.md), les décisions
@@ -13,7 +18,7 @@ corriger ce que l'audit remonte.
 
 ## En cours
 
-- **QA OBS 1440p** — protocole prêt dans [`inbox.md`](inbox.md) §Protocole de QA OBS 1440p. Attend
+- **QA OBS 1080p** — protocole prêt dans [`inbox.md`](inbox.md) §Protocole de QA OBS 1080p. Attend
   le passage de l'owner ; ses constats vont dans §Résultats de l'audit.
 - **Validation visuelle ShapeMorph** — qualité des cinq contours et de leurs interpolations.
 - **Validation visuelle ColorDrops** — rendu, rythme et lisibilité.

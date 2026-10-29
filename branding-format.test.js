@@ -41,7 +41,7 @@ test('4. une position non numérique retombe sur le défaut', () => {
 });
 
 test('5. les tailles hors bornes sont ramenées, pas rejetées', () => {
-  expect(normalizeBranding({ nameSize: 500, lineSize: 0 })).toMatchObject({ nameSize: 96, lineSize: 8 });
+  expect(normalizeBranding({ nameSize: 500, lineSize: 0 })).toMatchObject({ nameSize: 72, lineSize: 6 });
 });
 
 test('6. les lignes en trop sont coupées et les textes trop longs tronqués', () => {

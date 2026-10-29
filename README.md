@@ -33,7 +33,7 @@ portable entre deux installations.
 1. Double-cliquer sur `start-stream.bat`.
 2. Ajouter une source **Navigateur** dans OBS.
 3. URL : `http://localhost:5931/background.html`
-4. Dimensions : celles de ton canvas OBS — `2560 × 1440` ici. Le fond les épouse quelles qu'elles soient.
+4. Dimensions : celles de ton canvas OBS — `1920 × 1080` ici. Le fond les épouse quelles qu'elles soient.
 5. Laisser le champ **CSS personnalisé** vide.
 
 Pour superposer uniquement l'animation au-dessus d'une capture, utiliser :
@@ -58,6 +58,14 @@ pause lorsque leur page devient invisible.
 
 Le serveur d'état doit rester ouvert pendant le live. Il ne modifie que
 `dev/data/background-state.json`, jamais le code source.
+
+### Si un serveur reste bloqué
+
+`start-dev.bat` libère déjà tout seul un port laissé occupé par un ancien `bun.exe` orphelin.
+`start-stream.bat`, volontairement, se contente de signaler le port occupé sans le libérer — pas de
+kill silencieux juste avant/pendant un live. Si ni l'un ni l'autre ne tourne (crash, fermeture au
+Gestionnaire des tâches) et qu'un port reste occupé au lancement suivant : double-cliquer sur
+`kill-servers.bat`. Il ne touche jamais un process qui n'est pas un `bun.exe` du projet.
 
 ## Structure active
 
@@ -90,6 +98,8 @@ dev/
   numeric-field-control.js
   start-dev.js
   start-stream.js
+  kill-servers.js
+  port-check.js
 
 docs/
   guides/tuner-le-fond.md

@@ -15,7 +15,7 @@ import { brandingStyles, hasBrandingContent, normalizeBranding } from '../brandi
  * entier est mis à l'échelle du canvas réel. Sans ça, une taille pensée ici paraîtrait plus petite
  * sur un canvas plus grand (LAC-01 de la spec, résolue le 2026-07-26).
  */
-export const BRANDING_REFERENCE_HEIGHT = 1440;
+export const BRANDING_REFERENCE_HEIGHT = 1080;
 
 /** @param {number} height */
 export function brandingScale(height) {
