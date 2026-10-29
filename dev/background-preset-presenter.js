@@ -18,6 +18,7 @@ const IMPORT_OPERATION_LABELS = {
 /** @param {unknown} value @param {string} field */
 function formatImportValue(value, field) {
   if (field === 'component' && typeof value === 'string') return backgroundEffectLabel(value);
+  if (typeof value === 'boolean') return value ? 'oui' : 'non';
   if (Array.isArray(value)) return value.length === 0 ? 'aucun' : value.map(String).join(', ');
   if (value === null) return 'aucun';
   if (typeof value === 'object') return JSON.stringify(value);
@@ -46,7 +47,11 @@ function formatImportDifference(change, difference) {
       ? 'Effet'
       : difference.field === 'tags'
         ? 'Tags'
-        : importOptionLabel(hasAfter ? afterComponent : beforeComponent, difference.key);
+        : difference.field === 'transition'
+          ? 'Transition'
+          : difference.field === 'showBranding'
+            ? 'Branding affiché'
+            : importOptionLabel(hasAfter ? afterComponent : beforeComponent, difference.key);
   const before = hasBefore ? formatImportValue(difference.before, difference.field) : null;
   const after = hasAfter ? formatImportValue(difference.after, difference.field) : null;
   if (!hasBefore) return `${label} : ${after}`;

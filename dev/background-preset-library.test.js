@@ -222,3 +222,34 @@ test('la révision de bibliothèque reste stable à contenu égal et change avec
   ])).not.toBe(revision);
   expect(revision).toMatch(/^[0-9a-f]{8}$/);
 });
+
+const presetWithPlayback = {
+  id: 'ambiance-test',
+  name: 'Ambiance test',
+  component: 'RainBackground',
+  options: { intensity: 0.5 },
+  tags: ['calme'],
+  transition: { type: 'wipe', durationMs: 900, direction: 'left', easing: 'easeOut' },
+  showBranding: false,
+};
+
+test('export, réimport et fusion conservent la transition et showBranding du preset', () => {
+  const bundle = createBackgroundPresetBundle([presetWithPlayback]);
+  expect(bundle.presets[0]).toEqual(presetWithPlayback);
+
+  const parsed = parseBackgroundPresetBundle(JSON.stringify(bundle));
+  expect(parsed.ok).toBe(true);
+  expect(parsed.presets[0]).toEqual(presetWithPlayback);
+
+  expect(mergeBackgroundPresetImport([presetWithPlayback], []).presets[0]).toEqual(presetWithPlayback);
+  expect(mergeBackgroundPresetImport([], [presetWithPlayback]).presets[0]).toEqual(presetWithPlayback);
+});
+
+test('un import qui ne change que la transition ou showBranding est une mise à jour, pas un doublon ignoré', () => {
+  const imported = { ...presetWithPlayback, transition: { ...presetWithPlayback.transition, durationMs: 400 }, showBranding: true };
+  const plan = mergeBackgroundPresetImport([presetWithPlayback], [imported]);
+  expect(plan.updated).toBe(1);
+  expect(plan.unchanged).toBe(0);
+  expect(plan.presets[0]).toEqual(imported);
+  expect(plan.changes[0].differences.map(({ field }) => field).sort()).toEqual(['showBranding', 'transition']);
+});

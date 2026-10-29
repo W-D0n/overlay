@@ -14,7 +14,7 @@ export const BACKGROUND_PRESET_BUNDLE_VERSION = 1;
 /** @typedef {'created'|'updated'|'unchanged'} BackgroundPresetImportOperation */
 /**
  * @typedef {
- *   {field:'name'|'component'|'tags',before?:unknown,after?:unknown}
+ *   {field:'name'|'component'|'tags'|'transition'|'showBranding',before?:unknown,after?:unknown}
  *   | {field:'option',key:string,before?:unknown,after?:unknown}
  * } BackgroundPresetImportDifference
  */
@@ -64,13 +64,7 @@ export function filterBackgroundPresets(presets, query) {
 
 /** @param {import('./background-state-format.js').BackgroundPreset} preset */
 function clonePreset(preset) {
-  return {
-    id: preset.id,
-    name: preset.name,
-    component: preset.component,
-    options: structuredClone(preset.options),
-    ...(preset.tags === undefined ? {} : { tags: [...preset.tags] }),
-  };
+  return structuredClone(preset);
 }
 
 /**
@@ -81,6 +75,8 @@ function describeCreatedPreset(preset) {
   return [
     { field: 'component', after: preset.component },
     ...(preset.tags === undefined ? [] : [{ field: 'tags', after: [...preset.tags] }]),
+    ...(preset.transition === undefined ? [] : [{ field: 'transition', after: structuredClone(preset.transition) }]),
+    ...(preset.showBranding === undefined ? [] : [{ field: 'showBranding', after: preset.showBranding }]),
     ...Object.entries(preset.options).map(([key, after]) => ({
       field: 'option',
       key,
@@ -128,6 +124,14 @@ function describeUpdatedPreset(before, after) {
   const afterTags = after.tags ?? [];
   if (!samePresetValue(beforeTags, afterTags)) {
     differences.push({ field: 'tags', before: [...beforeTags], after: [...afterTags] });
+  }
+  for (const field of /** @type {const} */ (['transition', 'showBranding'])) {
+    if (samePresetValue(before[field], after[field])) continue;
+    differences.push({
+      field,
+      ...(before[field] === undefined ? {} : { before: structuredClone(before[field]) }),
+      ...(after[field] === undefined ? {} : { after: structuredClone(after[field]) }),
+    });
   }
 
   const optionKeys = [
