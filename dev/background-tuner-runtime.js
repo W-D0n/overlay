@@ -34,10 +34,21 @@ export async function startBackgroundTuner(environment = {}) {
   const documentRef = environment.documentRef ?? document;
   const windowRef = environment.windowRef ?? window;
   const navigatorRef = environment.navigatorRef ?? navigator;
-  const byId = (id) => documentRef.getElementById(id);
+  /**
+   * Un élément absent de la page est une erreur de câblage : on échoue ici plutôt que sur un `null` plus loin.
+   * @template {HTMLElement} [T=HTMLElement]
+   * @param {string} id
+   * @returns {T}
+   */
+  const byId = (id) => {
+    const element = documentRef.getElementById(id);
+    if (element === null) throw new Error(`élément #${id} introuvable dans le tuner`);
+    return /** @type {T} */ (element);
+  };
 
   const serverStatus = byId('server-status');
   const report = {
+    /** @param {string} message */
     error(message) {
       serverStatus.textContent = message;
       serverStatus.classList.add('error');
@@ -56,8 +67,8 @@ export async function startBackgroundTuner(environment = {}) {
   };
 
   createWorkspaceTabs({
-    nav: documentRef.querySelector('.workspaces'),
-    panels: [...documentRef.querySelectorAll('.workspace')],
+    nav: /** @type {HTMLElement} */ (documentRef.querySelector('.workspaces')),
+    panels: /** @type {HTMLElement[]} */ ([...documentRef.querySelectorAll('.workspace')]),
     storage: windowRef.localStorage,
   });
 
@@ -115,7 +126,7 @@ export async function startBackgroundTuner(environment = {}) {
 
   for (const button of documentRef.querySelectorAll('[data-event]')) {
     button.addEventListener('click', () => {
-      client.sendEvent(button.getAttribute('data-event')).catch((error) => {
+      client.sendEvent(String(button.getAttribute('data-event'))).catch((error) => {
         console.warn('[background-tuner] envoi d’événement impossible :', error);
       });
     });
@@ -205,8 +216,8 @@ export async function startBackgroundTuner(environment = {}) {
   presets.initialize();
   const unsubscribe = client.subscribe({
     onCurrent: preview.receive,
-    onPresets(presets_) {
-      presets.refresh(presets_);
+    onPresets() {
+      presets.refresh();
       // Un preset renommé ou supprimé change les choix possibles d'association.
       obsSceneMap.refresh();
     },

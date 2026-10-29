@@ -3,8 +3,7 @@
   "background-audio.js": 3,
   "background-mount.js": 10,
   "background-selection.js": 3,
-  "background-transition.js": 27,
-  "branding-format.js": 30,
+  "background-transition.js": 2,
   "components/BubbleBackground.js": 2,
   "components/ColorDropsBackground.js": 2,
   "components/DotGridAnimated.js": 1,
@@ -27,7 +26,6 @@
   "dev/background-readiness-controller.js": 7,
   "dev/background-state-server.js": 16,
   "dev/background-transition-controller.js": 2,
-  "dev/background-tuner-runtime.js": 67,
   "dev/numeric-field-control.js": 1,
   "dev/obs-scene-client.js": 4,
   "dev/obs-scene-map-controller.js": 4,
@@ -35,6 +33,5 @@
   "dev/start-dev.js": 1,
   "dev/start-stream.js": 1,
   "dev/static-server.js": 1,
-  "dev/workspace-tabs.js": 1,
-  "obs-scene-mapping.js": 1
+  "dev/workspace-tabs.js": 1
 }

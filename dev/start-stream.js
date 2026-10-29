@@ -32,7 +32,7 @@ const busy = findBusyPorts(SERVERS);
 if (busy.length > 0) {
   console.error('[start-stream] ERREUR : port(s) déjà occupé(s) — une instance précédente tourne probablement encore :');
   for (const s of busy) console.error(`  - ${s.name} (port ${s.port})`);
-  console.error('Ferme la fenêtre/l\'instance précédente avant de relancer (ou vérifie les process bun.exe restants dans le Gestionnaire des tâches).');
+  console.error('Ferme la fenêtre/l\'instance précédente avant de relancer, ou lance kill-servers.bat (tue uniquement un bun.exe orphelin, jamais un autre process).');
   process.exit(1);
 }
 

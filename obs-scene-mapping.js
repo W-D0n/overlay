@@ -8,7 +8,7 @@
  * @typedef {Record<string, string>} SceneMap - Nom de scène OBS → identifiant de preset
  */
 
-/** @param {unknown} value */
+/** @param {unknown} value @returns {value is Record<string, unknown>} */
 function isPlainObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
