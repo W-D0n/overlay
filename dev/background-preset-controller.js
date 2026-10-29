@@ -53,18 +53,25 @@ export function createBackgroundPresetController(input) {
     container.appendChild(empty);
   }
 
-  /** @type {{ destroy: () => void }[]} */
-  const thumbnails = [];
+  /** @typedef {{ destroy: () => void }[]} ThumbnailSet */
+  /** @type {ThumbnailSet} */
+  const builtinThumbnails = [];
+  /** @type {ThumbnailSet} */
+  const presetThumbnails = [];
 
-  /** Les vignettes détiennent des effets montés : un re-rendu doit les libérer, pas les oublier. */
-  function disposeThumbnails() {
-    for (const thumbnail of thumbnails.splice(0)) thumbnail.destroy();
+  /**
+   * Les vignettes détiennent des effets montés : un re-rendu doit les libérer, pas les oublier.
+   * Chaque liste libère les siennes — re-rendre les presets personnels ne touche pas aux points de départ.
+   * @param {ThumbnailSet} set
+   */
+  function disposeThumbnails(set) {
+    for (const thumbnail of set.splice(0)) thumbnail.destroy();
   }
 
   /** Une vignette par ligne, capturée une fois puis animée seulement au survol. */
-  function appendThumbnail(row, preset) {
+  function appendThumbnail(row, preset, set) {
     const thumbnail = createPresetThumbnail({ preset, documentRef });
-    thumbnails.push(thumbnail);
+    set.push(thumbnail);
     row.appendChild(thumbnail.el);
   }
 
@@ -81,7 +88,7 @@ export function createBackgroundPresetController(input) {
   }
 
   function renderPresets(presets) {
-    disposeThumbnails();
+    disposeThumbnails(presetThumbnails);
     cachedPresets = presets;
     elements.exportButton.disabled = presets.length === 0;
     elements.list.replaceChildren();
@@ -185,7 +192,7 @@ export function createBackgroundPresetController(input) {
         row.replaceChildren(label, yes, no);
       };
 
-      appendThumbnail(row, preset);
+      appendThumbnail(row, preset, presetThumbnails);
       row.append(load, copyUrl, rename, duplicate, remove, meta);
       elements.list.appendChild(row);
     }
@@ -202,6 +209,7 @@ export function createBackgroundPresetController(input) {
   }
 
   function renderBuiltinPresets() {
+    disposeThumbnails(builtinThumbnails);
     elements.builtinList.replaceChildren();
     const visiblePresets = filterBackgroundPresets(BUILTIN_BACKGROUND_PRESETS, presetQuery);
     if (visiblePresets.length === 0) appendEmptyState(elements.builtinList);
@@ -251,7 +259,7 @@ export function createBackgroundPresetController(input) {
         }
       };
 
-      appendThumbnail(row, preset);
+      appendThumbnail(row, preset, builtinThumbnails);
       row.append(apply, add);
       elements.builtinList.appendChild(row);
     }

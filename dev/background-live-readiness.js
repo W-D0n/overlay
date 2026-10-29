@@ -28,18 +28,6 @@ function runtimeCheck(runtime) {
   };
 }
 
-/** @param {{ reachable: boolean | null }} relay */
-function relayCheck(relay) {
-  return {
-    id: 'relay',
-    status: 'ready',
-    title: 'Mode OBS autonome',
-    detail: relay.reachable
-      ? 'Le relais est détecté, mais cette URL de fond n’en dépend pas.'
-      : 'Le relais n’est pas démarré, ce qui est normal pour une URL de fond autonome.',
-  };
-}
-
 /** @param {{ status: string }[]} checks */
 function reportStatus(checks) {
   if (checks.some(({ status }) => status === 'blocking')) return 'blocking';
@@ -48,12 +36,10 @@ function reportStatus(checks) {
 }
 
 /**
- * Relit les services nécessaires au diagnostic. Toutes les requêtes sont des GET sans écriture.
- * L'absence du relais reste un constat informatif : le mode background-only n'en dépend pas.
+ * Relit le service d'état nécessaire au diagnostic. La requête est un GET sans écriture.
  *
  * @param {{
  *   stateServer: string,
- *   relayUrl?: string,
  *   selection: { presetId: string | null, quality: 'auto' | 'performance' },
  *   runtime: { fps: number | null, pixelRatio: number | null, paused: boolean },
  *   audio?: { status: 'idle' | 'active' | 'unavailable', reason: string | null },
@@ -62,27 +48,23 @@ function reportStatus(checks) {
  */
 export async function collectBackgroundLiveReadiness(input) {
   const stateServer = input.stateServer.replace(/\/$/, '');
-  const relayUrl = input.relayUrl ?? 'http://localhost:4456/';
   const fetchImpl = input.fetchImpl ?? fetch;
   const signal = AbortSignal.timeout(1500);
 
-  const [stateResult, relayResult] = await Promise.allSettled([
-    fetchImpl(`${stateServer}/state`, { method: 'GET', signal }).then(async (response) => {
-      if (!response.ok) throw new Error(`GET /state → ${response.status}`);
-      return response.json();
-    }),
-    fetchImpl(relayUrl, { method: 'GET', mode: 'no-cors', signal }),
-  ]);
-
-  const state = stateResult.status === 'fulfilled'
-    ? { ok: true, file: stateResult.value }
-    : { ok: false, error: String(stateResult.reason) };
+  /** @type {Parameters<typeof evaluateBackgroundLiveReadiness>[0]['state']} */
+  let state;
+  try {
+    const response = await fetchImpl(`${stateServer}/state`, { method: 'GET', signal });
+    if (!response.ok) throw new Error(`GET /state → ${response.status}`);
+    state = { ok: true, file: await response.json() };
+  } catch (error) {
+    state = { ok: false, error: String(error) };
+  }
 
   return evaluateBackgroundLiveReadiness({
     state,
     selection: input.selection,
     runtime: input.runtime,
-    relay: { reachable: relayResult.status === 'fulfilled' },
     audio: input.audio,
   });
 }
@@ -130,13 +112,11 @@ function audioCheck(audio, options) {
  *   state: { ok: true, file: import('./background-state-format.js').BackgroundFile } | { ok: false, error: string },
  *   selection: { presetId: string | null, quality: 'auto' | 'performance' },
  *   runtime: { fps: number | null, pixelRatio: number | null, paused: boolean },
- *   relay: { reachable: boolean | null },
  *   audio?: { status: 'idle' | 'active' | 'unavailable', reason: string | null },
  * }} input
  */
 export function evaluateBackgroundLiveReadiness(input) {
   const runtime = runtimeCheck(input.runtime);
-  const relay = relayCheck(input.relay);
 
   if (!input.state.ok) {
     const checks = [
@@ -161,7 +141,6 @@ export function evaluateBackgroundLiveReadiness(input) {
         action: { label: 'Réessayer', type: 'retry' },
       },
       runtime,
-      relay,
     ];
     return {
       status: reportStatus(checks),
@@ -189,7 +168,6 @@ export function evaluateBackgroundLiveReadiness(input) {
         action: { label: 'Choisir un preset existant', type: 'focus-presets' },
       },
       runtime,
-      relay,
     ];
     return {
       status: reportStatus(checks),
@@ -217,7 +195,6 @@ export function evaluateBackgroundLiveReadiness(input) {
         action: { label: 'Choisir un effet disponible', type: 'focus-effect' },
       },
       runtime,
-      relay,
     ];
     return {
       status: reportStatus(checks),
@@ -264,7 +241,6 @@ export function evaluateBackgroundLiveReadiness(input) {
       action: { label: 'Copier l’URL OBS', value: obsUrl },
     },
     runtime,
-    relay,
   ];
 
   const audio = audioCheck(input.audio, preset?.options ?? input.state.file.current.options);

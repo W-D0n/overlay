@@ -113,3 +113,41 @@ test('présente chaque point de départ comme une ligne cliquable plus un ajout 
   expect(tryButton.title.startsWith('Essayer')).toBe(true);
   expect(addButton.getAttribute('aria-label').startsWith('Ajouter')).toBe(true);
 });
+
+test('re-rendre les presets personnels ne détruit pas les vignettes des points de départ', () => {
+  const removed = [];
+  const createElement = () => element({ remove() { removed.push(this); } });
+  const elements = {
+    list: element(), builtinList: element(), name: element(), tags: element(), search: element(),
+    exportButton: element(), importTrigger: element(), importInput: element(), importReview: element(),
+    importSummary: element(), importDetails: element(), importConfirm: element(), importCancel: element(),
+    save: element(), createNew: element(),
+  };
+  const controller = createBackgroundPresetController({
+    elements,
+    client: {},
+    preview: {
+      apply() {}, persistNow: async () => true, quality: () => 'auto', setActivePresetId() {},
+      snapshot: () => ({ activePresetId: null, current: { component: null, options: {} } }),
+    },
+    report: { ok() {}, error() {} },
+    backgroundPageUrl,
+    documentRef: { createElement },
+    navigatorRef: { clipboard: { writeText: async () => {} } },
+    windowRef: { setTimeout: () => 1 },
+  });
+
+  controller.initialize();
+  const builtinThumbnails = elements.builtinList.children.map((row) => row.children[0]);
+  expect(builtinThumbnails.length).toBeGreaterThan(0);
+
+  controller.renderPresets([{ id: 'a', name: 'Perso', component: 'RainBackground', options: {} }]);
+  expect(builtinThumbnails.filter((thumbnail) => removed.includes(thumbnail))).toEqual([]);
+
+  // Une recherche re-rend la liste des points de départ : ses anciennes vignettes sont alors libérées.
+  elements.search.value = 'respiration';
+  elements.search.oninput();
+  expect(removed.length).toBeGreaterThan(0);
+  const survivors = elements.builtinList.children.map((row) => row.children[0]);
+  expect(survivors.filter((thumbnail) => removed.includes(thumbnail))).toEqual([]);
+});
