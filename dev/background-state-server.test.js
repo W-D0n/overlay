@@ -555,3 +555,34 @@ test('un client qui envoie encore l’ancien nom d’effet ou « Oui » est stoc
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('le serveur rejette un type d’option invalide et ramène un nombre hors bornes dans ses bornes', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-background-state-'));
+  const stateFile = join(directory, 'state.json');
+  const port = await reserveFreePort();
+  const baseUrl = `http://localhost:${port}`;
+  const child = Bun.spawn(['bun', 'dev/background-state-server.js'], {
+    cwd: join(import.meta.dir, '..'),
+    env: { ...process.env, BACKGROUND_STATE_PORT: String(port), BACKGROUND_STATE_FILE: stateFile },
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  try {
+    await waitForServer(baseUrl);
+    const post = (path, body) => fetch(`${baseUrl}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+    const rejected = await post('/state', { current: { component: 'rain', options: { speed: 'abc' } } });
+    expect(rejected.status).toBe(400);
+    expect((await rejected.json()).error).toContain('speed : nombre attendu');
+
+    const saved = await post('/save-preset', { name: 'Trop', component: 'bubble', options: { count: 9999 } });
+    expect(saved.status).toBe(200);
+    expect(JSON.parse(readFileSync(stateFile, 'utf8')).presets[0].options.count).toBe(200);
+
+    const rejectedPreset = await post('/save-preset', { name: 'Faux', component: 'bubble', options: { count: 'beaucoup' } });
+    expect(rejectedPreset.status).toBe(400);
+  } finally {
+    child.kill();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

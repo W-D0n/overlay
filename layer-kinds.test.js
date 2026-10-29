@@ -1,6 +1,6 @@
 // @ts-check
 import { describe, expect, test } from 'bun:test';
-import { GRID_MODES, LAYER_KINDS, LAYER_KIND_IDS, isAudioOn, isLayerKindId, isKnownKindId, resolveKindId } from './layer-kinds.js';
+import { GRID_MODES, LAYER_KINDS, LAYER_KIND_IDS, isAudioOn, isLayerKindId, isKnownKindId, resolveKindId, validateOptions, clampOptions } from './layer-kinds.js';
 import { MODE_PARAMS } from './components/DotGridAnimated.js';
 
 describe('valeur persistée de la réactivité audio', () => {
@@ -66,5 +66,46 @@ describe('identifiants neutres et anciens noms', () => {
   test('les libellés affichés ne changent pas avec les identifiants', () => {
     expect(LAYER_KINDS.rain.label).toBe('Rain');
     expect(LAYER_KINDS['floating-symbols'].label).toBe('FloatingSymbols');
+  });
+});
+
+describe('validation des valeurs d’options', () => {
+  test('des valeurs conformes au schéma sont acceptées, y compris un champ absent', () => {
+    expect(validateOptions('rain', { speed: 1.5, color: '#fff', audioReactive: true })).toEqual([]);
+    expect(validateOptions('rain', {})).toEqual([]);
+  });
+
+  test('un type invalide est rejeté avec le nom du champ', () => {
+    expect(validateOptions('rain', { speed: 'abc' })).toEqual(['speed : nombre attendu']);
+    expect(validateOptions('rain', { speed: Number.NaN })).toEqual(['speed : nombre attendu']);
+    expect(validateOptions('rain', { audioReactive: 'peut-être' })).toEqual(['audioReactive : booléen attendu']);
+    expect(validateOptions('rain', { color: 12 })).toEqual(['color : texte attendu']);
+    expect(validateOptions('color-drops', { colors: 'rouge' })).toEqual(['colors : liste de textes attendue']);
+    expect(validateOptions('dotgrid', { mode: 3 })).toEqual(['mode : texte attendu']);
+  });
+
+  test('plusieurs erreurs sont toutes rapportées', () => {
+    expect(validateOptions('rain', { speed: 'a', angle: 'b' })).toHaveLength(2);
+  });
+
+  test('un champ inconnu est conservé et n’est pas une erreur (preset plus récent que le code)', () => {
+    expect(validateOptions('rain', { futur: [1, 2] })).toEqual([]);
+    expect(clampOptions('rain', { futur: [1, 2], speed: 1 })).toEqual({ futur: [1, 2], speed: 1 });
+  });
+
+  test('un nombre hors bornes est ramené dans les bornes du schéma, jamais rejeté', () => {
+    expect(clampOptions('bubble', { count: 9999, speed: -3 })).toEqual({ count: 200, speed: 0 });
+    expect(clampOptions('rain', { speed: 2 })).toEqual({ speed: 2 });
+  });
+
+  test('clampOptions ne touche ni aux types invalides ni à l’objet reçu', () => {
+    const input = { speed: 'abc', count: 9999 };
+    expect(clampOptions('bubble', input)).toEqual({ speed: 'abc', count: 200 });
+    expect(input.count).toBe(9999);
+  });
+
+  test('un type de couche inconnu n’est ni validé ni modifié', () => {
+    expect(validateOptions('fantome', { x: 1 })).toEqual([]);
+    expect(clampOptions('fantome', { x: 1 })).toEqual({ x: 1 });
   });
 });

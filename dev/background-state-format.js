@@ -1,5 +1,5 @@
 // @ts-check
-import { isKnownKindId, neutralizeOptions, resolveKindId } from '../layer-kinds.js';
+import { clampOptions, isKnownKindId, neutralizeOptions, resolveKindId, validateOptions } from '../layer-kinds.js';
 import { validateSceneMap } from '../obs-scene-mapping.js';
 import { validateTransition } from '../background-transition.js';
 import { normalizeBranding, validateBranding } from '../branding-format.js';
@@ -37,7 +37,9 @@ export const BACKGROUND_FILE_VERSION = 2;
 export function canonicalBackgroundCurrent(current) {
   if (!isPlainObject(current)) return current;
   const component = resolveKindId(current.component) ?? current.component;
-  const options = isPlainObject(current.options) ? neutralizeOptions(current.options) : current.options;
+  const options = isPlainObject(current.options)
+    ? clampOptions(component, neutralizeOptions(current.options))
+    : current.options;
   return { ...current, component, options };
 }
 
@@ -168,6 +170,7 @@ export function validateBackgroundCurrent(current) {
     errors.push(`effet de fond inconnu : ${component}`);
   }
   if (!isPlainObject(options)) errors.push('options : objet attendu');
+  else errors.push(...validateOptions(component, options));
   errors.push(...validateTransition(current.transition).errors);
   if (current.showBranding !== undefined && typeof current.showBranding !== 'boolean') {
     errors.push('showBranding : booléen attendu');
@@ -210,6 +213,7 @@ export function validateBackgroundPreset(preset) {
     errors.push(`effet de fond inconnu : ${preset.component}`);
   }
   if (!isPlainObject(preset.options)) errors.push('options : objet attendu');
+  else errors.push(...validateOptions(preset.component, preset.options));
   errors.push(...validateTransition(preset.transition).errors);
   if (preset.showBranding !== undefined && typeof preset.showBranding !== 'boolean') {
     errors.push('showBranding : booléen attendu');

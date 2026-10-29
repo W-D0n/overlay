@@ -400,3 +400,16 @@ test('canonicalBackgroundCurrent et canonicalBackgroundPreset ramènent nom et v
   expect(canonicalBackgroundCurrent({ component: null, options: {} })).toEqual({ component: null, options: {} });
   expect(canonicalBackgroundPreset(preset({ component: 'WaterRippleBackground' })).component).toBe('water-ripple');
 });
+
+test('validateBackgroundCurrent et validateBackgroundPreset rejettent les types invalides d’options', () => {
+  const invalid = validateBackgroundCurrent({ component: 'rain', options: { speed: 'abc' } });
+  expect(invalid.ok).toBe(false);
+  expect(invalid.errors.join(' ')).toContain('speed : nombre attendu');
+  expect(validateBackgroundPreset(preset({ options: { speed: 'abc' } })).ok).toBe(false);
+  expect(validateBackgroundCurrent({ component: 'rain', options: { speed: 2 } }).ok).toBe(true);
+});
+
+test('la forme persistée ramène aussi les nombres dans leurs bornes', () => {
+  expect(canonicalBackgroundCurrent({ component: 'bubble', options: { count: 9999 } }).options).toEqual({ count: 200 });
+  expect(canonicalBackgroundPreset(preset({ component: 'bubble', options: { count: 9999 } })).options).toEqual({ count: 200 });
+});

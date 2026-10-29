@@ -450,3 +450,72 @@ export function neutralizeOptions(options) {
   if (options.audioReactive !== 'Oui' && options.audioReactive !== 'Non') return options;
   return { ...options, audioReactive: options.audioReactive === 'Oui' };
 }
+
+/** @param {unknown} value */
+function isTextList(value) {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string');
+}
+
+/**
+ * Message d'erreur de type pour la valeur d'un champ, ou `null` si elle convient. Le booléen accepte
+ * encore l'ancien libellé « Oui » / « Non » (lecture tolérante, voir `isAudioOn`).
+ * @param {FieldSchema} field
+ * @param {unknown} value
+ * @returns {string | null}
+ */
+function fieldTypeError(field, value) {
+  switch (field.type) {
+    case 'number':
+      return typeof value === 'number' && Number.isFinite(value) ? null : 'nombre attendu';
+    case 'boolean':
+      return typeof value === 'boolean' || value === 'Oui' || value === 'Non' ? null : 'booléen attendu';
+    case 'colors':
+      return isTextList(value) ? null : 'liste de textes attendue';
+    case 'textarea':
+      return isTextList(value) ? null : 'liste de lignes attendue';
+    default:
+      return typeof value === 'string' ? null : 'texte attendu';
+  }
+}
+
+/**
+ * Erreurs de type des options d'un type de couche, selon son schéma. Un champ absent ou inconnu n'est
+ * pas une erreur (preset plus récent que le code chargé) ; un type de couche inconnu non plus : sa
+ * validité se juge ailleurs.
+ * @param {unknown} id
+ * @param {Record<string, unknown>} options
+ * @returns {string[]}
+ */
+export function validateOptions(id, options) {
+  const kind = resolveKindId(id);
+  if (kind === null) return [];
+  /** @type {string[]} */
+  const errors = [];
+  for (const field of LAYER_KINDS[kind].fields) {
+    if (!Object.hasOwn(options, field.key)) continue;
+    const message = fieldTypeError(field, options[field.key]);
+    if (message !== null) errors.push(`${field.key} : ${message}`);
+  }
+  return errors;
+}
+
+/**
+ * Ramène chaque nombre dans les bornes de son champ. Une valeur hors plage ne doit jamais faire
+ * refuser un fond en live : on la borne. Les types invalides sont laissés tels quels (`validateOptions`
+ * les signale) et l'objet reçu n'est pas modifié.
+ * @param {unknown} id
+ * @param {Record<string, unknown>} options
+ * @returns {Record<string, unknown>}
+ */
+export function clampOptions(id, options) {
+  const kind = resolveKindId(id);
+  if (kind === null) return options;
+  const clamped = { ...options };
+  for (const field of LAYER_KINDS[kind].fields) {
+    const value = clamped[field.key];
+    if (field.type !== 'number' || typeof value !== 'number' || !Number.isFinite(value)) continue;
+    const low = field.min === undefined ? value : Math.max(field.min, value);
+    clamped[field.key] = field.max === undefined ? low : Math.min(field.max, low);
+  }
+  return clamped;
+}
