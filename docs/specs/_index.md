@@ -1,3 +1,8 @@
+---
+created: 2026-06-07
+updated: 2026-10-29
+---
+
 # Specs — Index
 
 | Feature | Statut | Créée | Session |
@@ -11,6 +16,7 @@
 | [background-preset-transitions](background-preset-transitions.md) | Fait | 2026-07-26 | ④ Transition entre presets |
 | [background-branding-layer](background-branding-layer.md) | Fait | 2026-07-26 | ⑤ Couche branding |
 | [background-preset-thumbnails](background-preset-thumbnails.md) | Fait | 2026-07-26 | ⑥ Vignettes de presets |
+| [zero-install-local-first](zero-install-local-first.md) | Draft | 2026-10-29 | Zéro installation, local-first |
 
 ## Archive
 
