@@ -140,7 +140,7 @@ L'objectif est de trouver ce qui casse quand elles cohabitent, et de mesurer le 
 - [ ] Tester `Intensité` à 0,5 / 1 / 2 et noter la valeur qui te convient par effet.
 - [ ] Couper le micro dans Windows en pleine réaction : l'effet doit revenir à son animation
       normale, sans figer ni disparaître.
-- [ ] Section « Avant le live » : le point micro reflète l'état réel.
+- [ ] Bandeau « Antenne » : le point micro reflète l’état réel ; avec la source OBS ouverte, « Page de rendu » indique 1 page connectée (0 après avoir désactivé la source).
 
 **Mapping scène OBS → preset**
 

@@ -218,10 +218,6 @@ export function createBackgroundPreviewController(input) {
         paused: documentRef.hidden,
       };
     },
-    focusEffect() {
-      input.effectSelect.focus();
-      input.effectSelect.scrollIntoView({ block: 'center' });
-    },
     destroy() {
       windowRef.cancelAnimationFrame(frameId);
       documentRef.removeEventListener('visibilitychange', onVisibilityChange);

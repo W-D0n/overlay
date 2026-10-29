@@ -1,8 +1,9 @@
 // @ts-check
 import { normalizeColorPalette } from './color-palette-format.js';
 import { createBackgroundPresetController } from './background-preset-controller.js';
+import { isAudioOn, kindCapabilities } from '../layer-kinds.js';
 import { createBackgroundPreviewController } from './background-preview-controller.js';
-import { createBackgroundReadinessController } from './background-readiness-controller.js';
+import { createAntennaController } from './antenna-controller.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
 import { createBrandingController } from './branding-controller.js';
@@ -134,20 +135,21 @@ export async function startBackgroundTuner(environment = {}) {
     });
   }
 
-  const readiness = createBackgroundReadinessController({
-    root: byId('live-readiness'),
-    title: byId('live-readiness-title'),
-    summary: byId('live-readiness-summary'),
-    checks: byId('live-readiness-checks'),
-    runButton: byId('live-readiness-run'),
-    stateServer: STATE_SERVER,
-    getSelection() {
-      return { presetId: preview.snapshot().activePresetId };
+  const antenna = createAntennaController({
+    root: byId('antenna'),
+    summary: byId('antenna-summary'),
+    items: byId('antenna-items'),
+    copyButton: byId('antenna-copy'),
+    client,
+    getActivePresetId: () => preview.snapshot().activePresetId,
+    getAudio() {
+      const { current } = preview.snapshot();
+      const wanted = current.component !== null
+        && kindCapabilities(current.component).audio
+        && isAudioOn(/** @type {Record<string, unknown>} */ (current.options).audioReactive);
+      return wanted ? preview.audioState() : null;
     },
-    getRuntime: preview.runtimeMeasurement,
-    getAudioState: preview.audioState,
-    focusEffect: preview.focusEffect,
-    focusPresets: presets.focusSearch,
+    backgroundPageUrl: new URL('../background.html', windowRef.location.href).href,
     documentRef,
     navigatorRef,
     windowRef,
@@ -226,13 +228,12 @@ export async function startBackgroundTuner(environment = {}) {
       console.warn('[background-tuner] message temps réel invalide :', error);
     },
   });
-  const readinessTimer = windowRef.setTimeout(readiness.run, 1200);
 
   function destroy() {
-    windowRef.clearTimeout(readinessTimer);
+    antenna.destroy();
     unsubscribe();
     preview.destroy();
   }
   windowRef.addEventListener('beforeunload', destroy, { once: true });
-  return { destroy, readiness, presets, preview, obsSceneMap, brandingControls };
+  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls };
 }

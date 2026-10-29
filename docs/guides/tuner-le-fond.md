@@ -164,25 +164,21 @@ Ce qu'il faut savoir :
 
 ## Vérifier avant un live
 
-Le bloc **Prêt pour le live** se contrôle automatiquement à l'ouverture du tuner. Le bouton
-**Revérifier** permet de relancer le diagnostic à tout moment, notamment après avoir changé un
-effet, un preset ou le profil de rendu. Les résultats et leurs coches se rejouent alors dans
-l'ordre ; le mouvement est automatiquement désactivé si le système demande moins d'animations.
+Le bandeau **Antenne**, en haut du panneau, se relit toutes les 5 secondes tant que la page est
+visible. Il dit où en est la chaîne jusqu'à OBS :
 
-Le diagnostic est entièrement en lecture seule : il ne modifie ni le fond courant, ni les presets,
-ni la configuration OBS. Il vérifie :
+- **Serveur d'état** : connecté ou injoignable (relancer `start-stream.bat`) ;
+- **OBS** : connecté avec le nom de la scène active, non configuré (`OBS_WS_PASSWORD` dans `.env`),
+  injoignable ou mot de passe refusé ;
+- **Page de rendu** : nombre de pages `background.html` connectées au serveur. « Aucune page
+  connectée » signifie qu'aucune source OBS n'affiche le fond : rafraîchir la source. Un serveur
+  lancé avant cette fonction affiche « indisponible » ;
+- **Micro** : seulement si le fond réagit au son.
 
-- la disponibilité du serveur d'état ;
-- la validité de l'effet ou du preset sélectionné ;
-- l'adresse à utiliser dans la Source Navigateur OBS ;
-- la présence d'une mesure locale FPS/DPR ;
-- le relais optionnel, qui n'est pas requis pour une URL de fond autonome.
-
-Le résultat est **Prêt**, **Attention** ou **Bloquant**. Chaque ligne concernée propose une action
-directe : copier l'URL, choisir un effet ou un preset, ou réessayer après avoir relancé
-`start-dev.bat` ou `start-stream.bat`. La mesure FPS vient du navigateur courant : elle confirme que
-l'animation tourne, mais ne certifie pas ses performances dans OBS. Toujours faire une dernière
-vérification visuelle dans OBS avant le live.
+Le bouton **Copier l'URL OBS** copie l'adresse du preset actif, ou celle du fond courant.
+Le bandeau est en lecture seule : il ne modifie ni le fond, ni les presets, ni la configuration OBS.
+Il ne certifie pas les performances dans OBS : toujours faire une dernière vérification visuelle
+dans OBS avant le live.
 
 ## Couleurs, palettes et scènes
 
@@ -264,8 +260,8 @@ La page `dev/background-tuner.html` ne contient plus sa logique métier. Selon l
 - **modifier le montage, la qualité ou la mesure FPS** : utiliser
   `dev/background-preview-controller.js` ; l'état courant et le preset actif sont isolés dans
   `dev/background-preview-session.js` ;
-- **modifier le contrôle pré-live** : la synthèse reste dans `dev/background-live-readiness.js` et
-  son rendu dans `dev/background-readiness-controller.js` ;
+- **modifier le bandeau Antenne** : les décisions d'affichage sont dans `dev/antenna-status.js`, la
+  relecture et le rendu dans `dev/antenna-controller.js` ;
 - **câbler un nouveau module au démarrage** : le faire dans `dev/background-tuner-runtime.js`.
 
 Les identifiants HTML, les URL et les routes serveur font partie du contrat : ne pas les recopier

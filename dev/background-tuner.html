@@ -376,94 +376,24 @@
     #publish-send { border-color: var(--color-gold); color: var(--color-gold); }
     #runtime-status { color: var(--color-text-dim); white-space: nowrap; padding-bottom: 7px; }
 
-    .live-readiness {
+    .antenna {
       margin: var(--space-md) 0 var(--space-xl);
       border: var(--border-rule-mid);
       border-left: 2px solid var(--color-rule-mid);
-      border-radius: var(--radius-sm);
-      background: var(--color-bg-panel);
-    }
-    .live-readiness[data-status="ready"] { border-left-color: var(--color-gold); }
-    .live-readiness[data-status="attention"] { border-left-color: var(--color-text-mid); }
-    .live-readiness[data-status="blocking"] { border-left-color: var(--color-danger); }
-    .live-readiness > summary {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto;
-      align-items: center;
-      gap: var(--space-sm);
-      padding: var(--space-md);
-      cursor: pointer;
-      list-style: none;
-    }
-    .live-readiness > summary::-webkit-details-marker { display: none; }
-    .live-readiness > summary::after {
-      content: '▾';
-      color: var(--color-text-dim);
-      font-size: var(--text-base);
-    }
-    .live-readiness[open] > summary::after { content: '▴'; }
-    .live-readiness-kicker {
-      color: var(--color-text-mid);
-      font-size: var(--text-base);
-      letter-spacing: var(--tracking-label);
-      text-transform: uppercase;
-    }
-    #live-readiness-title { color: var(--color-text-primary); font-size: var(--text-base); font-weight: 400; }
-    .live-readiness-body {
-      padding: 0 var(--space-md) var(--space-md);
-      border-top: var(--border-rule);
-    }
-    #live-readiness-run { margin-top: var(--space-sm); }
-    #live-readiness-summary {
-      margin: var(--space-md) 0 0;
-      color: var(--color-text-mid);
-      font-size: var(--text-base);
-      line-height: 1.45;
-    }
-    .live-readiness-checks { display: grid; gap: var(--space-sm); margin-top: var(--space-md); }
-    .readiness-check {
-      display: grid;
-      grid-template-columns: 18px minmax(0, 1fr);
-      column-gap: var(--space-sm);
-      padding-top: var(--space-sm);
-      border-top: var(--border-rule);
-    }
-    .readiness-check.is-revealing {
-      opacity: 0;
-      transform: translateY(var(--space-xs));
-      animation: readiness-check-reveal var(--transition-fast) forwards;
-    }
-    .readiness-check.is-revealing .readiness-check-mark {
-      transform: scale(0.7);
-      animation: readiness-mark-confirm var(--transition-normal) forwards;
-      animation-delay: inherit;
-    }
-    @keyframes readiness-check-reveal {
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes readiness-mark-confirm {
-      60% { transform: scale(1.2); }
-      to { transform: scale(1); }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .readiness-check.is-revealing,
-      .readiness-check.is-revealing .readiness-check-mark {
-        opacity: 1;
-        transform: none;
-        animation: none;
-      }
-    }
-    .readiness-check-mark { color: var(--color-text-mid); line-height: 1.2; }
-    .readiness-check[data-status="ready"] .readiness-check-mark { color: var(--color-gold); }
-    .readiness-check[data-status="blocking"] .readiness-check-mark { color: var(--color-danger); }
-    .readiness-check-title { color: var(--color-text-primary); font-size: var(--text-base); }
-    .readiness-check-detail {
-      margin-top: 2px;
+      padding: var(--space-sm);
       color: var(--color-text-dim);
       font-size: var(--text-base);
       line-height: 1.4;
     }
-    .readiness-check-action { grid-column: 2; justify-self: start; margin-top: var(--space-xs); }
+    .antenna[data-tone="ok"] { border-left-color: var(--color-gold); }
+    .antenna[data-tone="bad"] { border-left-color: var(--color-danger); }
+    .antenna-head { display: flex; align-items: baseline; gap: var(--space-sm); margin-bottom: var(--space-xs); }
+    .antenna-kicker { letter-spacing: 1px; text-transform: uppercase; font-size: var(--text-sm); }
+    #antenna-summary { flex: 1; color: var(--color-text-primary); font-weight: 400; }
+    .antenna-item { display: flex; gap: var(--space-xs); }
+    .antenna-item[data-tone="ok"] .antenna-mark { color: var(--color-gold); }
+    .antenna-item[data-tone="bad"] .antenna-mark { color: var(--color-danger); }
+    .antenna-item[data-tone="warn"] .antenna-mark { color: var(--color-text-primary); }
 
     .branding-toggle { display: flex; align-items: center; gap: var(--space-xs); }
     #branding-position { margin-bottom: var(--space-xs); }
@@ -511,17 +441,14 @@
       <button id="publish-send" type="button" hidden>Publier</button>
     </div>
 
-    <details id="live-readiness" class="live-readiness" data-status="idle" aria-live="polite">
-      <summary>
-        <span class="live-readiness-kicker">Avant le live</span>
-        <strong id="live-readiness-title">À vérifier</strong>
-      </summary>
-      <div class="live-readiness-body">
-        <p id="live-readiness-summary">Contrôle l’effet, l’URL OBS et les services sans rien modifier.</p>
-        <button id="live-readiness-run" type="button">Vérifier maintenant</button>
-        <div id="live-readiness-checks" class="live-readiness-checks"></div>
+    <section id="antenna" class="antenna" data-tone="warn" aria-live="polite">
+      <div class="antenna-head">
+        <span class="antenna-kicker">Antenne</span>
+        <strong id="antenna-summary">…</strong>
+        <button id="antenna-copy" type="button">Copier l’URL OBS</button>
       </div>
-    </details>
+      <div id="antenna-items"></div>
+    </section>
 
     <nav class="workspaces" role="tablist" aria-label="Espaces de travail">
       <button type="button" role="tab" data-workspace="fond" aria-selected="true">Fond</button>

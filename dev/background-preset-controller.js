@@ -345,9 +345,5 @@ export function createBackgroundPresetController(input) {
     initialize,
     refresh,
     renderPresets,
-    focusSearch() {
-      elements.search.focus();
-      elements.search.scrollIntoView({ block: 'center' });
-    },
   };
 }

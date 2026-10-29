@@ -136,25 +136,21 @@ jamais. Pendant la transition, deux effets tournent en même temps — borné à
 moment le plus coûteux pour la machine.</p>
 
 <h2>Vérifier avant un live</h2>
-<p>Le bloc <strong>Prêt pour le live</strong> se contrôle automatiquement à l'ouverture du tuner.
-Le bouton <strong>Revérifier</strong> permet de relancer le diagnostic après avoir changé un effet,
-un preset ou le profil de rendu. Les résultats et leurs coches se rejouent alors dans l'ordre ;
-le mouvement est désactivé si le système demande moins d'animations.</p>
-<p>Le diagnostic est entièrement en lecture seule : il ne modifie ni le fond courant, ni les
-presets, ni la configuration OBS. Il vérifie :</p>
+<p>Le bandeau <strong>Antenne</strong>, en haut du panneau, se relit toutes les 5 secondes tant que la
+page est visible. Il dit où en est la chaîne jusqu'à OBS :</p>
 <ul>
-  <li>la disponibilité du serveur d'état ;</li>
-  <li>la validité de l'effet ou du preset sélectionné ;</li>
-  <li>l'adresse à utiliser dans la Source Navigateur OBS ;</li>
-  <li>la présence d'une mesure locale FPS/DPR ;</li>
-  <li>le relais optionnel, qui n'est pas requis pour une URL de fond autonome.</li>
+  <li><strong>Serveur d'état</strong> : connecté ou injoignable (relancer <code>start-stream.bat</code>) ;</li>
+  <li><strong>OBS</strong> : connecté avec le nom de la scène active, non configuré
+      (<code>OBS_WS_PASSWORD</code> dans <code>.env</code>), injoignable ou mot de passe refusé ;</li>
+  <li><strong>Page de rendu</strong> : nombre de pages <code>background.html</code> connectées au serveur.
+      « Aucune page connectée » signifie qu'aucune source OBS n'affiche le fond : rafraîchir la source.
+      Un serveur lancé avant cette fonction affiche « indisponible » ;</li>
+  <li><strong>Micro</strong> : seulement si le fond réagit au son.</li>
 </ul>
-<p>Le résultat est <strong>Prêt</strong>, <strong>Attention</strong> ou <strong>Bloquant</strong>.
-Chaque ligne concernée propose une action directe : copier l'URL, choisir un effet ou un preset,
-ou réessayer après avoir relancé <code>start-dev.bat</code> ou <code>start-stream.bat</code>.</p>
-<div class="callout"><strong>À confirmer dans OBS.</strong> La mesure FPS vient du navigateur
-courant : elle confirme que l'animation tourne, mais ne certifie pas ses performances dans OBS.
-Faire une dernière vérification visuelle avant le live.</div>
+<p>Le bouton <strong>Copier l'URL OBS</strong> copie l'adresse du preset actif, ou celle du fond courant.
+Le bandeau est en lecture seule : il ne modifie ni le fond, ni les presets, ni la configuration OBS.</p>
+<div class="callout"><strong>À confirmer dans OBS.</strong> Le bandeau ne certifie pas les performances
+dans OBS. Faire une dernière vérification visuelle avant le live.</div>
 
 <h2>Couleurs, palettes et scènes</h2>
 <ul>
@@ -261,9 +257,9 @@ déroulant, avec son formulaire, ses presets, et l'URL OBS le prend en charge sa
       puis la confirmation avant écriture.</li>
   <li><strong>Montage, qualité ou FPS</strong> : <code>dev/background-preview-controller.js</code> ;
       l'état courant et le preset actif vivent dans <code>dev/background-preview-session.js</code>.</li>
-  <li><strong>Contrôle pré-live</strong> : synthèse dans
-      <code>dev/background-live-readiness.js</code>, rendu dans
-      <code>dev/background-readiness-controller.js</code>.</li>
+  <li><strong>Bandeau Antenne</strong> : décisions d'affichage dans
+      <code>dev/antenna-status.js</code>, relecture et rendu dans
+      <code>dev/antenna-controller.js</code>.</li>
   <li><strong>Câblage au démarrage</strong> : <code>dev/background-tuner-runtime.js</code>.</li>
 </ul>
 <p>Les identifiants HTML, URL et routes serveur font partie du contrat : ne pas les recopier dans
