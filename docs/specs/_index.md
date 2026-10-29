@@ -21,7 +21,8 @@ updated: 2026-10-29
 | [socle-rendu-etapes-1-2](socle-rendu-etapes-1-2.md) | Fait (contrôle OBS à passer) | 2026-10-29 | Contrat d'URL, transport, horloge unique |
 | [layer-kind-etape-3](layer-kind-etape-3.md) | Fait (migration du fichier au prochain redémarrage) | 2026-10-29 | Définition unique d'un type de couche, valeurs neutres |
 | [studio-trois-zones](studio-trois-zones.md) | Fait | 2026-10-29 | Refonte de l'écran du tuner (cadre 16:9, bibliothèque unique, scènes lisibles) |
-| [scene-doc-etape-4](scene-doc-etape-4.md) | Draft | 2026-10-29 | Document de scène (couches), moteur de scène |
+| [scene-doc-etape-4](scene-doc-etape-4.md) | Validée | 2026-10-29 | Document de scène (couches), moteur de scène |
+| [controle-processus](controle-processus.md) | Draft | 2026-10-30 | Démarrer, redémarrer, arrêter les serveurs depuis le produit |
 
 ## Archive
 

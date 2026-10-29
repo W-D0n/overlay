@@ -1,11 +1,11 @@
 ---
 created: 2026-10-29
-updated: 2026-10-29
+updated: 2026-10-30
 ---
 
 # Spec — Document de scène et moteur de scène (étape 4)
 
-Statut : **Draft, à valider par l'owner avant code.** Étape 4 de `docs/architecture-review.md` §5, après le
+Statut : **validée le 2026-10-30** (D1, D2, D4 comme proposé ; D3 modifié : placement en fractions, voir plus bas). Étape 4 de `docs/architecture-review.md` §5, après le
 socle de rendu (étapes 1-2) et la définition unique d'un type de couche (étape 3), toutes livrées. Elle
 touche des **surfaces partagées** (`dev/background-state-format.js`, `background-mount.js`, `types.js`) et
 **le fichier d'état de l'owner** : migration réversible avec sauvegarde, comme l'étape 3.
@@ -32,15 +32,17 @@ d'aujourd'hui est une scène à **une** couche.
 ```text
 SceneDoc  = { version: 1, id, name, tags?, transition?, showBranding?, layers: Layer[] }
 Layer     = { id, kind: LayerKindId, name?, visible, opacity, placement, options }
-placement = { x, y, width, height }      // pixels du canvas de référence 1920×1080
+placement = { x, y, width, height }      // fractions du canvas, de 0 à 1
 ```
 
 - `layers` est ordonné **du fond vers l'avant** ; `id` est stable (renommer, réordonner ou supprimer une
   couche ne change pas l'identité des autres). Bornes : 1 à 8 couches (garde de charge, voir Risques).
 - `kind`, `options` : exactement ceux de l'étape 3 (`layer-kinds.js`) ; `validateOptions` / `clampOptions`
   s'appliquent **par couche**.
-- `placement` par défaut = tout le canvas `{ 0, 0, 1920, 1080 }`. Les effets dimensionnent déjà leur canvas
-  sur leur conteneur (`defineCanvasLayer`) : une couche placée ailleurs n'exige aucun changement d'effet.
+- `placement` par défaut = tout le canvas `{ x: 0, y: 0, width: 1, height: 1 }`. **Fractions, pas pixels** :
+  un document reste valable quelle que soit la résolution de la source OBS (aujourd'hui 1920×1080, le 1440p
+  reste possible : `render-reference.js` est le seul endroit qui la nomme). Les effets dimensionnent déjà leur
+  canvas sur leur conteneur (`defineCanvasLayer`) : une couche placée ailleurs n'exige aucun changement d'effet.
 - `enter` / `exit` par couche (cadrage) sont **réservés, non implémentés** : le format les tolère
   (champ inconnu conservé), leur contenu viendra avec la timeline.
 - **Propriétés adressables** : un chemin `layers[<id>].options.speed` / `layers[<id>].opacity`, avec deux
@@ -115,7 +117,7 @@ Le branding reste une surcouche globale (état séparé, `showBranding` par scè
   (chaque preset = une scène d'une couche) ; le fichier migré est valide et se relit.
 - Pour chaque effet : équivalence de rendu ancien montage ↔ moteur sur une scène à une couche (sonde).
 - Une scène de **trois couches** (par exemple DotGrid + Fireflies + une couche placée dans un coin) s'affiche
-  dans l'aperçu et dans la page de rendu ; masquer une couche la retire sans recréer les autres.
+  dans l'aperçu et dans la page de rendu, à 1080p et à 1440p ; masquer une couche la retire sans recréer les autres.
 - Mesure de charge (FPS du compteur et CPU OBS, votre protocole habituel) avec 1 couche puis 3 couches :
   **résultat publié avant d'ouvrir l'éditeur multi-couches** (étape 6).
 - Changement de scène à transition : aucun empilement, une seule scène à la fin (cas déjà au QA, case 5).
@@ -147,6 +149,6 @@ branding en couche (D1) ; renommage `background.html` → `render.html` (décisi
 2. **D2 — Vocabulaire du fichier : `presets` → `scenes` dès la version 3 (proposé), ou garder `presets` et ne
    renommer qu'avec l'éditeur ?** Recommandation : renommer maintenant, avec lecture tolérante, pour ne pas
    refaire une migration à l'étape 6. L'interface continue de dire « preset » jusqu'à l'éditeur.
-3. **D3 — Unités du placement : pixels du canvas 1920×1080 (proposé) ou pourcentages ?** Recommandation :
-   pixels, cohérent avec le canvas de référence et l'aperçu fidèle ; le branding, lui, garde ses pourcentages.
+3. **D3 — Unités du placement : fractions du canvas (retenu par l'owner, 2026-10-30).** La résolution cible
+   n'est pas figée à 1080p : un placement en fractions n'a pas à être migré si la source passe en 1440p.
 4. **D4 — Borne de couches : 8 (proposé).** Valeur de garde, à réviser après la mesure de charge.
