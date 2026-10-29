@@ -25,7 +25,7 @@ Les mesures ci-dessous viennent du DOM réel ; les propositions sont des recomma
 | U3 | **L'aperçu n'est pas le cadre OBS.** Il remplit la zone restante (≈1580×1026), pas un 16:9. Le branding (positionné en %) et la taille des effets ne correspondent pas à ce qu'OBS affichera ; pas de cadre ni de zone de sécurité | Haute |
 | U4 | **Scènes OBS : 41 lignes de listes déroulantes** (toutes « aucun »), sans recherche, sans scène active mise en évidence, sans aperçu du preset associé | Moyenne |
 | U5 | Navigation du Studio : une seule entrée « Fonds & presets » ; titre « TUNER — FOND » redondant sous « OVERLAY STUDIO » ; double barre de défilement (iframe + panneau) ; panneau de 324 px pour des formulaires de 20+ champs | Moyenne |
-| U6 | Vignettes quasi noires pour les effets discrets (Respiration, Profondeur) : elles ne distinguent pas deux ambiances. Seuil d'encre `MIN_INK_RATIO` à revoir (hypothèse : 4 essais de 500 ms ne suffisent pas) | Moyenne |
+| U6 | Vignettes quasi noires pour les effets discrets : **mesuré le 2026-10-29**, elles redessinaient l'effet à 104×58 (trompeur) ; remplacées par une capture fidèle 1920×1080 réduite (`docs/specs/studio-trois-zones.md` Z5) | Traité |
 | U7 | Police unique monospace (Courier New) pour labels, valeurs et textes d'aide : fatigue de lecture, pas de hiérarchie | Basse |
 | U8 | « Prêt pour le live » replié par défaut : le diagnostic est invisible tant qu'il est vert, mais aussi quand il est orange | Basse |
 

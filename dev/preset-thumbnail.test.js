@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
-import { onceVisible } from './preset-thumbnail.js';
+import { STAGE_HEIGHT, STAGE_WIDTH } from './preview-stage.js';
+import { createPresetThumbnail, onceVisible, THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH } from './preset-thumbnail.js';
 
 function fakeObserverFactory() {
   const observers = [];
@@ -44,4 +45,27 @@ test('sans IntersectionObserver (environnement de test), la capture démarre aus
   let captures = 0;
   onceVisible({}, null, () => { captures += 1; });
   expect(captures).toBe(1);
+});
+
+test('la vignette a le rapport de la source OBS : un autre rapport mentirait sur le cadrage', () => {
+  expect(THUMBNAIL_WIDTH / THUMBNAIL_HEIGHT).toBeCloseTo(STAGE_WIDTH / STAGE_HEIGHT, 6);
+});
+
+test('l’effet est monté à la taille réelle de la source puis réduit, pas redessiné à petite échelle', () => {
+  const created = [];
+  const fakeElement = () => {
+    const node = { style: {}, dataset: {}, appendChild() {}, addEventListener() {}, remove() {} };
+    created.push(node);
+    return node;
+  };
+  const { el } = createPresetThumbnail({
+    preset: { component: 'rain', options: {} },
+    documentRef: { createElement: fakeElement },
+    delay: () => new Promise(() => {}),
+  });
+  const stage = created.find(({ className }) => className === 'preset-thumb-stage');
+  expect(stage.style.width).toBe(`${STAGE_WIDTH}px`);
+  expect(stage.style.height).toBe(`${STAGE_HEIGHT}px`);
+  expect(stage.style.transform).toBe(`scale(${THUMBNAIL_WIDTH / STAGE_WIDTH})`);
+  expect(el.dataset.state).toBe('pending');
 });

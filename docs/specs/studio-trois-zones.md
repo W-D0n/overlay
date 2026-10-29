@@ -5,7 +5,7 @@ updated: 2026-10-29
 
 # Spec — Studio en trois zones (refonte de l'écran du tuner)
 
-Statut : **validée (ordre Z1 → Z3 → Z2 → Z4 → Z5, cadre 16:9 simple, scènes sans preset repliées) ; Z1 à Z4 livrés le 2026-10-29 (Z5, vignettes, reste à faire).** Traite les constats U2 à U6 de
+Statut : **validée (ordre Z1 → Z3 → Z2 → Z4 → Z5, cadre 16:9 simple, scènes sans preset repliées) ; Z1 à Z5 livrés le 2026-10-29.** Traite les constats U2 à U6 de
 [`../ux-review.md`](../ux-review.md) (U1, brouillon / publication, est livré). Étapes 1 à 3 du socle sont
 livrées : l'écran peut être refait sans le refaire deux fois.
 
@@ -75,11 +75,16 @@ scènes sans association sont repliées sous un compteur (« 38 sans preset »).
 - `studio.config.js` (liste de vues) devient inutile : seule vue restante, à supprimer plutôt qu'à vider.
 - Livré : `studio.html` est la page (le tuner y est fusionné, `background-tuner.html` et `studio.config.js` supprimés) ; le rail est fait de sections repliables, sans mémoire de leur état.
 
-### Z5. Vignettes discrètes (U6) — chantier séparé
+### Z5. Vignettes fidèles (U6) — livré
 
-Hypothèse non mesurée : 4 essais de 500 ms ne suffisent pas pour des effets lents. À instrumenter
-(taux d'encre réel par effet et par essai) avant de choisir entre allonger, normaliser le contraste de la
-vignette, ou capturer plus tard. Pas de correction à l'aveugle.
+Mesuré le 2026-10-29 : l'hypothèse « 4 essais de 500 ms ne suffisent pas » était fausse. Les vignettes de
+104×58 redessinaient l'effet à petite échelle (Bubble : 40 à 80 % de pixels peints, contre 0,9 % dans
+le vrai rendu 1920×1080) : elles étaient trompeuses, pas seulement sombres. Les fonds discrets (Bubble,
+Rain, WaterRipple, StarsParallax) laissent plus de 99 % de l'écran vide : leur vignette sombre est fidèle.
+
+Livré : l'effet est monté à 1920×1080 dans la vignette, réduit par transformation CSS (photo au double de la
+taille affichée, 128×72) ; un fond hachuré indique « photo en cours » ; la capture attend que la vignette
+soit visible (une liste défilée plus bas se capture au défilement). Un test garde le rapport 16:9.
 
 ## Ordre de livraison (un commit par pas, `bun test` vert, vérification dans Chromium à 1920×1080)
 

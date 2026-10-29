@@ -1,19 +1,24 @@
 // @ts-check
 import { createBackgroundMount } from '../background-mount.js';
 import { createThumbnailQueue } from './thumbnail-queue.js';
+import { STAGE_HEIGHT, STAGE_WIDTH } from './preview-stage.js';
 
 /**
  * dev/preset-thumbnail.js — Vignette d'un preset dans la liste du Studio.
  *
- * L'effet réel est monté dans une boîte de la taille d'une vignette, photographié après un court
- * échauffement, puis démonté : au repos, une vignette ne coûte rien. Le survol relance l'effet pour
- * montrer le mouvement, qui est souvent ce qui distingue deux ambiances.
+ * L'effet réel est monté dans une scène de la taille de la source OBS (1920×1080) réduite par
+ * transformation CSS, photographié après un court échauffement, puis démonté : au repos, une vignette
+ * ne coûte rien. La vignette montre donc ce qu'OBS affichera, pas l'effet redessiné à petite échelle :
+ * un fond discret reste discret. Le survol relance l'effet pour montrer le mouvement, qui est souvent
+ * ce qui distingue deux ambiances.
  * Voir docs/specs/background-preset-thumbnails.md.
  */
 
 /** 16:9 comme le canvas OBS — une vignette d'un autre rapport mentirait sur le cadrage. */
-export const THUMBNAIL_WIDTH = 104;
-export const THUMBNAIL_HEIGHT = 58;
+export const THUMBNAIL_WIDTH = 128;
+export const THUMBNAIL_HEIGHT = 72;
+/** La photo est prise au double de la taille affichée : nette sur un écran à densité élevée. */
+const SNAPSHOT_SCALE = 2;
 
 /**
  * Lance `capture` quand `el` devient visible. Un élément masqué (onglet du Studio non affiché) n'a pas
@@ -91,9 +96,16 @@ export function createPresetThumbnail(input) {
   still.className = 'preset-thumb-still';
   el.appendChild(still);
 
+  // Scène à la taille réelle de la source OBS, réduite à la taille de la vignette : les effets
+  // dimensionnent leurs éléments pour 1080p, pas pour 128 px.
   const stage = documentRef.createElement('div');
   stage.className = 'preset-thumb-stage';
+  stage.style.width = `${STAGE_WIDTH}px`;
+  stage.style.height = `${STAGE_HEIGHT}px`;
+  stage.style.transformOrigin = '0 0';
+  stage.style.transform = `scale(${THUMBNAIL_WIDTH / STAGE_WIDTH})`;
   el.appendChild(stage);
+  el.dataset.state = 'pending';
 
   /** @type {ReturnType<typeof createBackgroundMount> | null} */
   let liveMount = null;
@@ -133,12 +145,20 @@ export function createPresetThumbnail(input) {
       const canvas = /** @type {HTMLCanvasElement | null} */ (stage.querySelector('canvas'));
       // Un effet sans canvas laisse simplement la vignette vide : pas d'erreur, la ligne reste
       // lisible par son nom.
-      if (canvas === null || typeof canvas.toDataURL !== 'function') break;
+      if (canvas === null) {
+        el.dataset.state = 'empty';
+        break;
+      }
 
-      const ink = canvasInkRatio(canvas);
+      const snapshot = documentRef.createElement('canvas');
+      snapshot.width = THUMBNAIL_WIDTH * SNAPSHOT_SCALE;
+      snapshot.height = THUMBNAIL_HEIGHT * SNAPSHOT_SCALE;
+      snapshot.getContext('2d')?.drawImage(canvas, 0, 0, snapshot.width, snapshot.height);
+
       const lastChance = attempt === MAX_ATTEMPTS - 1;
-      if (ink >= MIN_INK_RATIO || lastChance) {
-        still.src = canvas.toDataURL('image/webp', 0.7);
+      if (canvasInkRatio(snapshot) >= MIN_INK_RATIO || lastChance) {
+        still.src = snapshot.toDataURL('image/webp', 0.8);
+        el.dataset.state = 'ready';
         break;
       }
     }
