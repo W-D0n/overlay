@@ -208,10 +208,10 @@
     .preset-thumb:hover { border-color: var(--color-gold-dim); }
 
     .preset-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
       align-items: center;
-      flex-wrap: wrap;
-      gap: var(--space-sm);
+      gap: var(--space-xs) var(--space-sm);
       padding: var(--space-sm);
       margin-bottom: var(--space-xs);
       border: var(--border-rule);
@@ -219,8 +219,9 @@
       border-radius: var(--radius-sm);
       background: var(--color-bg-panel);
     }
+    .preset-row:not(.preset-row-builtin) .preset-thumb { grid-row: 1 / span 3; }
     .preset-row .preset-load {
-      flex: 1;
+      min-width: 0;
       text-align: left;
       border: none;
       background: none;
@@ -236,7 +237,6 @@
     }
     .preset-row .preset-delete:hover { color: var(--color-danger); }
     .preset-meta {
-      flex-basis: 100%;
       color: var(--color-text-dim);
       font-size: var(--text-base);
       padding-left: calc(var(--space-xs) / 2);
@@ -271,8 +271,7 @@
     .preset-copy { display: grid; gap: var(--space-xs); }
     .preset-title { color: var(--color-text-primary); font-size: var(--text-md); font-weight: 400; }
     .preset-row-builtin .preset-meta { padding-left: 0; }
-    .preset-actions { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
-    .preset-actions .preset-add { flex: 1; }
+    .preset-actions { display: flex; gap: var(--space-xs); }
     .section-intro, .hint {
       margin: calc(-1 * var(--space-xs)) 0 var(--space-md);
       color: var(--color-text-mid);
@@ -537,10 +536,10 @@
     </label>
     <div class="save-row">
       <label>Taille du pseudo
-        <input id="branding-name-size" type="number" min="10" max="96" step="1">
+        <input id="branding-name-size" type="number" min="8" max="72" step="0.5">
       </label>
       <label>Taille des lignes
-        <input id="branding-line-size" type="number" min="8" max="48" step="1">
+        <input id="branding-line-size" type="number" min="6" max="36" step="0.5">
       </label>
     </div>
     <label>Couleur

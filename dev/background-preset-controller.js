@@ -193,7 +193,10 @@ export function createBackgroundPresetController(input) {
       };
 
       appendThumbnail(row, preset, presetThumbnails);
-      row.append(load, copyUrl, rename, duplicate, remove, meta);
+      const actions = documentRef.createElement('div');
+      actions.className = 'preset-actions';
+      actions.append(copyUrl, rename, duplicate, remove);
+      row.append(load, meta, actions);
       elements.list.appendChild(row);
     }
   }
