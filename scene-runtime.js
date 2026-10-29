@@ -1,5 +1,7 @@
 // @ts-check
 import { COMPONENT_REGISTRY } from './component-registry.js';
+import { cssEasing, normalizeTransition, transitionStyles } from './background-transition.js';
+import { isAudioOn, kindCapabilities } from './layer-kinds.js';
 
 /**
  * scene-runtime.js — Monte une scène (une pile de couches, `scene-doc.js`) dans un conteneur.
@@ -11,18 +13,29 @@ import { COMPONENT_REGISTRY } from './component-registry.js';
  *   - ordre → `z-index`, sans déplacer aucun nœud (déplacer un nœud redémarrerait ses animations CSS) ;
  *   - `visible`, `opacity`, `placement` → appliqués sur le calque de la couche, sans toucher à l'effet.
  *
- * Chaque couche vit dans son propre calque absolu ; `placement` est en fractions du conteneur, donc la scène
+ * Chaque couche vit dans son propre calque absolu ; `placement` est en fractions de la scène, donc la scène
  * épouse la source OBS quelle que soit sa résolution. Un effet dessine sa composition de référence dans son
- * calque : un calque plus petit que le conteneur en montre une version réduite.
+ * calque : un calque plus petit que la scène en montre une version réduite.
  *
- * Une couche qui échoue (type inconnu, fabrique ou `update` qui lève) est signalée par `onLayerError` et
- * n'arrête ni les autres couches ni la scène ; son montage est retenté à la scène suivante.
+ * Une scène porteuse d'une `transition` est une **arrivée** : elle est montée dans un nouveau calque de scène,
+ * superposé à l'ancien pendant l'animation (docs/specs/background-preset-transitions.md), puis l'ancien est
+ * retiré. Sans `transition`, c'est un réglage : la réconciliation se fait en place, en direct. Une scène sans
+ * couche est un fond absent.
  *
- * Les transitions de scène et le routage audio / réactions ne sont pas ici (étapes 4d et 4e).
+ * Une couche qui échoue (type inconnu, fabrique ou `update` qui lève) est signalée par `onLayerError` sans
+ * arrêter les autres ; son montage est retenté à la scène suivante. Un état qu'aucune couche ne peut afficher
+ * (type inconnu sur un fond d'une seule couche, par exemple un état plus récent que le code chargé par OBS)
+ * laisse la scène en place plutôt que de vider l'écran en direct.
+ *
+ * Routage selon les capacités déclarées par `layer-kinds.js` : l'audio alimente chaque couche visible qui le
+ * déclare et dont le réglage `audioReactive` est actif ; une réaction est traitée par les couches visibles qui
+ * la gèrent nativement, sinon l'appelant la fait dessiner **une seule fois** par la surcouche partagée.
  *
  * @typedef {import('./scene-doc.js').SceneDoc} SceneDoc
  * @typedef {import('./scene-doc.js').Layer} Layer
  * @typedef {{ id: string, kind: string, instance: import('./types.js').ComponentInstance, visible: boolean }} MountedLayerInfo
+ * @typedef {{ id: string, kind: string, instance: import('./types.js').ComponentInstance, calque: *, visible: boolean, options: Record<string, unknown> }} MountedLayer
+ * @typedef {{ calque: *, layers: Map<string, MountedLayer> }} Stage
  */
 
 /**
@@ -30,42 +43,88 @@ import { COMPONENT_REGISTRY } from './component-registry.js';
  * @param {{
  *   registry?: Record<string, (options: any) => import('./types.js').ComponentInstance>,
  *   createCalque?: () => *,
+ *   createStageCalque?: () => *,
+ *   capabilitiesOf?: (kind: string) => import('./layer-kinds.js').LayerCapabilities,
  *   onLayerError?: (failure: { layerId: string, error: unknown }) => void,
+ *   onMountChange?: () => void,
+ *   scheduleFrame?: (callback: () => void) => void,
+ *   scheduleTimeout?: (callback: () => void, delayMs: number) => void,
  * }} [deps] points d'injection pour les tests (aucun DOM requis).
  */
 export function createSceneRuntime(container, deps = {}) {
   const registry = deps.registry ?? COMPONENT_REGISTRY;
   const createCalque = deps.createCalque ?? defaultCreateCalque;
+  const createStageCalque = deps.createStageCalque ?? defaultCreateStageCalque;
+  const capabilitiesOf = deps.capabilitiesOf ?? kindCapabilities;
   const onLayerError = deps.onLayerError ?? ((failure) => console.error(`[scene-runtime] couche « ${failure.layerId} » : `, failure.error));
+  const onMountChange = deps.onMountChange ?? (() => {});
+  const scheduleFrame = deps.scheduleFrame
+    ?? ((callback) => globalThis.requestAnimationFrame?.(callback) ?? callback());
+  const scheduleTimeout = deps.scheduleTimeout ?? ((callback, delayMs) => setTimeout(callback, delayMs));
 
-  /** @type {Map<string, { id: string, kind: string, instance: import('./types.js').ComponentInstance, calque: *, visible: boolean }>} */
-  let mounted = new Map();
+  /** @type {Stage | null} */
+  let current = null;
+  /** @type {Stage[]} */
+  let outgoing = [];
+  /** @type {SceneDoc | null} */
+  let latestScene = null;
+  let paused = false;
 
-  /** @param {{ instance: import('./types.js').ComponentInstance, calque: * }} entry */
-  function dispose(entry) {
+  /** @param {Stage} stage */
+  function disposeStage(stage) {
+    for (const entry of stage.layers.values()) disposeLayer(entry);
+    stage.layers.clear();
+    stage.calque.remove();
+  }
+
+  /** @param {MountedLayer} entry */
+  function disposeLayer(entry) {
     try {
       entry.instance.destroy?.();
     } catch (error) {
-      onLayerError({ layerId: '(démontage)', error });
+      onLayerError({ layerId: entry.id, error });
     }
     entry.calque.remove();
   }
 
-  /** @param {Layer} layer */
-  function mountLayer(layer) {
+  function flushOutgoing() {
+    for (const stage of outgoing) disposeStage(stage);
+    outgoing = [];
+  }
+
+  function unmountAll() {
+    flushOutgoing();
+    if (current !== null) disposeStage(current);
+    current = null;
+  }
+
+  /** @returns {Stage} */
+  function createStage() {
+    const calque = createStageCalque();
+    container.appendChild(calque);
+    return { calque, layers: new Map() };
+  }
+
+  /**
+   * Monte une couche dans une scène. Lève si le type est inconnu ou si la fabrique échoue.
+   * @param {Stage} stage @param {Layer} layer @returns {MountedLayer}
+   */
+  function mountLayer(stage, layer) {
     const factory = Object.hasOwn(registry, layer.kind) ? registry[layer.kind] : undefined;
     if (factory === undefined) throw new Error(`type de couche inconnu : ${layer.kind}`);
     const instance = factory(layer.options);
     const calque = createCalque();
     calque.appendChild(instance.el);
-    container.appendChild(calque);
-    return { id: layer.id, kind: layer.kind, instance, calque, visible: layer.visible };
+    stage.calque.appendChild(calque);
+    return { id: layer.id, kind: layer.kind, instance, calque, visible: layer.visible, options: layer.options };
   }
 
-  /** @param {*} calque @param {Layer} layer @param {number} index */
-  function styleCalque(calque, layer, index) {
+  /** @param {MountedLayer} entry @param {Layer} layer @param {number} index */
+  function styleLayer(entry, layer, index) {
     const { x, y, width, height } = layer.placement;
-    Object.assign(calque.style, {
+    entry.visible = layer.visible;
+    entry.options = layer.options;
+    Object.assign(entry.calque.style, {
       left: percent(x),
       top: percent(y),
       width: percent(width),
@@ -76,47 +135,187 @@ export function createSceneRuntime(container, deps = {}) {
     });
   }
 
+  /**
+   * Réconcilie une scène avec une pile existante (ou neuve).
+   * @param {Stage} stage @param {SceneDoc} scene
+   */
+  function reconcile(stage, scene) {
+    const wanted = new Set(scene.layers.map(({ id }) => id));
+    for (const [id, entry] of stage.layers) {
+      if (!wanted.has(id)) {
+        disposeLayer(entry);
+        stage.layers.delete(id);
+      }
+    }
+
+    /** @type {Map<string, MountedLayer>} */
+    const next = new Map();
+    scene.layers.forEach((layer, index) => {
+      let entry = stage.layers.get(layer.id);
+      try {
+        if (entry === undefined) {
+          entry = mountLayer(stage, layer);
+        } else if (entry.kind !== layer.kind) {
+          // Le nouveau est monté avant que l'ancien ne parte : s'il échoue, l'ancien reste affiché.
+          const replacement = mountLayer(stage, layer);
+          disposeLayer(entry);
+          entry = replacement;
+        } else {
+          entry.instance.update?.(layer.options);
+        }
+      } catch (error) {
+        onLayerError({ layerId: layer.id, error });
+      }
+      if (entry === undefined) return;
+      styleLayer(entry, layer, index);
+      next.set(layer.id, entry);
+    });
+    stage.layers = next;
+  }
+
+  /**
+   * Superpose la nouvelle scène à l'ancienne, puis retire l'ancienne à la fin.
+   * @param {Stage} next
+   * @param {import('./background-transition.js').BackgroundTransition} transition
+   */
+  function runTransition(next, transition) {
+    const { incoming, outgoing: outgoingStyles } = transitionStyles(transition);
+    Object.assign(next.calque.style, incoming.from);
+
+    const previous = current;
+    current = next;
+    if (previous !== null) {
+      Object.assign(previous.calque.style, outgoingStyles.from);
+      outgoing.push(previous);
+    }
+
+    scheduleFrame(() => {
+      // Sans cette lecture, le navigateur n'a jamais résolu l'état de départ : il voit uniquement
+      // la valeur finale et l'applique d'un coup, sans animer. Mesuré en vrai (clip-path calculé
+      // figé à `inset(0px)` pendant toute la durée) avant d'ajouter ce flush.
+      forceStyleFlush(next.calque);
+      const timing = `${transition.durationMs}ms ${cssEasing(transition.easing)}`;
+      // Une durée par propriété : `a, b 400ms` donnerait 0s à `a` et ferait sauter l'animation.
+      const timingFor = (/** @type {string[]} */ properties) => properties.map((name) => `${name} ${timing}`).join(', ');
+      next.calque.style.transition = timingFor(incoming.properties);
+      Object.assign(next.calque.style, incoming.to);
+
+      // Le sortant est animé lui aussi : les effets peignent sur des canvas transparents, donc
+      // révéler l'entrant ne le masque pas. Sans ça il reste visible puis disparaît d'un coup.
+      if (previous !== null) {
+        previous.calque.style.transition = timingFor(outgoingStyles.properties);
+        Object.assign(previous.calque.style, outgoingStyles.to);
+      }
+    });
+
+    scheduleTimeout(() => {
+      // Une transition plus récente a pu passer entre-temps : elle a déjà nettoyé, ne rien défaire.
+      if (current !== next) return;
+      flushOutgoing();
+      clearTransitionStyles(next.calque);
+    }, transition.durationMs);
+  }
+
+  /** @param {SceneDoc} scene */
+  function applyScene(scene) {
+    if (scene.layers.length === 0) {
+      unmountAll();
+      return;
+    }
+
+    const transition = scene.transition === undefined ? null : normalizeTransition(scene.transition);
+
+    // Un réglage en cours : mise à jour en direct, jamais d'animation.
+    if (transition === null && current !== null) {
+      reconcile(current, scene);
+      return;
+    }
+
+    // Premier montage, durée nulle, ou arrivée : une nouvelle pile. Une Browser Source qui s'ouvre ne
+    // commence pas par un fondu.
+    const stage = createStage();
+    reconcile(stage, scene);
+    if (stage.layers.size === 0) {
+      stage.calque.remove();
+      return;
+    }
+    if (transition === null || transition.durationMs === 0 || current === null) {
+      const previous = current;
+      current = stage;
+      flushOutgoing();
+      if (previous !== null) disposeStage(previous);
+      return;
+    }
+    runTransition(stage, transition);
+  }
+
+  /** Couches visibles de la scène affichée, pour le routage. */
+  function visibleLayers() {
+    return current === null ? [] : [...current.layers.values()].filter(({ visible }) => visible);
+  }
+
+  /** @param {MountedLayer} entry */
+  function wantsAudio(entry) {
+    return capabilitiesOf(entry.kind).audio && isAudioOn(entry.options.audioReactive);
+  }
+
   return {
     /** @param {SceneDoc} scene */
     apply(scene) {
-      const wanted = new Set(scene.layers.map(({ id }) => id));
-      for (const [id, entry] of mounted) {
-        if (!wanted.has(id)) {
-          dispose(entry);
-          mounted.delete(id);
-        }
-      }
-
-      /** @type {typeof mounted} */
-      const next = new Map();
-      scene.layers.forEach((layer, index) => {
-        let entry = mounted.get(layer.id);
-        if (entry !== undefined && entry.kind !== layer.kind) {
-          dispose(entry);
-          entry = undefined;
-        }
-        try {
-          if (entry === undefined) entry = mountLayer(layer);
-          else entry.instance.update?.(layer.options);
-        } catch (error) {
-          onLayerError({ layerId: layer.id, error });
-          if (entry === undefined) return;
-        }
-        entry.visible = layer.visible;
-        styleCalque(entry.calque, layer, index);
-        next.set(layer.id, entry);
-      });
-      mounted = next;
+      latestScene = scene;
+      if (!paused) applyScene(scene);
+      onMountChange();
     },
 
-    /** Couches montées, dans l'ordre de la scène. @returns {MountedLayerInfo[]} */
+    /**
+     * Réaction traitée nativement par au moins une couche visible ? `false` : l'appelant la fait dessiner
+     * par la surcouche partagée, une seule fois quel que soit le nombre de couches.
+     * @param {*} event
+     * @returns {boolean}
+     */
+    react(event) {
+      const native = visibleLayers().filter(({ kind }) => capabilitiesOf(kind).reactions === 'native');
+      for (const entry of native) entry.instance.trigger?.(event);
+      return native.length > 0;
+    },
+
+    isAudioReactive() {
+      return visibleLayers().some(wantsAudio);
+    },
+
+    /** @param {*} levels @returns {boolean} */
+    applyAudio(levels) {
+      const listeners = visibleLayers().filter(wantsAudio);
+      for (const entry of listeners) entry.instance.setAudioLevel?.(levels);
+      return listeners.length > 0;
+    },
+
+    /** @param {boolean} nextPaused */
+    setPaused(nextPaused) {
+      if (paused === nextPaused) return;
+      paused = nextPaused;
+      if (paused) unmountAll();
+      else if (latestScene !== null) {
+        const { transition: _arrival, ...setting } = latestScene;
+        applyScene(setting);
+      }
+      onMountChange();
+    },
+
+    /** Couches de la scène affichée, dans l'ordre. @returns {MountedLayerInfo[]} */
     layers() {
-      return [...mounted.values()].map(({ id, kind, instance, visible }) => ({ id, kind, instance, visible }));
+      return current === null ? [] : [...current.layers.values()].map(({ id, kind, instance, visible }) => ({ id, kind, instance, visible }));
+    },
+
+    /** Nombre de calques de scène présents : un en régime stable, deux pendant une transition. */
+    stageCount() {
+      return (current === null ? 0 : 1) + outgoing.length;
     },
 
     destroy() {
-      for (const entry of mounted.values()) dispose(entry);
-      mounted = new Map();
+      latestScene = null;
+      unmountAll();
+      onMountChange();
     },
   };
 }
@@ -126,9 +325,40 @@ function percent(fraction) {
   return `${Number((fraction * 100).toFixed(4))}%`;
 }
 
+/**
+ * Efface toute trace de la transition sur le calque survivant. Sans ça, son masque et sa durée
+ * restent inscrits en style inline bien après l'animation.
+ * @param {*} calque
+ */
+function clearTransitionStyles(calque) {
+  for (const property of [
+    'transition', 'opacity',
+    'maskImage', 'WebkitMaskImage', 'maskSize', 'WebkitMaskSize',
+    'maskRepeat', 'WebkitMaskRepeat', 'maskPosition', 'WebkitMaskPosition',
+  ]) {
+    calque.style[property] = '';
+  }
+}
+
+/**
+ * Force la résolution des styles en attente sur un calque. No-op sur les calques factices des
+ * tests, qui n'ont pas de géométrie.
+ * @param {*} calque
+ */
+function forceStyleFlush(calque) {
+  return typeof calque.offsetWidth === 'number' ? calque.offsetWidth : 0;
+}
+
 /** Calque réel d'une couche. Isolé ici pour que les tests n'aient pas besoin d'un DOM. */
 function defaultCreateCalque() {
   const calque = document.createElement('div');
   calque.style.cssText = 'position:absolute;overflow:hidden;pointer-events:none;';
+  return calque;
+}
+
+/** Calque réel d'une scène : plein écran, c'est lui qu'une transition fait apparaître ou disparaître. */
+function defaultCreateStageCalque() {
+  const calque = document.createElement('div');
+  calque.style.cssText = 'position:absolute;inset:0;pointer-events:none;';
   return calque;
 }

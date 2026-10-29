@@ -3,7 +3,7 @@ import { clampOptions, isKnownKindId, neutralizeOptions, resolveKindId, validate
 import { validateSceneMap } from '../obs-scene-mapping.js';
 import { validateTransition } from '../background-transition.js';
 import { normalizeBranding, validateBranding } from '../branding-format.js';
-import { presetFromScene, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
+import { presetFromScene, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
 
 /**
  * dev/background-state-format.js — Logique pure de l'état background standalone (2026-07-14).
@@ -31,8 +31,6 @@ const RETIRED_BACKGROUND_COMPONENT = 'MatrixGridBackground';
  */
 export const BACKGROUND_FILE_VERSION = 3;
 
-/** Identité de la scène en antenne : l'état courant n'est pas un preset, il n'a ni id ni nom propres. */
-const CURRENT_SCENE = { id: 'current', name: 'En antenne' };
 
 /**
  * Forme persistée d'un état courant : identifiant neutre de l'effet et options aux valeurs neutres.
@@ -186,9 +184,7 @@ export function encodePersistedFile(file) {
   return {
     ...rest,
     version: BACKGROUND_FILE_VERSION,
-    current: current.component === null
-      ? null
-      : sceneFromPreset({ ...CURRENT_SCENE, component: current.component, options: current.options, ...(current.transition === undefined ? {} : { transition: current.transition }), ...(current.showBranding === undefined ? {} : { showBranding: current.showBranding }) }),
+    current: current.component === null ? null : sceneFromCurrent(current),
     scenes: presets.map((preset) => sceneFromPreset(preset)),
   };
 }

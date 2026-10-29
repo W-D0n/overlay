@@ -6,7 +6,14 @@ import { createLayer } from './scene-doc.js';
 function setup({ failing = [] } = {}) {
   const events = [];
   const calques = [];
-  const container = { appendChild: (calque) => events.push(`attach:${calque.tag}`) };
+  const container = { appendChild: () => {} };
+  const createStageCalque = () => ({
+    tag: 'scene',
+    style: {},
+    children: [],
+    appendChild(child) { events.push(`attach:${child.tag}`); this.children.push(child); },
+    remove() { events.push('remove:scene'); },
+  });
   const createCalque = () => {
     const calque = {
       tag: `calque${calques.length + 1}`,
@@ -34,7 +41,7 @@ function setup({ failing = [] } = {}) {
     };
   }
   const errors = [];
-  const runtime = createSceneRuntime(container, { registry, createCalque, onLayerError: (failure) => errors.push(failure) });
+  const runtime = createSceneRuntime(container, { registry, createCalque, createStageCalque, onLayerError: (failure) => errors.push(failure) });
   return { runtime, events, calques, errors };
 }
 
@@ -75,7 +82,8 @@ describe('scene-runtime : réconciliation', () => {
     runtime.apply(scene(layer('a', 'rain'), layer('b', 'bubble')));
     events.length = 0;
     runtime.apply(scene(layer('a', 'dotgrid'), layer('b', 'bubble')));
-    expect(events).toEqual(['destroy:rain', 'remove:calque1', 'create:dotgrid:', 'attach:calque3', 'update:bubble:']);
+    // Le remplaçant est monté avant que l'ancien ne parte : s'il échoue, l'ancien reste affiché.
+    expect(events).toEqual(['create:dotgrid:', 'attach:calque3', 'destroy:rain', 'remove:calque1', 'update:bubble:']);
   });
 
   test('couche retirée : démontée ; couche ajoutée : montée ; les autres inchangées', () => {
@@ -148,13 +156,121 @@ describe('scene-runtime : isolement des pannes', () => {
   });
 });
 
+describe('scene-runtime : un état qu’on ne sait pas afficher laisse l’écran en place', () => {
+  test('type inconnu à la place du type affiché : l’effet en place reste monté', () => {
+    const { runtime, events, errors } = setup();
+    runtime.apply(scene(layer('main', 'rain')));
+    events.length = 0;
+    runtime.apply(scene(layer('main', 'inconnu')));
+    expect(errors).toHaveLength(1);
+    expect(events.some((event) => event.startsWith('destroy'))).toBe(false);
+    expect(runtime.layers().map(({ kind }) => kind)).toEqual(['rain']);
+  });
+
+  test('remplacement dont la fabrique échoue : l’ancien effet reste monté', () => {
+    const { runtime, events, errors } = setup({ failing: ['bubble'] });
+    runtime.apply(scene(layer('main', 'rain')));
+    events.length = 0;
+    runtime.apply(scene(layer('main', 'bubble')));
+    expect(errors).toHaveLength(1);
+    expect(events.some((event) => event.startsWith('destroy'))).toBe(false);
+    expect(runtime.layers().map(({ kind }) => kind)).toEqual(['rain']);
+  });
+
+  test('arrivée (avec transition) dont aucune couche ne se monte : la scène en place reste, aucun calque résiduel', () => {
+    const { runtime, events } = setup();
+    runtime.apply(scene(layer('main', 'rain')));
+    events.length = 0;
+    runtime.apply({ ...scene(layer('main', 'inconnu')), transition: { type: 'fade', durationMs: 600, direction: 'right' } });
+    expect(runtime.stageCount()).toBe(1);
+    expect(runtime.layers().map(({ kind }) => kind)).toEqual(['rain']);
+    expect(events).toContain('remove:scene');
+  });
+
+  test('une scène sans couche est un fond absent : tout est démonté', () => {
+    const { runtime } = setup();
+    runtime.apply(scene(layer('main', 'rain')));
+    runtime.apply(scene());
+    expect(runtime.stageCount()).toBe(0);
+    expect(runtime.layers()).toEqual([]);
+  });
+});
+
+describe('scene-runtime : routage par capacités sur plusieurs couches', () => {
+  function routed() {
+    const calls = [];
+    const make = (name) => () => ({
+      el: { tag: name },
+      trigger: (event) => calls.push(`trigger:${name}:${event.type}`),
+      setAudioLevel: (levels) => calls.push(`audio:${name}:${levels.level}`),
+    });
+    const capabilities = {
+      rain: { audio: false, reactions: 'overlay' },
+      bubble: { audio: true, reactions: 'overlay' },
+      dotgrid: { audio: true, reactions: 'native' },
+    };
+    const container = { appendChild: () => {} };
+    const stage = () => ({ style: {}, appendChild() {}, remove() {} });
+    const runtime = createSceneRuntime(container, {
+      registry: { rain: make('rain'), bubble: make('bubble'), dotgrid: make('dotgrid') },
+      createCalque: stage,
+      createStageCalque: stage,
+      capabilitiesOf: (kind) => capabilities[kind],
+    });
+    return { runtime, calls };
+  }
+  const withAudio = { audioReactive: true };
+
+  test('trois couches sans réaction native : react rend false, l’appelant dessine une seule fois', () => {
+    const { runtime, calls } = routed();
+    runtime.apply(scene(layer('a', 'rain'), layer('b', 'bubble'), layer('c', 'rain')));
+    expect(runtime.react({ type: 'raid' })).toBe(false);
+    expect(calls).toEqual([]);
+  });
+
+  test('une couche native traite la réaction (une fois) et rend true : pas de second dessin', () => {
+    const { runtime, calls } = routed();
+    runtime.apply(scene(layer('a', 'rain'), layer('b', 'dotgrid'), layer('c', 'bubble')));
+    expect(runtime.react({ type: 'raid' })).toBe(true);
+    expect(calls).toEqual(['trigger:dotgrid:raid']);
+  });
+
+  test('une couche native masquée ne traite pas la réaction', () => {
+    const { runtime, calls } = routed();
+    runtime.apply(scene(layer('b', 'dotgrid', { visible: false })));
+    expect(runtime.react({ type: 'raid' })).toBe(false);
+    expect(calls).toEqual([]);
+  });
+
+  test('l’audio va à chaque couche visible qui le déclare et l’a demandé, et à aucune autre', () => {
+    const { runtime, calls } = routed();
+    runtime.apply(scene(
+      layer('a', 'rain', { options: withAudio }),
+      layer('b', 'bubble', { options: withAudio }),
+      layer('c', 'dotgrid', { options: withAudio }),
+      layer('d', 'bubble', { options: { audioReactive: false } }),
+      layer('e', 'bubble', { options: withAudio, visible: false }),
+    ));
+    expect(runtime.isAudioReactive()).toBe(true);
+    expect(runtime.applyAudio({ level: 0.5 })).toBe(true);
+    expect(calls).toEqual(['audio:bubble:0.5', 'audio:dotgrid:0.5']);
+  });
+
+  test('sans couche réactive visible, l’audio n’est pas demandé', () => {
+    const { runtime } = routed();
+    runtime.apply(scene(layer('a', 'rain', { options: withAudio }), layer('b', 'bubble', { options: withAudio, visible: false })));
+    expect(runtime.isAudioReactive()).toBe(false);
+    expect(runtime.applyAudio({ level: 1 })).toBe(false);
+  });
+});
+
 describe('scene-runtime : fin de vie', () => {
   test('destroy démonte toutes les couches', () => {
     const { runtime, events } = setup();
     runtime.apply(scene(layer('a', 'rain'), layer('b', 'bubble')));
     events.length = 0;
     runtime.destroy();
-    expect(events).toEqual(['destroy:rain', 'remove:calque1', 'destroy:bubble', 'remove:calque2']);
+    expect(events).toEqual(['destroy:rain', 'remove:calque1', 'destroy:bubble', 'remove:calque2', 'remove:scene']);
     expect(runtime.layers()).toEqual([]);
   });
 });

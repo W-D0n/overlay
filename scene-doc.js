@@ -31,6 +31,9 @@ import { clampOptions, neutralizeOptions, resolveKindId, validateOptions } from 
  */
 
 export const SCENE_DOC_VERSION = 1;
+
+/** Identité de la scène en antenne : l'état courant n'est pas un preset, il n'a ni id ni nom propres. */
+export const CURRENT_SCENE = Object.freeze({ id: 'current', name: 'En antenne' });
 /** Garde de charge : chaque couche est un canvas. À réviser après la mesure à 1 puis 3 couches. */
 export const MAX_LAYERS = 8;
 /** Identifiant de la couche d'un preset devenu scène. */
@@ -95,6 +98,22 @@ export function sceneFromPreset(preset) {
   if (preset.transition !== undefined) scene.transition = preset.transition;
   if (preset.showBranding !== undefined) scene.showBranding = preset.showBranding;
   return scene;
+}
+
+/**
+ * L'état courant `{ component, options, transition?, showBranding? }` (ce que le serveur diffuse) comme scène en
+ * antenne. `component: null` (aucun fond) donne une scène sans couche.
+ * @param {{ component: string | null, options: Record<string, unknown>, transition?: import('./background-transition.js').BackgroundTransition, showBranding?: boolean }} current
+ * @returns {SceneDoc}
+ */
+export function sceneFromCurrent(current) {
+  if (current.component === null) {
+    /** @type {SceneDoc} */
+    const empty = { version: SCENE_DOC_VERSION, ...CURRENT_SCENE, layers: [] };
+    if (current.showBranding !== undefined) empty.showBranding = current.showBranding;
+    return empty;
+  }
+  return sceneFromPreset({ ...CURRENT_SCENE, component: current.component, options: current.options, ...(current.transition === undefined ? {} : { transition: current.transition }), ...(current.showBranding === undefined ? {} : { showBranding: current.showBranding }) });
 }
 
 /**
