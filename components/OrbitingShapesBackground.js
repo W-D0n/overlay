@@ -1,6 +1,7 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
-import { canvasPixelRatio } from './canvas-runtime.js';
+import { defineCanvasLayer } from './canvas-layer.js';
+import { createPhase } from '../render-clock.js';
 import { createAudioReaction } from './audio-reaction.js';
 
 /**
@@ -21,11 +22,8 @@ import { createAudioReaction } from './audio-reaction.js';
  * propre sur une ellipse aplatie, avec échelle/opacité liées à la phase de l'orbite pour simuler
  * une profondeur (avant = grand/opaque, arrière = petit/discret) — même principe que
  * `natewiley` (translate3d + scale), porté en canvas 2D (pas de vrai 3D nécessaire ici).
- *
- * @param {OrbitingShapesBackgroundOptions} [options]
- * @returns {import('../types.js').ComponentInstance}
  */
-export function OrbitingShapesBackground(options = {}) {
+export const OrbitingShapesBackground = defineCanvasLayer((/** @type {OrbitingShapesBackgroundOptions} */ options = {}) => {
   let shape = options.shape ?? 'circle';
   let count = Math.max(1, Math.round(options.count ?? 10));
   let speed = options.speed ?? 1;
@@ -35,18 +33,15 @@ export function OrbitingShapesBackground(options = {}) {
   let opacity = clamp(options.opacity ?? 1, 0, 1);
   const audio = createAudioReaction(options);
 
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
-  const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
-
   let cssW = 0;
   let cssH = 0;
-  let rafId = 0;
   let rgb = resolveColor(color);
 
   /** @typedef {{cx:number,cy:number,radiusX:number,radiusY:number,phase:number,angularSpeed:number,sizeRatio:number}} Orbiter */
   /** @type {Orbiter[]} */
   let orbiters = [];
+  /** Temps orbital, intégré : un changement de vitesse n'affecte que l'avenir. */
+  const orbit = createPhase();
 
   /** @returns {Orbiter} */
   function spawn() {
@@ -67,23 +62,8 @@ export function OrbitingShapesBackground(options = {}) {
     orbiters = Array.from({ length: count }, spawn);
   }
 
-  function handleResize() {
-    const dpr = canvasPixelRatio();
-    const w = canvas.offsetWidth;
-    const h = canvas.offsetHeight;
-    if (w === 0 || h === 0) return;
-    cssW = w;
-    cssH = h;
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
-    seed();
-    if (rafId !== 0) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(tick);
-  }
-
-  /** @param {number} cx @param {number} cy @param {number} size @param {number} rotation */
-  function drawShape(cx, cy, size, rotation) {
+  /** @param {CanvasRenderingContext2D} ctx @param {number} cx @param {number} cy @param {number} size @param {number} rotation */
+  function drawShape(ctx, cx, cy, size, rotation) {
     if (shape === 'triangle') {
       ctx.save();
       ctx.translate(cx, cy);
@@ -102,33 +82,33 @@ export function OrbitingShapesBackground(options = {}) {
     }
   }
 
-  function tick(timestamp) {
-    rafId = requestAnimationFrame(tick);
-    ctx.clearRect(0, 0, cssW, cssH);
-    const t = timestamp * 0.001 * speed * audio.boost('level', 0.8);
-    const [r, g, b] = rgb;
-
-    for (const o of orbiters) {
-      const angle = t * o.angularSpeed + o.phase;
-      const depth = (Math.sin(angle) + 1) / 2; // 0 = fond, 1 = premier plan
-      // Le grave écarte les formes de leur centre : l'orbite respire avec le son.
-      const orbitBoost = audio.boost('bass', 0.35);
-      const x = o.cx + Math.cos(angle) * o.radiusX * orbitBoost;
-      const y = o.cy + Math.sin(angle) * o.radiusY * orbitBoost;
-      const baseSize = minSize + o.sizeRatio * (maxSize - minSize);
-      const size = baseSize * (0.4 + 0.6 * depth);
-      const shapeOpacity = (0.15 + 0.55 * depth) * opacity;
-
-      ctx.fillStyle = `rgba(${r},${g},${b},${shapeOpacity.toFixed(3)})`;
-      drawShape(x, y, size, angle);
-    }
-  }
-
-  const observer = new ResizeObserver(handleResize);
-  observer.observe(canvas);
-
   return {
-    el: canvas,
+    resize(size) {
+      cssW = size.width;
+      cssH = size.height;
+      seed();
+    },
+
+    draw(ctx, { dt }) {
+      const t = orbit.advance(dt * speed * audio.boost('level', 0.8));
+      const [r, g, b] = rgb;
+
+      for (const o of orbiters) {
+        const angle = t * o.angularSpeed + o.phase;
+        const depth = (Math.sin(angle) + 1) / 2; // 0 = fond, 1 = premier plan
+        // Le grave écarte les formes de leur centre : l'orbite respire avec le son.
+        const orbitBoost = audio.boost('bass', 0.35);
+        const x = o.cx + Math.cos(angle) * o.radiusX * orbitBoost;
+        const y = o.cy + Math.sin(angle) * o.radiusY * orbitBoost;
+        const baseSize = minSize + o.sizeRatio * (maxSize - minSize);
+        const size = baseSize * (0.4 + 0.6 * depth);
+        const shapeOpacity = (0.15 + 0.55 * depth) * opacity;
+
+        ctx.fillStyle = `rgba(${r},${g},${b},${shapeOpacity.toFixed(3)})`;
+        drawShape(ctx, x, y, size, angle);
+      }
+    },
+
     /** @param {unknown} newOptions */
     update(newOptions) {
       const o = /** @type {Record<string, unknown>} */ (newOptions ?? {});
@@ -151,13 +131,8 @@ export function OrbitingShapesBackground(options = {}) {
     setAudioLevel(levels) {
       audio.apply(levels);
     },
-
-    destroy() {
-      cancelAnimationFrame(rafId);
-      observer.disconnect();
-    },
   };
-}
+});
 
 /** @param {number} value @param {number} min @param {number} max */
 function clamp(value, min, max) {

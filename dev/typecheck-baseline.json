@@ -9,7 +9,6 @@
   "components/FirefliesBackground.js": 1,
   "components/FloatingSymbolsBackground.js": 1,
   "components/GeometricPatternBackground.js": 1,
-  "components/OrbitingShapesBackground.js": 1,
   "components/ShapeMorphBackground.js": 4,
   "components/WaterRippleBackground.js": 1,
   "dev/background-draft.js": 1,

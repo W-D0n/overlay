@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { OrbitingShapesBackground } from './OrbitingShapesBackground.js';
+import { createLayerHarness } from './layer-test-harness.js';
 
 const ORIGINALS = {
   document: globalThis.document,
@@ -112,5 +113,26 @@ describe('OrbitingShapesBackground', () => {
     harness.drawFrame();
     expect(harness.fillStyles.at(-1)).toEndWith(',0.213)');
     instance.destroy?.();
+  });
+});
+
+describe('OrbitingShapesBackground — temps orbital', () => {
+  test('changer la vitesse en cours de route ne fait pas sauter les formes : seul l’avenir change (A2)', () => {
+    let seed = 12345;
+    Math.random = () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+    globalThis.document = /** @type {*} */ ({ createElement: () => ({ style: {}, remove() {} }), body: { appendChild() {} } });
+    globalThis.getComputedStyle = /** @type {*} */ (() => ({ color: 'rgb(200, 185, 122)' }));
+
+    const harness = createLayerHarness();
+    const instance = OrbitingShapesBackground({ speed: 1 }, harness.environment);
+    const firstArc = (calls) => calls.find(([name]) => name === 'arc').slice(1, 3);
+    let previous = [0, 0];
+    for (let frame = 0; frame < 60; frame += 1) previous = firstArc(harness.tick(frame * 16.7));
+
+    instance.update?.({ speed: 2 });
+    const after = firstArc(harness.tick(60 * 16.7));
+    const distance = Math.hypot(after[0] - previous[0], after[1] - previous[1]);
+    // Au plus : rayon 200 px x vitesse angulaire 0,8 rad/s x vitesse 2 x 16,7 ms = 5,4 px.
+    expect(distance).toBeLessThan(8);
   });
 });
