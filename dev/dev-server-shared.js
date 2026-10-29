@@ -7,7 +7,7 @@
  * fond. L'ancien proxy placement-server.js a été supprimé : scene-data-server possède sa route.
  */
 
-/** CORS permissif — outil de dev local uniquement, jamais exposé. */
+/** CORS pour pages locales : l'accès est filtré en amont par `rejectNonLocalRequest` (dev/local-access-policy.js). */
 export const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',

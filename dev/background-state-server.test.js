@@ -443,3 +443,48 @@ test('une transition invalide est refusée à l’enregistrement du preset', asy
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test('une page web étrangère ne peut ni lire ni modifier l’état, ni ouvrir un WebSocket', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-background-state-'));
+  const stateFile = join(directory, 'state.json');
+  const port = await reserveFreePort();
+  const baseUrl = `http://localhost:${port}`;
+  const child = Bun.spawn(['bun', 'dev/background-state-server.js'], {
+    cwd: join(import.meta.dir, '..'),
+    env: { ...process.env, BACKGROUND_STATE_PORT: String(port), BACKGROUND_STATE_FILE: stateFile },
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+
+  try {
+    await waitForServer(baseUrl);
+    const foreign = { Origin: 'https://evil.example', 'Content-Type': 'application/json' };
+
+    const write = await fetch(`${baseUrl}/save-preset`, {
+      method: 'POST',
+      headers: foreign,
+      body: JSON.stringify({ name: 'Intrus', component: 'RainBackground', options: {} }),
+    });
+    expect(write.status).toBe(403);
+
+    const read = await fetch(`${baseUrl}/state`, { headers: { Origin: 'https://evil.example' } });
+    expect(read.status).toBe(403);
+
+    const rebinding = await fetch(`${baseUrl}/state`, { headers: { Host: 'evil.example' } });
+    expect(rebinding.status).toBe(403);
+
+    const socketOpened = await new Promise((resolve) => {
+      const socket = new WebSocket(`ws://localhost:${port}/state-ws`, { headers: { Origin: 'https://evil.example' } });
+      socket.onopen = () => { socket.close(); resolve(true); };
+      socket.onerror = () => resolve(false);
+    });
+    expect(socketOpened).toBe(false);
+
+    const local = await fetch(`${baseUrl}/state`, { headers: { Origin: 'http://localhost:5931' } });
+    expect(local.status).toBe(200);
+    expect((await local.json()).presets.some(({ name }) => name === 'Intrus')).toBe(false);
+  } finally {
+    child.kill();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});

@@ -20,8 +20,10 @@
 import { applyDotGridParamsToSource } from './dotgrid-params-format.js';
 import { createKeyedLock } from './keyed-lock.js';
 import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
+import { LOOPBACK_HOST, rejectNonLocalRequest } from './local-access-policy.js';
+import { TUNER_PORT } from '../ports.config.js';
 
-const PORT = Number(process.env.TUNER_PORT ?? 4458);
+const PORT = Number(process.env.TUNER_PORT ?? TUNER_PORT);
 const TARGET_FILE = `${import.meta.dir}/../components/DotGridAnimated.js`;
 const withSaveLock = createKeyedLock();
 const SAVE_LOCK_KEY = 'dotgrid-source';
@@ -34,8 +36,12 @@ function broadcastReload() {
 }
 
 Bun.serve({
+  hostname: LOOPBACK_HOST,
   port: PORT,
   async fetch(req, server) {
+    const rejected = rejectNonLocalRequest(req);
+    if (rejected !== null) return rejected;
+
     const url = new URL(req.url);
 
     if (req.method === 'OPTIONS') {

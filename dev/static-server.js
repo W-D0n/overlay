@@ -17,20 +17,25 @@
  * pour changer sans toucher au code).
  */
 import { STATIC_PORT } from '../ports.config.js';
+import { LOOPBACK_HOST, isServablePath, rejectNonLocalRequest } from './local-access-policy.js';
 
 const PORT = Number(process.env.STATIC_PORT ?? STATIC_PORT);
 const ROOT = `${import.meta.dir}/..`;
 
 Bun.serve({
+  hostname: LOOPBACK_HOST,
   port: PORT,
   async fetch(req) {
+    const rejected = rejectNonLocalRequest(req);
+    if (rejected !== null) return rejected;
+
     const url = new URL(req.url);
     const pathname = url.pathname === '/' || url.pathname.endsWith('/')
       ? `${url.pathname}index.html`
       : url.pathname;
 
-    const file = Bun.file(`${ROOT}${pathname}`);
-    if (await file.exists()) {
+    const file = isServablePath(pathname) ? Bun.file(`${ROOT}${pathname}`) : null;
+    if (file !== null && await file.exists()) {
       return new Response(file, { headers: { 'Cache-Control': 'no-store, must-revalidate' } });
     }
 

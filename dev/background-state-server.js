@@ -43,6 +43,7 @@ import {
 } from './background-state-format.js';
 import { createKeyedLock } from './keyed-lock.js';
 import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
+import { LOOPBACK_HOST, rejectNonLocalRequest } from './local-access-policy.js';
 import { validateBackgroundEvent } from './background-event-format.js';
 import {
   backgroundPresetRevision,
@@ -387,8 +388,12 @@ const POST_ROUTES = {
 };
 
 Bun.serve({
+  hostname: LOOPBACK_HOST,
   port: PORT,
   async fetch(req, server) {
+    const rejected = rejectNonLocalRequest(req);
+    if (rejected !== null) return rejected;
+
     const url = new URL(req.url);
 
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
