@@ -8,8 +8,8 @@
     dev/background-tuner.html — Page de tuning des effets de fond (docs/specs/background-standalone.md).
     Aperçu plein écran (même moteur que background.html : background-mount.js) + sidebar rétractable :
     dropdown des effets (BACKGROUND_FIELD_SCHEMAS), formulaire généré, presets nommés.
-    Chaque réglage : rendu local immédiat + POST /state (débounce 150 ms) vers
-    dev/background-state-server.js → l'URL OBS suit en direct.
+    Chaque réglage : rendu local immédiat (brouillon) ; « Publier » envoie l'état par POST /state à
+    dev/background-state-server.js, ce qui met l'URL OBS à jour.
   -->
   <link rel="stylesheet" href="../tokens.css">
   <style>
@@ -349,6 +349,21 @@
       border-bottom: 1px solid var(--color-rule);
     }
     .runtime-row label { margin-top: 0; }
+    #publish-bar {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin: var(--space-sm) 0;
+      padding: var(--space-sm);
+      border: var(--border-rule);
+      border-left: var(--border-gold);
+      border-radius: var(--radius-sm);
+      background: var(--color-bg-panel);
+    }
+    #publish-state { flex: 1; color: var(--color-text-mid); }
+    #publish-bar[data-state="draft"] { border-color: var(--color-gold); }
+    #publish-bar[data-state="draft"] #publish-state { color: var(--color-gold); }
+    #publish-send { border-color: var(--color-gold); color: var(--color-gold); }
     #runtime-status { color: var(--color-text-dim); white-space: nowrap; padding-bottom: 7px; }
 
     .live-readiness {
@@ -479,6 +494,12 @@
         </select>
       </div>
       <span id="runtime-status">FPS —</span>
+    </div>
+
+    <div id="publish-bar" data-state="live" role="status" aria-live="polite">
+      <span id="publish-state">En antenne</span>
+      <button id="publish-discard" type="button" hidden>Annuler</button>
+      <button id="publish-send" type="button" hidden>Publier</button>
     </div>
 
     <details id="live-readiness" class="live-readiness" data-status="idle" aria-live="polite">

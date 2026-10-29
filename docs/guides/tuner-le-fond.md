@@ -19,8 +19,8 @@ Quatre pièces communiquent :
 - `dev/studio.html` — l'entrée de création commune aux fonds et aux scènes complètes.
 - `dev/background-tuner.html` — l'espace de tuning. Aperçu plein écran + barre latérale
   rétractable (liste des effets, paramètres, presets).
-- Le **serveur d'état** (port 5932, lancé automatiquement) — retient le dernier réglage dans
-  `dev/data/background-state.json` et pousse chaque changement en direct vers OBS.
+- Le **serveur d'état** (port 5932, lancé automatiquement) — retient le dernier état publié dans
+  `dev/data/background-state.json` et le pousse vers OBS à chaque **Publier**.
 
 Concrètement : tu bouges un curseur dans le tuner → l'aperçu change immédiatement → OBS suit dans
 la seconde → au prochain démarrage, OBS recharge le dernier état sauvegardé tout seul.
@@ -48,13 +48,16 @@ Ouvrir `http://localhost:5931/dev/studio.html` (s'ouvre aussi automatiquement av
 `http://localhost:5931/dev/background-tuner.html` reste utilisable.
 
 - **La barre latérale se rétracte** avec le bouton `◀` / `▶` sur son bord.
-- **Points de départ** : **Essayer** charge une ambiance sans la sauvegarder ; **Ajouter à mes
+- **Points de départ** : **Essayer** charge une ambiance dans l’aperçu (brouillon, rien n’est envoyé à OBS) ; **Ajouter à mes
   presets** en crée une copie personnelle modifiable.
 - **Recherche** : le champ filtre les points de départ et les presets personnels par nom, effet ou
   tag, sans dépendre des accents ni des majuscules.
 - **Réglages de l’effet** : le menu liste toutes les animations disponibles (+ « (aucun) »). Chaque
   nombre dispose d’un curseur borné, d’une saisie précise et de son unité ; les changements
-  s’appliquent en direct.
+  s’appliquent à l’aperçu et forment un **brouillon**.
+- **Brouillon et antenne** : la barre « En antenne / Brouillon » en haut du panneau dit ce qu’OBS
+  affiche. **Publier** envoie l’aperçu à OBS (la transition du preset essayé est jouée), **Annuler**
+  revient à ce qui est en antenne. Un changement publié ailleurs n’écrase jamais un brouillon.
 - **Mes presets** : **Créer** enregistre le réglage courant ; cliquer sur un preset le recharge
   (OBS suit) ; **URL** copie son adresse dédiée ; `✎` renomme sans casser cette adresse ; `⧉`
   duplique ; `✕` supprime avec confirmation. **Nouveau** quitte le mode de mise à jour du preset

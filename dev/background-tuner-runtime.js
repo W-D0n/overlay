@@ -71,11 +71,20 @@ export async function startBackgroundTuner(environment = {}) {
     presetSave: byId('preset-save'),
     qualitySelect: byId('quality-select'),
     runtimeStatus: byId('runtime-status'),
+    onDraftChange(isDraft) {
+      byId('publish-bar').dataset.state = isDraft ? 'draft' : 'live';
+      byId('publish-state').textContent = isDraft ? 'Brouillon — pas encore en antenne' : 'En antenne';
+      byId('publish-send').hidden = !isDraft;
+      byId('publish-discard').hidden = !isDraft;
+    },
     client,
     report,
     documentRef,
     windowRef,
   });
+
+  byId('publish-send').addEventListener('click', () => preview.publish());
+  byId('publish-discard').addEventListener('click', () => preview.discard());
 
   const presets = createBackgroundPresetController({
     elements: {

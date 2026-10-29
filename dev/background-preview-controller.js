@@ -9,6 +9,7 @@ import {
 } from './component-field-schemas.js';
 import { createBackgroundFieldRenderer } from './background-field-renderer.js';
 import { createBackgroundPreviewSession } from './background-preview-session.js';
+import { createDraftTracker } from './background-draft.js';
 
 const NONE_VALUE = '__none__';
 
@@ -22,6 +23,7 @@ const NONE_VALUE = '__none__';
  *   presetSave: HTMLButtonElement,
  *   qualitySelect: HTMLSelectElement,
  *   runtimeStatus: HTMLElement,
+ *   onDraftChange?: (isDraft: boolean) => void,
  *   client: ReturnType<typeof import('./background-state-client.js').createBackgroundStateClient>,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   documentRef?: Document,
@@ -41,8 +43,8 @@ export function createBackgroundPreviewController(input) {
   input.layer.appendChild(overlay.el);
   const reactions = createReactionCoordinator({ mount, overlay });
   const session = createBackgroundPreviewSession();
+  const draft = createDraftTracker();
   let measuredFps = null;
-  let postTimer = 0;
   let fpsFrames = 0;
   let fpsSince = now();
   let frameId = 0;
@@ -54,30 +56,28 @@ export function createBackgroundPreviewController(input) {
     return option;
   }
 
-  /**
-   * État à publier au prochain envoi. Une arrivée de preset le fixe avec sa `transition` : sans
-   * ça, l'instantané relu au moment de l'envoi l'aurait déjà oubliée et l'URL OBS ne recevrait
-   * jamais l'animation (docs/specs/background-preset-transitions.md).
-   */
-  let pendingCurrent = null;
+  function notifyDraft() {
+    input.onDraftChange?.(draft.isDraft());
+  }
 
+  /**
+   * Publie l'aperçu à l'URL OBS. Une arrivée de preset part avec sa `transition` : sans ça,
+   * l'instantané relu au moment de l'envoi l'aurait déjà oubliée et l'URL OBS ne recevrait jamais
+   * l'animation (docs/specs/background-preset-transitions.md).
+   */
   async function persistNow() {
+    const { current, transition } = session.snapshot();
+    const published = draft.hasArrival() ? { ...current, transition } : current;
     try {
-      await input.client.saveCurrent(pendingCurrent ?? session.snapshot().current);
-      pendingCurrent = null;
+      await input.client.saveCurrent(published);
+      draft.synced(published);
+      notifyDraft();
       input.report.ok();
       return true;
     } catch (error) {
       input.report.error(`state : ${error.message}`);
       return false;
     }
-  }
-
-  /** @param {*} [current] - État à publier tel quel (sinon l'instantané au moment de l'envoi) */
-  function schedulePersist(current = null) {
-    if (current !== null) pendingCurrent = current;
-    windowRef.clearTimeout(postTimer);
-    postTimer = windowRef.setTimeout(persistNow, 150);
   }
 
   /** @type {{ render: (transition: *) => void } | null} */
@@ -91,7 +91,8 @@ export function createBackgroundPreviewController(input) {
     onChange(key, value) {
       const state = session.changeOption(key, value);
       mount.apply(state.current);
-      schedulePersist();
+      draft.edited();
+      notifyDraft();
     },
   });
 
@@ -103,12 +104,18 @@ export function createBackgroundPreviewController(input) {
     fieldRenderer.render(state.current.component, state.current.options);
   }
 
-  function apply(next, presetId = null, persist = false) {
+  /**
+   * @param {*} next
+   * @param {string | null} [presetId]
+   * @param {boolean} [asDraft] Vrai pour un preset essayé : l'aperçu change, l'antenne attend « Publier ».
+   */
+  function apply(next, presetId = null, asDraft = false) {
     const state = session.apply(next, presetId);
     reflect(state, next);
     transitionControls?.render(state.transition);
     brandingControls?.renderShowOnPreset(state.showBranding);
-    if (persist) schedulePersist(state.current);
+    if (asDraft) draft.arrived(); else draft.synced(state.current);
+    notifyDraft();
     return state;
   }
 
@@ -122,7 +129,8 @@ export function createBackgroundPreviewController(input) {
     input.presetName.value = '';
     input.presetTags.value = '';
     reflect(state);
-    schedulePersist();
+    draft.edited();
+    notifyDraft();
   };
 
   const pageParams = new URLSearchParams(windowRef.location.search);
@@ -181,17 +189,19 @@ export function createBackgroundPreviewController(input) {
       return session.changeTransition(patch);
     },
     /**
-     * La visibilité du branding appartient au preset : elle part dans l'état courant tout de suite,
-     * pour que l'URL OBS suive sans attendre un enregistrement de preset.
+     * La visibilité du branding appartient au preset : elle rejoint le brouillon et part avec lui
+     * à la publication, sans attendre un enregistrement de preset.
      * @param {boolean} visible
      */
     changeShowBranding(visible) {
       const state = session.setShowBranding(visible);
-      schedulePersist(state.current);
+      draft.edited();
+      notifyDraft();
       return state;
     },
     /** @param {unknown} next */
     receive(next) {
+      if (!draft.shouldApplyIncoming(next)) return;
       const current = session.snapshot().current;
       if (JSON.stringify(next) === JSON.stringify(current)) return;
       apply(next);
@@ -206,8 +216,15 @@ export function createBackgroundPreviewController(input) {
       return state;
     },
     setPalette: fieldRenderer.setPalette,
+    /** Envoie l'aperçu à l'URL OBS. */
+    publish: persistNow,
     persistNow,
-    schedulePersist,
+    /** Remplace le brouillon par ce qui est en antenne. */
+    discard() {
+      const onAir = draft.published();
+      if (onAir !== null) apply(onAir);
+    },
+    isDraft: draft.isDraft,
     quality,
     runtimeMeasurement() {
       return {
@@ -223,7 +240,6 @@ export function createBackgroundPreviewController(input) {
       input.effectSelect.scrollIntoView({ block: 'center' });
     },
     destroy() {
-      windowRef.clearTimeout(postTimer);
       windowRef.cancelAnimationFrame(frameId);
       documentRef.removeEventListener('visibilitychange', onVisibilityChange);
       overlay.destroy();

@@ -1,6 +1,7 @@
 ---
 feature: background-standalone
 created: 2026-07-14
+updated: 2026-08-24
 status: validated
 ---
 
@@ -119,7 +120,7 @@ Toutes les écritures passent par un `keyed-lock` (clé unique) — même motif 
   `textarea`, `color` et `colors` ; `token` reste disponible pour l'éditeur de scènes historique).
 - Les nombres utilisent les métadonnées `min`, `max`, `step`, `unit`, `control` du `FieldSchema` :
   slider pour le geste et champ numérique pour la précision.
-- Chaque changement : rendu local immédiat + POST `/state` (débounce 150 ms).
+- Chaque changement : rendu local immédiat dans l'aperçu, en **brouillon** (`dev/background-draft.js`) ; POST `/state` uniquement à « Publier ». « Annuler » restaure l'état en antenne.
 - Presets : création/mise à jour avec tags éditables, renommage sans casser l'URL, duplication,
   suppression et copie de l'URL. La recherche couvre nom, effet et tags. Export/import rend la
   bibliothèque personnelle portable ; le plan d'import résume créations, mises à jour, noms
