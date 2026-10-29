@@ -35,19 +35,15 @@
     import { createBrowserAudioSession } from './background-audio.js';
     import { BrandingLayer } from './components/BrandingLayer.js';
     import { BACKGROUND_STATE_PORT } from './ports.config.js';
+    import { parseRenderUrl } from './render-url.js';
+    import { createLocalTransport } from './render-transport.js';
 
-    const searchParams = new URLSearchParams(location.search);
-    const presetRef = searchParams.get('preset');
     // `only` : couche d'identité seule, à poser sur une cam ou un gameplay. `off` : fond seul.
-    const brandingMode = searchParams.get('branding');
+    const { presetRef, branding: brandingMode, transparent } = parseRenderUrl(location.search);
     const brandingOnly = brandingMode === 'only';
 
-    if (searchParams.get('transparent') === '1' || brandingOnly) {
-      document.body.classList.add('transparent');
-    }
+    if (transparent) document.body.classList.add('transparent');
 
-    const STATE_SERVER = `http://localhost:${BACKGROUND_STATE_PORT}`;
-    const WS_STATE_SERVER = `ws://localhost:${BACKGROUND_STATE_PORT}`;
     const bgLayer = document.getElementById('bg-layer');
     // La session audio se resynchronise sur chaque changement d'effet monté : un preset non
     // réactif n'ouvre jamais le micro (docs/specs/background-audio-reactivity.md).
@@ -95,70 +91,34 @@
       }
     }
 
-    async function loadInitialState() {
-      try {
-        const response = await fetch(`${STATE_SERVER}/state`);
-        if (!response.ok) throw new Error(`GET /state → ${response.status}`);
-        const file = await response.json();
+    const transport = createLocalTransport({
+      baseUrl: `http://localhost:${BACKGROUND_STATE_PORT}`,
+      presetRef,
+    });
+
+    transport.subscribe({
+      onState(file) {
         latestBranding = file.branding;
         const selected = selectBackground(file, presetRef);
         if (selected === null) {
           mount.apply({ component: null, options: {} });
-          throw new Error(`preset inconnu : ${presetRef}`);
+          console.error(`[background] preset inconnu : ${presetRef}`);
+          return;
         }
         applySafely(selected);
-      } catch (err) {
-        console.error('[background] chargement de l\'état impossible :', err);
-      }
-    }
-
-    /** Reconnexion avec backoff (1s → 30s max) : OBS peut charger la page avant le serveur. */
-    function connect(delayMs = 1000) {
-      const wsPath = presetRef === null ? 'state-ws' : 'presets-ws';
-      const ws = new WebSocket(`${WS_STATE_SERVER}/${wsPath}`);
-      ws.onopen = () => {
-        delayMs = 1000;
-        loadInitialState(); // resynchronise l'état manqué pendant la déconnexion
-      };
-      ws.onmessage = (event) => {
-        if (presetRef === null) applySafely(JSON.parse(event.data));
-        else {
-          const change = JSON.parse(event.data);
-          if (change.id === presetRef || change.name === presetRef) loadInitialState();
-        }
-      };
-      ws.onclose = () => setTimeout(() => connect(Math.min(delayMs * 2, 30000)), delayMs);
-    }
-
-    /** Contenu du branding : canal séparé, il est global et ne dépend ni du preset ni de l'effet. */
-    function connectBranding(delayMs = 1000) {
-      if (branding === null) return;
-      const ws = new WebSocket(`${WS_STATE_SERVER}/branding-ws`);
-      ws.onopen = () => { delayMs = 1000; };
-      ws.onmessage = (event) => {
-        latestBranding = JSON.parse(event.data);
-        applyBranding();
-      };
-      ws.onclose = () => setTimeout(() => connectBranding(Math.min(delayMs * 2, 30000)), delayMs);
-    }
-
-    /** Réactions : canal séparé, actif quel que soit le mode (courant ou preset). */
-    function connectEvents(delayMs = 1000) {
-      const ws = new WebSocket(`${WS_STATE_SERVER}/event-ws`);
-      ws.onopen = () => { delayMs = 1000; };
-      ws.onmessage = (event) => {
-        try {
-          coordinator.handle(JSON.parse(event.data));
-        } catch (err) {
-          console.error('[background] événement invalide :', err);
-        }
-      };
-      ws.onclose = () => setTimeout(() => connectEvents(Math.min(delayMs * 2, 30000)), delayMs);
-    }
-
-    connect();
-    connectEvents();
-    connectBranding();
+      },
+      onCurrent: applySafely,
+      // Contenu du branding : canal séparé, global, indépendant du preset et de l'effet.
+      ...(branding === null ? {} : {
+        onBranding(next) {
+          latestBranding = next;
+          applyBranding();
+        },
+      }),
+      // Réactions : canal actif quel que soit le mode (courant ou preset).
+      onEvent: coordinator.handle,
+      onError: (err) => console.error('[background] transport :', err),
+    });
   </script>
 </body>
 </html>

@@ -5,7 +5,7 @@ updated: 2026-10-29
 
 # Spec — Socle de rendu : contrat d'URL, transport d'état, horloge unique (étapes 1 et 2)
 
-Statut : **Draft, à valider par l'owner**. Étapes 1 et 2 du chemin de migration de
+Statut : **étape 1 livrée le 2026-10-29** (render-url, render-transport, `background.html` réduit à l'assemblage) ; étape 2 à venir. Emplacement des modules : à plat à la racine, validé (recommandation acceptée). Étapes 1 et 2 du chemin de migration de
 `docs/architecture-review.md` §5, décisions D1 à D6 acceptées. Ces deux étapes sont indépendantes du
 reste du Studio : elles apportent seules de la stabilité et de la maintenabilité, et posent les deux
 briques dont dépendent les couches (étape 4) et la timeline (étape 8).
@@ -70,8 +70,8 @@ Deux adaptateurs (local, cache-enveloppe) rendent le seam réel ; un test de con
 perte puis retour de connexion, événement éphémère jamais mis en cache.
 
 **À mesurer avant d'activer le cache** (jamais supposé) : le stockage d'une Browser Source OBS survit
-à un redémarrage d'OBS, selon « Désactiver la source… » et « Rafraîchir… ». Ajouté au QA court
-(`docs/inbox.md`). Tant que ce n'est pas mesuré, `createCachedTransport` existe mais `background.html`
+à un redémarrage d'OBS, selon « Désactiver la source… » et « Rafraîchir… ». Case 9 du QA court
+(`docs/inbox.md`) ; sonde : `dev/storage-probe.html`. Tant que ce n'est pas mesuré, `createCachedTransport` existe mais `background.html`
 utilise le transport local seul.
 
 ### 1c. Critères de l'étape 1
