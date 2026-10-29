@@ -8,7 +8,8 @@ import { getRenderClock } from '../render-clock.js';
  * `ResizeObserver`, le ratio de pixels, l'abonnement à l'horloge unique (`render-clock.js`) et la
  * destruction. La première frame d'une couche a toujours `dt = 0`. `setAudioLevel` et `trigger`
  * n'existent sur l'instance que si la couche les définit : le montage détecte ces capacités par leur
- * présence.
+ * présence. `destroy` libère ce que la couche détient hors du canvas (minuteurs) ; `extend` ajoute des
+ * méthodes propres à l'effet sur l'instance (ex. `morphTo`).
  *
  * @typedef {{ width: number, height: number }} LayerSize
  * @typedef {import('../render-clock.js').RenderFrame} RenderFrame
@@ -18,6 +19,8 @@ import { getRenderClock } from '../render-clock.js';
  *   update?: (options: unknown) => void,
  *   setAudioLevel?: (levels: import('../audio-levels.js').AudioLevels) => void,
  *   trigger?: (event: any) => void,
+ *   destroy?: () => void,
+ *   extend?: Record<string, (...args: any[]) => any>,
  * }} CanvasLayer
  * @typedef {{
  *   clock?: Pick<ReturnType<typeof import('../render-clock.js').createRenderClock>, 'subscribe' | 'pixelRatio'>,
@@ -28,7 +31,7 @@ import { getRenderClock } from '../render-clock.js';
 
 /**
  * @template {Record<string, any>} [Options=Record<string, any>]
- * @param {(options: Options) => CanvasLayer} create
+ * @param {(options: Options, host: { documentRef: Document }) => CanvasLayer} create
  * @returns {(options?: Options, environment?: CanvasLayerEnvironment) => import('../types.js').ComponentInstance}
  */
 export function defineCanvasLayer(create) {
@@ -37,7 +40,7 @@ export function defineCanvasLayer(create) {
     const documentRef = environment.documentRef ?? document;
     const ResizeObserverImpl = environment.ResizeObserverImpl ?? ResizeObserver;
 
-    const layer = create(options);
+    const layer = create(options, { documentRef });
     const canvas = documentRef.createElement('canvas');
     canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
     const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
@@ -86,8 +89,10 @@ export function defineCanvasLayer(create) {
       destroy() {
         stop();
         observer.disconnect();
+        layer.destroy?.();
       },
     };
+    if (layer.extend !== undefined) Object.assign(instance, layer.extend);
     if (layer.setAudioLevel !== undefined) {
       instance.setAudioLevel = (levels) => layer.setAudioLevel?.(levels);
     }

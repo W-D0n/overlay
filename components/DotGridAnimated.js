@@ -1,7 +1,8 @@
 // @ts-check
 import { simplex2 } from './simplex.js';
 import { resolveColor } from './color-utils.js';
-import { canvasPixelRatio } from './canvas-runtime.js';
+import { defineCanvasLayer } from './canvas-layer.js';
+import { createPhase } from '../render-clock.js';
 
 /** Fréquences de la variabilité de couleur par bruit — indépendantes de `MODE_PARAMS` (opacité)
  * pour éviter que couleur et intensité pulsent en phase. Les deux extrémités de la rampe sont
@@ -245,14 +246,7 @@ export function lerpModeParams(from, to, progress) {
 }
 
 /**
- * Fond grille de points animé — direction artistique Atelier.
- *
- * Couche 1 : oscillation sinusoïdale par point (init aléatoire au chargement).
- * Couche 2 : bruit Simplex 2D ambiant, paramétré par mode scène.
- * Couche 3 : morphisme des paramètres Simplex entre deux modes (`morphTo`). Couche 4 : réactions visuelles aux alertes stream (`trigger`,
- * `docs/specs/dotgrid-event-triggers.md`) + déclenchement `ambient` périodique automatique.
- *
- * @param {{
+ * @typedef {{
  *   mode?: GridMode,
  *   spacing?: number,
  *   dotRadius?: number,
@@ -269,18 +263,18 @@ export function lerpModeParams(from, to, progress) {
  *   reactionIntensity?: number,
  *   audioReactive?: string,
  *   audioIntensity?: number,
- * }} [options]
- * @returns {{
- *   el: HTMLCanvasElement,
- *   setMode: (mode: unknown) => void,
- *   update: (options: unknown) => void,
- *   trigger: (payload: unknown) => void,
- *   setAudioLevel: (levels: import('../audio-levels.js').AudioLevels) => void,
- *   morphTo: (options: { mode: GridMode, duration?: number, easing?: unknown }) => Promise<void>,
- *   destroy: () => void,
- * }}
+ * }} DotGridOptions
  */
-export function DotGridAnimated(options = {}) {
+/**
+ * Fond grille de points animé — direction artistique Atelier.
+ *
+ * Couche 1 : oscillation sinusoïdale par point (init aléatoire au chargement).
+ * Couche 2 : bruit Simplex 2D ambiant, paramétré par mode scène.
+ * Couche 3 : morphisme des paramètres Simplex entre deux modes (`morphTo`). Couche 4 : réactions visuelles aux alertes stream (`trigger`,
+ * `docs/specs/dotgrid-event-triggers.md`) + déclenchement `ambient` périodique automatique.
+ *
+ */
+export const DotGridAnimated = defineCanvasLayer((/** @type {DotGridOptions} */ options = {}, { documentRef }) => {
   let spacing = options.spacing ?? 20;
   let dotRadius = options.dotRadius ?? 2.15;
   let baseOpacity = options.baseOpacity ?? 0.26;
@@ -321,7 +315,7 @@ export function DotGridAnimated(options = {}) {
    * Morph en cours (Couche 3, S9/Track A) — interpole `MODE_PARAMS` de `fromParams` vers
    * `toParams` sur `duration` ms, lu par `tick()` à la place de `MODE_PARAMS[currentMode]`.
    * `null` = pas de morph en cours (comportement Couche 2 inchangé).
-   * @type {{ fromParams: {freqX:number,freqY:number,freqT:number,amplitude:number}, toParams: {freqX:number,freqY:number,freqT:number,amplitude:number}, toMode: GridMode, duration: number, easing: unknown, startTime: number, resolve: () => void } | null}
+   * @type {{ fromParams: {freqX:number,freqY:number,freqT:number,amplitude:number}, toParams: {freqX:number,freqY:number,freqT:number,amplitude:number}, toMode: GridMode, duration: number, easing: unknown, elapsedMs: number, resolve: () => void } | null}
    */
   let morphState = null;
 
@@ -329,7 +323,7 @@ export function DotGridAnimated(options = {}) {
    * Réaction Couche 4 active (alerte stream ou `ambient`) — une seule à la fois, un nouveau
    * déclenchement remplace l'ancienne immédiatement (AC-06, pas de superposition/file d'attente,
    * les alertes sont rares). `null` = pas de réaction, C1+C2 seuls pilotent l'opacité.
-   * @type {{ type: 'follow'|'sub'|'raid'|'bits', startTime: number, duration: number, params: Record<string, *> } | null}
+   * @type {{ type: 'follow'|'sub'|'raid'|'bits', elapsedMs: number, duration: number, params: Record<string, *> } | null}
    */
   let activeReaction = null;
 
@@ -345,7 +339,7 @@ export function DotGridAnimated(options = {}) {
     if (!isValidReactionType(type)) return;
     activeReaction = {
       type,
-      startTime: performance.now(),
+      elapsedMs: 0,
       duration: REACTION_DURATIONS[type],
       params: buildReactionParams(type, cssW, cssH, pointCount),
     };
@@ -365,18 +359,7 @@ export function DotGridAnimated(options = {}) {
   }
   scheduleAutoReaction();
 
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText = [
-    'position: absolute',
-    'inset: 0',
-    'width: 100%',
-    'height: 100%',
-    'pointer-events: none',
-    'z-index: var(--z-bg, 0)',
-  ].join(';');
-
-  const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
-  const glowCanvas = document.createElement('canvas');
+  const glowCanvas = documentRef.createElement('canvas');
   const glowCtx = /** @type {CanvasRenderingContext2D} */ (glowCanvas.getContext('2d'));
   let glowHalfSize = 0;
 
@@ -418,25 +401,19 @@ export function DotGridAnimated(options = {}) {
   // Dimensions courantes en pixels CSS (le ctx est déjà scalé par dpr)
   let cssW = 0;
   let cssH = 0;
-  let rafId = 0;
+
+  /** Temps de pulsation et de flux du bruit, intégrés : changer `pulseSpeed` ou la fréquence d'un mode
+   * (morph) n'affecte que l'avenir. */
+  const pulse = createPhase();
+  const noiseFlow = createPhase();
 
   // ── Resize ────────────────────────────────────────────────────────────────
 
-  function handleResize() {
-    const dpr = canvasPixelRatio();
-    const w   = canvas.offsetWidth;
-    const h   = canvas.offsetHeight;
-
-    // Pas encore dans le DOM ou dimensions nulles
-    if (w === 0 || h === 0) return;
-
-    cssW = w;
-    cssH = h;
-
-    // Réinitialiser le canvas (reset le transform implicitement)
-    canvas.width  = w * dpr;
-    canvas.height = h * dpr;
-    ctx.scale(dpr, dpr);
+  /** Reconstruit les tableaux de points pour la taille courante (`cssW` × `cssH`). */
+  function rebuildPoints() {
+    if (cssW === 0 || cssH === 0) return;
+    const w = cssW;
+    const h = cssH;
 
     // Reconstruire les tableaux de points
     const cols = Math.floor((w - spacing) / spacing) + 1;
@@ -464,25 +441,20 @@ export function DotGridAnimated(options = {}) {
       }
     }
 
-    // Relancer la boucle proprement
-    if (rafId !== 0) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(tick);
   }
 
   // ── Tick (rendu pur, appelé à chaque frame) ───────────────────────────────
 
   /**
-   * @param {number} timestamp - Timestamp rAF en millisecondes
+   * @param {CanvasRenderingContext2D} ctx
+   * @param {import('../render-clock.js').RenderFrame} frame
    */
-  function tick(timestamp) {
-    rafId = requestAnimationFrame(tick);
-
-    ctx.clearRect(0, 0, cssW, cssH);
-
-    const t    = timestamp * 0.001;  // secondes
+  function draw(ctx, { dt, time }) {
+    const pulsePhase = pulse.advance(dt * pulseSpeed);
     let mode = MODE_PARAMS[currentMode];
     if (morphState !== null) {
-      const raw = morphState.duration > 0 ? (timestamp - morphState.startTime) / morphState.duration : 1;
+      morphState.elapsedMs += dt * 1000;
+      const raw = morphState.duration > 0 ? morphState.elapsedMs / morphState.duration : 1;
       const eased = easeProgress(morphState.easing, raw);
       mode = lerpModeParams(morphState.fromParams, morphState.toParams, eased);
       if (raw >= 1) {
@@ -492,6 +464,7 @@ export function DotGridAnimated(options = {}) {
         resolve();
       }
     }
+    const flowT = noiseFlow.advance(dt * mode.freqT);
     const [r, g, b] = colorA;
     const angleRad = angle * Math.PI / 180;
     const angleCos = Math.cos(angleRad);
@@ -502,7 +475,8 @@ export function DotGridAnimated(options = {}) {
     // Couche 4 — réaction active (alerte/ambient), progression [0,1] calculée une fois par frame.
     let reactionProgress = 0;
     if (activeReaction !== null) {
-      reactionProgress = activeReaction.duration > 0 ? (timestamp - activeReaction.startTime) / activeReaction.duration : 1;
+      activeReaction.elapsedMs += dt * 1000;
+      reactionProgress = activeReaction.duration > 0 ? activeReaction.elapsedMs / activeReaction.duration : 1;
       if (reactionProgress >= 1) activeReaction = null;
     }
 
@@ -511,7 +485,7 @@ export function DotGridAnimated(options = {}) {
       const y = pointsY[i];
 
       // Couche 1 — oscillation sinusoïdale individuelle (signée)
-      const c1 = Math.sin(t * speeds[i] * pulseSpeed + phases[i]) * amplitudes[i];
+      const c1 = Math.sin(pulsePhase * speeds[i] + phases[i]) * amplitudes[i];
 
       // Couche 2 — Simplex ambiant, paramétré par mode (signé)
       const centeredX = x - centerX;
@@ -520,7 +494,7 @@ export function DotGridAnimated(options = {}) {
       const noiseY = centeredX * angleSin + centeredY * angleCos;
       const c2 = simplex2(
         noiseX * mode.freqX,
-        noiseY * mode.freqY + t * mode.freqT,
+        noiseY * mode.freqY + flowT,
       ) * mode.amplitude;
 
       // Couche 4 — boost d'opacité de la réaction active, le cas échéant
@@ -537,7 +511,7 @@ export function DotGridAnimated(options = {}) {
       if (colorMode === 'noise') {
         const deg = simplex2(
           x * COLOR_NOISE_FREQ,
-          y * COLOR_NOISE_FREQ + t * COLOR_NOISE_TIME_FREQ,
+          y * COLOR_NOISE_FREQ + time * COLOR_NOISE_TIME_FREQ,
         ) * COLOR_NOISE_STEPS;
         const [nr, ng, nb] = colorLUT[degToLUTIndex(deg, COLOR_NOISE_STEPS)];
         ctx.fillStyle = `rgba(${nr},${ng},${nb},${opacity.toFixed(3)})`;
@@ -555,16 +529,9 @@ export function DotGridAnimated(options = {}) {
     }
   }
 
-  // ── Observer ──────────────────────────────────────────────────────────────
-
-  const observer = new ResizeObserver(handleResize);
-  observer.observe(canvas);
-
   // ── Interface publique ────────────────────────────────────────────────────
 
-  return {
-    el: canvas,
-
+  const methods = {
     /**
      * Changer le mode ambiant (swap instantané des paramètres Simplex). Mode invalide/absent →
      * repli interne sur `DEFAULT_MODE` (AD-B4, `docs/specs/background-effects-library.md`) —
@@ -593,7 +560,7 @@ export function DotGridAnimated(options = {}) {
       let glowStale = false;
       let scheduleStale = false;
 
-      if ('mode' in opts) this.setMode(opts.mode);
+      if ('mode' in opts) methods.setMode(opts.mode);
       if (opts.colorMode === 'flat' || opts.colorMode === 'noise' || opts.colorMode === 'glow') {
         colorMode = opts.colorMode;
       }
@@ -650,7 +617,7 @@ export function DotGridAnimated(options = {}) {
 
       if (colorsStale) colorLUT = buildColorRamp(colorA, colorB, COLOR_NOISE_STEPS);
       if (glowStale) rebuildGlowSprite();
-      if (layoutStale) handleResize();
+      if (layoutStale) rebuildPoints();
       if (scheduleStale) scheduleAutoReaction();
     },
 
@@ -692,14 +659,26 @@ export function DotGridAnimated(options = {}) {
       const fromParams = { ...MODE_PARAMS[currentMode] };
       const toParams = MODE_PARAMS[targetMode];
       return new Promise((resolve) => {
-        morphState = { fromParams, toParams, toMode: targetMode, duration, easing: options.easing, startTime: performance.now(), resolve };
+        morphState = { fromParams, toParams, toMode: targetMode, duration, easing: options.easing, elapsedMs: 0, resolve };
       });
     },
 
     destroy() {
-      cancelAnimationFrame(rafId);
       clearTimeout(ambientTimerId);
-      observer.disconnect();
     },
   };
-}
+
+  return {
+    resize(area) {
+      cssW = area.width;
+      cssH = area.height;
+      rebuildPoints();
+    },
+    draw,
+    update: methods.update,
+    trigger: methods.trigger,
+    setAudioLevel: methods.setAudioLevel,
+    destroy: methods.destroy,
+    extend: { setMode: methods.setMode, morphTo: methods.morphTo },
+  };
+});

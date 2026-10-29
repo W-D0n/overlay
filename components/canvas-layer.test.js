@@ -116,6 +116,19 @@ describe('squelette de couche canvas', () => {
     expect(harness.observers[0].disconnected).toBe(true);
   });
 
+  test('destroy appelle le destroy de la couche, extend ajoute des méthodes à l’instance', () => {
+    const harness = createHarness();
+    const log = [];
+    const instance = defineCanvasLayer(() => ({
+      resize() {}, draw() {},
+      destroy: () => log.push('destroyed'),
+      extend: { morphTo: (options) => log.push(['morphTo', options]) },
+    }))({}, harness.environment);
+    instance.morphTo({ mode: 'react' });
+    instance.destroy();
+    expect(log).toEqual([['morphTo', { mode: 'react' }], 'destroyed']);
+  });
+
   test('une couche dont draw lève est isolée : une autre couche continue', () => {
     const harness = createHarness();
     const healthy = [];

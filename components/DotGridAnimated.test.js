@@ -1,9 +1,7 @@
 // @ts-check
 /**
- * components/DotGridAnimated.test.js — Tests de la logique pure de `morphTo` (Track A / A3).
- * Bun n'a pas de DOM (`document` indéfini) : `DotGridAnimated()` crée un canvas et n'est donc
- * pas instanciable ici (AD-1, même limite que components/index.test.js). Seuls les helpers purs
- * importés directement (sans appeler la factory) sont testés.
+ * components/DotGridAnimated.test.js — Helpers purs (morph, réactions, rampe de couleur) et temps de pulsation.
+ * L'effet lui-même s'instancie avec le banc `layer-test-harness.js` (horloge et canvas factices).
  */
 import { test, expect } from 'bun:test';
 import {
@@ -136,4 +134,29 @@ test('reactionDelta bits → seuls les points dans indices reçoivent un boost',
   expect(reactionDelta(reaction, 2, 0, 0, 1920, 1080, 0.5)).toBeGreaterThan(0);
   expect(reactionDelta(reaction, 5, 0, 0, 1920, 1080, 0.5)).toBeGreaterThan(0);
   expect(reactionDelta(reaction, 3, 0, 0, 1920, 1080, 0.5)).toBe(0);
+});
+
+import { afterEach as afterEachPulse, test as testPulse, expect as expectPulse } from 'bun:test';
+import { DotGridAnimated } from './DotGridAnimated.js';
+import { createLayerHarness } from './layer-test-harness.js';
+
+const PULSE_ORIGINALS = { document: globalThis.document, getComputedStyle: globalThis.getComputedStyle };
+afterEachPulse(() => {
+  globalThis.document = PULSE_ORIGINALS.document;
+  globalThis.getComputedStyle = PULSE_ORIGINALS.getComputedStyle;
+});
+
+testPulse('[A2] changer pulseSpeed en cours de route ne fait pas sauter l’opacité des points : seul l’avenir change', () => {
+  globalThis.document = /** @type {*} */ ({ createElement: () => ({ style: {}, remove() {} }), body: { appendChild() {} } });
+  globalThis.getComputedStyle = /** @type {*} */ (() => ({ color: 'rgb(200, 185, 122)' }));
+  const harness = createLayerHarness({ width: 400, height: 300 });
+  const instance = DotGridAnimated({ reactionMode: 'none', pulseSpeed: 1 }, harness.environment);
+  const firstAlpha = (calls) => Number(/,([0-9.]+)\)$/.exec(calls.find(([name, key]) => name === 'set' && key === 'fillStyle')[2])[1]);
+
+  let previous = 0;
+  for (let frame = 0; frame < 300; frame += 1) previous = firstAlpha(harness.tick(frame * 16.7));
+  instance.update?.({ pulseSpeed: 2 });
+  const after = firstAlpha(harness.tick(300 * 16.7));
+  // Au plus : amplitude 0,18 × vitesse 1,1 × pulseSpeed 2 × 16,7 ms ≈ 0,007 ; l'ancien calcul sautait de plusieurs centièmes.
+  expectPulse(Math.abs(after - previous)).toBeLessThan(0.02);
 });

@@ -12,7 +12,10 @@ export function createLayerHarness({ width = 1920, height = 1080 } = {}) {
   /** @type {any[][]} */
   let calls = [];
   const ctx = new Proxy({}, {
-    get: (_, name) => (/** @type {any[]} */ ...args) => { calls.push([String(name), ...args]); },
+    get: (_, name) => (/** @type {any[]} */ ...args) => {
+      calls.push([String(name), ...args]);
+      return String(name).startsWith('create') && String(name).endsWith('Gradient') ? { addColorStop() {} } : undefined;
+    },
     set: (_, name, value) => { calls.push(['set', String(name), value]); return true; },
   });
   const canvas = { style: {}, offsetWidth: width, offsetHeight: height, width: 0, height: 0, getContext: () => ctx };
