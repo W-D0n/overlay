@@ -18,9 +18,7 @@ const COLOR_NOISE_STEPS = 64;
  * Paramètres Simplex (Couche 2) par mode scène.
  * Retuning S3b (2026-07-03, feedback owner : fond trop peu visible / animation trop lente) —
  * `freqT` et `amplitude` augmentés ~1.5-2× par mode vs. HANDOFF juin 2026, écarts relatifs
- * conservés entre scènes calmes (`codage`) et dynamiques (`react`). Exporté (mutable) pour
- * `dev/dotgrid-tuner.html` — seul consommateur externe légitime, aucun autre fichier ne doit
- * muter cet objet directement.
+ * conservés entre scènes calmes (`codage`) et dynamiques (`react`).
  *
  * @type {Record<GridMode, { freqX: number, freqY: number, freqT: number, amplitude: number }>}
  */

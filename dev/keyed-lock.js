@@ -7,8 +7,7 @@
  * qui traverse un `await` (lecture disque) peut être interléavé par une autre requête sur la MÊME
  * ressource. Une chaîne de promesses par clé résout ça sans verrou fichier.
  *
- * Deux écrivains actuels : `dev/data/background-state.json` (background-state-server.js) et
- * `components/DotGridAnimated.js` (tuner-server.js).
+ * Écrivain actuel : `dev/data/background-state.json` (background-state-server.js).
  *
  * Ne protège PAS deux process Bun distincts écrivant le même fichier — pour ce cas, la solution est
  * un unique process propriétaire de la ressource, pas ce module.

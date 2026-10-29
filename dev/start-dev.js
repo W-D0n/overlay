@@ -3,8 +3,7 @@
  * dev/start-dev.js — Lance les serveurs de dev en un seul process (remplace l'ancien
  * start-dev.bat multi-fenêtres, 2026-07-05).
  *
- * Lance le Studio, seule surface de création depuis l'archivage du moteur de scènes. Le tuner
- * DotGrid qui réécrit le code source reste optionnel et se lance séparément. Le live utilise `start-stream.js`, volontairement plus réduit.
+ * Lance le Studio, seule surface de création depuis l'archivage du moteur de scènes. Le live utilise `start-stream.js`, volontairement plus réduit.
  *
  * Un seul terminal, sortie préfixée par serveur, tous les enfants tués proprement à la fermeture
  * (Ctrl+C). L'ancien script (`start "titre" cmd /k ...` multi-fenêtres) ouvrait des fenêtres

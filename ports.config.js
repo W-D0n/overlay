@@ -15,7 +15,7 @@
  *   module partagé du projet.
  * - `.claude/launch.json` (JSON, ne peut pas importer) et les docs en prose (README, guides,
  *   specs) restent à resynchroniser à la main si ces valeurs changent — recherche "STATIC_PORT",
- *   "BACKGROUND_STATE_PORT" ou "TUNER_PORT" pour les retrouver toutes.
+ *   "BACKGROUND_STATE_PORT" pour les retrouver toutes.
  */
 
 /** Port du serveur de fichiers statiques (Studio, tuner, `background.html`). */
@@ -23,6 +23,3 @@ export const STATIC_PORT = 5931;
 
 /** Port du serveur d'état du fond (`dev/background-state-server.js`). */
 export const BACKGROUND_STATE_PORT = 5932;
-
-/** Port du serveur d'écriture du tuner DotGrid legacy (`dev/tuner-server.js`, outil optionnel). */
-export const TUNER_PORT = 4458;
