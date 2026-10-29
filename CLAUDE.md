@@ -57,6 +57,9 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 - `layer-kinds.js` / `component-registry.js` — description (identifiants, libellés, capacités, champs) et fabriques des effets de fond
 - `dev/component-field-schemas.js` — vue « formulaire » de `layer-kinds.js` pour le tuner
 - Le **format d'état du fond** — spécifié dans `docs/specs/background-standalone.md`
+- Le **cycle de vie des serveurs** — `dev/start-stream.js`, `dev/supervisor.js`, `dev/stop-servers.js`, `dev/kill-servers.js`,
+  routes `/control/*` du serveur d'état : tout changement passe `dev/lifecycle.test.js` (vrais processus, ports d'essai
+  attribués par le système, jamais 5931/5932). Une doublure ne prouve pas qu'un port est libéré.
 
 Modifier l'une de ces surfaces impacte tous les effets : vérifier en aval avant d'éditer.
 
