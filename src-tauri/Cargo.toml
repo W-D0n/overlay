@@ -1,0 +1,20 @@
+[package]
+name = "overlay-studio"
+version = "0.1.0"
+edition = "2021"
+
+# Coquille : lance et arrête `bun dev/start-stream.js`, ouvre dev/studio.html (docs/specs/controle-processus.md).
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+tauri-plugin-autostart = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "overlay-studio"
+path = "src/main.rs"

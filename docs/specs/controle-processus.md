@@ -5,7 +5,7 @@ updated: 2026-10-30
 
 # Spec — Démarrer, redémarrer, arrêter les serveurs depuis le produit
 
-Statut : **D1 tranchée le 2026-10-30 : une application (coquille Tauri) qui lance et arrête les serveurs ; C1, C2, C3, C4 (kill) et C5 livrés ; reste la coquille Tauri.** Besoin (owner, 2026-10-30) : les scripts lancés à la
+Statut : **D1 tranchée le 2026-10-30 : une application (coquille Tauri) qui lance et arrête les serveurs ; C1, C2, C3, C4 (kill) et C5 livrés ; coquille Tauri livrée (phase « Bun présent »), reste la bascule « démarrer avec Windows » à éprouver par un clic.** Besoin (owner, 2026-10-30) : les scripts lancés à la
 main (`start-stream.bat`, `kill-servers.bat`) doivent devenir des fonctions du produit.
 
 ## Ce qui est possible, et la limite
@@ -67,8 +67,15 @@ depuis le lanceur ou la coquille (D1).
    et d'une autre origine) et preuve de bout en bout (les deux PID changent au redémarrage, zéro port à l'arrêt).
 2. **C4 — partiellement livré** : `kill-servers` demande l'arrêt au lanceur avant de tuer (`dev/stop-servers.js`) ; l'invite « remplacer l'instance ? » au lancement de `start-stream` reste à faire.
 3. **C5 + C3 — livré** : menu « Serveurs » du Studio (Redémarrer / Arrêter), confirmation qui nomme la source OBS connectée ; vérifié de bout en bout (les deux PID changent au redémarrage, zéro port après l'arrêt).
-4. **Coquille Tauri** : lance `start-stream`, arrête à la fermeture, bascule « démarrer avec Windows » (désactivée
-   par défaut), menu Redémarrer / Arrêter, instance unique (déjà en place).
+4. **Coquille Tauri — livrée** (`src-tauri/`) : lance `bun dev/start-stream.js` à l'ouverture, ouvre le Studio, arrête le
+   lanceur et ses enfants à la fermeture, s'attache sans rien arrêter si les serveurs tournent déjà, instance unique.
+   Menu Application > « Lancer au démarrage de Windows », décoché par défaut (valeur `Run` absente du registre à
+   l'installation). Ports : `STATIC_PORT` / `BACKGROUND_STATE_PORT`, sinon `ports.config.js`. Redémarrer / Arrêter
+   restent dans le menu « Serveurs » du Studio. Non éprouvé : le clic sur la case de démarrage Windows, et un exécutable
+   sans Bun (phase 2 de `zero-install-local-first.md`).
+5. **Garde de cycle de vie — livrée** : `dev/lifecycle.test.js` lance de vrais serveurs supervisés sur des ports d'essai et
+   vérifie que `kill-servers` libère les ports même quand un serveur tué à la main a été relancé, et que `/control/*`
+   change les processus puis libère les ports. Vu rouge avec l'ancien comportement (tuer les enfants seulement).
 
 ## Critères de succès (observés)
 
