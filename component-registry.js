@@ -2,7 +2,7 @@
 /**
  * component-registry.js — identifiant de type de couche → factory d'effet de fond.
  *
- * Map résolue par `background-mount.js` au montage de l'effet courant, pour l'URL OBS
+ * Map résolue par `scene-runtime.js` au montage de chaque couche, pour l'URL OBS
  * (`background.html`) comme pour l'aperçu du Studio. `DotGridBackground` reste l'alias de
  * `DotGridAnimated`, seul effet à exposer une réaction native (`trigger()`).
  *

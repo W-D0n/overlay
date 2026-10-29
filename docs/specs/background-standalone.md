@@ -31,7 +31,7 @@ Décisions validées (AskUserQuestion, 2026-07-14) :
 | Fichier | Rôle |
 |---|---|
 | `background.html` (racine) | URL OBS. `#bg-layer` épouse la taille de la Browser Source, `pointer-events: none`. Charge l'état courant (GET), s'abonne au WS, applique les changements live. Serveur absent au démarrage → page vide ; coupure après chargement → dernier rendu valide conservé ; reconnexion avec backoff dans les deux cas. |
-| `background-mount.js` (racine) | Module partagé : applique un état `{ component, options }` sur un conteneur. Même composant → `update(options)` ; composant différent ou `null` → `destroy()` + remontage. `setPaused(true)` démonte le rendu tout en mémorisant le dernier état. |
+| `scene-runtime.js` (racine) | Module partagé : monte une scène (`scene-doc.js`, `sceneFromCurrent` pour l'état `{ component, options }`) sur un conteneur. Même couche et même type → `update(options)` ; type changé → remplacement de cette couche ; scène sans couche → démontage ; scène porteuse d'une `transition` → arrivée animée. `setPaused(true)` démonte le rendu tout en mémorisant la dernière scène. |
 | `background-selection.js` (racine) | Résout soit l'état courant, soit un preset fixé par `?preset=...`, et construit les URL OBS dédiées. Logique pure testée. |
 | `dev/background-state-format.js` | Logique pure : validation, migration des anciens presets, identifiants stables, création/mise à jour/renommage/duplication/suppression. Testée (`.test.js`). |
 | `dev/background-preset-library.js` | Recherche commune, format d'échange versionné et fusion atomique des imports. Logique pure testée. |
@@ -171,8 +171,8 @@ toucher à `background.html`, au tuner ni au serveur. Détail pas-à-pas (y comp
 ## Tests
 
 `dev/background-state-format.test.js` couvre validation, migration, collisions d'identifiants,
-création/mise à jour, renommage, duplication, suppression et non-mutation. `background-mount.test.js`
-couvre pause/reprise ; `components/canvas-runtime.test.js` couvre les deux profils DPR ;
+création/mise à jour, renommage, duplication, suppression et non-mutation. `scene-runtime.test.js` et
+`scene-runtime.behaviour.test.js` couvrent réconciliation, transitions, routage audio/réactions et pause/reprise ; `components/canvas-runtime.test.js` couvre les deux profils DPR ;
 `dev/builtin-background-presets.test.js` valide les points de départ intégrés ;
 `dev/background-preset-library.test.js` couvre recherche, échange versionné, rejet atomique,
 création, mise à jour, renommage, conflit, absence de changement et fusion sans écrasement.

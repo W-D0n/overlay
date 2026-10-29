@@ -113,10 +113,14 @@ Le branding reste une surcouche globale (état séparé, `showBranding` par scè
    3 passes ; sans couche 296 000) : 1 couche 100 000, 3 couches 86 500, 8 couches 62 000. Une couche de plus coûte peu devant
    la première ; hypothèse : la borne de 8 tient. Ce n'est pas le CPU d'OBS (CEF) : votre protocole habituel reste le critère
    avant l'éditeur multi-couches.
-4. **4d** Transitions de scène ; bascule de `background.html` et du Studio sur le moteur ; retrait de
-   `background-mount.js`. **Sonde d'équivalence** : pour chaque effet et chaque preset intégré, le DOM et la
-   suite d'appels de dessin produits par l'ancien montage et par le moteur sont identiques (méthode déjà utilisée
-   à l'étape 2, avec cas rouge vu).
+4. **4d — livré** : le moteur reprend du montage d'un effet seul les transitions (arrivée = scène porteuse d'une `transition`,
+   superposée à l'ancienne puis retirée), la pause, la notification, le routage audio et réactions par capacités ; `background.html`,
+   l'aperçu du Studio et les vignettes montent par `createSceneRuntime` + `sceneFromCurrent` ; `background-mount.js` est retiré.
+   Les 28 tests de l'ancien montage sont repris tels quels sur le moteur (26 sans modification, 2 dont seul l'ordre d'insertion
+   des calques change). **Sonde d'équivalence** (navigateur, horloge pilotée à la main, graine aléatoire fixe, 45 images) : les
+   11 types de couche et les 5 presets intégrés produisent un DOM et des pixels identiques entre l'ancien montage et le
+   moteur, à 1920×1080 et 2560×1440 (16 cas sur 16 ; régression réinjectée détectée 16 fois sur 16). Comportement conservé :
+   un état qu'aucune couche ne peut afficher (effet inconnu) laisse le fond en place.
 5. **4e** Routage audio et réactions par capacités ; test de contrat : une scène à trois couches reçoit
    **un seul** dessin de réaction.
 6. **4f** `?scene=` (synonyme), documentation, `CLAUDE.md` (surfaces partagées : `scene-doc.js`).

@@ -1,5 +1,6 @@
 // @ts-check
-import { createBackgroundMount } from '../background-mount.js';
+import { createSceneRuntime } from '../scene-runtime.js';
+import { sceneFromCurrent } from '../scene-doc.js';
 import { createThumbnailQueue } from './thumbnail-queue.js';
 import { STAGE_HEIGHT, STAGE_WIDTH } from './preview-stage.js';
 
@@ -107,7 +108,7 @@ export function createPresetThumbnail(input) {
   el.appendChild(stage);
   el.dataset.state = 'pending';
 
-  /** @type {ReturnType<typeof createBackgroundMount> | null} */
+  /** @type {ReturnType<typeof createSceneRuntime> | null} */
   let liveMount = null;
   let destroyed = false;
 
@@ -119,8 +120,8 @@ export function createPresetThumbnail(input) {
 
   function mountLive() {
     if (destroyed || liveMount !== null) return;
-    liveMount = createBackgroundMount(stage);
-    liveMount.apply({ component: input.preset.component, options: input.preset.options });
+    liveMount = createSceneRuntime(stage);
+    liveMount.apply(sceneFromCurrent({ component: input.preset.component, options: input.preset.options }));
     el.dataset.live = 'true';
   }
 
@@ -135,8 +136,8 @@ export function createPresetThumbnail(input) {
 
   async function captureStill() {
     if (destroyed) return;
-    const mount = createBackgroundMount(stage);
-    mount.apply({ component: input.preset.component, options: input.preset.options });
+    const mount = createSceneRuntime(stage);
+    mount.apply(sceneFromCurrent({ component: input.preset.component, options: input.preset.options }));
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
       await delay(WARMUP_MS);

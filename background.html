@@ -28,7 +28,8 @@
   <div id="bg-layer"></div>
 
   <script type="module">
-    import { createBackgroundMount } from './background-mount.js';
+    import { createSceneRuntime } from './scene-runtime.js';
+    import { sceneFromCurrent } from './scene-doc.js';
     import { selectBackground } from './background-selection.js';
     import { ReactionOverlay } from './components/ReactionOverlay.js';
     import { createReactionCoordinator } from './background-reactions.js';
@@ -48,7 +49,7 @@
     // La session audio se resynchronise sur chaque changement d'effet monté : un preset non
     // réactif n'ouvre jamais le micro (docs/specs/background-audio-reactivity.md).
     let audio = null;
-    const mount = createBackgroundMount(bgLayer, { onMountChange: () => audio?.sync() });
+    const mount = createSceneRuntime(bgLayer, { onMountChange: () => audio?.sync() });
     audio = createBrowserAudioSession({ mount });
     audio.sync();
     mount.setPaused(document.hidden);
@@ -83,10 +84,10 @@
       latestCurrent = current;
       applyBranding();
       try {
-        if (!brandingOnly) mount.apply(current);
+        if (!brandingOnly) mount.apply(sceneFromCurrent(current));
       } catch (err) {
-        // Effet inconnu (état plus récent que le code chargé par OBS) : on garde l'effet en
-        // place plutôt qu'un écran vide en live, et on trace pour diagnostic.
+        // État illisible : on garde le fond en place plutôt qu'un écran vide en live, et on trace
+        // pour diagnostic. Un effet inconnu est déjà géré par le moteur de scène (couche signalée, fond conservé).
         console.error('[background] état non applicable :', err);
       }
     }
@@ -101,7 +102,7 @@
         latestBranding = file.branding;
         const selected = selectBackground(file, presetRef);
         if (selected === null) {
-          mount.apply({ component: null, options: {} });
+          mount.apply(sceneFromCurrent({ component: null, options: {} }));
           console.error(`[background] preset inconnu : ${presetRef}`);
           return;
         }

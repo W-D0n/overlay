@@ -1,7 +1,6 @@
 {
   "audio-levels.js": 3,
   "background-audio.js": 3,
-  "background-mount.js": 9,
   "background-transition.js": 2,
   "components/GeometricPatternBackground.js": 1,
   "components/ShapeMorphBackground.js": 3,

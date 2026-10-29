@@ -1,14 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import { createSceneRuntime } from './scene-runtime.js';
 import { sceneFromCurrent } from './scene-doc.js';
-import { isAudioOn, resolveKindId } from './layer-kinds.js';
+import { resolveKindId } from './layer-kinds.js';
 
-// Ces tests sont ceux de l'ancien montage d'un effet seul, repris tels quels : le moteur de scène doit tenir
-// chaque comportement qu'il remplace. L'adaptateur traduit l'ancien vocabulaire (état `{ component, options }`,
-// un calque par effet) vers le moteur (scène à une couche, calque de scène + calque de couche).
-const isAudioEnabled = (options) => isAudioOn(options?.audioReactive);
+// Comportements d'un fond d'un seul effet, exprimés avec l'état `{ component, options }` que diffuse le serveur : le
+// moteur de scène doit les tenir. L'adaptateur traduit cet état en scène à une couche (`sceneFromCurrent`) ; le calque
+// fourni par `createLayer` est le calque de scène, celui d'une transition.
 
-function createBackgroundMount(container, options = {}) {
+function createSceneMount(container, options = {}) {
   const registry = Object.fromEntries(Object.entries(options.registry ?? {}).map(([name, factory]) => [resolveKindId(name) ?? name, factory]));
   const runtime = createSceneRuntime(container, {
     registry,
@@ -77,14 +76,14 @@ function setup() {
   };
   return {
     events,
-    mount: createBackgroundMount(/** @type {*} */ (container), {
+    mount: createSceneMount(/** @type {*} */ (container), {
       registry: /** @type {*} */ (registry),
       createLayer: trackingLayer,
     }),
   };
 }
 
-describe('background mount lifecycle', () => {
+describe('scene-runtime : cycle de vie', () => {
   test('pausing unmounts the effect and applying while paused only remembers the latest state', () => {
     const { events, mount } = setup();
     mount.apply({ component: 'RainBackground', options: { speed: 1 } });
@@ -105,7 +104,7 @@ describe('background mount lifecycle', () => {
   });
 });
 
-describe('background mount react routing', () => {
+describe('scene-runtime : routage des réactions', () => {
   test('react retourne true et appelle trigger quand l’effet l’expose', () => {
     const calls = [];
     const container = { appendChild: () => {} };
@@ -115,7 +114,7 @@ describe('background mount react routing', () => {
         trigger: (event) => calls.push(event.type),
       }),
     };
-    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
+    const mount = createSceneMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
     mount.apply({ component: 'DotGridBackground', options: {} });
     expect(mount.react({ type: 'raid' })).toBe(true);
     expect(calls).toEqual(['raid']);
@@ -124,25 +123,25 @@ describe('background mount react routing', () => {
   test('react retourne false quand l’effet n’expose pas trigger', () => {
     const container = { appendChild: () => {} };
     const registry = { RainBackground: () => ({ el: { name: 'rain', remove: () => {} } }) };
-    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
+    const mount = createSceneMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
     mount.apply({ component: 'RainBackground', options: {} });
     expect(mount.react({ type: 'raid' })).toBe(false);
   });
 
   test('react retourne false quand rien n’est monté', () => {
     const container = { appendChild: () => {} };
-    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ ({}), createLayer: fakeLayer });
+    const mount = createSceneMount(/** @type {*} */ (container), { registry: /** @type {*} */ ({}), createLayer: fakeLayer });
     expect(mount.react({ type: 'raid' })).toBe(false);
   });
 });
 
-describe('background mount audio routing', () => {
+describe('scene-runtime : routage audio', () => {
   const levels = { level: 0.5, bass: 0.4, mid: 0.3, treble: 0.2 };
 
   function mountWith(instance, options = { audioReactive: 'Oui' }, capabilitiesOf = undefined) {
     const container = { appendChild: () => {} };
     const registry = { RainBackground: () => instance };
-    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer, capabilitiesOf });
+    const mount = createSceneMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer, capabilitiesOf });
     mount.apply({ component: 'RainBackground', options });
     return mount;
   }
@@ -170,7 +169,7 @@ describe('background mount audio routing', () => {
 
   test('applyAudio ne fait rien quand rien n’est monté', () => {
     const container = { appendChild: () => {} };
-    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ ({}), createLayer: fakeLayer });
+    const mount = createSceneMount(/** @type {*} */ (container), { registry: /** @type {*} */ ({}), createLayer: fakeLayer });
     expect(mount.isAudioReactive()).toBe(false);
     expect(mount.applyAudio(levels)).toBe(false);
   });
@@ -195,7 +194,7 @@ describe('background mount audio routing', () => {
     };
     const container = { appendChild: () => {} };
     const registry = { RainBackground: () => instance };
-    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
+    const mount = createSceneMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
     mount.apply({ component: 'RainBackground', options: { audioReactive: 'Non' } });
     expect(mount.isAudioReactive()).toBe(false);
     mount.apply({ component: 'RainBackground', options: { audioReactive: 'Oui' } });
@@ -214,12 +213,12 @@ describe('background mount audio routing', () => {
   });
 });
 
-describe('background mount change notification', () => {
+describe('scene-runtime : notification de changement', () => {
   test('chaque changement d’effet monté notifie l’observateur', () => {
     let notifications = 0;
     const container = { appendChild: () => {} };
     const registry = { RainBackground: () => ({ el: { name: 'rain', remove: () => {} } }) };
-    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), onMountChange: () => { notifications += 1; }, createLayer: fakeLayer });
+    const mount = createSceneMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), onMountChange: () => { notifications += 1; }, createLayer: fakeLayer });
     mount.apply({ component: 'RainBackground', options: {} });
     mount.setPaused(true);
     mount.setPaused(false);
@@ -230,13 +229,13 @@ describe('background mount change notification', () => {
   test('une pause identique ne notifie pas deux fois', () => {
     let notifications = 0;
     const container = { appendChild: () => {} };
-    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ ({}), onMountChange: () => { notifications += 1; }, createLayer: fakeLayer });
+    const mount = createSceneMount(/** @type {*} */ (container), { registry: /** @type {*} */ ({}), onMountChange: () => { notifications += 1; }, createLayer: fakeLayer });
     mount.setPaused(false);
     expect(notifications).toBe(0);
   });
 });
 
-describe('background mount transitions', () => {
+describe('scene-runtime : transitions', () => {
   function transitionSetup() {
     const created = [];
     const container = { appendChild: () => {} };
@@ -268,7 +267,7 @@ describe('background mount transitions', () => {
     };
     const scheduler = manualScheduler();
     const layers = [];
-    const mount = createBackgroundMount(/** @type {*} */ (container), {
+    const mount = createSceneMount(/** @type {*} */ (container), {
       registry: /** @type {*} */ (registry),
       createLayer: () => { const layer = fakeLayer(); layers.push(layer); return layer; },
       scheduleFrame: scheduler.scheduleFrame,
@@ -452,21 +451,12 @@ describe('background mount transitions', () => {
   });
 });
 
-describe('isAudioEnabled', () => {
-  test('le booléen true et l’ancien libellé « Oui » activent la réactivité, le reste non', () => {
-    expect(isAudioEnabled({ audioReactive: true })).toBe(true);
-    expect(isAudioEnabled({ audioReactive: 'Oui' })).toBe(true);
-    for (const value of [false, 'Non', undefined, 1]) expect(isAudioEnabled({ audioReactive: value })).toBe(false);
-    expect(isAudioEnabled(undefined)).toBe(false);
-  });
-});
-
 describe('identifiants neutres', () => {
   test('un état à identifiant neutre monte la fabrique de ce nom, et l’ancien nom monte la même', () => {
     const created = [];
     const registry = { rain: () => { created.push('rain'); return { el: { name: 'rain', remove: () => {} } }; } };
     const container = { appendChild: () => {} };
-    const mount = createBackgroundMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
+    const mount = createSceneMount(/** @type {*} */ (container), { registry: /** @type {*} */ (registry), createLayer: fakeLayer });
     mount.apply({ component: 'rain', options: {} });
     mount.apply({ component: null, options: {} });
     mount.apply({ component: 'RainBackground', options: {} });

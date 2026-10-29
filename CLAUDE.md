@@ -55,6 +55,8 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 - `tokens.css` — touché par tous les effets et toutes les surfaces de dev
 - `types.js` — types JSDoc partagés
 - `layer-kinds.js` / `component-registry.js` — description (identifiants, libellés, capacités, champs) et fabriques des effets de fond
+- `scene-doc.js` / `scene-runtime.js` — le document de scène (couches, placement en fractions, chemins) et le moteur qui le monte
+  (réconciliation, transitions, routage audio et réactions) : consommés par `background.html`, l'aperçu du Studio et les vignettes
 - `dev/component-field-schemas.js` — vue « formulaire » de `layer-kinds.js` pour le tuner
 - Le **format d'état du fond** — spécifié dans `docs/specs/background-standalone.md`
 - Le **cycle de vie des serveurs** — `dev/start-stream.js`, `dev/supervisor.js`, `dev/stop-servers.js`, `dev/kill-servers.js`,

@@ -29,7 +29,7 @@ export function MonComposant(options = {}) {
 }
 ```
 
-Aucune de ces méthodes optionnelles n'est obligatoire — `background-mount.js` vérifie leur présence
+Aucune de ces méthodes optionnelles n'est obligatoire — `scene-runtime.js` vérifie leur présence
 avant d'appeler (dégradation silencieuse si absente, jamais une erreur).
 
 ## Le squelette d'un effet (ex: neige, aurore, particules...)

@@ -2,7 +2,7 @@
 /**
  * background-transition.js — Comment un preset entrant remplace le fond courant.
  *
- * Logique pure : ni DOM, ni temps, ni animation ici. `background-mount.js` applique ces styles.
+ * Logique pure : ni DOM, ni temps, ni animation ici. `scene-runtime.js` applique ces styles.
  * Voir docs/specs/background-preset-transitions.md.
  *
  * @typedef {'fade' | 'wipe'} TransitionType

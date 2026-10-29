@@ -541,7 +541,7 @@ export const DotGridAnimated = defineCanvasLayer((/** @type {DotGridOptions} */ 
 
     /**
      * Rafraîchit le composant avec de nouvelles options (contrat `ComponentInstance.update`
-     * générique — `background-mount.js` l'appelle quand l'effet monté reste le même et que seules
+     * générique — `scene-runtime.js` l'appelle quand la couche montée reste la même et que seules
      * ses options changent).
      * @param {unknown} newOptions
      */

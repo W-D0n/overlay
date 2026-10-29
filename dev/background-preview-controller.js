@@ -1,5 +1,6 @@
 // @ts-check
-import { createBackgroundMount } from '../background-mount.js';
+import { createSceneRuntime } from '../scene-runtime.js';
+import { sceneFromCurrent } from '../scene-doc.js';
 import { ReactionOverlay } from '../components/ReactionOverlay.js';
 import { createReactionCoordinator } from '../background-reactions.js';
 import { createBrowserAudioSession } from '../background-audio.js';
@@ -37,7 +38,7 @@ export function createBackgroundPreviewController(input) {
   const now = input.now ?? (() => windowRef.performance.now());
   /** @type {ReturnType<typeof createBrowserAudioSession> | null} */
   let audio = null;
-  const mount = createBackgroundMount(input.layer, { onMountChange: () => audio?.sync() });
+  const mount = createSceneRuntime(input.layer, { onMountChange: () => audio?.sync() });
   audio = createBrowserAudioSession({ mount, onStateChange: input.onAudioStateChange });
   const overlay = ReactionOverlay();
   input.layer.appendChild(overlay.el);
@@ -90,7 +91,7 @@ export function createBackgroundPreviewController(input) {
     documentRef,
     onChange(key, value) {
       const state = session.changeOption(key, value);
-      mount.apply(state.current);
+      mount.apply(sceneFromCurrent(state.current));
       draft.edited();
       notifyDraft();
     },
@@ -100,7 +101,7 @@ export function createBackgroundPreviewController(input) {
     input.presetSave.textContent = state.activePresetId === null ? 'Créer' : 'Mettre à jour';
     input.presetTags.value = Array.isArray(source?.tags) ? source.tags.join(', ') : '';
     input.effectSelect.value = state.current.component ?? NONE_VALUE;
-    mount.apply(state.current);
+    mount.apply(sceneFromCurrent(state.current));
     fieldRenderer.render(state.current.component, state.current.options);
   }
 

@@ -70,7 +70,8 @@ Gestionnaire des tâches) et qu'un port reste occupé au lancement suivant : dou
 
 ```text
 background.html
-background-mount.js
+scene-runtime.js
+scene-doc.js
 background-selection.js
 layer-kinds.js
 component-registry.js
@@ -115,7 +116,7 @@ Chaque effet respecte le contrat :
 ```
 
 Son formulaire est déclaré dans `BACKGROUND_FIELD_SCHEMAS`. Le tuner et l'URL OBS utilisent la
-même factory via `background-mount.js`, ce qui évite toute différence de logique entre l'aperçu et
+même factory via `scene-runtime.js`, ce qui évite toute différence de logique entre l'aperçu et
 le rendu live.
 
 ## Couleurs et design
