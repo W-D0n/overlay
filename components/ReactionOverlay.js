@@ -1,14 +1,15 @@
 // @ts-check
 import { resolveColor } from './color-utils.js';
 import { canvasPixelRatio } from './canvas-runtime.js';
+import { createFrameRequester, getRenderClock } from '../render-clock.js';
 
 /**
  * ReactionOverlay.js — Couche de réaction partagée pour le mode fond autonome (2026-07-24).
  *
  * Canvas transparent plein cadre dessinant une réaction en or Atelier par-dessus n'importe quel
  * effet de fond. Utilisée quand l'effet monté n'expose pas `trigger()` (routage dans
- * background-reactions.js). RAF paresseux : démarre au trigger, s'arrête dès qu'aucune réaction
- * n'est active. Voir docs/specs/background-reactive-events.md.
+ * background-reactions.js). Boucle paresseuse sur l'horloge commune (`render-clock.js`) : démarre au
+ * trigger, s'arrête dès qu'aucune réaction n'est active. Voir docs/specs/background-reactive-events.md.
  */
 
 /** @type {Record<string, number>} */
@@ -99,8 +100,11 @@ export function createReactionLoop(deps) {
  * @returns {import('../types.js').ComponentInstance}
  */
 export function ReactionOverlay(options = {}) {
-  const requestFrame = options.requestFrame ?? ((cb) => requestAnimationFrame(cb));
-  const cancelFrame = options.cancelFrame ?? ((id) => cancelAnimationFrame(id));
+  const shared = options.requestFrame === undefined || options.cancelFrame === undefined
+    ? createFrameRequester(getRenderClock())
+    : null;
+  const requestFrame = options.requestFrame ?? /** @type {NonNullable<typeof shared>} */ (shared).requestFrame;
+  const cancelFrame = options.cancelFrame ?? /** @type {NonNullable<typeof shared>} */ (shared).cancelFrame;
   const now = options.now ?? (() => performance.now());
   const rgb = resolveColor(options.color ?? 'var(--color-gold)');
 

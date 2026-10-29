@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createPhase, createRenderClock } from './render-clock.js';
+import { createFrameRequester, createPhase, createRenderClock } from './render-clock.js';
 
 /** Planificateur de frames piloté à la main : `tick(ms)` joue la frame en attente à cet horodatage. */
 function createManualFrames() {
@@ -118,5 +118,34 @@ describe('phase', () => {
     const before = phase.value;
     phase.advance(1 / 60 * 3);
     expect(phase.value - before).toBeCloseTo(0.05, 9);
+  });
+});
+
+describe('requêtes de frame sur l’horloge', () => {
+  test('requestFrame est à usage unique et partage la boucle de l’horloge ; cancelFrame l’annule', () => {
+    const frames = createManualFrames();
+    const clock = createRenderClock({ requestFrame: frames.requestFrame, cancelFrame: frames.cancelFrame, onError: () => {} });
+    const requester = createFrameRequester(clock);
+    const calls = [];
+
+    requester.requestFrame(() => calls.push('a'));
+    const cancelled = requester.requestFrame(() => calls.push('b'));
+    requester.cancelFrame(cancelled);
+    frames.tick(0);
+    frames.tick(16);
+    expect(calls).toEqual(['a']);
+    expect(frames.hasPending()).toBe(false);
+  });
+
+  test('une demande faite depuis le rappel est servie à la frame suivante (boucle paresseuse)', () => {
+    const frames = createManualFrames();
+    const clock = createRenderClock({ requestFrame: frames.requestFrame, cancelFrame: frames.cancelFrame, onError: () => {} });
+    const requester = createFrameRequester(clock);
+    let remaining = 3;
+    const step = () => { remaining -= 1; if (remaining > 0) requester.requestFrame(step); };
+    requester.requestFrame(step);
+    for (let i = 0; i < 5; i += 1) frames.tick(i * 16);
+    expect(remaining).toBe(0);
+    expect(frames.hasPending()).toBe(false);
   });
 });

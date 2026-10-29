@@ -142,6 +142,37 @@ export function createPhase() {
   };
 }
 
+/**
+ * Adaptateur `requestAnimationFrame`-like sur l'horloge : chaque demande est servie une fois, à la
+ * prochaine frame de la boucle commune. Pour les modules à boucle paresseuse (réactions) qui n'ont pas
+ * à posséder la leur.
+ * @param {Pick<ReturnType<typeof createRenderClock>, 'subscribe'>} clock
+ */
+export function createFrameRequester(clock) {
+  let nextId = 1;
+  /** @type {Map<number, () => void>} */
+  const pending = new Map();
+  return {
+    /** @param {() => void} callback @returns {number} */
+    requestFrame(callback) {
+      const id = nextId;
+      nextId += 1;
+      const stop = clock.subscribe(() => {
+        pending.delete(id);
+        stop();
+        callback();
+      });
+      pending.set(id, stop);
+      return id;
+    },
+    /** @param {number} id */
+    cancelFrame(id) {
+      pending.get(id)?.();
+      pending.delete(id);
+    },
+  };
+}
+
 /** @type {ReturnType<typeof createRenderClock> | null} */
 let sharedClock = null;
 
