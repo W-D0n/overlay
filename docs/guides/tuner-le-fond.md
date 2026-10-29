@@ -164,7 +164,7 @@ Ce qu'il faut savoir :
 
 ## Vérifier avant un live
 
-Le bandeau **Antenne**, en haut du panneau, se relit toutes les 5 secondes tant que la page est
+Le bandeau **Antenne**, dans l'en-tête (toujours visible), se relit toutes les 5 secondes tant que la page est
 visible. Il dit où en est la chaîne jusqu'à OBS :
 
 - **Serveur d'état** : connecté ou injoignable (relancer `start-stream.bat`) ;

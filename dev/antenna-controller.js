@@ -52,7 +52,8 @@ export function createAntennaController(input) {
       mark.setAttribute('aria-hidden', 'true');
       mark.textContent = MARKS[item.tone];
       const text = documentRef.createElement('span');
-      text.textContent = `${item.label} : ${item.detail}`;
+      text.textContent = `${item.label} · ${item.short}`;
+      row.title = `${item.label} : ${item.detail}`;
       row.append(mark, text);
       return row;
     }));

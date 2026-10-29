@@ -6,7 +6,7 @@
  * une page de rendu affiche-t-elle le fond ? le micro est-il lu ?) à partir de lectures déjà faites.
  *
  * @typedef {'ok' | 'warn' | 'bad' | 'off'} AntennaTone
- * @typedef {{ id: 'server' | 'obs' | 'render' | 'audio', label: string, tone: AntennaTone, detail: string }} AntennaItem
+ * @typedef {{ id: 'server' | 'obs' | 'render' | 'audio', label: string, tone: AntennaTone, short: string, detail: string }} AntennaItem
  * @typedef {{ connected: boolean, configured: boolean, reason: string | null, activeScene?: string | null }} AntennaObsStatus
  */
 
@@ -25,6 +25,7 @@ export function antennaItems({ serverReachable, obs, renderPages, audio }) {
     id: 'server',
     label: 'Serveur d’état',
     tone: serverReachable ? 'ok' : 'bad',
+    short: serverReachable ? 'connecté' : 'injoignable',
     detail: serverReachable ? 'connecté' : 'injoignable — lancer start-stream',
   }];
   if (!serverReachable) return items;
@@ -35,31 +36,31 @@ export function antennaItems({ serverReachable, obs, renderPages, audio }) {
   return items;
 }
 
-/** @param {AntennaObsStatus | null} obs @returns {{ tone: AntennaTone, detail: string }} */
+/** @param {AntennaObsStatus | null} obs @returns {{ tone: AntennaTone, short: string, detail: string }} */
 function obsReading(obs) {
-  if (obs === null || !obs.configured) return { tone: 'off', detail: 'non configuré (OBS_WS_PASSWORD dans .env)' };
+  if (obs === null || !obs.configured) return { tone: 'off', short: 'non configuré', detail: 'non configuré (OBS_WS_PASSWORD dans .env)' };
   if (obs.connected) {
-    return { tone: 'ok', detail: obs.activeScene ? `connecté · scène « ${obs.activeScene} »` : 'connecté' };
+    return { tone: 'ok', short: obs.activeScene ?? 'connecté', detail: obs.activeScene ? `connecté · scène « ${obs.activeScene} »` : 'connecté' };
   }
-  if (obs.reason === 'auth-rejected') return { tone: 'bad', detail: 'mot de passe refusé' };
-  return { tone: 'warn', detail: 'injoignable — OBS est-il ouvert ?' };
+  if (obs.reason === 'auth-rejected') return { tone: 'bad', short: 'mot de passe refusé', detail: 'mot de passe refusé' };
+  return { tone: 'warn', short: 'injoignable', detail: 'injoignable — OBS est-il ouvert ?' };
 }
 
-/** @param {number | null} renderPages @returns {{ tone: AntennaTone, detail: string }} */
+/** @param {number | null} renderPages @returns {{ tone: AntennaTone, short: string, detail: string }} */
 function renderReading(renderPages) {
-  if (renderPages === null) return { tone: 'off', detail: 'indisponible — relancer le serveur d’état' };
-  if (renderPages === 0) return { tone: 'warn', detail: 'aucune page connectée — rafraîchir la source dans OBS' };
-  return { tone: 'ok', detail: renderPages === 1 ? '1 page connectée' : `${renderPages} pages connectées` };
+  if (renderPages === null) return { tone: 'off', short: 'indisponible', detail: 'indisponible — relancer le serveur d’état' };
+  if (renderPages === 0) return { tone: 'warn', short: 'aucune', detail: 'aucune page connectée — rafraîchir la source dans OBS' };
+  return { tone: 'ok', short: String(renderPages), detail: renderPages === 1 ? '1 page connectée' : `${renderPages} pages connectées` };
 }
 
 /**
  * @param {{ status: 'idle' | 'active' | 'unavailable', reason: string | null }} audio
- * @returns {{ tone: AntennaTone, detail: string }}
+ * @returns {{ tone: AntennaTone, short: string, detail: string }}
  */
 function audioReading(audio) {
-  if (audio.status === 'active') return { tone: 'ok', detail: 'lu par l’aperçu' };
-  if (audio.status === 'unavailable') return { tone: 'warn', detail: audio.reason ?? 'indisponible' };
-  return { tone: 'off', detail: 'en attente d’autorisation' };
+  if (audio.status === 'active') return { tone: 'ok', short: 'actif', detail: 'lu par l’aperçu' };
+  if (audio.status === 'unavailable') return { tone: 'warn', short: 'indisponible', detail: audio.reason ?? 'indisponible' };
+  return { tone: 'off', short: 'en attente', detail: 'en attente d’autorisation' };
 }
 
 /**

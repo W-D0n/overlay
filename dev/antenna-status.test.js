@@ -12,6 +12,8 @@ describe('bandeau d’antenne', () => {
     expect(tones(items)).toEqual({ server: 'ok', obs: 'ok', render: 'ok' });
     expect(items.find(({ id }) => id === 'obs')?.detail).toContain('Discussion');
     expect(antennaSummary(items)).toEqual({ tone: 'ok', text: 'Prêt' });
+    expect(items.find(({ id }) => id === 'render')?.short).toBe('1');
+    expect(items.find(({ id }) => id === 'obs')?.short).toBe('Discussion');
   });
 
   test('un serveur injoignable bloque et ne juge pas le reste', () => {
@@ -24,6 +26,7 @@ describe('bandeau d’antenne', () => {
     const items = antennaItems({ ...base, renderPages: 0 });
     expect(tones(items).render).toBe('warn');
     expect(items.find(({ id }) => id === 'render')?.detail).toContain('rafraîchir');
+    expect(items.find(({ id }) => id === 'render')?.short).toBe('aucune');
     expect(antennaSummary(items).tone).toBe('warn');
   });
 
