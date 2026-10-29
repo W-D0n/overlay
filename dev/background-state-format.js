@@ -52,6 +52,21 @@ export function canonicalBackgroundPreset(preset) {
   return canonicalBackgroundCurrent(/** @type {*} */ (preset));
 }
 
+/**
+ * Un état lu sur un serveur qui n'a pas encore migré son fichier, ramené à la forme neutre.
+ * @template {{ current?: unknown, presets?: unknown }} T
+ * @param {T} file
+ * @returns {T}
+ */
+export function canonicalBackgroundState(file) {
+  if (!isPlainObject(file)) return file;
+  return {
+    ...file,
+    current: canonicalBackgroundCurrent(/** @type {*} */ (file.current)),
+    presets: Array.isArray(file.presets) ? file.presets.map(canonicalBackgroundPreset) : file.presets,
+  };
+}
+
 /** @returns {BackgroundFile} */
 export function defaultBackgroundFile() {
   return { version: BACKGROUND_FILE_VERSION, current: { component: 'dotgrid', options: {} }, presets: [], sceneMap: {} };

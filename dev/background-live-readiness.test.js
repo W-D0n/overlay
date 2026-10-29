@@ -222,3 +222,18 @@ test('un micro refusé demande de l’attention sans bloquer le live', () => {
   expect(audio?.detail).toContain('--enable-media-stream');
   expect(report.status).not.toBe('blocking');
 });
+
+test('un état lu sur un serveur pas encore migré (anciens noms) est diagnostiqué comme un état neutre', async () => {
+  const legacy = {
+    current: { component: 'ShapeMorphBackground', options: { audioReactive: 'Oui' } },
+    presets: [],
+  };
+  const report = await collectBackgroundLiveReadiness({
+    stateServer: 'http://state.test',
+    fetchImpl: async () => Response.json(legacy),
+    selection: { presetId: null, quality: 'auto' },
+    runtime: { fps: 60, pixelRatio: 1, paused: false },
+  });
+  expect(report.checks.find(({ id }) => id === 'selection')?.status).toBe('ready');
+  expect(report.obsUrl).not.toBeNull();
+});

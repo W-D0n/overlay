@@ -5,7 +5,7 @@ import {
 } from './background-state-client.js';
 
 const stateFile = {
-  current: { component: 'RainBackground', options: { speed: 1 } },
+  current: { component: 'rain', options: { speed: 1 } },
   presets: [],
 };
 
@@ -22,6 +22,20 @@ describe('client d’état du tuner', () => {
 
     expect(await client.readState()).toEqual(stateFile);
     expect(requests).toEqual([['http://state.test/state', 'GET']]);
+  });
+
+  test('lit un état écrit avec les anciens noms et valeurs (serveur pas encore migré)', async () => {
+    const legacy = {
+      current: { component: 'RainBackground', options: { speed: 1, audioReactive: 'Oui' } },
+      presets: [{ id: 'a', name: 'A', component: 'BubbleBackground', options: { audioReactive: 'Non' } }],
+    };
+    const client = createBackgroundStateClient({
+      baseUrl: 'http://state.test',
+      fetchImpl: async () => Response.json(legacy),
+    });
+    const state = await client.readState();
+    expect(state.current).toEqual({ component: 'rain', options: { speed: 1, audioReactive: true } });
+    expect(state.presets[0]).toMatchObject({ component: 'bubble', options: { audioReactive: false } });
   });
 
   test('une action de preset encode une seule fois le protocole HTTP', async () => {

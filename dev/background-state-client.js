@@ -1,4 +1,5 @@
 // @ts-check
+import { canonicalBackgroundState } from './background-state-format.js';
 
 export class BackgroundStateClientError extends Error {
   /**
@@ -72,8 +73,9 @@ export function createBackgroundStateClient(options) {
   }
 
   return {
-    readState() {
-      return request('state');
+    /** L'état lu est toujours sous forme neutre, même si le serveur n'a pas encore migré son fichier. */
+    async readState() {
+      return canonicalBackgroundState(await request('state'));
     },
     readObsStatus() {
       return request('obs-status');

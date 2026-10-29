@@ -1,6 +1,7 @@
 // @ts-check
 import { backgroundCurrentUrl, backgroundPresetUrl } from '../background-selection.js';
 import { isLayerKindId } from '../layer-kinds.js';
+import { canonicalBackgroundState } from './background-state-format.js';
 import { isAudioEnabled } from '../background-mount.js';
 
 /** @param {import('./background-state-format.js').BackgroundFile} file */
@@ -56,7 +57,7 @@ export async function collectBackgroundLiveReadiness(input) {
   try {
     const response = await fetchImpl(`${stateServer}/state`, { method: 'GET', signal });
     if (!response.ok) throw new Error(`GET /state → ${response.status}`);
-    state = { ok: true, file: await response.json() };
+    state = { ok: true, file: canonicalBackgroundState(await response.json()) };
   } catch (error) {
     state = { ok: false, error: String(error) };
   }
