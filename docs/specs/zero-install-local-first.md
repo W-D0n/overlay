@@ -7,9 +7,14 @@ updated: 2026-10-29
 
 Statut : **Draft, à valider par l'owner**. Créée le 2026-10-29.
 
-Besoin : faire tourner l'outil complet (Studio, tuner, fond OBS, réactions) **sans installer Bun ni
-lancer de commande**, en gardant l'usage mono-utilisateur et local-first, sans jamais risquer la
-stabilité d'un live.
+Besoin : faire tourner l'outil complet (Studio, tuner, fond OBS, réactions) avec **le moins de
+dépendances et de contraintes système possible**, en gardant l'usage mono-utilisateur et
+local-first, sans jamais risquer la stabilité d'un live.
+
+> **Précision de l'owner (2026-10-29)** : « zéro installation » est une **intention, pas un critère
+> absolu**. Il s'agit de réduire les dépendances et les contraintes liées au système, pas de les
+> supprimer à tout prix. Conséquence : un exécutable local (T1) suffit largement ; le relais cloud
+> (T3) perd sa principale justification et reste une option de confort, pas un objectif.
 
 ## Décisions owner (2026-10-29)
 
@@ -78,7 +83,8 @@ Un Worker avec état, qui fait ce que fait T1 : conserver l'état courant et les
 Le Studio devient alors un site statique. Une « room » identifiée par un jeton non devinable dans
 l'URL de la Browser Source, sans compte.
 
-- **Seul chemin réellement sans installation.** C'est sa raison d'être.
+- Seul chemin réellement sans installation, mais le critère n'étant pas absolu (voir plus haut),
+  ce n'est plus une raison suffisante à lui seul.
 - **Coût** : infrastructure à financer. **À chiffrer avant tout engagement** ; ce spec n'en donne pas
   d'estimation, faute de mesure.
 - **Dépendance réseau pendant le live** : atténuée par le cache local du fond (§Principe directeur).
@@ -94,7 +100,7 @@ Consignées pour ne pas les réexaminer sans fait nouveau.
 | Piste | Raison du rejet |
 |---|---|
 | **Dock de navigateur OBS** hébergeant le Studio | Le Studio et ses aperçus canvas tourneraient dans le processus d'OBS, en concurrence avec l'encodage du live. |
-| **OBS WebSocket comme bus** (`BroadcastCustomEvent`, `SetPersistentData`) | Faire dépendre l'état du stream d'OBS lui-même, et charger son serveur WebSocket pendant le live. OBS WebSocket reste utilisé **uniquement pour lire la scène active**, comme aujourd'hui. |
+| **OBS WebSocket comme bus** (`BroadcastCustomEvent`, `SetPersistentData`) | Faire dépendre l'état du stream d'OBS lui-même, et charger son serveur WebSocket pendant le live. OBS WebSocket reste utilisé pour **lire la scène active**, comme aujourd'hui, et, exception à confirmer, pour **écouter en lecture seule** les `CustomEvent` de Twitchat (voir [`studio-cadrage`](studio-cadrage.md) §Twitchat). Aucun état n'y est stocké. |
 | **`BroadcastChannel` / IndexedDB partagés** entre Studio et fond | Impossible entre un navigateur ordinaire et une Browser Source : celle-ci tourne dans le CEF d'OBS (Chromium embarqué, profil et stockage propres). |
 
 ## Cache local du fond

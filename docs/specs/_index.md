@@ -17,6 +17,8 @@ updated: 2026-10-29
 | [background-branding-layer](background-branding-layer.md) | Fait | 2026-07-26 | ⑤ Couche branding |
 | [background-preset-thumbnails](background-preset-thumbnails.md) | Fait | 2026-07-26 | ⑥ Vignettes de presets |
 | [zero-install-local-first](zero-install-local-first.md) | Draft | 2026-10-29 | Zéro installation, local-first |
+| [studio-cadrage](studio-cadrage.md) | Draft | 2026-10-29 | Cadrage du Studio d'overlays |
+| [socle-rendu-etapes-1-2](socle-rendu-etapes-1-2.md) | Draft | 2026-10-29 | Contrat d'URL, transport, horloge unique |
 
 ## Archive
 
