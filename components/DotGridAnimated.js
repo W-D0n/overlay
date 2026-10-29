@@ -2,6 +2,7 @@
 import { simplex2 } from './simplex.js';
 import { resolveColor } from './color-utils.js';
 import { defineCanvasLayer } from './canvas-layer.js';
+import { GRID_MODES } from '../layer-kinds.js';
 import { createPhase } from '../render-clock.js';
 
 /** Fréquences de la variabilité de couleur par bruit — indépendantes de `MODE_PARAMS` (opacité)
@@ -11,9 +12,7 @@ const COLOR_NOISE_FREQ = 0.012;
 const COLOR_NOISE_TIME_FREQ = 0.05;
 const COLOR_NOISE_STEPS = 64;
 
-/**
- * @typedef {'discussion'|'codage'|'brb'|'interview'|'react'|'creation'|'fin'|'starting'} GridMode
- */
+/** @typedef {typeof GRID_MODES[number]} GridMode */
 
 /**
  * Paramètres Simplex (Couche 2) par mode scène.
@@ -34,14 +33,6 @@ export const MODE_PARAMS = {
   starting  : { freqX: 0.045, freqY: 0.045, freqT: 0.79, amplitude: 0.16 },
 };
 
-/**
- * Modes ambiants DotGrid valides — clés de `MODE_PARAMS` (source unique).
- * Consommé par `resolveDotgridMode` (scene-resolve.js) pour valider un mode
- * sans redéclarer la liste (DRY).
- * @type {GridMode[]}
- */
-export const GRID_MODES = /** @type {GridMode[]} */ (Object.keys(MODE_PARAMS));
-
 /** Mode de dernier recours si `options.mode` est absent/invalide (Track B — encapsulé ici, plus de
  * champ dédié `dotgridMode` ni de `resolveDotgridMode` externe, voir AD-B4). */
 const DEFAULT_MODE = 'brb';
@@ -55,7 +46,10 @@ function resolveMode(mode) {
   return typeof mode === 'string' && mode in MODE_PARAMS ? /** @type {GridMode} */ (mode) : DEFAULT_MODE;
 }
 
-/** Niveau audio sûr : une valeur absente ou aberrante ne doit jamais déformer le rendu. */
+/**
+ * Niveau audio sûr : une valeur absente ou aberrante ne doit jamais déformer le rendu.
+ * @param {unknown} value
+ */
 function clamp01(value) {
   return typeof value === 'number' && Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
 }

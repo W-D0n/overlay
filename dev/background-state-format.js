@@ -1,5 +1,5 @@
 // @ts-check
-import { BACKGROUND_COMPONENT_NAMES } from './component-field-schemas.js';
+import { isLayerKindId } from '../layer-kinds.js';
 import { validateSceneMap } from '../obs-scene-mapping.js';
 import { validateTransition } from '../background-transition.js';
 import { normalizeBranding, validateBranding } from '../branding-format.js';
@@ -127,7 +127,7 @@ export function validateBackgroundCurrent(current) {
   const { component, options } = current;
   if (component !== null && typeof component !== 'string') {
     errors.push('component : null ou chaîne attendu');
-  } else if (typeof component === 'string' && !BACKGROUND_COMPONENT_NAMES.includes(component)) {
+  } else if (typeof component === 'string' && !isLayerKindId(component)) {
     errors.push(`effet de fond inconnu : ${component}`);
   }
   if (!isPlainObject(options)) errors.push('options : objet attendu');
@@ -169,7 +169,7 @@ export function validateBackgroundPreset(preset) {
   if (typeof preset.id !== 'string' || !PRESET_ID_PATTERN.test(preset.id) || preset.id.length > PRESET_ID_MAX_LENGTH) {
     errors.push('id de preset : identifiant URL attendu (minuscules, chiffres et tirets)');
   }
-  if (typeof preset.component !== 'string' || !BACKGROUND_COMPONENT_NAMES.includes(preset.component)) {
+  if (!isLayerKindId(preset.component)) {
     errors.push(`effet de fond inconnu : ${preset.component}`);
   }
   if (!isPlainObject(preset.options)) errors.push('options : objet attendu');

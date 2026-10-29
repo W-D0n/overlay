@@ -1,15 +1,7 @@
 // @ts-check
 /**
- * component-names.js — Vocabulaire des effets de fond (source unique, AD-1).
- *
- * Donnée pure, zéro import — consommée par `types.js`, `component-registry.js`,
- * `dev/component-field-schemas.js` et `dev/background-live-readiness.js`.
+ * component-names.js — Identifiants des effets de fond, dérivés de `layer-kinds.js` (source unique).
  */
+import { LAYER_KIND_IDS } from './layer-kinds.js';
 
-/** @type {readonly string[]} */
-export const COMPONENT_NAMES = [
-  'DotGridBackground', 'RainBackground', 'BubbleBackground',
-  'FirefliesBackground', 'FloatingSymbolsBackground', 'GeometricPatternBackground',
-  'ColorDropsBackground', 'StarsParallaxBackground', 'OrbitingShapesBackground',
-  'ShapeMorphBackground', 'WaterRippleBackground',
-];
+export const COMPONENT_NAMES = LAYER_KIND_IDS;

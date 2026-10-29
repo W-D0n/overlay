@@ -9,7 +9,6 @@
  * Voir docs/specs/background-standalone.md.
  */
 
-import { COMPONENT_NAMES } from './component-names.js';
 import { DotGridAnimated } from './components/DotGridAnimated.js';
 import { RainBackground } from './components/RainBackground.js';
 import { BubbleBackground } from './components/BubbleBackground.js';
@@ -25,9 +24,10 @@ import { WaterRippleBackground } from './components/WaterRippleBackground.js';
 /**
  * Les factories ont des signatures hétérogènes ; le registry expose la vue unifiée
  * `ComponentInstance` consommée par le runtime (les types précis vivent sur les factories).
- * @type {Record<import('./types.js').ComponentName, (options: Record<string, unknown>) => import('./types.js').ComponentInstance>}
+ * Typé `Record<LayerKindId, …>` : une fabrique oubliée ou en trop fait échouer `bun dev/typecheck.js`.
+ * @type {Record<import('./layer-kinds.js').LayerKindId, (options: any, environment?: any) => import('./types.js').ComponentInstance>}
  */
-export const COMPONENT_REGISTRY = /** @type {*} */ ({
+export const COMPONENT_REGISTRY = ({
   DotGridBackground: DotGridAnimated,
   RainBackground,
   BubbleBackground,

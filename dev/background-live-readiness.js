@@ -1,6 +1,6 @@
 // @ts-check
 import { backgroundCurrentUrl, backgroundPresetUrl } from '../background-selection.js';
-import { COMPONENT_NAMES } from '../component-names.js';
+import { isLayerKindId } from '../layer-kinds.js';
 import { isAudioEnabled } from '../background-mount.js';
 
 /** @param {import('./background-state-format.js').BackgroundFile} file */
@@ -177,7 +177,7 @@ export function evaluateBackgroundLiveReadiness(input) {
   }
 
   const selectedComponent = preset?.component ?? input.state.file.current.component;
-  if (typeof selectedComponent === 'string' && !COMPONENT_NAMES.includes(selectedComponent)) {
+  if (typeof selectedComponent === 'string' && !isLayerKindId(selectedComponent)) {
     const checks = [
       stateReadyCheck(input.state.file),
       {

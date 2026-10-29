@@ -3,7 +3,6 @@
   "background-audio.js": 3,
   "background-mount.js": 9,
   "background-transition.js": 2,
-  "components/DotGridAnimated.js": 1,
   "components/GeometricPatternBackground.js": 1,
   "components/ShapeMorphBackground.js": 3,
   "dev/background-draft.js": 1,

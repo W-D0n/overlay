@@ -14,7 +14,7 @@
  * Noms des effets de fond montables.
  * Dérivé de `component-names.js` (source unique) — ne plus étendre cette liste ici, éditer
  * `COMPONENT_NAMES`.
- * @typedef {typeof import('./component-names.js').COMPONENT_NAMES[number]} ComponentName
+ * @typedef {import('./layer-kinds.js').LayerKindId} ComponentName
  */
 
 /**
