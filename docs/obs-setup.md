@@ -44,8 +44,8 @@ Le serveur d'état se connecte en **lecture seule** à OBS WebSocket v5 pour con
 3. Dans le Studio, onglet **Diffusion → Scènes OBS** : choisir un preset par scène. Un changement de
    scène change le fond ; une URL `?preset=` n'est jamais concernée.
 
-La liste des scènes est lue au démarrage : après avoir créé une scène dans OBS, relancer le serveur
-d'état (limite connue, voir `docs/architecture-review.md` C6).
+Hypothèse à confirmer dans OBS (QA court, case 6) : la liste des scènes est lue une seule fois ; après avoir créé une scène, relancer le serveur
+d'état (voir `docs/architecture-review.md` C6).
 
 ## 4. Vérification avant live
 
