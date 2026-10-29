@@ -6,14 +6,15 @@
  * quel message de connexion) se testent sans navigateur ni OBS.
  * Voir docs/specs/obs-scene-preset-mapping.md.
  *
- * @typedef {{ connected: boolean, configured: boolean, reason: string | null, scenes: string[] }} ObsStatus
- * @typedef {{ sceneName: string, presetId: string | null, missingPreset: boolean, knownByObs: boolean }} SceneRow
+ * @typedef {{ connected: boolean, configured: boolean, reason: string | null, scenes: string[], activeScene?: string | null }} ObsStatus
+ * @typedef {{ sceneName: string, presetId: string | null, missingPreset: boolean, knownByObs: boolean, active: boolean }} SceneRow
  */
 
 /**
  * Lignes à afficher : les scènes réellement présentes dans OBS, plus celles déjà associées mais
  * absentes de la liste (OBS fermé, ou scène renommée depuis) — sinon une association disparaîtrait
- * de l'écran sans jamais pouvoir être corrigée.
+ * de l'écran sans jamais pouvoir être corrigée. Ordre : scène active, scènes associées, puis les
+ * autres, chacune dans l'ordre d'OBS.
  *
  * @param {{ status: ObsStatus, sceneMap: Record<string, string>, presets: { id: string }[] }} input
  * @returns {SceneRow[]}
@@ -21,16 +22,52 @@
 export function sceneRows({ status, sceneMap, presets }) {
   const fromObs = status.scenes;
   const mappedOnly = Object.keys(sceneMap).filter((name) => !fromObs.includes(name));
+  const activeScene = status.activeScene ?? null;
 
-  return [...fromObs, ...mappedOnly].map((sceneName) => {
+  /** @type {SceneRow[]} */
+  const rows = [...fromObs, ...mappedOnly].map((sceneName) => {
     const presetId = Object.hasOwn(sceneMap, sceneName) ? sceneMap[sceneName] : null;
     return {
       sceneName,
       presetId,
       missingPreset: presetId !== null && !presets.some(({ id }) => id === presetId),
       knownByObs: fromObs.includes(sceneName),
+      active: sceneName === activeScene,
     };
   });
+  /** @param {SceneRow} row */
+  const rank = (row) => (row.active ? 0 : row.presetId !== null ? 1 : 2);
+  return rows.map((row, index) => ({ row, index }))
+    .sort((a, b) => rank(a.row) - rank(b.row) || a.index - b.index)
+    .map(({ row }) => row);
+}
+
+/** @param {string} text */
+function searchKey(text) {
+  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
+/**
+ * Lignes dont le nom contient le texte saisi (sans tenir compte de la casse ni des accents).
+ * @param {SceneRow[]} rows
+ * @param {string} text
+ * @returns {SceneRow[]}
+ */
+export function filterSceneRows(rows, text) {
+  const key = searchKey(text.trim());
+  if (key === '') return rows;
+  return rows.filter(({ sceneName }) => searchKey(sceneName).includes(key));
+}
+
+/**
+ * Sépare les scènes à montrer (active ou associée) de celles repliées sous un compteur (sans preset).
+ * @param {SceneRow[]} rows
+ * @returns {{ shown: SceneRow[], folded: SceneRow[] }}
+ */
+export function partitionSceneRows(rows) {
+  const shown = rows.filter((row) => row.active || row.presetId !== null);
+  const folded = rows.filter((row) => !row.active && row.presetId === null);
+  return { shown, folded };
 }
 
 /**

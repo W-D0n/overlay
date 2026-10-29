@@ -1,6 +1,6 @@
 // @ts-check
 import { expect, test } from 'bun:test';
-import { obsStatusMessage, sceneMapFromRows, sceneRows } from './obs-scene-map-presenter.js';
+import { filterSceneRows, obsStatusMessage, partitionSceneRows, sceneMapFromRows, sceneRows } from './obs-scene-map-presenter.js';
 
 const presets = [{ id: 'discussion-calme' }, { id: 'ambiance-nuit' }];
 const connected = { connected: true, configured: true, reason: null, scenes: ['Discussion', 'BRB'] };
@@ -8,8 +8,8 @@ const connected = { connected: true, configured: true, reason: null, scenes: ['D
 test('1. chaque scène OBS produit une ligne, associée ou non', () => {
   const rows = sceneRows({ status: connected, sceneMap: { Discussion: 'discussion-calme' }, presets });
   expect(rows).toEqual([
-    { sceneName: 'Discussion', presetId: 'discussion-calme', missingPreset: false, knownByObs: true },
-    { sceneName: 'BRB', presetId: null, missingPreset: false, knownByObs: true },
+    { sceneName: 'Discussion', presetId: 'discussion-calme', missingPreset: false, knownByObs: true, active: false },
+    { sceneName: 'BRB', presetId: null, missingPreset: false, knownByObs: true, active: false },
   ]);
 });
 
@@ -36,7 +36,7 @@ test('4. OBS injoignable : seules les associations enregistrées sont listées',
     presets,
   });
   expect(rows).toEqual([
-    { sceneName: 'Discussion', presetId: 'discussion-calme', missingPreset: false, knownByObs: false },
+    { sceneName: 'Discussion', presetId: 'discussion-calme', missingPreset: false, knownByObs: false, active: false },
   ]);
 });
 
@@ -80,4 +80,32 @@ test('9. les lignes sans preset sortent de la table enregistrée', () => {
 
 test('10. une table sans aucune association est un objet vide, pas null', () => {
   expect(sceneMapFromRows([{ sceneName: 'BRB', presetId: null }])).toEqual({});
+});
+
+const many = { ...connected, scenes: ['Jeu', 'Discussion', 'BRB', 'Fin', 'Pause'], activeScene: 'BRB' };
+
+test('11. la scène active vient en tête, puis les scènes associées, puis les autres dans l’ordre d’OBS', () => {
+  const rows = sceneRows({ status: many, sceneMap: { Pause: 'ambiance-nuit', Discussion: 'discussion-calme' }, presets });
+  expect(rows.map(({ sceneName }) => sceneName)).toEqual(['BRB', 'Discussion', 'Pause', 'Jeu', 'Fin']);
+  expect(rows.map(({ active }) => active)).toEqual([true, false, false, false, false]);
+});
+
+test('12. sans scène active connue, aucune ligne n’est marquée', () => {
+  const rows = sceneRows({ status: { ...many, activeScene: null }, sceneMap: {}, presets });
+  expect(rows.some(({ active }) => active)).toBe(false);
+  expect(rows.map(({ sceneName }) => sceneName)).toEqual(['Jeu', 'Discussion', 'BRB', 'Fin', 'Pause']);
+});
+
+test('13. le filtre ignore la casse et les accents, et un filtre vide garde tout', () => {
+  const rows = sceneRows({ status: { ...many, scenes: ['Écran de Fin', 'Jeu', 'Discussion'] }, sceneMap: {}, presets });
+  expect(filterSceneRows(rows, 'ecran').map(({ sceneName }) => sceneName)).toEqual(['Écran de Fin']);
+  expect(filterSceneRows(rows, 'DISC').map(({ sceneName }) => sceneName)).toEqual(['Discussion']);
+  expect(filterSceneRows(rows, '  ')).toEqual(rows);
+});
+
+test('14. les scènes sans preset se séparent des scènes actives ou associées', () => {
+  const rows = sceneRows({ status: many, sceneMap: { Pause: 'ambiance-nuit' }, presets });
+  const { shown, folded } = partitionSceneRows(rows);
+  expect(shown.map(({ sceneName }) => sceneName)).toEqual(['BRB', 'Pause']);
+  expect(folded.map(({ sceneName }) => sceneName)).toEqual(['Jeu', 'Discussion', 'Fin']);
 });

@@ -208,6 +208,7 @@ export async function startBackgroundTuner(environment = {}) {
   const obsSceneMap = createObsSceneMapController({
     statusEl: byId('obs-scene-status'),
     rowsEl: byId('obs-scene-rows'),
+    filterEl: byId('obs-scene-filter'),
     saveButton: byId('obs-scene-save'),
     refreshButton: byId('obs-scene-refresh'),
     documentRef,

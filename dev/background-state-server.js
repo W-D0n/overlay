@@ -368,8 +368,8 @@ async function handlePostBranding(req) {
   return response;
 }
 
-/** @type {{ connected: boolean, reason: string | null, scenes: string[] }} */
-const obsStatus = { connected: false, reason: null, scenes: [] };
+/** @type {{ connected: boolean, reason: string | null, scenes: string[], activeScene: string | null }} */
+const obsStatus = { connected: false, reason: null, scenes: [], activeScene: null };
 
 /**
  * GET /obs-status — connexion OBS et scènes réelles, pour la section « Scènes OBS » du tuner.
@@ -504,9 +504,14 @@ if (OBS_WS_PASSWORD !== '') {
   createObsSceneClient({
     url: OBS_WS_URL,
     password: OBS_WS_PASSWORD,
-    onSceneChange: (sceneName) => { applySceneMapping(sceneName); },
+    onSceneChange: (sceneName) => { obsStatus.activeScene = sceneName; applySceneMapping(sceneName); },
     onScenes: (scenes) => { obsStatus.scenes = scenes; },
-    onStatus: ({ connected, reason }) => { obsStatus.connected = connected; obsStatus.reason = reason; },
+    onActiveScene: (sceneName) => { obsStatus.activeScene = sceneName; },
+    onStatus: ({ connected, reason }) => {
+      obsStatus.connected = connected;
+      obsStatus.reason = reason;
+      if (!connected) obsStatus.activeScene = null;
+    },
   });
 } else {
   obsStatus.reason = 'not-configured';

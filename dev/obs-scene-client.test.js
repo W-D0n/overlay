@@ -31,6 +31,7 @@ function createFakeSocket() {
 function setup({ password = 'secret' } = {}) {
   const sockets = [];
   const scenesSeen = [];
+  const activeSeen = [];
   const changes = [];
   const statuses = [];
   const retries = [];
@@ -41,13 +42,14 @@ function setup({ password = 'secret' } = {}) {
     password,
     onSceneChange: (name) => changes.push(name),
     onScenes: (names) => scenesSeen.push(names),
+    onActiveScene: (name) => activeSeen.push(name),
     onStatus: (status) => statuses.push(status),
     createSocket: () => { const socket = createFakeSocket(); sockets.push(socket); return socket; },
     scheduleReconnect: (callback, delayMs) => retries.push({ callback, delayMs }),
     log: (message) => logs.push(message),
   });
 
-  return { client, sockets, scenesSeen, changes, statuses, retries, logs };
+  return { client, sockets, scenesSeen, activeSeen, changes, statuses, retries, logs };
 }
 
 /** L'auth OBS passe par deux digests asynchrones : on attend l'envoi réel plutôt qu'un nombre
@@ -172,4 +174,14 @@ test('11. stop empêche toute reconnexion ultérieure', () => {
 test('12. reconnectDelayMs plafonne sur la dernière valeur', () => {
   expect(reconnectDelayMs(0)).toBe(2000);
   expect(reconnectDelayMs(50)).toBe(30000);
+});
+
+test('la scène active de la réponse GetSceneList est transmise', () => {
+  const harness = setup();
+  harness.sockets[0].emitMessage({ op: 2, d: {} });
+  harness.sockets[0].emitMessage({
+    op: 7,
+    d: { requestId: 'scene-list', responseData: { currentProgramSceneName: 'BRB', scenes: [{ sceneName: 'BRB' }] } },
+  });
+  expect(harness.activeSeen).toEqual(['BRB']);
 });

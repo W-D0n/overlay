@@ -470,7 +470,13 @@
       align-items: center;
       margin-bottom: var(--space-xs);
     }
-    .obs-scene-row-name { color: var(--color-text-primary); font-size: var(--text-base); }
+    .obs-scene-row-name { color: var(--color-text-primary); font-size: var(--text-base); overflow-wrap: anywhere; }
+    .obs-scene-row[data-active="true"] { border-left: 2px solid var(--color-gold); padding-left: var(--space-xs); }
+    .obs-scene-row[data-active="true"] .obs-scene-row-name::before { content: '● en antenne · '; color: var(--color-gold); }
+    .obs-scene-row-preset { text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .obs-scene-row-preset[data-empty="true"] { color: var(--color-text-dim); }
+    .obs-scene-folded > summary { cursor: pointer; color: var(--color-text-dim); font-size: var(--text-base); margin-bottom: var(--space-xs); }
+    #obs-scene-filter { width: 100%; box-sizing: border-box; margin-bottom: var(--space-xs); }
     .obs-scene-row-warning { grid-column: 1 / -1; color: var(--color-danger); font-size: var(--text-base); }
     .obs-scene-row[data-known="false"] .obs-scene-row-name::after {
       content: ' (absente d’OBS)';
@@ -642,6 +648,7 @@
       jamais concernée.
     </p>
     <div id="obs-scene-status"></div>
+    <input id="obs-scene-filter" type="search" aria-label="Filtrer les scènes OBS" placeholder="filtrer les scènes">
     <div id="obs-scene-rows"></div>
     <div class="save-row">
       <button id="obs-scene-save">Enregistrer les associations</button>

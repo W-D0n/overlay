@@ -5,7 +5,7 @@ updated: 2026-10-29
 
 # Spec — Studio en trois zones (refonte de l'écran du tuner)
 
-Statut : **validée (ordre Z1 → Z3 → Z2 → Z4 → Z5, cadre 16:9 simple, scènes sans preset repliées) ; Z1 livré le 2026-10-29.** Traite les constats U2 à U6 de
+Statut : **validée (ordre Z1 → Z3 → Z2 → Z4 → Z5, cadre 16:9 simple, scènes sans preset repliées) ; Z1 et Z3 livrés le 2026-10-29.** Traite les constats U2 à U6 de
 [`../ux-review.md`](../ux-review.md) (U1, brouillon / publication, est livré). Étapes 1 à 3 du socle sont
 livrées : l'écran peut être refait sans le refaire deux fois.
 
@@ -59,7 +59,7 @@ transition d'arrivée passe dans le panneau droit, au même endroit que le prese
 `background-preset-controller.js` et `background-preset-presenter.js` sont conservés (deux listes
 fusionnées par la présentation, pas deux contrôleurs).
 
-### Z3. Scènes OBS lisibles (U4)
+### Z3. Scènes OBS lisibles (U4) — livré
 
 Liste filtrable (champ de recherche), **scène active en tête et marquée**, preset associé affiché sous
 forme de vignette + nom, une seule action « Associer… » par ligne au lieu d'une liste déroulante. Les

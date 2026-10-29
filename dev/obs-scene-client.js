@@ -30,6 +30,7 @@ export function reconnectDelayMs(attempt) {
  *   password: string,
  *   onSceneChange: (sceneName: string) => void,
  *   onScenes?: (sceneNames: string[]) => void,
+ *   onActiveScene?: (sceneName: string) => void,
  *   onStatus?: (status: { connected: boolean, reason: string | null }) => void,
  *   createSocket?: (url: string) => WebSocket,
  *   scheduleReconnect?: (callback: () => void, delayMs: number) => void,
@@ -108,6 +109,8 @@ export function createObsSceneClient(deps) {
       if (Array.isArray(scenes)) {
         deps.onScenes?.(scenes.map((scene) => scene?.sceneName).filter((name) => typeof name === 'string'));
       }
+      const active = message.d?.responseData?.currentProgramSceneName;
+      if (typeof active === 'string') deps.onActiveScene?.(active);
       return;
     }
 
