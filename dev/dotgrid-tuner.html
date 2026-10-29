@@ -110,8 +110,9 @@
 
   <script type="module">
     import { DotGridAnimated, MODE_PARAMS, GRID_MODES } from '../components/DotGridAnimated.js';
+    import { TUNER_PORT } from '../ports.config.js';
 
-    const TUNER_SERVER_URL = 'http://localhost:4458/save';
+    const TUNER_SERVER_URL = `http://localhost:${TUNER_PORT}/save`;
 
     const surface = document.getElementById('preview-surface');
     const preview = document.getElementById('preview');
