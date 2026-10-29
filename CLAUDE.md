@@ -47,8 +47,8 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 
 - `tokens.css` — touché par tous les effets et toutes les surfaces de dev
 - `types.js` — types JSDoc partagés
-- `component-names.js` / `component-registry.js` — vocabulaire et factories des effets de fond
-- `dev/component-field-schemas.js` — formulaires générés du tuner
+- `layer-kinds.js` / `component-registry.js` — description (identifiants, libellés, capacités, champs) et fabriques des effets de fond
+- `dev/component-field-schemas.js` — vue « formulaire » de `layer-kinds.js` pour le tuner
 - Le **format d'état du fond** — spécifié dans `docs/specs/background-standalone.md`
 
 Modifier l'une de ces surfaces impacte tous les effets : vérifier en aval avant d'éditer.

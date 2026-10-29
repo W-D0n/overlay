@@ -1,3 +1,8 @@
+---
+created: 2026-07-10
+updated: 2026-07-26
+---
+
 # Guide — Créer un nouvel effet de fond
 
 > Pour régler un effet déjà codé, voir `docs/guides/tuner-le-fond.md` — pas besoin d'écrire de code.
@@ -92,11 +97,12 @@ export function MonEffetBackground(options = {}) {
 | Fichier | Action |
 |---|---|
 | `components/MonEffetBackground.js` | La factory (squelette ci-dessus) |
-| `component-registry.js` | Importer + ajouter au `COMPONENT_REGISTRY` |
-| `types.js` | Ajouter le nom à `ComponentName` |
-| `dev/component-field-schemas.js` | Ajouter un schéma dans `BACKGROUND_FIELD_SCHEMAS` |
+| `layer-kinds.js` | Décrire le type : identifiant neutre (`mon-effet`), `legacyIds: []`, libellé, capacités, champs |
+| `component-registry.js` | Importer la factory et l'ajouter au `COMPONENT_REGISTRY` sous le même identifiant |
 
-Une fois fait, l'effet apparaît dans le menu déroulant "Fond" du panneau.
+Deux fichiers de déclaration. Oublier l'un des deux fait échouer `bun dev/typecheck.js` (le registre est
+typé `Record<LayerKindId, …>`). Une fois fait, l'effet apparaît dans le menu déroulant « Fond » du panneau.
+Les valeurs persistées sont neutres : un champ oui/non est de type `boolean` (valeur `true` / `false`).
 
 ## Performance — leçons apprises cette session (contexte stream, CPU partagé avec OBS/jeu/encodage)
 
@@ -153,8 +159,8 @@ Trois règles qui évitent les pièges déjà rencontrés :
 3. **Moduler, ne pas remplacer** — le son multiplie un paramètre existant. À niveau nul, le rendu
    doit être exactement celui d'un preset non réactif.
 
-Déclare aussi les deux champs `audioReactive` et `audioIntensity` dans le schéma de l'effet
-(`dev/component-field-schemas.js`) : c'est ce réglage, propre à chaque preset, qui autorise
+Déclare aussi les deux champs `audioReactive` (type `boolean`) et `audioIntensity` dans la description
+de l'effet (`layer-kinds.js`), avec `capabilities.audio: true` : c'est ce réglage, propre à chaque preset, qui autorise
 l'ouverture du micro. Sans lui, `setAudioLevel` ne sera jamais appelée.
 
 En pratique, n'écris pas ce bloc à la main : `components/audio-reaction.js` le fournit déjà.

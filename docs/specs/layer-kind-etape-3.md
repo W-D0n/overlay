@@ -5,7 +5,7 @@ updated: 2026-10-29
 
 # Spec — Définition unique d'un type de couche (étape 3)
 
-Statut : **Draft, à valider par l'owner**. Étape 3 de `docs/architecture-review.md` §5, après le socle de
+Statut : **livrée le 2026-10-29** (décisions de l'owner : renommer maintenant, ramener hors bornes, fichier de description unique). Reste à faire chez l'owner : redémarrer les serveurs pour migrer `background-state.json` (sauvegarde `background-state.json.pre-v2.bak`). Étape 3 de `docs/architecture-review.md` §5, après le socle de
 rendu (`socle-rendu-etapes-1-2.md`, livré). Elle touche des **surfaces partagées** (`component-names.js`,
 `component-registry.js`, `dev/component-field-schemas.js`, format d'état) et **les valeurs stockées dans vos
 presets** : à valider avant tout code, avec sauvegarde et migration réversible.
@@ -98,6 +98,8 @@ Les trois tests de cohérence deviennent inutiles et sont supprimés (le typage 
 `component-names.js` disparaît (dérivé de la description). Aucune ligne de comportement n'est retirée.
 
 ## Ordre de livraison (un commit par pas, `bun test` vert à chaque pas)
+
+Écarts à la conception : les identifiants neutres (3d) sont repliés dans la version 2 du fichier (pas de version 3, la 2 n'étant pas sortie chez l'owner) ; un test d'exhaustivité du registre est conservé (3f), car le contrôle de types ne fait pas partie de `bun test`.
 
 1. **3a** description + registre typé (aucun changement de comportement ; tests existants inchangés).
 2. **3b** capacités déclarées + test de contrat.

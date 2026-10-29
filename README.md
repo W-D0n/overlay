@@ -73,7 +73,7 @@ Gestionnaire des tâches) et qu'un port reste occupé au lancement suivant : dou
 background.html
 background-mount.js
 background-selection.js
-component-names.js
+layer-kinds.js
 component-registry.js
 tokens.css
 

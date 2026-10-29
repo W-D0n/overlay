@@ -19,7 +19,7 @@ updated: 2026-10-29
 | [zero-install-local-first](zero-install-local-first.md) | Draft | 2026-10-29 | Zéro installation, local-first |
 | [studio-cadrage](studio-cadrage.md) | Draft | 2026-10-29 | Cadrage du Studio d'overlays |
 | [socle-rendu-etapes-1-2](socle-rendu-etapes-1-2.md) | Fait (contrôle OBS à passer) | 2026-10-29 | Contrat d'URL, transport, horloge unique |
-| [layer-kind-etape-3](layer-kind-etape-3.md) | Draft | 2026-10-29 | Définition unique d'un type de couche, valeurs neutres |
+| [layer-kind-etape-3](layer-kind-etape-3.md) | Fait (migration du fichier au prochain redémarrage) | 2026-10-29 | Définition unique d'un type de couche, valeurs neutres |
 
 ## Archive
 
