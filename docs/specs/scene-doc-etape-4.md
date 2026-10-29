@@ -1,0 +1,152 @@
+---
+created: 2026-10-29
+updated: 2026-10-29
+---
+
+# Spec — Document de scène et moteur de scène (étape 4)
+
+Statut : **Draft, à valider par l'owner avant code.** Étape 4 de `docs/architecture-review.md` §5, après le
+socle de rendu (étapes 1-2) et la définition unique d'un type de couche (étape 3), toutes livrées. Elle
+touche des **surfaces partagées** (`dev/background-state-format.js`, `background-mount.js`, `types.js`) et
+**le fichier d'état de l'owner** : migration réversible avec sauvegarde, comme l'étape 3.
+
+Vocabulaire (`codebase-design`) : module, interface, seam. « Scène » = ce que `docs/specs/studio-cadrage.md`
+appelle une scène en couches : une pile ordonnée de couches rendue par une seule page. Un « preset »
+d'aujourd'hui est une scène à **une** couche.
+
+## Problème (constats mesurés, `architecture-review.md` F2, F6, §4.1)
+
+1. **Le modèle ne sait pas dire « plusieurs couches ».** Un état est `{ component, options, transition?,
+   showBranding? }` : un seul effet. Le cadrage du Studio (scènes en couches, éditeur de couches, décor,
+   médias, widgets) n'a aucun support dans le format ni dans le rendu.
+2. **Le montage fait trois métiers** (`background-mount.js`) : cycle de vie d'un effet, transition entre deux
+   effets, routage audio et réactions. Pour N couches, ces trois métiers doivent s'appliquer par couche et
+   par scène : le montage actuel ne s'étend pas, il se remplace.
+3. **Les propriétés ne sont pas adressables.** La future timeline doit pouvoir viser « l'opacité de la couche
+   `fond`, à t = 4 s ». Aujourd'hui une option est une clé dans un objet plat, sans chemin ni identité de couche.
+
+## Conception
+
+### 4.1 `SceneDoc` : un document pur, versionné
+
+```text
+SceneDoc  = { version: 1, id, name, tags?, transition?, showBranding?, layers: Layer[] }
+Layer     = { id, kind: LayerKindId, name?, visible, opacity, placement, options }
+placement = { x, y, width, height }      // pixels du canvas de référence 1920×1080
+```
+
+- `layers` est ordonné **du fond vers l'avant** ; `id` est stable (renommer, réordonner ou supprimer une
+  couche ne change pas l'identité des autres). Bornes : 1 à 8 couches (garde de charge, voir Risques).
+- `kind`, `options` : exactement ceux de l'étape 3 (`layer-kinds.js`) ; `validateOptions` / `clampOptions`
+  s'appliquent **par couche**.
+- `placement` par défaut = tout le canvas `{ 0, 0, 1920, 1080 }`. Les effets dimensionnent déjà leur canvas
+  sur leur conteneur (`defineCanvasLayer`) : une couche placée ailleurs n'exige aucun changement d'effet.
+- `enter` / `exit` par couche (cadrage) sont **réservés, non implémentés** : le format les tolère
+  (champ inconnu conservé), leur contenu viendra avec la timeline.
+- **Propriétés adressables** : un chemin `layers[<id>].options.speed` / `layers[<id>].opacity`, avec deux
+  fonctions pures `readPath(doc, path)` et `writePath(doc, path, value)` (renvoient un nouveau document).
+  C'est la seule interface dont la timeline aura besoin ; elle est testée dès cette étape.
+
+Module : `scene-doc.js` (racine, comme `layer-kinds.js`), **pur, sans DOM**. Interface : `createSceneDoc`,
+`validateSceneDoc`, `canonicalSceneDoc`, `readPath`, `writePath`, `sceneFromPreset`.
+
+### 4.2 Un preset est une scène à une couche
+
+```text
+preset  { id, name, component, options, tags?, transition?, showBranding? }
+   ⇒    scène { version:1, id, name, tags?, transition?, showBranding?,
+                layers:[{ id:'main', kind: component, visible:true, opacity:1,
+                          placement: plein canvas, options }] }
+```
+
+- Fichier d'état **version 3** : `presets` devient `scenes` ; `current` devient une scène (la scène en
+  antenne). La migration 2 → 3 est explicite (la 1 → 2 existante reste), avec sauvegarde
+  `background-state.json.pre-v3.bak` et **lecteur tolérant** : un fichier version 2 et les lots d'export
+  version 1 et 2 continuent de se lire et de s'importer.
+- Les URL ne changent pas : `?preset=<id>` reste valide (l'identifiant d'une scène migrée est celui de son
+  preset). `?scene=<id>` est accepté comme synonyme, sans effet de plus. Aucune Browser Source à modifier.
+- Le Studio n'a **aucune modification visible** dans cette étape : l'éditeur de couches est l'étape 6. Il lit
+  et écrit des scènes à une couche à travers `sceneFromPreset` et son inverse.
+
+### 4.3 `createSceneRuntime` : un module profond, à la place du montage
+
+`createSceneRuntime(container, deps)` : `apply(scene, { transition })`, `emit(event)`, `setPaused`, `destroy`.
+Ce qu'il cache :
+
+- **Réconciliation des couches** par `id` : même `id` et même `kind` → `update(options)`, jamais de
+  recréation ; nouvelle couche → montage ; couche retirée → démontage ; ordre → `z-index`. `visible` et
+  `opacity` sont appliqués sur le calque de la couche, sans toucher à l'effet.
+- **Transition de scène** : la scène entrante et la sortante sont deux **calques de scène** superposés
+  pendant l'animation (fondu / balayage existants, `background-transition.js` généralisé de « un effet » à
+  « une scène »). Une scène porteuse d'une `transition` est une arrivée ; sans elle, c'est un réglage.
+- **Routage selon les capacités déclarées** (étape 3) : l'audio alimente toute couche `audio: true` et
+  visible ; une réaction est traitée par une couche `reactions: 'native'` si elle existe, sinon dessinée
+  **une seule fois** par la surcouche partagée, quel que soit le nombre de couches.
+- Une couche qui lève une erreur n'arrête ni la scène ni l'horloge (isolement déjà assuré par `render-clock.js`).
+
+`background-mount.js` disparaît (ou se réduit à un adaptateur d'une ligne le temps du basculement) ; ses tests
+sont repris sur le moteur, pas supprimés.
+
+### 4.4 Branding : hors de cette étape
+
+Le branding reste une surcouche globale (état séparé, `showBranding` par scène). Le passer en type de couche
+(cadrage : « branding existe déjà comme type ») est une décision séparée, voir D1.
+
+## Ordre de livraison (un commit par pas, `bun test` vert à chaque pas)
+
+1. **4a** `scene-doc.js` : formes, validation, canonicalisation, `readPath` / `writePath`, `sceneFromPreset`.
+   Tests dont un **rouge d'abord** par propriété (chemin inexistant, id dupliqué, 9 couches, type invalide).
+2. **4b** Format d'état version 3 + migration 2 → 3 + lots d'export + serveur (`/state`, `/save-preset`, import)
+   + sauvegarde `pre-v3.bak`. **Vérifié sur une copie** de votre fichier réel avant tout contact avec l'original ;
+   aller-retour export → import des lots version 1, 2 et 3.
+3. **4c** `scene-runtime.js` : réconciliation, z-order, placement, visibilité, opacité (sans transition),
+   testé avec un registre factice.
+4. **4d** Transitions de scène ; bascule de `background.html` et du Studio sur le moteur ; retrait de
+   `background-mount.js`. **Sonde d'équivalence** : pour chaque effet et chaque preset intégré, le DOM et la
+   suite d'appels de dessin produits par l'ancien montage et par le moteur sont identiques (méthode déjà utilisée
+   à l'étape 2, avec cas rouge vu).
+5. **4e** Routage audio et réactions par capacités ; test de contrat : une scène à trois couches reçoit
+   **un seul** dessin de réaction.
+6. **4f** `?scene=` (synonyme), documentation, `CLAUDE.md` (surfaces partagées : `scene-doc.js`).
+
+## Critères de succès (chacun observé, pas déduit)
+
+- Votre `background-state.json` réel, migré en copie : mêmes presets, mêmes options, même scène courante
+  (chaque preset = une scène d'une couche) ; le fichier migré est valide et se relit.
+- Pour chaque effet : équivalence de rendu ancien montage ↔ moteur sur une scène à une couche (sonde).
+- Une scène de **trois couches** (par exemple DotGrid + Fireflies + une couche placée dans un coin) s'affiche
+  dans l'aperçu et dans la page de rendu ; masquer une couche la retire sans recréer les autres.
+- Mesure de charge (FPS du compteur et CPU OBS, votre protocole habituel) avec 1 couche puis 3 couches :
+  **résultat publié avant d'ouvrir l'éditeur multi-couches** (étape 6).
+- Changement de scène à transition : aucun empilement, une seule scène à la fin (cas déjà au QA, case 5).
+- Une page OBS **non rafraîchie** après la bascule du fichier continue d'afficher le fond ou, au pire, garde
+  son dernier état sans erreur ; rafraîchie, elle lit la version 3.
+- `bun test` vert ; typage : aucune régression.
+
+## Hors périmètre
+
+Éditeur de couches et UI multi-couches (étape 6) ; brouillon / publication côté serveur et décomposition du
+serveur (étape 5) ; nouveaux types de couches (décor, médias, widgets : étape 7) ; timeline (étape 8) ;
+branding en couche (D1) ; renommage `background.html` → `render.html` (décision D2 de la revue, indépendante).
+
+## Risques
+
+| Risque | Parade |
+|---|---|
+| Fichier d'état corrompu par la migration | Sauvegarde `pre-v3.bak` avant écriture ; migration d'abord sur copie ; lecteur tolérant ; tag `pre-scene-doc` posé avant 4b |
+| Régression visuelle au remplacement du montage | Sonde d'équivalence par effet (rouge vu) + contrôle visuel de l'owner sur ses presets, comme à l'étape 2 |
+| Charge : N couches = N canvas pleine taille | Borne à 8 couches ; mesure à 1 et 3 couches **avant** l'étape 6 ; une couche masquée ne coûte rien (démontée ou en pause, à trancher à la mesure) |
+| Page OBS non rafraîchie face à un serveur migré | Lecteur tolérant et rendu inchangé pour une scène à une couche ; documenté comme pour l'étape 3 |
+| Surfaces partagées (`types.js`, format d'état) | Vérification en aval avant chaque pas ; un commit par pas |
+
+## Décisions à prendre
+
+1. **D1 — Branding : surcouche globale (proposé) ou type de couche dès maintenant ?** Recommandation : rester
+   global dans cette étape. Le passer en couche demande de décider si le branding est par scène ou commun, ce
+   qui est une décision produit (aujourd'hui : commun, masquable par preset).
+2. **D2 — Vocabulaire du fichier : `presets` → `scenes` dès la version 3 (proposé), ou garder `presets` et ne
+   renommer qu'avec l'éditeur ?** Recommandation : renommer maintenant, avec lecture tolérante, pour ne pas
+   refaire une migration à l'étape 6. L'interface continue de dire « preset » jusqu'à l'éditeur.
+3. **D3 — Unités du placement : pixels du canvas 1920×1080 (proposé) ou pourcentages ?** Recommandation :
+   pixels, cohérent avec le canvas de référence et l'aperçu fidèle ; le branding, lui, garde ses pourcentages.
+4. **D4 — Borne de couches : 8 (proposé).** Valeur de garde, à réviser après la mesure de charge.
