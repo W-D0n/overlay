@@ -5,7 +5,7 @@ updated: 2026-10-29
 
 # Spec — Socle de rendu : contrat d'URL, transport d'état, horloge unique (étapes 1 et 2)
 
-Statut : **étape 1 livrée le 2026-10-29** (render-url, render-transport, `background.html` réduit à l'assemblage) ; étape 2 à venir. Emplacement des modules : à plat à la racine, validé (recommandation acceptée). Étapes 1 et 2 du chemin de migration de
+Statut : **étape 1 livrée le 2026-10-29** (render-url, render-transport, `background.html` réduit à l'assemblage) ; étape 2 : horloge (`render-clock.js`, `createPhase`) livrée le 2026-10-29 sans consommateur ; `defineCanvasLayer` et la migration des effets à venir. Emplacement des modules : à plat à la racine, validé (recommandation acceptée). Étapes 1 et 2 du chemin de migration de
 `docs/architecture-review.md` §5, décisions D1 à D6 acceptées. Ces deux étapes sont indépendantes du
 reste du Studio : elles apportent seules de la stabilité et de la maintenabilité, et posent les deux
 briques dont dépendent les couches (étape 4) et la timeline (étape 8).
