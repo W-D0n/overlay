@@ -1,7 +1,7 @@
 ---
 feature: background-standalone
 created: 2026-07-14
-updated: 2026-08-24
+updated: 2026-10-30
 status: validated
 ---
 
@@ -55,6 +55,10 @@ Décisions validées (AskUserQuestion, 2026-07-14) :
 
 ### État persisté — `dev/data/background-state.json`
 
+Le fichier est en **version 3** (`scenes` : documents de scène, `scene-doc.js`). Le serveur le lit et l'écrit à sa
+frontière (`readBackgroundFile` / `encodePersistedFile`) ; tout le reste (API HTTP et WebSocket, Studio, page de
+rendu) manipule la forme ci-dessous, inchangée : `current` et `presets`.
+
 ```json
 {
   "current": { "component": "RainBackground", "options": { "intensity": 0.6 } },
@@ -63,6 +67,13 @@ Décisions validées (AskUserQuestion, 2026-07-14) :
   ]
 }
 ```
+
+Sur disque, la même donnée s'écrit : `current` = scène en antenne (`id: "current"`, `null` si aucun fond) et `presets`
+devient `scenes`, chaque preset étant une scène d'une couche (`layers: [{ id: "main", kind, visible, opacity,
+placement, options }]`). Une scène de plusieurs couches est refusée à la lecture tant qu'aucun éditeur de couches
+n'existe. Les versions 1 et 2 se lisent (migration en mémoire) ; l'original est copié dans
+`background-state.json.pre-v3.bak` avant la première réécriture, et la version 3 n'est pas lisible par un serveur
+antérieur (retour arrière : restaurer la sauvegarde).
 
 - `current.component` : `null` (aucun fond) ou un nom de `BACKGROUND_COMPONENT_NAMES`
   (`dev/component-field-schemas.js` — source unique du vocabulaire des effets).

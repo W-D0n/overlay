@@ -98,8 +98,10 @@ Le branding reste une surcouche globale (état séparé, `showBranding` par scè
 
 1. **4a** `scene-doc.js` : formes, validation, canonicalisation, `readPath` / `writePath`, `sceneFromPreset`.
    Tests dont un **rouge d'abord** par propriété (chemin inexistant, id dupliqué, 9 couches, type invalide).
-2. **4b** Format d'état version 3 + migration 2 → 3 + lots d'export + serveur (`/state`, `/save-preset`, import)
-   + sauvegarde `pre-v3.bak`. **Vérifié sur une copie** de votre fichier réel avant tout contact avec l'original ;
+2. **4b — livré** : format d'état version 3 + migration 2 → 3 (et sans version → 3) + sauvegarde `pre-v3.bak`, à la frontière
+   lecture/écriture du serveur ; l'API (`/state`, `/save-preset`, import, WebSocket) garde sa forme `current` / `presets`, donc une
+   page OBS non rafraîchie ne voit rien. **Écart assumé** : les lots d'export restent des presets (version 2) ; une version 3 de
+   lot n'aurait que le même contenu sous un autre nom tant qu'une scène ne peut avoir qu'une couche, elle arrive avec 4d/étape 6. **Vérifié sur une copie** de votre fichier réel avant tout contact avec l'original ;
    aller-retour export → import des lots version 1, 2 et 3.
 3. **4c** `scene-runtime.js` : réconciliation, z-order, placement, visibilité, opacité (sans transition),
    testé avec un registre factice.

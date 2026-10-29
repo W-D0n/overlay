@@ -3,6 +3,7 @@ import { clampOptions, isKnownKindId, neutralizeOptions, resolveKindId, validate
 import { validateSceneMap } from '../obs-scene-mapping.js';
 import { validateTransition } from '../background-transition.js';
 import { normalizeBranding, validateBranding } from '../branding-format.js';
+import { presetFromScene, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
 
 /**
  * dev/background-state-format.js — Logique pure de l'état background standalone (2026-07-14).
@@ -24,8 +25,14 @@ export const PRESET_ID_MAX_LENGTH = 80;
 const PRESET_ID_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/;
 const RETIRED_BACKGROUND_COMPONENT = 'MatrixGridBackground';
 
-/** Version du fichier d'état : 2 = valeurs persistées neutres (`audioReactive` booléen). */
-export const BACKGROUND_FILE_VERSION = 2;
+/**
+ * Version du fichier d'état : 2 = valeurs persistées neutres (`audioReactive` booléen) ; 3 = `scenes` (documents de
+ * scène, `scene-doc.js`) à la place de `presets`, `current` devenu la scène en antenne.
+ */
+export const BACKGROUND_FILE_VERSION = 3;
+
+/** Identité de la scène en antenne : l'état courant n'est pas un preset, il n'a ni id ni nom propres. */
+const CURRENT_SCENE = { id: 'current', name: 'En antenne' };
 
 /**
  * Forme persistée d'un état courant : identifiant neutre de l'effet et options aux valeurs neutres.
@@ -154,6 +161,7 @@ export function migrateBackgroundFile(raw) {
     && raw.current.component === RETIRED_BACKGROUND_COMPONENT;
   if (retireCurrent) migrated = true;
   const current = retireCurrent ? { component: null, options: {} } : raw.current;
+  if (raw.version === 2) return { file: { ...raw, version: BACKGROUND_FILE_VERSION, current, presets }, migrated: true };
   if (!needsNeutralValues) return { file: migrated ? { ...raw, current, presets } : raw, migrated };
 
   return {
@@ -165,6 +173,85 @@ export function migrateBackgroundFile(raw) {
     },
     migrated: true,
   };
+}
+
+/**
+ * Forme persistée (version 3) d'un fichier d'état : chaque preset est une scène à une couche, l'état courant est la
+ * scène en antenne (`null` : aucun fond). Le reste du serveur manipule la forme `current` / `presets`.
+ * @param {BackgroundFile} file
+ * @returns {Record<string, unknown>}
+ */
+export function encodePersistedFile(file) {
+  const { current, presets, ...rest } = file;
+  return {
+    ...rest,
+    version: BACKGROUND_FILE_VERSION,
+    current: current.component === null
+      ? null
+      : sceneFromPreset({ ...CURRENT_SCENE, component: current.component, options: current.options, ...(current.transition === undefined ? {} : { transition: current.transition }), ...(current.showBranding === undefined ? {} : { showBranding: current.showBranding }) }),
+    scenes: presets.map((preset) => sceneFromPreset(preset)),
+  };
+}
+
+/**
+ * Inverse de `encodePersistedFile`. Une scène qui n'est pas à une couche ne se lit pas encore : le serveur et le
+ * Studio n'ont pas d'éditeur de couches, et la prendre pour un preset en perdrait.
+ * @param {Record<string, unknown>} raw fichier de version 3
+ * @returns {{ ok: true, file: BackgroundFile } | { ok: false, errors: string[] }}
+ */
+export function decodePersistedFile(raw) {
+  /** @type {string[]} */
+  const errors = [];
+  /** @param {unknown} value @param {string} where */
+  const readScene = (value, where) => {
+    const validation = validateSceneDoc(value);
+    if (!validation.ok) {
+      for (const error of validation.errors) errors.push(`${where} : ${error}`);
+      return null;
+    }
+    const preset = presetFromScene(/** @type {*} */ (value));
+    if (preset === null) errors.push(`${where} : scène à plusieurs couches, non prise en charge par ce serveur`);
+    return preset;
+  };
+
+  /** @type {BackgroundCurrent} */
+  let current = { component: null, options: {} };
+  if (raw.current !== null) {
+    const scene = readScene(raw.current, 'current');
+    if (scene !== null) {
+      current = { component: scene.component, options: scene.options };
+      if (scene.transition !== undefined) current.transition = scene.transition;
+      if (scene.showBranding !== undefined) current.showBranding = scene.showBranding;
+    }
+  }
+  if (!Array.isArray(raw.scenes)) errors.push('scenes : tableau attendu');
+  const presets = Array.isArray(raw.scenes)
+    ? raw.scenes.map((scene, index) => readScene(scene, `scenes[${index}]`)).filter((preset) => preset !== null)
+    : [];
+  if (errors.length > 0) return { ok: false, errors };
+
+  const { current: _current, scenes: _scenes, ...rest } = raw;
+  return { ok: true, file: /** @type {BackgroundFile} */ ({ ...rest, current, presets }) };
+}
+
+/**
+ * Lecture tolérante du fichier d'état, de n'importe quelle version : la version 3 se décode, les anciennes
+ * se migrent. `migratedFrom` dit si le fichier doit être réécrit en version 3 (et d'où il vient).
+ * @param {unknown} raw
+ * @returns {{ ok: true, file: BackgroundFile, migratedFrom: number | null } | { ok: false, errors: string[] }}
+ */
+export function readBackgroundFile(raw) {
+  if (isPlainObject(raw) && raw.version === BACKGROUND_FILE_VERSION) {
+    const decoded = decodePersistedFile(raw);
+    if (!decoded.ok) return decoded;
+    const validation = validateBackgroundFile(decoded.file);
+    return validation.ok ? { ok: true, file: decoded.file, migratedFrom: null } : { ok: false, errors: validation.errors };
+  }
+  const migration = migrateBackgroundFile(raw);
+  const validation = validateBackgroundFile(migration.file);
+  if (!validation.ok) return { ok: false, errors: validation.errors };
+  const from = isPlainObject(raw) && typeof raw.version === 'number' ? raw.version : 1;
+  return { ok: true, file: migration.file, migratedFrom: migration.migrated ? from : null };
 }
 
 /**

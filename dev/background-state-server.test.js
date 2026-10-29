@@ -361,7 +361,7 @@ test('une scène associée applique son preset et le diffuse ; une scène inconn
     fakeObs.changeScene('Discussion');
     await waitFor(() => messages.length === 1, 3000);
     expect(messages[0].component).toBe('stars-parallax');
-    expect(JSON.parse(readFileSync(stateFile, 'utf8')).current.component).toBe('stars-parallax');
+    expect(JSON.parse(readFileSync(stateFile, 'utf8')).current.layers[0].kind).toBe('stars-parallax');
 
     const before = readFileSync(stateFile, 'utf8');
     fakeObs.changeScene('Scene sans association');
@@ -489,7 +489,7 @@ test('une page web étrangère ne peut ni lire ni modifier l’état, ni ouvrir 
   }
 });
 
-test('un fichier d’état version 1 est migré en version 2 et sauvegardé une seule fois avant toute écriture', async () => {
+test('un fichier d’état version 1 est migré en version 3 et sauvegardé une seule fois avant toute écriture', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'overlay-background-state-'));
   const stateFile = join(directory, 'state.json');
   const original = JSON.stringify({
@@ -509,11 +509,11 @@ test('un fichier d’état version 1 est migré en version 2 et sauvegardé une 
   try {
     await waitForServer(baseUrl);
     const state = await (await fetch(`${baseUrl}/state`)).json();
-    expect(state.version).toBe(2);
+    expect(state.version).toBe(3);
     expect(state.current.options.audioReactive).toBe(true);
     expect(state.presets[0].options.audioReactive).toBe(false);
 
-    const backup = `${stateFile}.pre-v2.bak`;
+    const backup = `${stateFile}.pre-v3.bak`;
     expect(existsSync(backup)).toBe(true);
     expect(readFileSync(backup, 'utf8')).toBe(original);
 
@@ -524,7 +524,10 @@ test('un fichier d’état version 1 est migré en version 2 et sauvegardé une 
       body: JSON.stringify({ current: { component: 'RainBackground', options: { speed: 3 } } }),
     });
     expect(readFileSync(backup, 'utf8')).toBe(original);
-    expect(JSON.parse(readFileSync(stateFile, 'utf8')).version).toBe(2);
+    const rewritten = JSON.parse(readFileSync(stateFile, 'utf8'));
+    expect(rewritten.version).toBe(3);
+    expect(rewritten.scenes.map((scene) => scene.id)).toEqual(['calme']);
+    expect(rewritten.presets).toBeUndefined();
   } finally {
     child.kill();
     rmSync(directory, { recursive: true, force: true });
@@ -548,8 +551,8 @@ test('un client qui envoie encore l’ancien nom d’effet ou « Oui » est stoc
     expect((await post('/state', { current: { component: 'RainBackground', options: { audioReactive: 'Oui' } } })).status).toBe(200);
     expect((await post('/save-preset', { name: 'Ancien', component: 'BubbleBackground', options: { audioReactive: 'Non' } })).status).toBe(200);
     const stored = JSON.parse(readFileSync(stateFile, 'utf8'));
-    expect(stored.current).toEqual({ component: 'rain', options: { audioReactive: true } });
-    expect(stored.presets[0]).toMatchObject({ component: 'bubble', options: { audioReactive: false } });
+    expect(stored.current.layers).toEqual([expect.objectContaining({ kind: 'rain', options: { audioReactive: true } })]);
+    expect(stored.scenes[0].layers[0]).toMatchObject({ kind: 'bubble', options: { audioReactive: false } });
   } finally {
     child.kill();
     rmSync(directory, { recursive: true, force: true });
@@ -577,7 +580,7 @@ test('le serveur rejette un type d’option invalide et ramène un nombre hors b
 
     const saved = await post('/save-preset', { name: 'Trop', component: 'bubble', options: { count: 9999 } });
     expect(saved.status).toBe(200);
-    expect(JSON.parse(readFileSync(stateFile, 'utf8')).presets[0].options.count).toBe(200);
+    expect(JSON.parse(readFileSync(stateFile, 'utf8')).scenes[0].layers[0].options.count).toBe(200);
 
     const rejectedPreset = await post('/save-preset', { name: 'Faux', component: 'bubble', options: { count: 'beaucoup' } });
     expect(rejectedPreset.status).toBe(400);

@@ -29,12 +29,13 @@
 import {
   defaultBackgroundFile,
   createPresetId,
-  migrateBackgroundFile,
+  readBackgroundFile,
+  BACKGROUND_FILE_VERSION,
+  encodePersistedFile,
   canonicalBackgroundCurrent,
   canonicalBackgroundPreset,
   validateBackgroundCurrent,
   validateBackgroundPreset,
-  validateBackgroundFile,
   validatePresetName,
   upsertPreset,
   renamePreset,
@@ -109,12 +110,14 @@ function broadcastPresetChange(preset, action) {
  * Copie le fichier d'origine à côté de lui avant que la version migrée ne soit écrite. Une seule
  * sauvegarde : si elle existe déjà, elle est la plus ancienne et ne doit jamais être écrasée.
  * @param {Blob} file
+ * @param {number} from version du fichier d'origine
  */
-async function backupBeforeMigration(file) {
-  const backup = Bun.file(`${STATE_FILE}.pre-v2.bak`);
+async function backupBeforeMigration(file, from) {
+  const path = `${STATE_FILE}.pre-v${BACKGROUND_FILE_VERSION}.bak`;
+  const backup = Bun.file(path);
   if (await backup.exists()) return;
-  await Bun.write(`${STATE_FILE}.pre-v2.bak`, await file.text());
-  console.info(`[background-state-server] fichier d'état migré en version 2 — original conservé : ${STATE_FILE}.pre-v2.bak`);
+  await Bun.write(path, await file.text());
+  console.info(`[background-state-server] fichier d'état version ${from} migré en version ${BACKGROUND_FILE_VERSION} — original conservé : ${path}`);
 }
 
 /**
@@ -134,16 +137,15 @@ async function readStateFile() {
     return { ok: false, errors: [`JSON illisible : ${String(err)}`] };
   }
 
-  const migration = migrateBackgroundFile(raw);
-  const validation = validateBackgroundFile(migration.file);
-  if (!validation.ok) return { ok: false, errors: validation.errors };
-  if (migration.migrated) await backupBeforeMigration(file);
-  return { ok: true, file: /** @type {import('./background-state-format.js').BackgroundFile} */ (migration.file) };
+  const read = readBackgroundFile(raw);
+  if (!read.ok) return { ok: false, errors: read.errors };
+  if (read.migratedFrom !== null) await backupBeforeMigration(file, read.migratedFrom);
+  return { ok: true, file: read.file };
 }
 
 /** @param {import('./background-state-format.js').BackgroundFile} file */
 async function writeStateFile(file) {
-  await Bun.write(STATE_FILE, `${JSON.stringify(file, null, 2)}\n`);
+  await Bun.write(STATE_FILE, `${JSON.stringify(encodePersistedFile(file), null, 2)}\n`);
 }
 
 /**
