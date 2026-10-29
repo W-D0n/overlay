@@ -35,6 +35,8 @@
  * @property {(options: unknown, duration: number, easing: TransitionEasing) => void} [morphTo] -
  *   Interpole visuellement vers de nouvelles options plutôt qu'un saut instantané (AD-B3,
  *   `docs/specs/background-effects-library.md`). Implémenté par `DotGridBackground`.
+ * @property {(levels: import('./audio-levels.js').AudioLevels) => void} [setAudioLevel] - Niveaux audio
+ *   (général, graves, aigus) ; présent seulement si l'effet réagit au son (`background-mount.js`).
  * @property {() => void} [destroy]                 - Libère les ressources (observers, timers)
  * @property {(payload: unknown) => void} [trigger] - Réaction impérative à un événement discret
  *   (alerte stream). Optionnel : un effet sans `trigger` est couvert par `ReactionOverlay`

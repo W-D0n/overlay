@@ -1,0 +1,129 @@
+import { describe, expect, test } from 'bun:test';
+import { defineCanvasLayer } from './canvas-layer.js';
+import { createRenderClock } from '../render-clock.js';
+
+function createHarness({ width = 800, height = 600 } = {}) {
+  const calls = [];
+  const canvas = {
+    style: {},
+    offsetWidth: width,
+    offsetHeight: height,
+    width: 0,
+    height: 0,
+    getContext: () => ({
+      clearRect: (...args) => calls.push(['clearRect', ...args]),
+      scale: (...args) => calls.push(['scale', ...args]),
+    }),
+  };
+  let frame = null;
+  const clock = createRenderClock({
+    requestFrame: (callback) => { frame = callback; return 1; },
+    cancelFrame: () => { frame = null; },
+    devicePixelRatio: () => 2,
+    onError: () => {},
+  });
+  const observers = [];
+  class FakeObserver {
+    constructor(callback) { this.callback = callback; this.disconnected = false; observers.push(this); }
+    observe() {}
+    disconnect() { this.disconnected = true; }
+  }
+  const environment = { clock, documentRef: { createElement: () => canvas }, ResizeObserverImpl: FakeObserver };
+  return {
+    calls, canvas, clock, observers, environment,
+    tick(timestamp) { const current = frame; frame = null; current?.(timestamp); },
+    hasFrame: () => frame !== null,
+  };
+}
+
+describe('squelette de couche canvas', () => {
+  test('la couche dessine après dimensionnement, avec effacement préalable et ratio de pixels', () => {
+    const harness = createHarness();
+    const events = [];
+    const layer = defineCanvasLayer(() => ({
+      resize: (size, ratio) => events.push(['resize', size, ratio]),
+      draw: (ctx, frame, size) => events.push(['draw', frame.dt, size]),
+    }));
+    layer({}, harness.environment);
+    harness.tick(1000);
+    harness.tick(1016);
+    expect(events.map(([kind]) => kind)).toEqual(['resize', 'draw', 'draw']);
+    expect(events[0]).toEqual(['resize', { width: 800, height: 600 }, 2]);
+    expect(harness.canvas.width).toBe(1600);
+    expect(harness.calls.filter(([name]) => name === 'clearRect').length).toBe(2);
+  });
+
+  test('un conteneur sans taille ne dessine pas et ne redimensionne pas', () => {
+    const harness = createHarness({ width: 0, height: 0 });
+    const events = [];
+    defineCanvasLayer(() => ({ resize: () => events.push('resize'), draw: () => events.push('draw') }))({}, harness.environment);
+    harness.tick(0);
+    harness.tick(16);
+    expect(events).toEqual([]);
+  });
+
+  test('la première frame d’une couche a toujours dt = 0, même si l’horloge tourne déjà', () => {
+    const harness = createHarness();
+    harness.clock.subscribe(() => {});
+    harness.tick(0);
+    const dts = [];
+    defineCanvasLayer(() => ({ resize() {}, draw: (ctx, frame) => dts.push(frame.dt) }))({}, harness.environment);
+    harness.tick(50);
+    harness.tick(66);
+    expect(dts[0]).toBe(0);
+    expect(dts[1]).toBeCloseTo(0.016, 6);
+  });
+
+  test('un changement de taille rappelle resize une seule fois', () => {
+    const harness = createHarness();
+    let resizes = 0;
+    defineCanvasLayer(() => ({ resize: () => { resizes += 1; }, draw() {} }))({}, harness.environment);
+    harness.tick(0);
+    harness.observers[0].callback();
+    harness.tick(16);
+    expect(resizes).toBe(1);
+    harness.canvas.offsetWidth = 1000;
+    harness.tick(32);
+    expect(resizes).toBe(2);
+  });
+
+  test('setAudioLevel et trigger n’existent sur l’instance que si la couche les définit', () => {
+    const harness = createHarness();
+    const bare = defineCanvasLayer(() => ({ resize() {}, draw() {} }))({}, harness.environment);
+    expect('setAudioLevel' in bare).toBe(false);
+    expect('trigger' in bare).toBe(false);
+
+    const received = [];
+    const reactive = defineCanvasLayer(() => ({
+      resize() {}, draw() {},
+      setAudioLevel: (levels) => received.push(levels),
+      trigger: (event) => received.push(event),
+    }))({}, harness.environment);
+    reactive.setAudioLevel({ level: 0.5 });
+    reactive.trigger({ type: 'follow' });
+    expect(received).toEqual([{ level: 0.5 }, { type: 'follow' }]);
+  });
+
+  test('update est relayé ; destroy arrête l’abonnement à l’horloge et l’observateur', () => {
+    const harness = createHarness();
+    const updates = [];
+    const instance = defineCanvasLayer(() => ({ resize() {}, draw() {}, update: (options) => updates.push(options) }))({}, harness.environment);
+    instance.update({ speed: 2 });
+    expect(updates).toEqual([{ speed: 2 }]);
+    expect(harness.hasFrame()).toBe(true);
+    instance.destroy();
+    expect(harness.hasFrame()).toBe(false);
+    expect(harness.observers[0].disconnected).toBe(true);
+  });
+
+  test('une couche dont draw lève est isolée : une autre couche continue', () => {
+    const harness = createHarness();
+    const healthy = [];
+    defineCanvasLayer(() => ({ resize() {}, draw() { throw new Error('effet cassé'); } }))({}, harness.environment);
+    defineCanvasLayer(() => ({ resize() {}, draw: (ctx, frame) => healthy.push(frame.time) }))({}, harness.environment);
+    harness.tick(0);
+    harness.tick(16);
+    harness.tick(32);
+    expect(healthy.length).toBe(3);
+  });
+});

@@ -12,6 +12,8 @@
  * @typedef {(frame: RenderFrame) => void} FrameListener
  */
 
+import { parseRenderUrl } from './render-url.js';
+
 const MAX_DELTA_SECONDS = 0.1;
 const MAX_PIXEL_RATIO = 2;
 
@@ -83,6 +85,8 @@ export function createRenderClock(options = {}) {
   }
 
   return {
+    /** Ratio de pixels courant, pour dimensionner un canvas avant la première frame. */
+    pixelRatio,
     /**
      * @param {FrameListener} listener
      * @returns {() => void}
@@ -136,4 +140,13 @@ export function createPhase() {
       return value;
     },
   };
+}
+
+/** @type {ReturnType<typeof createRenderClock> | null} */
+let sharedClock = null;
+
+/** Horloge de la page : une seule boucle pour tous les effets montés, qualité lue dans l'URL. */
+export function getRenderClock() {
+  sharedClock ??= createRenderClock({ quality: parseRenderUrl(globalThis.location?.search ?? '').quality });
+  return sharedClock;
 }
