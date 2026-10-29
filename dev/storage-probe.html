@@ -2,11 +2,12 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <title>Sonde de stockage — Browser Source</title>
+  <title>Sonde Browser Source</title>
   <!--
-    Mesure si le stockage d'une Browser Source OBS (localStorage) survit à un redémarrage d'OBS
-    (docs/specs/socle-rendu-etapes-1-2.md §1b). À charger dans une Browser Source de test,
-    jamais dans la source du live.
+    Mesure dans une Browser Source OBS : (1) si le stockage (localStorage) survit à un redémarrage d'OBS
+    (docs/specs/socle-rendu-etapes-1-2.md §1b) ; (2) le ratio de pixels (devicePixelRatio) et la taille
+    de la page, qui décident si le réglage de qualité de rendu sert à quelque chose.
+    À charger dans une Browser Source de test, jamais dans la source du live.
   -->
   <style>
     body { margin: 0; padding: 24px; background: #111; color: #eee; font: 28px/1.5 'Courier New', monospace; }
@@ -28,6 +29,8 @@
     } catch (error) {
       lines.push(`stockage indisponible : ${error.name}`);
     }
+    lines.push(`devicePixelRatio : ${window.devicePixelRatio}`);
+    lines.push(`page : ${window.innerWidth}×${window.innerHeight}`);
     document.getElementById('out').innerHTML = lines.map((line) => `<div>${line}</div>`).join('');
   </script>
 </body>
