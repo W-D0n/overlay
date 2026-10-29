@@ -1,144 +1,53 @@
-# Configuration OBS — fond autonome et moteur de scènes
+---
+created: 2026-07-03
+updated: 2026-10-29
+---
 
-> Le flux courant utilise `background.html` et ne nécessite aucun accès OBS WebSocket. Le relais
-> décrit plus bas reste disponible pour le moteur historique des neuf scènes.
+# Configuration OBS — fond autonome
 
-## 0. Lancement quotidien — `start-stream.bat` / `start-dev.bat`
+Le flux courant : une Browser Source OBS affiche `background.html`, servi par le serveur statique
+local ; le Studio (tuner) écrit l'état du fond sur le serveur d'état, qui le diffuse en WebSocket.
+Le moteur de scènes et son relais (port 4456) sont archivés (tag `scene-engine-v1`) : rien dans ce
+document ne les concerne.
 
-Deux scripts, deux usages **distincts** — ne pas les confondre :
+## 1. Lancer les serveurs
 
-- **`start-stream.bat`** — pour streamer. Lance le serveur statique et l'état du fond autonome.
-  Aucun secret OBS n'est requis.
-- **`start-dev.bat`** — pour une session de création. Lance le tuner de fonds, l'éditeur de scènes
-  et la preview avec les serveurs de persistance nécessaires.
-  **Ne jamais lancer pendant un live** — les serveurs de dev écrivent sur disque, pas faits pour
-  tourner en continu pendant un stream.
+| Script | Usage |
+|---|---|
+| `start-stream.bat` | Streamer : serveur statique (`5931`) + serveur d'état du fond (`5932`). |
+| `start-dev.bat` | Créer : mêmes serveurs, ouvre le Studio. **Ne pas lancer pendant un live.** |
+| `kill-servers.bat` | Libérer les ports si un `bun.exe` est resté orphelin après une fermeture brutale. |
 
-Un double-clic sur le bon script suffit. Le fichier `.env` n'est requis que si le relais historique
-est lancé séparément pour piloter les scènes complètes.
+Les deux serveurs n'écoutent que sur `127.0.0.1` ; ils refusent les requêtes dont l'`Origin` ou le
+`Host` n'est pas local et ne servent que les fichiers de l'overlay (pas de `.env`, `.git`, `docs/`).
+Les ports se changent dans `ports.config.js` (`STATIC_PORT`, `BACKGROUND_STATE_PORT`).
 
-Les sections 1 à 4 ci-dessous détaillent ce que font ces scripts, et servent de référence
-pour la config initiale ou en cas de problème (le lire une fois suffit).
+## 2. Browser Source
 
-## 1. Servir la page localement
+1. **Sources → + → Navigateur**, nom libre.
+2. **URL** : `http://localhost:5931/background.html` (fond courant) ou, pour un preset précis,
+   l'URL copiée depuis le Studio (`?preset=<id>`).
+3. **Largeur × hauteur** : `1920 × 1080`, le canvas de référence du projet.
+4. **Désactiver la source quand elle n'est pas visible** : décoché, pour que l'effet garde son état.
+5. **Rafraîchir le navigateur quand la scène devient active** : voir la case 5 du QA court dans
+   `docs/inbox.md` — son effet sur les transitions de preset n'est pas encore mesuré. Réglage actuel
+   de l'owner : activé.
+6. Micro (fonds réactifs au son) : OBS doit être lancé avec `--enable-media-stream`.
 
-Zero-build, mais OBS Browser Source a besoin d'une URL `http://` (pas `file://`, certaines APIs DOM
-échouent en `file://`). Servir le dossier du projet avec Bun :
+## 3. Associer une scène OBS à un preset (optionnel)
 
-```bash
-bun dev/static-server.js
-```
+Le serveur d'état se connecte en **lecture seule** à OBS WebSocket v5 pour connaître la scène active.
 
-Depuis la racine du repo (`C:\DEV\overlay`). Laisser tourner pendant tout le stream — c'est un
-process séparé d'OBS, à démarrer avant d'ouvrir OBS (ou à relancer si le PC redémarre).
+1. Dans OBS : **Outils → Paramètres du serveur WebSocket**, activer le serveur et définir un mot de passe.
+2. Copier `.env.example` en `.env` (ignoré par git) et renseigner `OBS_WS_URL` et `OBS_WS_PASSWORD`.
+   Sans mot de passe, le serveur démarre sans client OBS : le fond fonctionne, sans association de scènes.
+3. Dans le Studio, onglet **Diffusion → Scènes OBS** : choisir un preset par scène. Un changement de
+   scène change le fond ; une URL `?preset=` n'est jamais concernée.
 
-Vérifier que ça répond : `http://localhost:5931/index.html` doit afficher l'overlay (fond noir +
-grille de points) dans un navigateur classique avant de le brancher à OBS.
+La liste des scènes est lue au démarrage : après avoir créé une scène dans OBS, relancer le serveur
+d'état (limite connue, voir `docs/architecture-review.md` C6).
 
-## 2. Ajouter la Browser Source dans OBS
+## 4. Vérification avant live
 
-Dans la scène OBS où l'habillage doit apparaître :
-
-1. **Sources → + → Navigateur (Browser Source)**
-2. Nouvelle source, nom libre (ex. `Overlay Atelier`)
-3. Renseigner :
-   - **URL** : `http://localhost:5931/index.html`
-   - **Largeur** : celle de ton canvas OBS
-   - **Hauteur** : `1080`
-   - **FPS personnalisé** : laisser la valeur par défaut (30 suffit, l'animation DotGrid tourne en JS, pas en dépendance du FPS de capture)
-4. **Décocher** « Actualiser le navigateur quand la scène devient active » — le DotGrid doit rester
-   une instance continue (pas de reload à chaque changement de scène OBS, cf. `docs/overview.md`
-   §Couche de fond DotGrid).
-5. **Décocher** « Arrêter la source si non visible » — sinon les composants perdent leur état/timers
-   quand la source est masquée par une autre scène OBS.
-6. Placer la source **par-dessus** vos autres captures (webcam, capture d'écran) dans l'ordre des
-   calques OBS — l'overlay est conçu pour être au premier plan (widgets + grille), pas en fond.
-
-## 3. Vérification visuelle avant stream
-
-Repasser sur chaque scène de l'overlay (`discussion`, `brb`, `codage`, `jeu`, `interview`, `react`,
-`creation`, `fin`) au moins une fois en conditions réelles OBS 2560×1440 avant le premier live —
-la vérification de cette session (S3b) s'est arrêtée à `bun test` (voir gap tracé dans
-`docs/MAP.md` / `docs/handoffs/handoff-latest.md`), pas de vérification visuelle en navigateur.
-
-Pas de mécanisme de changement de scène depuis OBS pour l'instant (voir limite ci-dessous) : pour
-prévisualiser une scène donnée, il faut déclencher l'événement `overlay:scene-change` manuellement
-depuis la console DevTools du Browser Source OBS (clic droit → Interagir, ou depuis un navigateur
-classique sur `localhost:5931`) :
-
-```js
-document.dispatchEvent(new CustomEvent('overlay:scene-change', { detail: { scene: 'discussion' } }));
-```
-
-## 4. Démarrer le relais (S4 — changement de scène live)
-
-Le relais (`relay/server.js`, `docs/specs/relay-bun-s4.md`) fait deux choses : (a) se connecte à
-OBS en client WS v5 et traduit les changements de scène OBS en `scene.set` pour l'overlay, (b)
-expose `POST /emit` pour pousser manuellement `{type,data}` (viewers, chat, alertes…) — aucune
-intégration Twitch n'est branchée dessus pour l'instant, c'est juste le point d'entrée.
-
-### 4.1 Activer le WebSocket dans OBS
-
-`Outils → WebSocket Server Settings` → activer le serveur (port par défaut `4455`), noter le mot
-de passe si l'authentification est activée (recommandé).
-
-### 4.2 Configurer les secrets (une seule fois)
-
-Deux fichiers de config locale, tous deux **gitignorés** — un secret, deux endroits car le relais
-(process Bun) et l'overlay (code navigateur) ne lisent pas les mêmes mécanismes de config :
-
-```bash
-cp obs-config.example.js obs-config.local.js
-cp .env.example .env
-```
-
-- **`obs-config.local.js`** (lu par le navigateur, `store.js`) : renseigner `RELAY_TOKEN` (chaîne
-  aléatoire de votre choix — c'est le secret partagé avec le relais).
-- **`.env`** (lu automatiquement par Bun au lancement de `relay/server.js`, sans rien à exporter
-  manuellement) : renseigner `OBS_WS_PASSWORD` (mot de passe OBS WS) et `OVERLAY_RELAY_SECRET`
-  (**exactement la même valeur** que `RELAY_TOKEN` ci-dessus — sinon la connexion overlay↔relais
-  est refusée).
-
-### 4.3 Lancer le relais
-
-Une fois `.env` renseigné, `start-stream.bat` (§0) suffit. Pour lancer manuellement :
-
-```bash
-bun relay/server.js
-```
-
-(Bun charge `.env` automatiquement — pas besoin de préfixer la commande avec les variables.)
-
-Variables d'environnement (voir `docs/specs/relay-bun-s4.md` §Comportements) :
-
-| Variable | Défaut | Rôle |
-|---|---|---|
-| `OBS_WS_URL` | `ws://localhost:4455` | Où le relais se connecte à OBS |
-| `OBS_WS_PASSWORD` | (vide) | Mot de passe OBS WS (si auth activée côté OBS) |
-| `OVERLAY_RELAY_SECRET` | **requis** | Secret partagé avec `obs-config.local.js` — le relais refuse de démarrer sans |
-| `RELAY_PORT` | `4456` | Port d'écoute du relais pour l'overlay (WS + `/emit`) |
-
-Le relais log `[relay] connecté à OBS WebSocket` puis `[relay] OBS identifié`. Changer de scène
-dans OBS doit alors changer la scène affichée par l'overlay (si les noms de scènes OBS sont dans
-`relay/obs-scene-map.js` — à adapter à vos noms réels de scènes OBS, voir le fichier).
-
-À démarrer **avant** OBS (ou après — le relais retente la connexion OBS toutes les 3s tant qu'elle échoue).
-
-### 4.4 Injecter des données externes
-
-```bash
-curl -X POST http://localhost:4456/emit \
-  -H "Authorization: Bearer <OVERLAY_RELAY_SECRET>" \
-  -H "Content-Type: application/json" \
-  -d '{"type":"viewers.update","data":{"count":42}}'
-```
-
-Types de messages acceptés : voir `docs/specs/scene-config-protocol.md` §Format de données.
-
-## Sans relais — mode fallback statique
-
-Si le relais n'est pas lancé (ou `obs-config.local.js` absent), l'overlay bascule automatiquement
-en mode fallback : `viewers`, `chat`, `alertes`, `guest`, etc. restent aux valeurs par défaut
-(`STATIC_FALLBACK` dans `store.js`), seule la **durée** avance via une minuterie locale. Suffisant
-pour streamer avec l'habillage visuel seul (bandes dorées, grille de points, structure de scène),
-sans changement de scène ni données live.
+Le protocole de contrôle est dans `docs/inbox.md` (« QA court »). Mesures de référence : FPS et
+images abandonnées d'OBS (Statistiques) avec le preset réellement utilisé.
