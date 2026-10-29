@@ -5,7 +5,7 @@ updated: 2026-10-30
 
 # Spec — Démarrer, redémarrer, arrêter les serveurs depuis le produit
 
-Statut : **D1 tranchée le 2026-10-30 : une application (coquille Tauri) qui lance et arrête les serveurs ; C1, C2, C3, C4 (kill) et C5 livrés ; coquille Tauri livrée (phase « Bun présent »), reste la bascule « démarrer avec Windows » à éprouver par un clic.** Besoin (owner, 2026-10-30) : les scripts lancés à la
+Statut : **D1 tranchée le 2026-10-30 : une application (coquille Tauri) qui lance et arrête les serveurs ; C1, C2, C3, C4 (kill) et C5 livrés ; coquille Tauri livrée (phase « Bun présent »), prérequis, menu Serveurs natif et diagnostic OBS livrés ; reste à éprouver par un clic la bascule « démarrer avec Windows » et le menu natif.** Besoin (owner, 2026-10-30) : les scripts lancés à la
 main (`start-stream.bat`, `kill-servers.bat`) doivent devenir des fonctions du produit.
 
 ## Ce qui est possible, et la limite
@@ -73,7 +73,17 @@ depuis le lanceur ou la coquille (D1).
    l'installation). Ports : `STATIC_PORT` / `BACKGROUND_STATE_PORT`, sinon `ports.config.js`. Redémarrer / Arrêter
    restent dans le menu « Serveurs » du Studio. Non éprouvé : le clic sur la case de démarrage Windows, et un exécutable
    sans Bun (phase 2 de `zero-install-local-first.md`).
-5. **Garde de cycle de vie — livrée** : `dev/lifecycle.test.js` lance de vrais serveurs supervisés sur des ports d'essai et
+5. **Application enrichie — livrée** : prérequis vérifiés au lancement (Bun absent → message avec l'adresse
+   d'installation, puis sortie ; port tenu par un autre programme → message qui le dit, sans rien lancer) ; menu natif
+   « Serveurs » (Démarrer, Redémarrer, Arrêter forcé) qui agit sans passer par la page, donc même quand elle ne
+   répond plus, avec confirmation ; arrêt forcé = lanceur de l'application puis `kill-servers` (jamais un programme
+   étranger au projet). Non éprouvé par un clic : les entrées du menu natif (les gestes sous-jacents le sont).
+6. **Diagnostic — livré** : bouton « Diagnostic » du Studio ; contrôles serveurs, connexion OBS, source navigateur
+   (présente, bon port), scène active (le fond y est-il visible ?), page de rendu, scènes associées (renommées ou
+   supprimées dans OBS). Chaque défaut porte son geste de correction ; rapport copiable. Lecture seule d'OBS, URL
+   réduites à origine + chemin (les sources tierces y portent le mot de passe WebSocket). Constat réel du 2026-10-30 :
+   la source « Branding » pointait encore vers l'ancien port 5500.
+7. **Garde de cycle de vie — livrée** : `dev/lifecycle.test.js` lance de vrais serveurs supervisés sur des ports d'essai et
    vérifie que `kill-servers` libère les ports même quand un serveur tué à la main a été relancé, et que `/control/*`
    change les processus puis libère les ports. Vu rouge avec l'ancien comportement (tuer les enfants seulement).
 
