@@ -57,19 +57,23 @@ export function createBackgroundFieldRenderer(input) {
     );
   }
 
-  function buildColorControl(value, onChange) {
+  /** @param {unknown} value @param {(next: string) => void} onChange @param {string} name le nom du réglage, repris par chaque contrôle pour les lecteurs d'écran */
+  function buildColorControl(value, onChange, name) {
     const wrapper = documentRef.createElement('div');
     wrapper.className = 'color-control';
 
     const picker = documentRef.createElement('input');
     picker.type = 'color';
     picker.title = 'Choisir visuellement';
+    picker.setAttribute('aria-label', `${name} — choisir visuellement`);
 
     const text = documentRef.createElement('input');
     text.type = 'text';
     text.placeholder = '#hex, rgb(...), oklch(...), var(--...)';
+    text.setAttribute('aria-label', `${name} — valeur`);
 
     const paletteSelect = documentRef.createElement('select');
+    paletteSelect.setAttribute('aria-label', `${name} — couleur nommée`);
     paletteSelect.appendChild(createOption('Couleur nommée…', ''));
     for (const color of palette.colors) {
       paletteSelect.appendChild(createOption(`${color.name} — ${color.value}`, color.value));
@@ -106,6 +110,7 @@ export function createBackgroundFieldRenderer(input) {
   function buildTokenField(field, value) {
     const wrapper = documentRef.createElement('div');
     const select = documentRef.createElement('select');
+    select.setAttribute('aria-label', field.label);
     const tokens = DESIGN_TOKENS[field.tokenCategory];
     for (const token of tokens) {
       select.appendChild(createOption(tokenLabel(token), token, token === value));
@@ -138,6 +143,7 @@ export function createBackgroundFieldRenderer(input) {
     const toolbar = documentRef.createElement('div');
     toolbar.className = 'colors-toolbar';
     const gradientSelect = documentRef.createElement('select');
+    gradientSelect.setAttribute('aria-label', `${field.label} — appliquer un gradient`);
     gradientSelect.appendChild(createOption('Appliquer un gradient…', ''));
     for (const gradient of palette.gradients) {
       gradientSelect.appendChild(createOption(
@@ -163,7 +169,7 @@ export function createBackgroundFieldRenderer(input) {
         row.appendChild(buildColorControl(colorValue, (next) => {
           values[index] = next;
           publish();
-        }));
+        }, `${field.label} ${index + 1}`));
         const remove = documentRef.createElement('button');
         remove.type = 'button';
         remove.className = 'color-remove';
@@ -202,11 +208,12 @@ export function createBackgroundFieldRenderer(input) {
   function buildField(field, value) {
     if (field.type === 'token') return buildTokenField(field, value);
     if (field.type === 'color') {
-      return buildColorControl(value, (next) => input.onChange(field.key, next));
+      return buildColorControl(value, (next) => input.onChange(field.key, next), field.label);
     }
     if (field.type === 'colors') return buildColorsField(field, value);
     if (field.type === 'select') {
       const select = documentRef.createElement('select');
+      select.setAttribute('aria-label', field.label);
       for (const choice of field.choices) {
         select.appendChild(createOption(choice, choice, choice === value));
       }
@@ -216,12 +223,14 @@ export function createBackgroundFieldRenderer(input) {
     if (field.type === 'boolean') {
       const checkbox = documentRef.createElement('input');
       checkbox.type = 'checkbox';
+      checkbox.setAttribute('aria-label', field.label);
       checkbox.checked = isAudioOn(value);
       checkbox.onchange = () => input.onChange(field.key, checkbox.checked);
       return checkbox;
     }
     if (field.type === 'textarea') {
       const textarea = documentRef.createElement('textarea');
+      textarea.setAttribute('aria-label', field.label);
       textarea.value = Array.isArray(value) ? value.join('\n') : '';
       textarea.oninput = () => input.onChange(
         field.key,
@@ -239,6 +248,7 @@ export function createBackgroundFieldRenderer(input) {
     }
     const text = documentRef.createElement('input');
     text.type = 'text';
+    text.setAttribute('aria-label', field.label);
     text.value = String(value ?? '');
     text.oninput = () => input.onChange(field.key, text.value);
     return text;

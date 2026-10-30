@@ -32,12 +32,14 @@ export function buildNumericFieldControl(field, currentValue, onChange, options 
   range.max = String(max);
   range.step = String(step);
   range.value = String(value);
+  range.setAttribute('aria-label', field.label);
   const exact = documentRef.createElement('input');
   exact.type = 'number';
   exact.min = range.min;
   exact.max = range.max;
   exact.step = range.step;
   exact.value = String(value);
+  exact.setAttribute('aria-label', `${field.label} — valeur exacte`);
   const unit = documentRef.createElement('span');
   unit.className = 'field-unit';
   unit.textContent = field.unit ?? '';

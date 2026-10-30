@@ -756,7 +756,7 @@
       <label class="cc-field">Nom <input id="cc-name" type="text" maxlength="40" autocomplete="off" placeholder="Mise en page du direct"></label>
       <div class="cc-field">
         <span>Raccourci</span>
-        <span class="cc-shortcut-row"><button id="cc-shortcut" type="button" class="cc-shortcut"></button><button id="cc-shortcut-clear" type="button" hidden aria-label="Retirer le raccourci">✕</button></span>
+        <span class="cc-shortcut-row"><button id="cc-shortcut" type="button" class="cc-shortcut" aria-label="Raccourci clavier de la commande"></button><button id="cc-shortcut-clear" type="button" hidden aria-label="Retirer le raccourci">✕</button></span>
       </div>
       <div class="cc-field">
         <span>Étapes, dans l’ordre</span>
@@ -792,7 +792,7 @@
   </div>
 
   <dialog id="command-palette" class="diagnostic palette" aria-label="Palette de commandes">
-    <input id="palette-input" type="text" class="palette-input" placeholder="Rechercher une commande…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="palette-list">
+    <input id="palette-input" type="text" class="palette-input" aria-label="Rechercher une commande" placeholder="Rechercher une commande…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="palette-list">
     <ul id="palette-list" class="palette-list" role="listbox"></ul>
   </dialog>
 
@@ -869,7 +869,7 @@
     <div class="library-tools">
       <button id="preset-export">Exporter</button>
       <button id="preset-import-trigger">Importer</button>
-      <input id="preset-import" type="file" accept="application/json,.json" hidden>
+      <input id="preset-import" type="file" aria-label="Importer des presets (fichier JSON)" accept="application/json,.json" hidden>
     </div>
     <div id="preset-import-review" class="preset-import-review" hidden>
       <p id="preset-import-summary"></p>
@@ -1042,12 +1042,12 @@
 
     <h2>Enregistrer ce réglage</h2>
     <div class="save-row">
-      <input id="preset-name" type="text" placeholder="nom du preset" maxlength="60">
+      <input id="preset-name" type="text" placeholder="nom du preset" maxlength="60" aria-label="Nom du preset">
       <button id="preset-save">Créer</button>
       <button id="preset-new" title="Créer un nouveau preset">Nouveau</button>
     </div>
     <div class="save-row">
-      <input id="preset-tags" type="text" placeholder="tags séparés par des virgules">
+      <input id="preset-tags" type="text" placeholder="tags séparés par des virgules" aria-label="Tags du preset">
     </div>
 
     <h2>Arrivée de ce preset</h2>

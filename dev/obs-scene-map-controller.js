@@ -39,6 +39,7 @@ export function createObsSceneMapController(input) {
   /** @param {import('./obs-scene-map-presenter.js').SceneRow} row */
   function createSelect(row) {
     const select = documentRef.createElement('select');
+    select.setAttribute('aria-label', `Preset de la scène OBS « ${row.sceneName} »`);
     const none = documentRef.createElement('option');
     none.value = '';
     none.textContent = '— aucun —';
