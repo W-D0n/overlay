@@ -66,3 +66,25 @@ describe('scénarios', () => {
     expect(formatSummary(summarizeFrames([]))).toBe('aucune image mesurée');
   });
 });
+
+describe('validateBenchReport', () => {
+  const { validateBenchReport } = require('./obs-bench.js');
+  const summary = summarizeFrames(steady(BUDGET_MS));
+  const entry = (id = 'base', over = {}) => ({ id, label: 'x', summary, verdict: 'ok', ...over });
+
+  test('un rapport complet est accepté et normalisé', () => {
+    const checked = validateBenchReport({ env: 'Source 1920×1080', results: [entry('base'), entry('rotate', { verdict: 'watch' })] });
+    expect(checked.ok).toBe(true);
+    expect(checked.report.results.map((r) => r.id)).toEqual(['base', 'rotate']);
+    expect(typeof checked.report.at).toBe('string');
+  });
+
+  test('refuse un scénario inconnu, un verdict inventé, une mesure absurde ou un rapport vide', () => {
+    expect(validateBenchReport({ env: 'e', results: [entry('inconnu')] }).ok).toBe(false);
+    expect(validateBenchReport({ env: 'e', results: [entry('base', { verdict: 'super' })] }).ok).toBe(false);
+    expect(validateBenchReport({ env: 'e', results: [entry('base', { summary: { ...summary, fps: Number.NaN } })] }).ok).toBe(false);
+    expect(validateBenchReport({ env: 'e', results: [] }).ok).toBe(false);
+    expect(validateBenchReport({ results: [entry()] }).ok).toBe(false);
+    expect(validateBenchReport([]).ok).toBe(false);
+  });
+});

@@ -577,6 +577,27 @@ describe('import de scènes à plusieurs couches (lot version 3)', () => {
   });
 });
 
+describe('rapport du banc de mesure OBS', () => {
+  const summary = { frames: 300, fps: 59.8, meanMs: 16.7, p95Ms: 17.5, worstMs: 30, overBudget: 1, share: 0.003 };
+  const report = { env: 'Source 1920×1080 · CEF', results: [{ id: 'base', label: 'Base', summary, verdict: 'ok' }, { id: 'blur-12', label: 'Flou', summary: { ...summary, fps: 41 }, verdict: 'too-costly' }] };
+
+  test('aucun rapport : 404 ; un rapport envoyé se relit tel quel, rangé à côté du fichier d’état', async () => {
+    const { post, call, path } = setup();
+    expect((await call('/bench-result')).status).toBe(404);
+    expect((await post('/bench-result', report)).status).toBe(200);
+    const read = await (await call('/bench-result')).json();
+    expect(read.results.map((r) => [r.id, r.verdict])).toEqual([['base', 'ok'], ['blur-12', 'too-costly']]);
+    expect(read.env).toContain('CEF');
+    expect(existsSync(`${path}.bench.json`)).toBe(true);
+  });
+
+  test('un rapport invalide est refusé (400) sans rien écrire', async () => {
+    const { post, path } = setup();
+    expect((await post('/bench-result', { env: 'e', results: [{ id: 'inconnu' }] })).status).toBe(400);
+    expect(existsSync(`${path}.bench.json`)).toBe(false);
+  });
+});
+
 describe('réglages du Studio', () => {
   const COMMAND = { id: 'custom.ma-macro', name: 'Ma macro', steps: ['edit.copy', { op: 'setPlacements', args: { patch: { x: 0.1 } }, target: 'selection' }], shortcut: 'Ctrl+Maj+K' };
   const settings = async (call) => (await call('/studio-settings')).json();

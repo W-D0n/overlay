@@ -44,6 +44,7 @@ import { channelForPath } from './channels.js';
 import { EXIT_RESTART, EXIT_STOP } from './supervisor.js';
 import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
 import { validateBranding } from '../branding-format.js';
+import { validateBenchReport } from './obs-bench.js';
 import { applySettingsPatch, normalizeStudioSettings, validateSettingsPatch } from './studio-settings.js';
 
 /**
@@ -274,6 +275,26 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
     return response;
   }
 
+  /** GET /bench-result — le dernier rapport du banc de mesure OBS (404 tant qu'aucun n'a été envoyé). */
+  async function handleGetBenchResult() {
+    const file = Bun.file(`${store.path}.bench.json`);
+    if (!(await file.exists())) return jsonError('aucun rapport du banc de mesure', 404);
+    return new Response(await file.text(), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
+  }
+
+  /**
+   * POST /bench-result — le rapport de la page `dev/obs-bench.html`, rangé à côté du fichier d'état.
+   * @param {Request} req
+   * @returns {Promise<Response>}
+   */
+  async function handlePostBenchResult(req) {
+    const checked = validateBenchReport(await req.json());
+    if (!checked.ok) return jsonError(checked.error, 400);
+    await Bun.write(`${store.path}.bench.json`, `${JSON.stringify(checked.report, null, 2)}
+`);
+    return Response.json({ ok: true }, { headers: CORS_HEADERS });
+  }
+
   /** GET /obs-status — connexion OBS et scènes réelles, pour la section « Scènes OBS » du tuner. */
   function handleGetObsStatus() {
     return Response.json({ ...obs.status(), configured: obs.configured }, { headers: CORS_HEADERS });
@@ -338,6 +359,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
     '/control/stop': controlHandler('stop'),
     '/scene-map': handlePostSceneMap,
     '/studio-settings': handlePostStudioSettings,
+    '/bench-result': handlePostBenchResult,
     '/branding': handlePostBranding,
     '/state': handlePostState,
     '/rollback': handleRollback,
@@ -410,6 +432,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
       if (req.method === 'GET' && url.pathname === '/history') return handleGetHistory();
       if (req.method === 'GET' && url.pathname === '/drafts') return handleGetDrafts();
       if (req.method === 'GET' && url.pathname === '/studio-settings') return handleGetStudioSettings();
+      if (req.method === 'GET' && url.pathname === '/bench-result') return handleGetBenchResult();
       if (req.method === 'GET' && url.pathname === '/obs-status') return handleGetObsStatus();
       if (req.method === 'GET' && url.pathname === '/live-status') return handleGetLiveStatus();
       if (req.method === 'GET' && url.pathname === '/diagnostics') return handleGetDiagnostics();

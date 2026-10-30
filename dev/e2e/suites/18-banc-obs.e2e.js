@@ -32,5 +32,10 @@ export async function run({ page, stack, check, errors }) {
   const allStyles = [...applied].join(';');
   check('la fusion, le flou, le rognage et la rotation ont réellement été posés sur les calques', ['multiply', 'blur', 'inset', 'rotate'].every((token) => allStyles.includes(token)));
   check('à la fin, plus aucune extension ne reste posée', await page.evaluate("(() => { const el = document.getElementById('stage').firstElementChild?.firstElementChild; return !!el && !el.style.filter && !el.style.mixBlendMode && !el.style.clipPath && !el.style.transform; })()"));
+  // Le rapport part au serveur d'état (celui de l'essai) et se relit sans recopier l'écran.
+  const saved = await page.waitFor('window.__benchSent === true', 5000);
+  check('la page envoie son rapport au serveur', saved);
+  const report = await stack.api('/bench-result');
+  check('le serveur le relit avec un résultat et un verdict par scénario', report.results?.length === total && report.results.every((r) => ['ok', 'watch', 'too-costly'].includes(r.verdict) && r.summary.frames > 0));
   check('aucune erreur dans la console', errors.length === 0 ? true : errors.slice());
 }

@@ -71,3 +71,26 @@ export function formatSummary(summary) {
   if (summary.frames === 0) return 'aucune image mesurée';
   return `${summary.fps.toFixed(1)} i/s · moy. ${summary.meanMs.toFixed(1)} ms · p95 ${summary.p95Ms.toFixed(1)} ms · pire ${summary.worstMs.toFixed(0)} ms · ${(summary.share * 100).toFixed(1)} % d'images en retard`;
 }
+
+/**
+ * Valide le rapport que la page envoie au serveur (pour qu'il puisse être relu sans recopier un tableau à l'écran).
+ * @param {unknown} raw
+ * @returns {{ ok: true, report: { at: string, env: string, results: { id: string, label: string, summary: ReturnType<typeof summarizeFrames>, verdict: string }[] } } | { ok: false, error: string }}
+ */
+export function validateBenchReport(raw) {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return { ok: false, error: 'rapport : objet attendu' };
+  const body = /** @type {Record<string, unknown>} */ (raw);
+  if (typeof body.env !== 'string' || body.env.length > 300) return { ok: false, error: 'rapport : environnement attendu' };
+  if (!Array.isArray(body.results) || body.results.length === 0 || body.results.length > 30) return { ok: false, error: 'rapport : 1 à 30 résultats attendus' };
+  const known = new Set(SCENARIOS.map(({ id }) => id));
+  const numeric = ['frames', 'fps', 'meanMs', 'p95Ms', 'worstMs', 'overBudget', 'share'];
+  const results = [];
+  for (const entry of body.results) {
+    const item = /** @type {Record<string, any>} */ (entry);
+    if (typeof item !== 'object' || item === null || !known.has(item.id)) return { ok: false, error: `rapport : scénario inconnu ${String(item?.id)}` };
+    if (typeof item.label !== 'string' || typeof item.summary !== 'object' || item.summary === null || numeric.some((key) => !Number.isFinite(item.summary[key]))) return { ok: false, error: `rapport : mesure invalide pour ${item.id}` };
+    if (!['ok', 'watch', 'too-costly'].includes(item.verdict)) return { ok: false, error: `rapport : verdict invalide pour ${item.id}` };
+    results.push({ id: item.id, label: item.label, summary: Object.fromEntries(numeric.map((key) => [key, item.summary[key]])), verdict: item.verdict });
+  }
+  return { ok: true, report: { at: new Date().toISOString(), env: body.env, results: /** @type {*} */ (results) } };
+}

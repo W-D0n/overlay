@@ -37,6 +37,7 @@
     import { createLayer } from '../scene-doc.js';
     import { EFFECT_KIND_IDS } from '../layer-kinds.js';
     import { defaultBackgroundOptions } from './component-field-schemas.js';
+    import { BACKGROUND_STATE_PORT } from '../ports.config.js';
     import { SCENARIOS, compareToBaseline, formatSummary, summarizeFrames } from './obs-bench.js';
 
     // `?quick=1` : fenêtres courtes, pour vérifier que le banc tourne (essais automatiques) ; la vraie mesure prend ~75 s.
@@ -82,6 +83,7 @@
       running = true;
       rows.replaceChildren();
       let base = null;
+      const results = [];
       for (const scenario of SCENARIOS) {
         now.textContent = `Mesure en cours : ${scenario.label}…`;
         apply(scenario.style);
@@ -98,10 +100,19 @@
           tr.appendChild(td);
         });
         rows.appendChild(tr);
+        results.push({ id: scenario.id, label: scenario.label, summary, verdict: compared.verdict });
         console.info(`[obs-bench] ${scenario.id} : ${formatSummary(summary)} → ${compared.verdict}`);
       }
       apply({});
       now.textContent = 'Terminé. Cliquez sur la source (ou rechargez) pour rejouer. Relevez le tableau : il décide ce qu\'on expose dans l\'éditeur.';
+      // Le rapport part au serveur d'état s'il tourne (il se relit sans recopier l'écran) ; sans lui, le tableau reste à l'écran.
+      let sent = false;
+      try {
+        const response = await fetch(`http://localhost:${BACKGROUND_STATE_PORT}/bench-result`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ env: document.getElementById('env').textContent, results }) });
+        sent = response.ok;
+      } catch { /* serveur absent : tableau à l'écran seulement */ }
+      now.textContent += sent ? ' (rapport enregistré sur le serveur)' : ' (rapport non envoyé : serveur d’état injoignable)';
+      window.__benchSent = sent;
       window.__benchDone = true;
       running = false;
     }
