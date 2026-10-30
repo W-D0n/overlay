@@ -37,7 +37,7 @@ de `fetch`, sans port) ; chaque garde vue rouge sur une régression réinjectée
 
 Périmètre retenu par l'owner (2026-10-30) : historique **et** brouillon serveur, en deux sous-étapes.
 
-### 5b-1 — Historique et retour en arrière (serveur livré)
+### 5b-1 — Historique et retour en arrière (livré)
 
 - **Entrée** = un état qui vient de quitter l'antenne (`{ at, current }`, `at` = l'instant du remplacement). Chaque
   publication du Studio (`POST /state`) qui change l'état range l'état remplacé en tête ; republier le même état ne laisse
@@ -50,6 +50,9 @@ Périmètre retenu par l'owner (2026-10-30) : historique **et** brouillon serveu
   `scene: null` = aucun fond). Version 3 inchangée ; un fichier sans historique se lit comme avant. `GET /state` ne la renvoie pas :
   les pages de rendu n'ont pas à la charger ; `GET /history` la sert.
 - Module pur : `dev/background-history.js`.
+- **Studio** : bouton « Historique » dans la barre du haut, panneau sur le modèle du Diagnostic (`dev/history-controller.js`, présentation
+  pure dans `dev/history-view.js`). Remettre à l'antenne agit en direct : le premier clic arme le bouton (« Confirmer : en direct »,
+  4 s), le second applique. Un serveur sans la route (ancien code) affiche « Historique indisponible » au lieu d'échouer.
 
 ### 5b-2 — Brouillon serveur (à concevoir)
 

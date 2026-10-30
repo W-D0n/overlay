@@ -6,6 +6,7 @@ import { createBackgroundPreviewController } from './background-preview-controll
 import { createAntennaController } from './antenna-controller.js';
 import { createServerControlController } from './server-control-controller.js';
 import { createDiagnosticController } from './diagnostic-controller.js';
+import { createHistoryController } from './history-controller.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
 import { createBrandingController } from './branding-controller.js';
@@ -147,6 +148,17 @@ export async function startBackgroundTuner(environment = {}) {
     windowRef,
   });
 
+  const history = createHistoryController({
+    dialog: /** @type {HTMLDialogElement} */ (byId('history')),
+    openButton: /** @type {HTMLButtonElement} */ (byId('history-open')),
+    closeButton: /** @type {HTMLButtonElement} */ (byId('history-close')),
+    summary: byId('history-summary'),
+    list: byId('history-list'),
+    client,
+    documentRef,
+    windowRef,
+  });
+
   const antenna = createAntennaController({
     root: byId('antenna'),
     summary: byId('antenna-summary'),
@@ -245,6 +257,7 @@ export async function startBackgroundTuner(environment = {}) {
     antenna.destroy();
     serverControl.closePanel();
     diagnostic.destroy();
+    history.destroy();
     stage.destroy();
     unsubscribe();
     preview.destroy();

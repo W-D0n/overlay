@@ -97,6 +97,14 @@ export function createBackgroundStateClient(options) {
     readObsStatus() {
       return request('obs-status');
     },
+    /** États qui ont quitté l'antenne, le plus récent d'abord. @returns {Promise<import('./background-history.js').HistoryEntry[]>} */
+    async readHistory() {
+      return (await request('history')).history;
+    },
+    /** Remet à l'antenne l'état de l'historique daté `at`. @param {string} at */
+    rollback(at) {
+      return request('rollback', { at });
+    },
     /** @param {Record<string, string>} sceneMap */
     saveSceneMap(sceneMap) {
       return request('scene-map', { sceneMap });
