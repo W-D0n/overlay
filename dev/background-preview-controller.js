@@ -39,6 +39,7 @@ export function targetLayer(scene, selection) {
  *   presetTags: HTMLInputElement,
  *   presetSave: HTMLButtonElement,
  *   runtimeStatus: HTMLElement,
+ *   effectTarget?: HTMLElement,
  *   onDraftChange?: (isDraft: boolean) => void,
  *   onEdited?: () => void,
  *   onAudioStateChange?: (state: *) => void,
@@ -124,6 +125,9 @@ export function createBackgroundPreviewController(input) {
     }
     const target = targetLayer(scene, editor.state().selection);
     input.effectSelect.value = target?.kind ?? NONE_VALUE;
+    if (input.effectTarget !== undefined) {
+      input.effectTarget.textContent = target === null ? 'Aucune couche d’effet : choisissez un effet ci-dessous ou ajoutez une couche.' : `Couche réglée : ${target.name ?? backgroundEffectLabel(target.kind)}`;
+    }
     const fieldsKey = `${target?.id ?? ''}|${target?.kind ?? ''}`;
     if (!fieldEdit || fieldsKey !== renderedFieldsKey) {
       fieldRenderer.render(target?.kind ?? null, target?.options ?? {});

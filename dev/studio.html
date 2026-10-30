@@ -61,6 +61,66 @@
     .inspector { border-left: 1px solid var(--color-rule); }
     .inspector > h2:first-child { margin-top: 4px; }
 
+
+    /* ── Panneau de couches ─────────────────────────────────────────── */
+    .layers-panel { margin-bottom: var(--space-lg); }
+    .layers-head { display: flex; align-items: center; gap: var(--space-sm); }
+    .layers-head h2 { margin: 0; flex: 1; }
+    .layers-gauge { color: var(--color-text-mid); font-size: var(--text-xs); }
+    .layers-gauge[data-level="warn"] { color: var(--color-gold); }
+    .layers-gauge[data-level="full"] { color: var(--color-danger); }
+    .layers-tools { display: flex; gap: var(--space-xs); }
+    .layer-button, .layers-add {
+      display: inline-flex; align-items: center; justify-content: center; gap: var(--space-xs);
+      min-width: 28px; height: 28px; padding: 0 var(--space-xs);
+      background: transparent; border: 1px solid transparent; color: var(--color-text-mid);
+      cursor: pointer;
+    }
+    .layers-add { padding: 0 var(--space-sm); border-color: var(--color-gold-dim); color: var(--color-gold); }
+    .layer-button:hover:not(:disabled), .layers-add:hover:not(:disabled) { border-color: var(--color-gold); color: var(--color-gold); }
+    .layer-button:disabled, .layers-add:disabled { opacity: .35; cursor: default; }
+    .layer-button:focus-visible, .layers-add:focus-visible, .layers-list:focus-visible, .gallery-card:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
+    .layer-button[aria-pressed="true"] { color: var(--color-gold); }
+    .layer-button.is-on { color: var(--color-gold); border-color: var(--color-gold-dim); }
+    .layers-meter { height: 3px; background: var(--color-rule); margin: var(--space-xs) 0 var(--space-sm); }
+    .layers-meter > span { display: block; height: 100%; background: var(--color-gold-dim); transition: width .15s ease; }
+    .layers-meter > span[data-level="warn"] { background: var(--color-gold); }
+    .layers-meter > span[data-level="full"] { background: var(--color-danger); }
+    .layers-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+    .layer-row {
+      position: relative; display: grid; grid-template-columns: 12px 56px minmax(0, 1fr) auto;
+      align-items: center; gap: 6px; padding: var(--space-xs) var(--space-xs) var(--space-xs) 2px;
+      background: var(--color-bg-widget); border: 1px solid var(--color-rule); cursor: pointer; user-select: none;
+    }
+    .layer-row:hover { border-color: var(--color-rule-mid); }
+    .layer-row.is-selected { border-color: var(--color-gold-dim); background: rgba(200, 185, 122, .07); }
+    .layer-row.is-hidden .layer-thumb, .layer-row.is-hidden .layer-text { opacity: .4; }
+    .layer-row.is-dimmed { opacity: .45; }
+    .layer-row.drop-top { box-shadow: 0 -2px 0 0 var(--color-gold); }
+    .layer-row.drop-bottom { box-shadow: 0 2px 0 0 var(--color-gold); }
+    .layer-grip { color: var(--color-text-ghost); cursor: grab; display: flex; }
+    .layer-thumb { display: flex; width: 56px; height: 32px; background: var(--color-bg); border: 1px solid var(--color-rule); overflow: hidden; }
+    .layer-thumb .preset-thumb { border: 0; }
+    .layer-thumb-identity { align-items: center; justify-content: center; color: var(--color-text-mid); }
+    .layer-text { display: flex; flex-direction: column; min-width: 0; }
+    .layer-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--color-text-primary); }
+    .layer-sub { color: var(--color-text-dim); font-size: var(--text-xs); }
+    .layer-rename { width: 100%; min-width: 0; background: var(--color-bg); border: 1px solid var(--color-gold); padding: 2px 4px; }
+    .layer-toggles { display: flex; gap: 2px; }
+    .layers-selection-tools { display: flex; gap: var(--space-xs); margin-top: var(--space-sm); padding-top: var(--space-sm); border-top: 1px solid var(--color-rule); }
+    .layers-tools-gap { flex: 1; }
+    .layer-row.is-locked .layer-lock { color: var(--color-gold); }
+    .layer-button:disabled { opacity: .35; }
+    #layer-gallery { max-width: min(720px, 92vw); }
+    .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: var(--space-sm); padding: var(--space-md); }
+    .gallery-card { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); color: var(--color-text-primary); cursor: pointer; text-align: left; }
+    .gallery-card:hover:not(:disabled) { border-color: var(--color-gold); }
+    .gallery-card:disabled { opacity: .4; cursor: default; }
+    .gallery-preview { display: flex; width: 160px; height: 90px; background: var(--color-bg); align-items: center; justify-content: center; overflow: hidden; }
+    .gallery-label { font-size: var(--text-xs); }
+    .gallery-status { padding: 0 var(--space-md) var(--space-md); color: var(--color-danger); min-height: 1em; }
+    .effect-target { margin: 0 0 var(--space-sm); }
+
     .rail-section { border-top: 1px solid var(--color-rule); }
     .rail-section > summary {
       cursor: pointer;
@@ -535,6 +595,17 @@
     <ul id="history-list" class="diagnostic-list"></ul>
   </dialog>
 
+  <dialog id="layer-gallery" class="diagnostic" aria-labelledby="gallery-title">
+    <div class="diagnostic-bar">
+      <h2 id="gallery-title">Ajouter une couche</h2>
+      <div class="diagnostic-actions">
+        <button id="gallery-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <div id="gallery-grid" class="gallery-grid"></div>
+    <p id="gallery-status" class="gallery-status" role="status" aria-live="polite"></p>
+  </dialog>
+
   <main class="studio-zones">
     <aside id="rail" class="rail" aria-label="Bibliothèque, scènes et branding">
 
@@ -628,7 +699,32 @@
     </section>
 
     <aside id="inspector" class="inspector" aria-label="Réglages du preset">
+    <section class="layers-panel" aria-labelledby="layers-title">
+      <div class="layers-head">
+        <h2 id="layers-title">Couches</h2>
+        <span id="layers-gauge" class="layers-gauge" data-level="ok" title="Couches de la scène sur la limite"></span>
+        <span class="layers-tools">
+          <button id="layers-undo" type="button" class="layer-button" disabled aria-label="Annuler"></button>
+          <button id="layers-redo" type="button" class="layer-button" disabled aria-label="Rétablir"></button>
+          <button id="layers-add" type="button" class="layers-add" aria-haspopup="dialog">+ Ajouter</button>
+        </span>
+      </div>
+      <div class="layers-meter" aria-hidden="true"><span id="layers-gauge-fill" data-level="ok"></span></div>
+      <p id="layers-gauge-hint" class="hint"></p>
+      <ul id="layers-list" class="layers-list" role="listbox" aria-multiselectable="true" aria-label="Pile de couches, du dessus vers le dessous"></ul>
+      <p id="layers-empty" class="hint" hidden>Aucune couche : ajoutez un effet pour commencer.</p>
+      <div class="layers-selection-tools" role="toolbar" aria-label="Actions sur la sélection">
+        <button id="layers-solo" type="button" class="layer-button" title="Isoler la couche dans l’aperçu" aria-label="Isoler la couche dans l’aperçu" disabled></button>
+        <button id="layers-duplicate" type="button" class="layer-button" title="Dupliquer (Ctrl+D)" aria-label="Dupliquer" disabled></button>
+        <button id="layers-remove" type="button" class="layer-button" title="Supprimer (Suppr)" aria-label="Supprimer" disabled></button>
+        <span class="layers-tools-gap"></span>
+        <button id="layers-up" type="button" class="layer-button" title="Monter (Alt+↑)" aria-label="Monter" disabled></button>
+        <button id="layers-down" type="button" class="layer-button" title="Descendre (Alt+↓)" aria-label="Descendre" disabled></button>
+      </div>
+    </section>
+
     <h2>Réglages de l’effet</h2>
+    <p id="effect-target" class="hint effect-target"></p>
     <label for="effect-select">Effet</label>
     <select id="effect-select"></select>
     <div id="fields"></div>

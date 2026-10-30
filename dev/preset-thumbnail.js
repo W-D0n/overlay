@@ -109,18 +109,21 @@ export function canvasInkRatio(canvas) {
  * @param {{
  *   scene: import('../scene-doc.js').SceneDoc,
  *   documentRef: Document,
+ *   width?: number,
  *   delay?: (ms: number) => Promise<void>,
  * }} input
  * @returns {{ el: HTMLElement, destroy: () => void }}
  */
 export function createPresetThumbnail(input) {
   const { documentRef } = input;
+  const width = input.width ?? THUMBNAIL_WIDTH;
+  const height = Math.round((width * THUMBNAIL_HEIGHT) / THUMBNAIL_WIDTH);
   const delay = input.delay ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
 
   const el = documentRef.createElement('div');
   el.className = 'preset-thumb';
-  el.style.width = `${THUMBNAIL_WIDTH}px`;
-  el.style.height = `${THUMBNAIL_HEIGHT}px`;
+  el.style.width = `${width}px`;
+  el.style.height = `${height}px`;
 
   const still = documentRef.createElement('img');
   still.alt = '';
@@ -134,7 +137,7 @@ export function createPresetThumbnail(input) {
   stage.style.width = `${STAGE_WIDTH}px`;
   stage.style.height = `${STAGE_HEIGHT}px`;
   stage.style.transformOrigin = '0 0';
-  stage.style.transform = `scale(${THUMBNAIL_WIDTH / STAGE_WIDTH})`;
+  stage.style.transform = `scale(${width / STAGE_WIDTH})`;
   el.appendChild(stage);
   el.dataset.state = 'pending';
 
@@ -174,8 +177,8 @@ export function createPresetThumbnail(input) {
       if (destroyed) break;
 
       const snapshot = documentRef.createElement('canvas');
-      snapshot.width = THUMBNAIL_WIDTH * SNAPSHOT_SCALE;
-      snapshot.height = THUMBNAIL_HEIGHT * SNAPSHOT_SCALE;
+      snapshot.width = width * SNAPSHOT_SCALE;
+      snapshot.height = height * SNAPSHOT_SCALE;
       // Une scène sans canvas laisse simplement la vignette vide : pas d'erreur, la ligne reste lisible par son nom.
       if (paintStage(stage, snapshot) === 0) {
         el.dataset.state = 'empty';

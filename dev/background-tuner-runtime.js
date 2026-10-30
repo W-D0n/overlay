@@ -7,6 +7,8 @@ import { createAntennaController } from './antenna-controller.js';
 import { createServerControlController } from './server-control-controller.js';
 import { createDiagnosticController } from './diagnostic-controller.js';
 import { createHistoryController } from './history-controller.js';
+import { createLayersPanelController } from './layers-panel-controller.js';
+import { BACKGROUND_COMPONENT_NAMES, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
 import { createPresetDraftSync } from './preset-draft-sync.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
@@ -77,6 +79,7 @@ export async function startBackgroundTuner(environment = {}) {
     presetTags: byId('preset-tags'),
     presetSave: byId('preset-save'),
     runtimeStatus: byId('runtime-status'),
+    effectTarget: byId('effect-target'),
     onDraftChange(isDraft) {
       byId('publish-bar').dataset.state = isDraft ? 'draft' : 'live';
       byId('publish-state').textContent = isDraft ? 'Brouillon — pas encore en antenne' : 'En antenne';
@@ -95,6 +98,35 @@ export async function startBackgroundTuner(environment = {}) {
     snapshot: preview.snapshot,
     onChange: () => presets.syncDraftMarks(),
     onError: report.error,
+  });
+
+  const layersPanel = createLayersPanelController({
+    elements: {
+      list: byId('layers-list'),
+      empty: byId('layers-empty'),
+      gauge: byId('layers-gauge'),
+      gaugeFill: byId('layers-gauge-fill'),
+      gaugeHint: byId('layers-gauge-hint'),
+      undo: /** @type {HTMLButtonElement} */ (byId('layers-undo')),
+      redo: /** @type {HTMLButtonElement} */ (byId('layers-redo')),
+      add: /** @type {HTMLButtonElement} */ (byId('layers-add')),
+      solo: /** @type {HTMLButtonElement} */ (byId('layers-solo')),
+      duplicate: /** @type {HTMLButtonElement} */ (byId('layers-duplicate')),
+      remove: /** @type {HTMLButtonElement} */ (byId('layers-remove')),
+      up: /** @type {HTMLButtonElement} */ (byId('layers-up')),
+      down: /** @type {HTMLButtonElement} */ (byId('layers-down')),
+      gallery: /** @type {HTMLDialogElement} */ (byId('layer-gallery')),
+      galleryGrid: byId('gallery-grid'),
+      galleryStatus: byId('gallery-status'),
+      galleryClose: /** @type {HTMLButtonElement} */ (byId('gallery-close')),
+    },
+    studio: preview.document,
+    labelOf: backgroundEffectLabel,
+    addableKinds: [...BACKGROUND_COMPONENT_NAMES, 'branding'],
+    defaultOptions: defaultBackgroundOptions,
+    report,
+    documentRef,
+    windowRef,
   });
 
   byId('publish-send').addEventListener('click', () => preview.publish());
@@ -262,6 +294,7 @@ export async function startBackgroundTuner(environment = {}) {
   });
 
   function destroy() {
+    layersPanel.destroy();
     antenna.destroy();
     diagnostic.destroy();
     history.destroy();
@@ -270,5 +303,5 @@ export async function startBackgroundTuner(environment = {}) {
     preview.destroy();
   }
   windowRef.addEventListener('beforeunload', destroy, { once: true });
-  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls };
+  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls, layersPanel };
 }
