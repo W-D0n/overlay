@@ -148,3 +148,70 @@ describe('scène OBS → preset', () => {
     expect(JSON.parse(readFileSync(path, 'utf8')).current.layers[0].kind).toBe('rain');
   });
 });
+
+describe('historique des publications', () => {
+  const DOTS = { component: 'dotgrid', options: {} };
+  const history = async (call) => (await (await call('/history')).json()).history;
+
+  test('une publication range l’état remplacé ; GET /state ne porte pas l’historique', async () => {
+    const { post, call } = setup({ now: () => '2026-10-30T10:00:00.000Z' });
+    await post('/state', { current: RAIN });
+    await post('/state', { current: DOTS });
+    const entries = await history(call);
+    expect(entries.map((entry) => entry.current.component)).toEqual(['rain', 'dotgrid']);
+    expect('history' in await (await call('/state')).json()).toBe(false);
+  });
+
+  test('republier le même état, ou publier deux fois dans la même milliseconde, laisse un fichier relisible', async () => {
+    const { post, call } = setup({ now: () => '2026-10-30T10:00:00.000Z' });
+    await post('/state', { current: RAIN });
+    await post('/state', { current: { ...RAIN } });
+    await post('/state', { current: DOTS });
+    await post('/state', { current: RAIN });
+    expect((await call('/state')).status).toBe(200);
+    expect((await history(call)).map((entry) => entry.current.component)).toEqual(['dotgrid', 'rain', 'dotgrid']);
+  });
+
+  test('revenir en arrière remet l’état à l’antenne, le diffuse et se défait comme une publication', async () => {
+    const { post, call, subscribe, path } = setup();
+    await post('/state', { current: RAIN });
+    await post('/state', { current: DOTS });
+    const onState = subscribe('state');
+    const [target] = await history(call);
+    expect(target.current.component).toBe('rain');
+
+    expect((await post('/rollback', { at: target.at })).status).toBe(200);
+    expect(onState.map((payload) => JSON.parse(payload).component)).toEqual(['rain']);
+    expect(JSON.parse(readFileSync(path, 'utf8')).current.layers[0].kind).toBe('rain');
+
+    const [undo] = await history(call);
+    expect(undo.current.component).toBe('dotgrid');
+    await post('/rollback', { at: undo.at });
+    expect(JSON.parse(readFileSync(path, 'utf8')).current.layers[0].kind).toBe('dotgrid');
+  });
+
+  test('un instant inconnu : 404 sans rien changer ; sans instant : 400', async () => {
+    const { post, call, subscribe } = setup();
+    await post('/state', { current: RAIN });
+    await post('/state', { current: DOTS });
+    const onState = subscribe('state');
+    expect((await post('/rollback', { at: '1999-01-01T00:00:00.000Z' })).status).toBe(404);
+    expect((await post('/rollback', {})).status).toBe(400);
+    expect(onState).toEqual([]);
+    expect(await history(call)).toHaveLength(2);
+  });
+
+  test('un changement de scène OBS n’entre pas dans l’historique', async () => {
+    const { host, post, call, path } = setup();
+    await post('/save-preset', { name: 'Alpha', component: 'bubble', options: {} });
+    await post('/state', { current: RAIN });
+    expect(await history(call)).toHaveLength(1);
+
+    const presetId = JSON.parse(readFileSync(path, 'utf8')).scenes[0].id;
+    await post('/scene-map', { sceneMap: { Jeu: presetId } });
+    await host.applySceneMapping('Jeu');
+
+    expect(JSON.parse(readFileSync(path, 'utf8')).current.layers[0].kind).toBe('bubble');
+    expect(await history(call)).toHaveLength(1);
+  });
+});

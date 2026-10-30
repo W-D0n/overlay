@@ -33,11 +33,26 @@ Cible : chaque responsabilité derrière une interface étroite, testable sans r
 Gardes : la suite d'intégration existante, inchangée ; des tests unitaires du magasin, des canaux et de l'hôte (appel direct
 de `fetch`, sans port) ; chaque garde vue rouge sur une régression réinjectée.
 
-## 3. 5b — Brouillon et publication côté serveur (à trancher)
+## 3. 5b — Historique des publications et brouillon serveur
 
-Question de fond : qu'ajoute un brouillon **serveur** à celui du Studio ? À lister avec l'owner avant toute écriture :
+Périmètre retenu par l'owner (2026-10-30) : historique **et** brouillon serveur, en deux sous-étapes.
+
+### 5b-1 — Historique et retour en arrière (serveur livré)
+
+- **Entrée** = un état qui vient de quitter l'antenne (`{ at, current }`, `at` = l'instant du remplacement). Chaque
+  publication du Studio (`POST /state`) qui change l'état range l'état remplacé en tête ; republier le même état ne laisse
+  aucune trace. La « version précédente » existe donc dès la première publication.
+- **Retour** (`POST /rollback { at }`) : remet l'état daté `at` à l'antenne, le diffuse, et range à son tour l'état remplacé :
+  un retour se défait comme une publication. Instant inconnu : 404.
+- **Hors historique** : les changements de scène OBS (`applySceneMapping`), qui se déduisent des presets et de la table scène → preset.
+- **Borne** : 20 états (`HISTORY_LIMIT`), les plus anciens sortent. `at` identifie l'entrée : décalé d'une milliseconde tant qu'il existe déjà.
+- **Persistance** : clé optionnelle `history` du fichier d'état (comme `sceneMap` et `branding`), entrées en scènes (`{ at, scene }`,
+  `scene: null` = aucun fond). Version 3 inchangée ; un fichier sans historique se lit comme avant. `GET /state` ne la renvoie pas :
+  les pages de rendu n'ont pas à la charger ; `GET /history` la sert.
+- Module pur : `dev/background-history.js`.
+
+### 5b-2 — Brouillon serveur (à concevoir)
 
 - **Persistance du brouillon** : aujourd'hui un rechargement du Studio le perd.
 - **Séparation édité / en antenne** (C4) : `applySceneMapping` réécrit `current` ; avec un brouillon serveur il ne toucherait que l'antenne.
-- **Retour à la version précédente en un clic** (cadrage) : suppose un historique des publications.
 - **Scènes à plusieurs couches** : le serveur les refuse à la lecture tant qu'aucun éditeur n'existe (étape 6) ; le brouillon serveur est le lieu naturel de leur édition.

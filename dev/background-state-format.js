@@ -4,6 +4,7 @@ import { validateSceneMap } from '../obs-scene-mapping.js';
 import { validateTransition } from '../background-transition.js';
 import { normalizeBranding, validateBranding } from '../branding-format.js';
 import { presetFromScene, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
+import { validateHistory } from './background-history.js';
 
 /**
  * dev/background-state-format.js — Logique pure de l'état background standalone (2026-07-14).
@@ -16,7 +17,8 @@ import { presetFromScene, sceneFromCurrent, sceneFromPreset, validateSceneDoc } 
  * @typedef {{ component: string | null, options: Record<string, unknown>, transition?: BackgroundTransition, showBranding?: boolean }} BackgroundCurrent
  * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[], transition?: BackgroundTransition, showBranding?: boolean }} BackgroundPreset
  * @typedef {import('../branding-format.js').Branding} Branding
- * @typedef {{ version?: number, current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string>, branding?: Branding }} BackgroundFile
+ * @typedef {import('./background-history.js').HistoryEntry} HistoryEntry
+ * @typedef {{ version?: number, current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string>, branding?: Branding, history?: HistoryEntry[] }} BackgroundFile
  */
 
 /** Longueur maximale d'un nom de preset — borne UI (liste lisible), pas une contrainte technique. */
@@ -180,12 +182,13 @@ export function migrateBackgroundFile(raw) {
  * @returns {Record<string, unknown>}
  */
 export function encodePersistedFile(file) {
-  const { current, presets, ...rest } = file;
+  const { current, presets, history, ...rest } = file;
   return {
     ...rest,
     version: BACKGROUND_FILE_VERSION,
     current: current.component === null ? null : sceneFromCurrent(current),
     scenes: presets.map((preset) => sceneFromPreset(preset)),
+    ...(history === undefined ? {} : { history: history.map((entry) => ({ at: entry.at, scene: entry.current.component === null ? null : sceneFromCurrent(entry.current) })) }),
   };
 }
 
@@ -210,14 +213,30 @@ export function decodePersistedFile(raw) {
     return preset;
   };
 
-  /** @type {BackgroundCurrent} */
-  let current = { component: null, options: {} };
-  if (raw.current !== null) {
-    const scene = readScene(raw.current, 'current');
-    if (scene !== null) {
-      current = { component: scene.component, options: scene.options };
-      if (scene.transition !== undefined) current.transition = scene.transition;
-      if (scene.showBranding !== undefined) current.showBranding = scene.showBranding;
+  /** @param {unknown} value @param {string} where @returns {BackgroundCurrent} `null` : aucun fond */
+  const readCurrent = (value, where) => {
+    /** @type {BackgroundCurrent} */
+    const current = { component: null, options: {} };
+    if (value === null) return current;
+    const scene = readScene(value, where);
+    if (scene === null) return current;
+    current.component = scene.component;
+    current.options = scene.options;
+    if (scene.transition !== undefined) current.transition = scene.transition;
+    if (scene.showBranding !== undefined) current.showBranding = scene.showBranding;
+    return current;
+  };
+
+  const current = readCurrent(raw.current, 'current');
+  /** @type {HistoryEntry[] | undefined} */
+  let history;
+  if (raw.history !== undefined) {
+    if (!Array.isArray(raw.history)) errors.push('history : tableau attendu');
+    else {
+      history = raw.history.map((entry, index) => ({
+        at: isPlainObject(entry) ? /** @type {string} */ (entry.at) : '',
+        current: readCurrent(isPlainObject(entry) ? entry.scene ?? null : null, `history[${index}]`),
+      }));
     }
   }
   if (!Array.isArray(raw.scenes)) errors.push('scenes : tableau attendu');
@@ -226,8 +245,8 @@ export function decodePersistedFile(raw) {
     : [];
   if (errors.length > 0) return { ok: false, errors };
 
-  const { current: _current, scenes: _scenes, ...rest } = raw;
-  return { ok: true, file: /** @type {BackgroundFile} */ ({ ...rest, current, presets }) };
+  const { current: _current, scenes: _scenes, history: _history, ...rest } = raw;
+  return { ok: true, file: /** @type {BackgroundFile} */ ({ ...rest, current, presets, ...(history === undefined ? {} : { history }) }) };
 }
 
 /**
@@ -336,6 +355,7 @@ export function validateBackgroundFile(raw) {
   /** @type {string[]} */
   const errors = [...validateBackgroundCurrent(raw.current).errors];
   for (const err of validateBranding(raw.branding).errors) errors.push(err);
+  errors.push(...validateHistory(raw.history, (current) => validateBackgroundCurrent(current).errors));
   if (raw.sceneMap !== undefined) {
     for (const err of validateSceneMap(raw.sceneMap).errors) errors.push(`sceneMap : ${err}`);
   }

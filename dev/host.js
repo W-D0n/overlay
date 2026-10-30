@@ -10,7 +10,10 @@
  * Routes (les routes de presets sont dans `dev/preset-routes.js`) :
  *   GET  /state         — renvoie `{ current, presets, … }` (500 + erreurs si le fichier est invalide — jamais de
  *                          reset silencieux).
- *   POST /state         — `{ current }`, valide, persiste, diffuse `current` sur le canal `state`.
+ *   POST /state         — `{ current }`, valide, persiste, diffuse `current` sur le canal `state` et range l'état
+ *                          remplacé dans l'historique.
+ *   GET  /history       — `{ history }` : les états qui ont quitté l'antenne, le plus récent d'abord.
+ *   POST /rollback      — `{ at }`, remet à l'antenne l'état de l'historique daté `at` (404 s'il n'existe plus).
  *   POST /branding      — `{ branding }`, contenu global de la couche d'identité.
  *   POST /event         — événement de réaction éphémère : validé puis diffusé, jamais persisté.
  *   POST /scene-map     — `{ sceneMap }`, table d'association scène OBS → preset.
@@ -30,6 +33,7 @@ import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
 import { rejectNonLocalRequest } from './local-access-policy.js';
 import { validateBackgroundEvent } from './background-event-format.js';
 import { createPresetRoutes } from './preset-routes.js';
+import { findEntry, recordReplaced } from './background-history.js';
 import { channelForPath } from './channels.js';
 import { EXIT_RESTART, EXIT_STOP } from './supervisor.js';
 import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
@@ -44,6 +48,7 @@ import { validateBranding } from '../branding-format.js';
  *   obs: { status: () => ObsStatus, configured: boolean, inspect: (() => Promise<import('./obs-inspector.js').ObsInspection>) | null },
  *   control: { supervised: boolean, exit: (code: number) => void },
  *   staticPort: number,
+ *   now?: () => string,
  *   log?: Pick<Console, 'info' | 'warn' | 'error'>,
  * }} HostDeps
  */
@@ -51,7 +56,7 @@ import { validateBranding } from '../branding-format.js';
 /**
  * @param {HostDeps} deps
  */
-export function createHost({ store, channels, obs, control, staticPort, log = console }) {
+export function createHost({ store, channels, obs, control, staticPort, now = () => new Date().toISOString(), log = console }) {
   /**
    * Lecture + transformation + écriture. `decide` rend soit une Response d'erreur, soit le fichier à persister.
    * @param {(file: BackgroundFile) => Response | BackgroundFile} decide
@@ -91,9 +96,18 @@ export function createHost({ store, channels, obs, control, staticPort, log = co
   async function handleGetState() {
     const read = await store.read();
     if (!read.ok) return jsonError(`fichier d'état invalide : ${read.errors.join(' ; ')}`, 500);
-    return new Response(JSON.stringify(read.file), {
+    // L'historique a sa route : les pages de rendu n'ont pas à le charger.
+    const { history: _history, ...state } = read.file;
+    return new Response(JSON.stringify(state), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     });
+  }
+
+  /** @returns {Promise<Response>} */
+  async function handleGetHistory() {
+    const read = await store.read();
+    if (!read.ok) return jsonError(`fichier d'état invalide : ${read.errors.join(' ; ')}`, 500);
+    return Response.json({ history: read.file.history ?? [] }, { headers: CORS_HEADERS });
   }
 
   /**
@@ -108,8 +122,38 @@ export function createHost({ store, channels, obs, control, staticPort, log = co
     const validation = validateBackgroundCurrent(current);
     if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
 
-    const response = await update((file) => ({ ...file, current }));
+    const response = await update((file) => ({
+      ...file,
+      current,
+      history: recordReplaced({ history: file.history ?? [], replaced: file.current, next: current, at: now() }),
+    }));
     if (response.ok) broadcastCurrent(current);
+    return response;
+  }
+
+  /**
+   * POST /rollback — `{ at }`. Remet à l'antenne un état de l'historique ; l'état qu'il remplace entre à son tour dans
+   * l'historique, un retour se défait donc comme une publication.
+   * @param {Request} req
+   * @returns {Promise<Response>}
+   */
+  async function handleRollback(req) {
+    const body = /** @type {*} */ (await req.json());
+    if (typeof body?.at !== 'string') return jsonError('instant manquant', 400);
+
+    /** @type {import('./background-state-format.js').BackgroundCurrent | null} */
+    let restored = null;
+    const response = await update((file) => {
+      const entry = findEntry(file.history ?? [], body.at);
+      if (entry === null) return jsonError(`état inconnu dans l'historique : ${body.at}`, 404);
+      restored = entry.current;
+      return {
+        ...file,
+        current: entry.current,
+        history: recordReplaced({ history: file.history ?? [], replaced: file.current, next: entry.current, at: now() }),
+      };
+    });
+    if (response.ok && restored !== null) broadcastCurrent(restored);
     return response;
   }
 
@@ -219,6 +263,7 @@ export function createHost({ store, channels, obs, control, staticPort, log = co
     '/scene-map': handlePostSceneMap,
     '/branding': handlePostBranding,
     '/state': handlePostState,
+    '/rollback': handleRollback,
     '/event': handlePostEvent,
     ...presetRoutes,
   };
@@ -288,6 +333,7 @@ export function createHost({ store, channels, obs, control, staticPort, log = co
       }
 
       if (req.method === 'GET' && url.pathname === '/state') return handleGetState();
+      if (req.method === 'GET' && url.pathname === '/history') return handleGetHistory();
       if (req.method === 'GET' && url.pathname === '/obs-status') return handleGetObsStatus();
       if (req.method === 'GET' && url.pathname === '/live-status') return handleGetLiveStatus();
       if (req.method === 'GET' && url.pathname === '/diagnostics') return handleGetDiagnostics();

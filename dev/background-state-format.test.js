@@ -461,6 +461,41 @@ test('la branding survit à l’aller-retour', () => {
   expect(decoded.file.branding).toEqual(file.branding);
 });
 
+const HISTORY = () => [
+  { at: '2026-10-30T11:00:00.000Z', current: { component: 'rain', options: {}, transition: { type: 'fade', durationMs: 500 } } },
+  { at: '2026-10-30T10:00:00.000Z', current: { component: null, options: {} } },
+];
+
+test('l’historique se persiste en scènes et revient à l’identique, fond absent compris', () => {
+  const file = { ...WORKING(), history: HISTORY() };
+  const persisted = JSON.parse(JSON.stringify(encodePersistedFile(file)));
+  expect(persisted.history[0]).toMatchObject({ at: '2026-10-30T11:00:00.000Z', scene: { layers: [{ kind: 'rain' }] } });
+  expect(persisted.history[1].scene).toBeNull();
+  const decoded = decodePersistedFile(persisted);
+  expect(decoded.ok).toBe(true);
+  expect(decoded.file).toEqual(file);
+});
+
+test('sans historique, le fichier persisté n’en porte pas', () => {
+  expect('history' in encodePersistedFile(WORKING())).toBe(false);
+});
+
+test('un historique invalide fait refuser le fichier, avec son emplacement', () => {
+  const persisted = JSON.parse(JSON.stringify(encodePersistedFile({ ...WORKING(), history: HISTORY() })));
+  persisted.history[0].at = 'hier';
+  const read = readBackgroundFile(persisted);
+  expect(read.ok).toBe(false);
+  expect(read.errors.join(' ')).toContain('history[0].at');
+});
+
+test('un historique à scène multi-couches est refusé comme les autres scènes', () => {
+  const persisted = JSON.parse(JSON.stringify(encodePersistedFile({ ...WORKING(), history: HISTORY() })));
+  persisted.history[0].scene.layers.push({ ...persisted.history[0].scene.layers[0], id: 'second' });
+  const read = readBackgroundFile(persisted);
+  expect(read.ok).toBe(false);
+  expect(read.errors.join(' ')).toContain('history[0]');
+});
+
 test('une scène à plusieurs couches est refusée avec son emplacement, jamais lue comme un preset', () => {
   const persisted = JSON.parse(JSON.stringify(encodePersistedFile(WORKING())));
   persisted.scenes[1].layers.push({ ...persisted.scenes[1].layers[0], id: 'second' });
