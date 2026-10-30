@@ -241,6 +241,19 @@ describe('régler', () => {
     expect(editor.setOptions('absent', { count: 3 })).toMatchObject({ ok: false, reason: 'unknown' });
   });
 
+  test('réinitialiser remet plein cadre et opaque, garde le reste, en une seule entrée ; rien à faire si déjà neutre', () => {
+    const { editor } = setup([effect('a', 'rain', { opacity: 0.3, name: 'Fond', locked: true, options: { speed: 3 }, placement: { x: 0.2, y: 0.2, width: 0.4, height: 0.4 } }), effect('b', 'bubble')]);
+    expect(editor.resetLayers(['a', 'b']).ok).toBe(true);
+    expect(editor.state().scene.layers[0]).toMatchObject({ opacity: 1, name: 'Fond', locked: true, options: { speed: 3 }, placement: { x: 0, y: 0, width: 1, height: 1 } });
+    expect(editor.state().undoLabel).toBe('Réinitialiser 2 couches');
+    editor.undo();
+    expect(editor.state().scene.layers[0]).toMatchObject({ opacity: 0.3, placement: { x: 0.2 } });
+    expect(editor.state().canUndo).toBe(false);
+    editor.resetLayers(['b']);
+    expect(editor.state().canUndo).toBe(false);
+    expect(editor.resetLayers(['absent'])).toMatchObject({ ok: false, reason: 'unknown' });
+  });
+
   test('changer l’effet garde placement, opacité, visibilité, verrou et place ; les options repartent de celles fournies', () => {
     const { editor, ids } = setup([effect('a', 'rain', { opacity: 0.4, locked: true, visible: false, options: { speed: 3 }, placement: { x: 0.2, y: 0.1, width: 0.5, height: 0.5 } }), effect('b', 'bubble')]);
     expect(editor.setLayerKind('a', 'dotgrid', { spacing: 40 }).ok).toBe(true);

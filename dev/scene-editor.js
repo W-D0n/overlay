@@ -396,6 +396,18 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     },
 
     /**
+     * Remet des couches plein cadre et opaques (visibilité, verrou, nom et réglages d'effet restent), en une entrée.
+     * @param {string[]} ids
+     * @returns {Done | Refused}
+     */
+    resetLayers(ids) {
+      const targets = known(ids);
+      if (targets.length === 0) return refuse('unknown', 'aucune couche');
+      const layers = scene.layers.map((layer) => (targets.includes(layer.id) ? { ...layer, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } } : layer));
+      return finish(layers, targets.length === 1 ? 'Réinitialiser la couche' : `Réinitialiser ${targets.length} couches`, undefined);
+    },
+
+    /**
      * Fusionne des options dans l'effet d'une couche.
      * @param {string} id
      * @param {Record<string, unknown>} patch

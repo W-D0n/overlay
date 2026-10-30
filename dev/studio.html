@@ -111,6 +111,24 @@
     .layers-tools-gap { flex: 1; }
     .layer-row.is-locked .layer-lock { color: var(--color-gold); }
     .layer-button:disabled { opacity: .35; }
+
+    /* ── Inspecteur de la sélection ─────────────────────────────────── */
+    .layer-inspector { margin-bottom: var(--space-lg); }
+    .inspector-row { display: flex; align-items: center; gap: var(--space-sm); margin: var(--space-sm) 0; }
+    .inspector-row > label, .inspector-row > span:first-child { min-width: 64px; color: var(--color-text-mid); }
+    .inspector-row input[type="range"] { flex: 1; min-width: 0; accent-color: var(--color-gold); padding: 0; }
+    .inspector-row select { flex: 1; min-width: 0; }
+    .inspector-number { display: inline-flex; align-items: center; gap: 2px; }
+    .inspector-number input { width: 56px; }
+    .inspector-segment { display: inline-flex; }
+    .inspector-segment button { min-width: 36px; border-radius: 0; }
+    .inspector-segment button[aria-pressed="true"] { color: var(--color-gold); border-color: var(--color-gold); background: rgba(200, 185, 122, .08); }
+    .inspector-units .layer-button { margin-left: auto; }
+    .inspector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); margin: var(--space-sm) 0; }
+    .inspector-grid label { display: flex; flex-direction: column; gap: 2px; color: var(--color-text-mid); font-size: var(--text-xs); }
+    .inspector-grid input { width: 100%; box-sizing: border-box; }
+    .inspector-align { flex-wrap: wrap; gap: 2px; }
+    .inspector-align .layer-button { border-color: var(--color-rule); }
     #layer-gallery { max-width: min(720px, 92vw); }
     .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: var(--space-sm); padding: var(--space-md); }
     .gallery-card { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); color: var(--color-text-primary); cursor: pointer; text-align: left; }
@@ -721,6 +739,51 @@
         <span class="layers-tools-gap"></span>
         <button id="layers-up" type="button" class="layer-button" title="Monter (Alt+↑)" aria-label="Monter" disabled></button>
         <button id="layers-down" type="button" class="layer-button" title="Descendre (Alt+↓)" aria-label="Descendre" disabled></button>
+      </div>
+    </section>
+
+    <section class="layer-inspector" aria-labelledby="inspector-title">
+      <h2 id="inspector-title">Position et taille</h2>
+      <p id="inspector-empty" class="hint">Sélectionnez une couche dans la pile pour régler son opacité, sa position et sa taille.</p>
+      <div id="inspector-body" hidden>
+        <div class="inspector-row">
+          <label for="inspector-opacity-range">Opacité</label>
+          <input id="inspector-opacity-range" type="range" min="0" max="100" step="1">
+          <span class="inspector-number"><input id="inspector-opacity" type="number" min="0" max="100" step="1" aria-label="Opacité en pourcentage"><span class="field-unit">%</span></span>
+        </div>
+        <div class="inspector-row inspector-units">
+          <span>Unité</span>
+          <span class="inspector-segment" role="group" aria-label="Unité de position et de taille">
+            <button id="inspector-unit-percent" type="button" aria-pressed="true" title="Pourcentage de la toile">%</button>
+            <button id="inspector-unit-pixel" type="button" aria-pressed="false" title="Pixels de la source OBS (référence)">px</button>
+          </span>
+          <button id="inspector-lock" type="button" class="layer-button" aria-pressed="false" aria-label="Lier les proportions"></button>
+        </div>
+        <div class="inspector-grid">
+          <label>X <input id="inspector-x" type="number" step="0.5"></label>
+          <label>Y <input id="inspector-y" type="number" step="0.5"></label>
+          <label>Largeur <input id="inspector-width" type="number" step="0.5" min="0"></label>
+          <label>Hauteur <input id="inspector-height" type="number" step="0.5" min="0"></label>
+        </div>
+        <div class="inspector-row">
+          <label for="inspector-preset">Position</label>
+          <select id="inspector-preset"><option value="">Position prédéfinie…</option></select>
+        </div>
+        <div class="inspector-row inspector-align" role="toolbar" aria-label="Aligner et répartir">
+          <button id="align-left" type="button" class="layer-button" title="Aligner à gauche" aria-label="Aligner à gauche"></button>
+          <button id="align-hcenter" type="button" class="layer-button" title="Centrer horizontalement" aria-label="Centrer horizontalement"></button>
+          <button id="align-right" type="button" class="layer-button" title="Aligner à droite" aria-label="Aligner à droite"></button>
+          <button id="align-top" type="button" class="layer-button" title="Aligner en haut" aria-label="Aligner en haut"></button>
+          <button id="align-vcenter" type="button" class="layer-button" title="Centrer verticalement" aria-label="Centrer verticalement"></button>
+          <button id="align-bottom" type="button" class="layer-button" title="Aligner en bas" aria-label="Aligner en bas"></button>
+          <button id="distribute-h" type="button" class="layer-button" title="Répartir horizontalement (3 couches ou plus)" aria-label="Répartir horizontalement"></button>
+          <button id="distribute-v" type="button" class="layer-button" title="Répartir verticalement (3 couches ou plus)" aria-label="Répartir verticalement"></button>
+        </div>
+        <div class="inspector-row">
+          <label for="inspector-reference">Aligner sur</label>
+          <select id="inspector-reference"><option value="canvas">La toile</option><option value="selection">La sélection</option></select>
+        </div>
+        <button id="inspector-reset" type="button" class="layers-add">Réinitialiser</button>
       </div>
     </section>
 

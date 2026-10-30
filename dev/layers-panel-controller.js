@@ -17,7 +17,7 @@
  */
 import { isIdentityKind } from '../layer-kinds.js';
 import { createPresetThumbnail } from './preset-thumbnail.js';
-import { icon } from './icons.js';
+import { icon, setIcon } from './icons.js';
 import { dropPosition, layerRows, loadGauge } from './layers-panel-view.js';
 
 const ROW_THUMBNAIL_WIDTH = 56;
@@ -272,9 +272,9 @@ export function createLayersPanelController(input) {
     parts.sub.textContent = row.subtitle;
     parts.sub.hidden = row.subtitle === '';
 
-    parts.buttons.visible.innerHTML = icon(row.visible ? 'eye' : 'eye-off');
+    setIcon(parts.buttons.visible, row.visible ? 'eye' : 'eye-off');
     parts.buttons.visible.setAttribute('aria-pressed', String(!row.visible));
-    parts.buttons.lock.innerHTML = icon(row.locked ? 'lock' : 'unlock');
+    setIcon(parts.buttons.lock, row.locked ? 'lock' : 'unlock');
     parts.buttons.lock.setAttribute('aria-pressed', String(row.locked));
     syncThumbnail(parts, layer);
   }

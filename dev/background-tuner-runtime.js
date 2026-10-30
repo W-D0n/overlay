@@ -8,6 +8,7 @@ import { createServerControlController } from './server-control-controller.js';
 import { createDiagnosticController } from './diagnostic-controller.js';
 import { createHistoryController } from './history-controller.js';
 import { createLayersPanelController } from './layers-panel-controller.js';
+import { createLayerInspectorController } from './layer-inspector-controller.js';
 import { BACKGROUND_COMPONENT_NAMES, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
 import { createPresetDraftSync } from './preset-draft-sync.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
@@ -124,6 +125,41 @@ export async function startBackgroundTuner(environment = {}) {
     labelOf: backgroundEffectLabel,
     addableKinds: [...BACKGROUND_COMPONENT_NAMES, 'branding'],
     defaultOptions: defaultBackgroundOptions,
+    report,
+    documentRef,
+    windowRef,
+  });
+
+  const layerInspector = createLayerInspectorController({
+    elements: {
+      empty: byId('inspector-empty'),
+      body: byId('inspector-body'),
+      opacityRange: /** @type {HTMLInputElement} */ (byId('inspector-opacity-range')),
+      opacityNumber: /** @type {HTMLInputElement} */ (byId('inspector-opacity')),
+      fields: {
+        x: /** @type {HTMLInputElement} */ (byId('inspector-x')),
+        y: /** @type {HTMLInputElement} */ (byId('inspector-y')),
+        width: /** @type {HTMLInputElement} */ (byId('inspector-width')),
+        height: /** @type {HTMLInputElement} */ (byId('inspector-height')),
+      },
+      unitPercent: /** @type {HTMLButtonElement} */ (byId('inspector-unit-percent')),
+      unitPixel: /** @type {HTMLButtonElement} */ (byId('inspector-unit-pixel')),
+      lock: /** @type {HTMLButtonElement} */ (byId('inspector-lock')),
+      preset: /** @type {HTMLSelectElement} */ (byId('inspector-preset')),
+      reset: /** @type {HTMLButtonElement} */ (byId('inspector-reset')),
+      reference: /** @type {HTMLSelectElement} */ (byId('inspector-reference')),
+      align: {
+        left: /** @type {HTMLButtonElement} */ (byId('align-left')),
+        hcenter: /** @type {HTMLButtonElement} */ (byId('align-hcenter')),
+        right: /** @type {HTMLButtonElement} */ (byId('align-right')),
+        top: /** @type {HTMLButtonElement} */ (byId('align-top')),
+        vcenter: /** @type {HTMLButtonElement} */ (byId('align-vcenter')),
+        bottom: /** @type {HTMLButtonElement} */ (byId('align-bottom')),
+      },
+      distributeH: /** @type {HTMLButtonElement} */ (byId('distribute-h')),
+      distributeV: /** @type {HTMLButtonElement} */ (byId('distribute-v')),
+    },
+    studio: preview.document,
     report,
     documentRef,
     windowRef,
@@ -303,5 +339,5 @@ export async function startBackgroundTuner(environment = {}) {
     preview.destroy();
   }
   windowRef.addEventListener('beforeunload', destroy, { once: true });
-  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls, layersPanel };
+  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls, layersPanel, layerInspector };
 }
