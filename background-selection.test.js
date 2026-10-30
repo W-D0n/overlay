@@ -2,9 +2,11 @@ import { describe, expect, test } from 'bun:test';
 import {
   backgroundCurrentUrl,
   backgroundPresetUrl,
-  selectBackground,
+  liveSceneOf,
+  selectScene,
 } from './background-selection.js';
 import { STATIC_PORT } from './ports.config.js';
+import { sceneFromCurrent, sceneFromPreset } from './scene-doc.js';
 
 const file = {
   current: { component: 'RainBackground', options: { speed: 1 } },
@@ -13,24 +15,42 @@ const file = {
   ],
 };
 
+const layer = (id, kind, over = {}) => ({ id, kind, visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {}, ...over });
+const STACK = { version: 1, id: 'pile', name: 'Pile', layers: [layer('fond', 'rain'), layer('bulles', 'bubble', { opacity: 0.5 })] };
+const kinds = (scene) => scene.layers.map((l) => l.kind);
+
 describe('sélection du fond standalone', () => {
-  test('sans preset, suit le fond courant', () => {
-    expect(selectBackground(file, null)).toEqual(file.current);
+  test('sans preset, suit la scène en antenne ; d’un serveur sans `scene`, celle de la forme plate', () => {
+    expect(kinds(selectScene(file, null))).toEqual(['rain', 'branding']);
+    expect(selectScene({ ...file, scene: STACK }, null)).toBe(STACK);
+    expect(selectScene({ ...file, scene: STACK }, '')).toBe(STACK);
   });
 
-  test('avec preset, résout son effet et ses options', () => {
-    expect(selectBackground(file, 'discussion-calme')).toEqual({
-      component: 'BubbleBackground',
-      options: { count: 12 },
-    });
+  test('avec preset, résout toutes ses couches ; d’un serveur sans `scenes`, la scène de la forme plate', () => {
+    expect(kinds(selectScene(file, 'discussion-calme'))).toEqual(['bubble', 'branding']);
+    expect(selectScene({ ...file, scenes: [STACK] }, 'pile')).toBe(STACK);
+  });
+
+  test('le preset garde sa transition et son branding masqué, que la forme plate perdait', () => {
+    const quiet = { id: 'calme', name: 'Calme', component: 'rain', options: {}, showBranding: false, transition: { type: 'fade', durationMs: 300 } };
+    const scene = selectScene({ ...file, scenes: [sceneFromPreset(quiet)] }, 'calme');
+    expect(kinds(scene)).toEqual(['rain']);
+    expect(scene.transition).toEqual({ type: 'fade', durationMs: 300 });
   });
 
   test('un ancien lien par nom reste compatible après migration', () => {
-    expect(selectBackground(file, 'Discussion calme')?.component).toBe('BubbleBackground');
+    expect(selectScene(file, 'Discussion calme')?.id).toBe('discussion-calme');
+    expect(selectScene({ ...file, scenes: [STACK] }, 'Pile')).toBe(STACK);
   });
 
   test('un preset inconnu ne retombe jamais silencieusement sur le fond courant', () => {
-    expect(selectBackground(file, 'Absent')).toBeNull();
+    expect(selectScene(file, 'Absent')).toBeNull();
+    expect(selectScene({ ...file, scenes: [STACK] }, 'Absent')).toBeNull();
+  });
+
+  test('liveSceneOf : la `scene` d’un message, sinon la scène de sa forme plate', () => {
+    expect(liveSceneOf({ component: null, options: {}, showBranding: false, scene: STACK })).toBe(STACK);
+    expect(liveSceneOf({ component: 'rain', options: {} })).toEqual(sceneFromCurrent({ component: 'rain', options: {} }));
   });
 
   test('backgroundPresetUrl encode l’identifiant stable et active la transparence OBS', () => {

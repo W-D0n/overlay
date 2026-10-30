@@ -31,7 +31,7 @@
     import { createSceneRuntime } from './scene-runtime.js';
     import { sceneForBrandingMode, sceneFromCurrent } from './scene-doc.js';
     import { brandingContent } from './branding-content.js';
-    import { selectBackground } from './background-selection.js';
+    import { liveSceneOf, selectScene } from './background-selection.js';
     import { ReactionOverlay } from './components/ReactionOverlay.js';
     import { createReactionCoordinator } from './background-reactions.js';
     import { createBrowserAudioSession } from './background-audio.js';
@@ -63,13 +63,13 @@
      * Le branding est une couche de la scène (sa visibilité appartient au preset affiché : un preset qui le masque n'en a
      * pas) ; son contenu est global, déposé dans `brandingContent` par son canal. `?branding=` filtre ces couches.
      */
-    function render(current) {
-      mount.apply(sceneForBrandingMode(sceneFromCurrent(current), brandingMode));
+    function render(scene) {
+      mount.apply(sceneForBrandingMode(scene, brandingMode));
     }
 
-    function applySafely(current) {
+    function applySafely(scene) {
       try {
-        render(current);
+        render(scene);
       } catch (err) {
         // État illisible : on garde le fond en place plutôt qu'un écran vide en live, et on trace
         // pour diagnostic. Un effet inconnu est déjà géré par le moteur de scène (couche signalée, fond conservé).
@@ -85,15 +85,15 @@
     transport.subscribe({
       onState(file) {
         brandingContent.set(file.branding);
-        const selected = selectBackground(file, presetRef);
+        const selected = selectScene(file, presetRef);
         if (selected === null) {
-          render({ component: null, options: {} });
+          applySafely(sceneFromCurrent({ component: null, options: {} }));
           console.error(`[background] preset inconnu : ${presetRef}`);
           return;
         }
         applySafely(selected);
       },
-      onCurrent: applySafely,
+      onCurrent: (message) => applySafely(liveSceneOf(message)),
       // Contenu du branding : canal séparé, global, indépendant du preset et de l'effet.
       ...(brandingMode === 'off' ? {} : { onBranding: (next) => brandingContent.set(next) }),
       // Réactions : canal actif quel que soit le mode (courant ou preset).
