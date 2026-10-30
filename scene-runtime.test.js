@@ -67,10 +67,10 @@ describe('scene-runtime : montage', () => {
     expect(calques[1].children[0].tag).toBe('el-bubble');
   });
 
-  test('layers() décrit les couches montées dans l’ordre de la scène', () => {
+  test('layers() décrit les couches montées dans l’ordre de la scène ; une couche masquée n’est pas montée', () => {
     const { runtime } = setup();
-    runtime.apply(scene(layer('a', 'rain'), layer('b', 'bubble', { visible: false })));
-    expect(runtime.layers().map(({ id, kind, visible }) => [id, kind, visible])).toEqual([['a', 'rain', true], ['b', 'bubble', false]]);
+    runtime.apply(scene(layer('a', 'rain'), layer('b', 'bubble', { visible: false }), layer('c', 'dotgrid')));
+    expect(runtime.layers().map(({ id, kind, visible }) => [id, kind, visible])).toEqual([['a', 'rain', true], ['c', 'dotgrid', true]]);
   });
 });
 
@@ -110,15 +110,25 @@ describe('scene-runtime : réconciliation', () => {
     expect(calques[1].style.zIndex).toBe('0');
   });
 
-  test('masquer une couche la cache sans démonter son effet ni toucher aux autres ; la remontrer la restitue', () => {
+  test('masquer une couche démonte son effet sans toucher aux autres ; la remontrer le remonte, à sa place dans la pile', () => {
     const { runtime, events, calques } = setup();
     runtime.apply(scene(layer('a', 'rain'), layer('b', 'bubble')));
     events.length = 0;
     runtime.apply(scene(layer('a', 'rain', { visible: false }), layer('b', 'bubble')));
-    expect(calques[0].style.display).toBe('none');
-    expect(events.some((event) => event.startsWith('destroy') || event.startsWith('create') || event.startsWith('remove'))).toBe(false);
+    expect(events.filter((event) => !event.startsWith('update:'))).toEqual(['destroy:rain', 'remove:calque1']);
+    expect(runtime.layers().map(({ id }) => id)).toEqual(['b']);
+    events.length = 0;
     runtime.apply(scene(layer('a', 'rain'), layer('b', 'bubble')));
-    expect(calques[0].style.display).toBe('');
+    expect(events.filter((event) => !event.startsWith('update:'))).toEqual(['create:rain:', 'attach:calque3']);
+    expect(calques[2].style.zIndex).toBe('0');
+    expect(calques[1].style.zIndex).toBe('1');
+  });
+
+  test('une couche masquée dès le départ n’est jamais construite : aucune fabrique appelée, aucun calque', () => {
+    const { runtime, events, calques } = setup();
+    runtime.apply(scene(layer('a', 'rain', { visible: false })));
+    expect(events.filter((event) => event.startsWith('create'))).toEqual([]);
+    expect(calques).toEqual([]);
   });
 
   test('l’opacité et le placement se mettent à jour sur le calque, sans update d’options superflu de la structure', () => {

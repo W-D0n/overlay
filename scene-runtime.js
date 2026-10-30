@@ -11,7 +11,9 @@ import { isAudioOn, isIdentityKind, kindCapabilities } from './layer-kinds.js';
  *   - même `id`, `kind` différent → l'effet est remplacé sur place, les autres couches ne bougent pas ;
  *   - `id` nouveau → montage ; `id` disparu → démontage ;
  *   - ordre → `z-index`, sans déplacer aucun nœud (déplacer un nœud redémarrerait ses animations CSS) ;
- *   - `visible`, `opacity`, `placement` → appliqués sur le calque de la couche, sans toucher à l'effet.
+ *   - `opacity`, `placement` → appliqués sur le calque de la couche, sans toucher à l'effet ;
+ *   - `visible: false` → la couche n'est **pas montée** (son effet ne dessine rien, ne coûte ni CPU ni GPU) ; la remontrer remonte
+ *     son effet, qui repart de zéro.
  *
  * Chaque couche vit dans son propre calque absolu ; `placement` est en fractions de la scène, donc la scène
  * épouse la source OBS quelle que soit sa résolution. Un effet dessine sa composition de référence dans son
@@ -184,6 +186,11 @@ export function createSceneRuntime(container, deps = {}) {
     const next = new Map();
     scene.layers.forEach((layer, index) => {
       let entry = stage.layers.get(layer.id);
+      if (!layer.visible) {
+        // Une couche masquée ne dessine rien : on ne la garde pas montée pour rien.
+        if (entry !== undefined) disposeLayer(entry);
+        return;
+      }
       try {
         if (entry === undefined) {
           entry = mountLayer(stage, layer);
