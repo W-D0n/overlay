@@ -2,7 +2,10 @@
 import { backgroundPresetUrl } from '../background-selection.js';
 import { BUILTIN_BACKGROUND_PRESETS } from './builtin-background-presets.js';
 import { backgroundEffectLabel } from './component-field-schemas.js';
-import { filterBackgroundPresets } from './background-preset-library.js';
+import { effectLayers, filterScenes, sceneEffectsLabel } from './scene-labels.js';
+import { hasEffectLayer } from './background-state-format.js';
+import { normalizeTransition } from '../background-transition.js';
+import { presetFromScene, sceneFromPreset } from '../scene-doc.js';
 import { createPresetThumbnail } from './preset-thumbnail.js';
 import { createBackgroundPresetTransferController } from './background-preset-transfer-controller.js';
 
@@ -40,8 +43,12 @@ export function createBackgroundPresetController(input) {
   const navigatorRef = input.navigatorRef ?? navigator;
   const windowRef = input.windowRef ?? window;
   const elements = input.elements;
+  /** @type {import('../scene-doc.js').SceneDoc[]} */
   let cachedPresets = [];
   let presetQuery = '';
+  /** Les points de départ intégrés sont des presets plats : ils s'ouvrent comme des scènes. */
+  const builtinScenes = BUILTIN_BACKGROUND_PRESETS.map((preset) => sceneFromPreset(preset));
+  const effectLabel = (/** @type {import('../scene-doc.js').SceneDoc} */ scene) => sceneEffectsLabel(scene, backgroundEffectLabel);
   /** @type {Map<string, { line: HTMLElement }>} */
   const draftMarks = new Map();
 
@@ -72,8 +79,8 @@ export function createBackgroundPresetController(input) {
   }
 
   /** Une vignette par ligne, capturée une fois puis animée seulement au survol. */
-  function appendThumbnail(row, preset, set) {
-    const thumbnail = createPresetThumbnail({ preset, documentRef });
+  function appendThumbnail(row, scene, set) {
+    const thumbnail = createPresetThumbnail({ scene, documentRef });
     set.push(thumbnail);
     row.appendChild(thumbnail.el);
   }
@@ -83,7 +90,7 @@ export function createBackgroundPresetController(input) {
     row.className = 'preset-row';
     const load = documentRef.createElement('button');
     load.className = 'preset-load';
-    load.textContent = `${preset.name} — ${backgroundEffectLabel(preset.component)}`;
+    load.textContent = `${preset.name} — ${effectLabel(preset)}`;
     const meta = documentRef.createElement('span');
     meta.className = 'preset-meta';
     meta.textContent = metaText;
@@ -103,19 +110,20 @@ export function createBackgroundPresetController(input) {
     cachedPresets = presets;
     elements.exportButton.disabled = presets.length === 0;
     elements.list.replaceChildren();
-    const visiblePresets = filterBackgroundPresets(presets, presetQuery);
+    const visiblePresets = filterScenes(presets, presetQuery, backgroundEffectLabel);
     if (visiblePresets.length === 0) appendEmptyState(elements.list);
 
     for (const preset of visiblePresets) {
       const { row, load, meta } = createPresetRowShell(
         preset,
-        [`#${preset.id}`, ...(preset.tags ?? [])].join(' · '),
+        [`#${preset.id}`, ...(effectLayers(preset).length > 1 ? [`${effectLayers(preset).length} effets`] : []), ...(preset.tags ?? [])].join(' · '),
       );
       load.onclick = () => {
         // Ce qui attendait d'être envoyé pour le preset quitté part avant que l'aperçu ne change.
         input.drafts?.flush();
+        // Le brouillon garde ses réglages ; le nom et les étiquettes restent ceux du preset enregistré.
         const draft = input.drafts?.get(preset.id) ?? null;
-        input.preview.apply(draft === null ? preset : { ...preset, ...draft }, preset.id, true);
+        input.preview.apply(draft === null ? preset : { ...draft, id: preset.id, name: preset.name, ...(preset.tags === undefined ? {} : { tags: preset.tags }) }, preset.id, true);
         elements.name.value = preset.name;
       };
 
@@ -246,7 +254,7 @@ export function createBackgroundPresetController(input) {
   function renderBuiltinPresets() {
     disposeThumbnails(builtinThumbnails);
     elements.builtinList.replaceChildren();
-    const visiblePresets = filterBackgroundPresets(BUILTIN_BACKGROUND_PRESETS, presetQuery);
+    const visiblePresets = filterScenes(builtinScenes, presetQuery, backgroundEffectLabel);
     if (visiblePresets.length === 0) appendEmptyState(elements.builtinList);
     for (const preset of visiblePresets) {
       const row = documentRef.createElement('article');
@@ -264,7 +272,7 @@ export function createBackgroundPresetController(input) {
       title.textContent = preset.name;
       const meta = documentRef.createElement('span');
       meta.className = 'preset-meta';
-      meta.textContent = [backgroundEffectLabel(preset.component), ...preset.tags].join(' · ');
+      meta.textContent = [effectLabel(preset), ...(preset.tags ?? [])].join(' · ');
       apply.append(title, meta);
       apply.title = `Essayer « ${preset.name} »`;
       apply.onclick = () => {
@@ -281,12 +289,7 @@ export function createBackgroundPresetController(input) {
       add.onclick = async () => {
         const name = uniquePresetName(`${preset.name} — perso`);
         try {
-          await input.client.savePreset({
-            name,
-            component: preset.component,
-            options: preset.options,
-            tags: preset.tags,
-          });
+          await input.client.saveScene({ ...preset, name });
           input.report.ok();
           refresh();
         } catch (error) {
@@ -303,8 +306,8 @@ export function createBackgroundPresetController(input) {
   async function refresh() {
     try {
       const file = await input.client.readState();
-      renderPresets(file.presets);
-      return file.presets;
+      renderPresets(file.scenes);
+      return file.scenes;
     } catch (error) {
       reportClientError('lecture des presets impossible', error);
       return null;
@@ -326,7 +329,9 @@ export function createBackgroundPresetController(input) {
     client: input.client,
     preview: input.preview,
     report: input.report,
-    getPresets: () => cachedPresets,
+    // L'export est en forme plate : une scène à plusieurs couches n'en fait pas partie avant la version 3 du lot (6g).
+    getPresets: () => cachedPresets.flatMap((scene) => presetFromScene(scene) ?? []),
+    getOmittedCount: () => cachedPresets.filter((scene) => presetFromScene(scene) === null).length,
     refreshPresets: refresh,
     documentRef,
     windowRef,
@@ -338,21 +343,15 @@ export function createBackgroundPresetController(input) {
       const tags = [...new Set(
         elements.tags.value.split(',').map((tag) => tag.trim()).filter(Boolean),
       )];
-      const { current, activePresetId, transition, showBranding } = input.preview.snapshot();
-      if (current.component === null) {
+      const { scene, activePresetId } = input.preview.snapshot();
+      if (!hasEffectLayer(scene)) {
         input.report.error('rien à sauvegarder — aucun effet sélectionné');
         return;
       }
       try {
-        await input.client.savePreset({
-          id: activePresetId ?? undefined,
-          name,
-          component: current.component,
-          options: current.options,
-          tags,
-          transition,
-          showBranding,
-        });
+        // La transition d'arrivée est toujours enregistrée avec le preset (sa valeur par défaut si elle n'a pas été réglée).
+        await input.client.saveScene({ ...scene, name, tags, transition: normalizeTransition(scene.transition) }, activePresetId);
+        input.preview.editor.markSaved();
         // Le serveur a retiré le brouillon avec la mise à jour ; un envoi en attente ne doit pas le recréer.
         if (activePresetId !== null) input.drafts?.forget(activePresetId);
         input.report.ok();

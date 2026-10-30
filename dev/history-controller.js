@@ -16,7 +16,7 @@ const CONFIRM_DELAY_MS = 4000;
  *   summary: HTMLElement,
  *   list: HTMLElement,
  *   client: {
- *     readHistory(): Promise<import('./state-wire.js').WireHistoryEntry[]>,
+ *     readHistory(): Promise<{ at: string, scene: import('../scene-doc.js').SceneDoc }[]>,
  *     rollback(at: string): Promise<*>,
  *   },
  *   documentRef?: Document,
@@ -31,7 +31,7 @@ export function createHistoryController(input) {
   const formatDate = (/** @type {Date} */ date) => date.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   async function refresh() {
-    /** @type {import('./state-wire.js').WireHistoryEntry[]} */
+    /** @type {{ at: string, scene: import('../scene-doc.js').SceneDoc }[]} */
     let entries;
     try {
       entries = await input.client.readHistory();

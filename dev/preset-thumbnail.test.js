@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { STAGE_HEIGHT, STAGE_WIDTH } from './preview-stage.js';
+import { sceneFromCurrent } from '../scene-doc.js';
 import { createPresetThumbnail, onceVisible, THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH } from './preset-thumbnail.js';
 
 function fakeObserverFactory() {
@@ -59,7 +60,7 @@ test('l’effet est monté à la taille réelle de la source puis réduit, pas r
     return node;
   };
   const { el } = createPresetThumbnail({
-    preset: { component: 'rain', options: {} },
+    scene: sceneFromCurrent({ component: 'rain', options: {} }),
     documentRef: { createElement: fakeElement },
     delay: () => new Promise(() => {}),
   });

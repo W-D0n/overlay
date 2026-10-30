@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { historyRows, relativeTime } from './history-view.js';
+import { createLayer, sceneFromCurrent } from '../scene-doc.js';
 
 const NOW = Date.parse('2026-10-30T12:00:00.000Z');
 const formatDate = (date) => `le ${date.toISOString().slice(0, 10)}`;
@@ -21,15 +22,18 @@ describe('relativeTime', () => {
 
 describe('historyRows', () => {
   const labelOf = (component) => component.toUpperCase();
+  const layer = (id, kind) => createLayer({ id, kind });
 
   test('une ligne par entrée : effet, moment, particularités', () => {
     const rows = historyRows([
-      { at: ago(60_000), current: { component: 'rain', options: {}, transition: { type: 'fade', durationMs: 500 }, showBranding: false } },
-      { at: ago(2 * 3_600_000), current: { component: null, options: {} } },
+      { at: ago(60_000), scene: sceneFromCurrent({ component: 'rain', options: {}, transition: { type: 'fade', durationMs: 500 }, showBranding: false }) },
+      { at: ago(2 * 3_600_000), scene: sceneFromCurrent({ component: null, options: {} }) },
+      { at: ago(3 * 3_600_000), scene: { ...sceneFromCurrent({ component: 'rain', options: {} }), layers: [layer('a', 'rain'), layer('b', 'bubble'), layer('branding', 'branding')] } },
     ], { labelOf, nowMs: NOW, formatDate });
     expect(rows).toEqual([
       { at: ago(60_000), title: 'RAIN', when: 'remplacé il y a 1 min', detail: 'transition fade · sans branding' },
       { at: ago(2 * 3_600_000), title: 'Aucun fond', when: 'remplacé il y a 2 h', detail: '' },
+      { at: ago(3 * 3_600_000), title: 'RAIN + BUBBLE', when: 'remplacé il y a 3 h', detail: '2 effets' },
     ]);
   });
 });

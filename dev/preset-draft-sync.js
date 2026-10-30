@@ -3,17 +3,18 @@
  * dev/preset-draft-sync.js — Brouillons de presets côté Studio : ce que le serveur garde, et l'envoi des réglages.
  *
  * Chaque réglage fait sur un preset enregistré est rangé sur le serveur, après un court délai, sous l'identifiant de
- * ce preset (`docs/specs/scene-doc-etape-5.md`, 5b-2). L'état à envoyer est capturé au moment du réglage, pas à
- * l'échéance : passer à un autre preset dans l'intervalle n'envoie ni le mauvais état ni rien. Un réglage sur un preset
+ * ce preset (`docs/specs/scene-doc-etape-5.md`, 5b-2). La scène à envoyer est capturée au moment du réglage, pas à
+ * l'échéance : passer à un autre preset dans l'intervalle n'envoie ni la mauvaise scène ni rien. Un réglage sur un preset
  * différent du précédent envoie tout de suite le précédent.
  *
  * Un serveur sans la route des brouillons (ancien code) est signalé une fois à la lecture, et rien n'est envoyé ensuite :
  * jamais d'échec silencieux répété à chaque réglage.
  *
- * @typedef {import('./background-state-format.js').BackgroundCurrent} BackgroundCurrent
- * @typedef {{ at: string, state: BackgroundCurrent }} DraftEntry
- * @typedef {{ presetId: string, state: BackgroundCurrent }} PendingDraft
+ * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {{ at: string, scene: SceneDoc }} DraftEntry
+ * @typedef {{ presetId: string, scene: SceneDoc }} PendingDraft
  */
+import { hasEffectLayer } from './background-state-format.js';
 
 const DEFAULT_DELAY_MS = 600;
 
@@ -21,10 +22,10 @@ const DEFAULT_DELAY_MS = 600;
  * @param {{
  *   client: {
  *     readDrafts(): Promise<Record<string, DraftEntry>>,
- *     saveDraft(presetId: string, state: BackgroundCurrent): Promise<*>,
+ *     saveDraft(presetId: string, scene: SceneDoc): Promise<*>,
  *     discardDraft(presetId: string): Promise<*>,
  *   },
- *   snapshot: () => { current: { component: string | null, options: Record<string, unknown> }, activePresetId: string | null, transition: *, showBranding: boolean },
+ *   snapshot: () => { scene: SceneDoc, activePresetId: string | null },
  *   onChange?: () => void,
  *   onError?: (message: string) => void,
  *   now?: () => string,
@@ -57,10 +58,10 @@ export function createPresetDraftSync(input) {
   /** @param {PendingDraft} draft */
   async function send(draft) {
     if (!available) return;
-    drafts.set(draft.presetId, { at: now(), state: draft.state });
+    drafts.set(draft.presetId, { at: now(), scene: draft.scene });
     notify();
     try {
-      await input.client.saveDraft(draft.presetId, draft.state);
+      await input.client.saveDraft(draft.presetId, draft.scene);
     } catch (error) {
       fail(`brouillon non enregistré : ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -68,7 +69,7 @@ export function createPresetDraftSync(input) {
 
   return {
     has: (/** @type {string} */ presetId) => drafts.has(presetId),
-    get: (/** @type {string} */ presetId) => drafts.get(presetId)?.state ?? null,
+    get: (/** @type {string} */ presetId) => drafts.get(presetId)?.scene ?? null,
 
     /** Relit les brouillons du serveur. @returns {Promise<void>} */
     async load() {
@@ -85,22 +86,19 @@ export function createPresetDraftSync(input) {
     },
 
     /**
-     * À appeler après chaque réglage : capture l'état du preset actif et l'envoie après le délai. Sans preset actif
-     * (réglage libre, « Créer »), il n'y a pas de brouillon.
+     * À appeler après chaque réglage : capture la scène du preset actif et l'envoie après le délai. Sans preset actif
+     * (réglage libre, « Créer ») ou sans effet, il n'y a pas de brouillon.
      */
     schedule() {
-      const { current, activePresetId, transition, showBranding } = input.snapshot();
-      if (activePresetId === null || current.component === null) return;
+      const { scene, activePresetId } = input.snapshot();
+      if (activePresetId === null || !hasEffectLayer(scene)) return;
       if (pending !== null && pending.presetId !== activePresetId) {
         clearTimerIfAny();
         const previous = pending;
         pending = null;
         send(previous);
       }
-      pending = {
-        presetId: activePresetId,
-        state: { component: current.component, options: { ...current.options }, transition: { ...transition }, showBranding },
-      };
+      pending = { presetId: activePresetId, scene };
       clearTimerIfAny();
       timer = setTimer(() => { timer = null; this.flush(); }, delayMs);
     },

@@ -1,6 +1,5 @@
 // @ts-check
 import { createSceneRuntime } from '../scene-runtime.js';
-import { sceneFromCurrent } from '../scene-doc.js';
 import { createThumbnailQueue } from './thumbnail-queue.js';
 import { STAGE_HEIGHT, STAGE_WIDTH } from './preview-stage.js';
 
@@ -59,6 +58,37 @@ const MIN_INK_RATIO = 0.002;
 const queue = createThumbnailQueue();
 
 /**
+ * Peint sur `target` tous les canvas de la scène montée dans `stage`, du dessous au dessus, chacun à sa place et à son
+ * opacité (celle de son calque et de ses ancêtres) : la vignette d'une scène à plusieurs couches montre l'ensemble, pas
+ * la seule première couche. Les couches masquées (sans taille) sont ignorées.
+ * @param {HTMLElement} stage
+ * @param {HTMLCanvasElement} target
+ * @returns {number} nombre de canvas peints
+ */
+export function paintStage(stage, target) {
+  const context = target.getContext('2d');
+  const view = stage.ownerDocument.defaultView;
+  if (context === null || view === null) return 0;
+  const frame = stage.getBoundingClientRect();
+  if (frame.width === 0) return 0;
+  const factor = target.width / frame.width;
+  let painted = 0;
+  for (const canvas of stage.querySelectorAll('canvas')) {
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) continue;
+    let alpha = 1;
+    for (let node = /** @type {Element | null} */ (canvas); node !== null && node !== stage; node = node.parentElement) {
+      alpha *= Number.parseFloat(view.getComputedStyle(node).opacity || '1');
+    }
+    context.globalAlpha = alpha;
+    context.drawImage(canvas, (rect.left - frame.left) * factor, (rect.top - frame.top) * factor, rect.width * factor, rect.height * factor);
+    painted += 1;
+  }
+  context.globalAlpha = 1;
+  return painted;
+}
+
+/**
  * Part de pixels non transparents. Sur une vignette de 104×58, la lecture coûte quelques
  * microsecondes — négligeable face au montage de l'effet.
  * @param {HTMLCanvasElement} canvas
@@ -77,7 +107,7 @@ export function canvasInkRatio(canvas) {
 
 /**
  * @param {{
- *   preset: { component: string, options: Record<string, unknown> },
+ *   scene: import('../scene-doc.js').SceneDoc,
  *   documentRef: Document,
  *   delay?: (ms: number) => Promise<void>,
  * }} input
@@ -121,7 +151,7 @@ export function createPresetThumbnail(input) {
   function mountLive() {
     if (destroyed || liveMount !== null) return;
     liveMount = createSceneRuntime(stage);
-    liveMount.apply(sceneFromCurrent({ component: input.preset.component, options: input.preset.options }));
+    liveMount.apply(input.scene);
     el.dataset.live = 'true';
   }
 
@@ -137,24 +167,20 @@ export function createPresetThumbnail(input) {
   async function captureStill() {
     if (destroyed) return;
     const mount = createSceneRuntime(stage);
-    mount.apply(sceneFromCurrent({ component: input.preset.component, options: input.preset.options }));
+    mount.apply(input.scene);
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
       await delay(WARMUP_MS);
       if (destroyed) break;
 
-      const canvas = /** @type {HTMLCanvasElement | null} */ (stage.querySelector('canvas'));
-      // Un effet sans canvas laisse simplement la vignette vide : pas d'erreur, la ligne reste
-      // lisible par son nom.
-      if (canvas === null) {
-        el.dataset.state = 'empty';
-        break;
-      }
-
       const snapshot = documentRef.createElement('canvas');
       snapshot.width = THUMBNAIL_WIDTH * SNAPSHOT_SCALE;
       snapshot.height = THUMBNAIL_HEIGHT * SNAPSHOT_SCALE;
-      snapshot.getContext('2d')?.drawImage(canvas, 0, 0, snapshot.width, snapshot.height);
+      // Une scène sans canvas laisse simplement la vignette vide : pas d'erreur, la ligne reste lisible par son nom.
+      if (paintStage(stage, snapshot) === 0) {
+        el.dataset.state = 'empty';
+        break;
+      }
 
       const lastChance = attempt === MAX_ATTEMPTS - 1;
       if (canvasInkRatio(snapshot) >= MIN_INK_RATIO || lastChance) {

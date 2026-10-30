@@ -4,6 +4,7 @@ import {
   BACKGROUND_COMPONENT_NAMES,
   BACKGROUND_FIELD_SCHEMAS,
   NUMBER_FIELD_GUIDANCE,
+  defaultBackgroundOptions,
 } from './component-field-schemas.js';
 
 test('BACKGROUND_COMPONENT_NAMES ne contient aucun doublon', () => {
@@ -46,4 +47,12 @@ test('chaque borne déclarée est consommée par un champ existant', () => {
   const fieldKeys = new Set(Object.values(BACKGROUND_FIELD_SCHEMAS).flat().map(({ key }) => key));
   const orphans = Object.keys(NUMBER_FIELD_GUIDANCE).filter((key) => !fieldKeys.has(key));
   expect(orphans).toEqual([]);
+});
+
+test('defaultBackgroundOptions construit des options de départ indépendantes pour chaque appel', () => {
+  const first = defaultBackgroundOptions('rain');
+  const second = defaultBackgroundOptions('rain');
+  expect(first).toEqual({ intensity: 0.5, speed: 1, color: '#C8B97A', angle: 8, audioReactive: false, audioIntensity: 1 });
+  expect(second).toEqual(first);
+  expect(second).not.toBe(first);
 });

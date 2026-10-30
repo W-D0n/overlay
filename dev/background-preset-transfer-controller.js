@@ -32,7 +32,8 @@ import {
  *   preview: ReturnType<typeof import('./background-preview-controller.js').createBackgroundPreviewController>,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   getPresets: () => Array<Record<string, any>>,
- *   refreshPresets: () => Promise<Array<Record<string, any>> | null>,
+ *   getOmittedCount?: () => number,
+ *   refreshPresets: () => Promise<import("../scene-doc.js").SceneDoc[] | null>,
  *   documentRef?: Document,
  *   windowRef?: Window,
  *   urlApi?: Pick<typeof URL, 'createObjectURL' | 'revokeObjectURL'>,
@@ -182,7 +183,8 @@ export function createBackgroundPresetTransferController(input) {
       link.download = 'overlay-background-presets.json';
       link.click();
       windowRef.setTimeout(() => urlApi.revokeObjectURL(url), 0);
-      input.report.ok(`${presets.length} preset(s) exporté(s)`);
+      const omitted = input.getOmittedCount?.() ?? 0;
+      input.report.ok(`${presets.length} preset(s) exporté(s)${omitted === 0 ? '' : ` · ${omitted} scène(s) à plusieurs couches non exportée(s) (export complet à venir)`}`);
     };
 
     elements.importTrigger.onclick = () => elements.importInput.click();

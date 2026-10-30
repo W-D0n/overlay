@@ -1,5 +1,6 @@
 // @ts-check
 import { canonicalBackgroundState } from './background-state-format.js';
+import { sceneFromCurrent, sceneFromPreset } from '../scene-doc.js';
 
 export class BackgroundStateClientError extends Error {
   /**
@@ -13,6 +14,20 @@ export class BackgroundStateClientError extends Error {
     this.operation = operation;
     this.status = status;
   }
+}
+
+/**
+ * L'état du serveur en scènes : sa `scene` en antenne et ses `scenes`, que le serveur les fournisse ou — d'un serveur qui
+ * n'a pas encore ce code — qu'il faille les déduire de la forme plate, ramenée à la forme neutre.
+ * @param {*} raw
+ */
+function withScenes(raw) {
+  const state = canonicalBackgroundState(raw);
+  return {
+    ...state,
+    scene: state.scene ?? sceneFromCurrent(state.current),
+    scenes: state.scenes ?? state.presets.map((/** @type {*} */ preset) => sceneFromPreset(preset)),
+  };
 }
 
 /**
@@ -74,9 +89,12 @@ export function createBackgroundStateClient(options) {
   }
 
   return {
-    /** L'état lu est toujours sous forme neutre, même si le serveur n'a pas encore migré son fichier. */
+    /**
+     * L'état lu : toujours `scene` et `scenes`, sous forme neutre, même si le serveur n'a pas encore migré son fichier ;
+     * la forme plate (`current`, `presets`) reste disponible pour les écrans qui ne lisent que des effets seuls.
+     */
     async readState() {
-      return canonicalBackgroundState(await request('state'));
+      return withScenes(await request('state'));
     },
     /**
      * Demande au lanceur de relancer ou d'arrêter les serveurs. L'en-tête personnalisé est exigé par le
@@ -97,11 +115,11 @@ export function createBackgroundStateClient(options) {
     readObsStatus() {
       return request('obs-status');
     },
-    /** États qui ont quitté l'antenne, le plus récent d'abord. @returns {Promise<import('./state-wire.js').WireHistoryEntry[]>} */
+    /** Scènes qui ont quitté l'antenne, la plus récente d'abord. @returns {Promise<{ at: string, scene: import('../scene-doc.js').SceneDoc }[]>} */
     async readHistory() {
       return (await request('history')).history;
     },
-    /** Remet à l'antenne l'état de l'historique daté `at`. @param {string} at */
+    /** Remet à l'antenne la scène de l'historique datée `at`. @param {string} at */
     rollback(at) {
       return request('rollback', { at });
     },
@@ -109,9 +127,9 @@ export function createBackgroundStateClient(options) {
     async readDrafts() {
       return (await request('drafts')).drafts;
     },
-    /** @param {string} presetId @param {unknown} state */
-    saveDraft(presetId, state) {
-      return request('draft', { presetId, state });
+    /** @param {string} presetId @param {import('../scene-doc.js').SceneDoc} scene */
+    saveDraft(presetId, scene) {
+      return request('draft', { presetId, scene });
     },
     /** @param {string} presetId */
     discardDraft(presetId) {
@@ -125,13 +143,17 @@ export function createBackgroundStateClient(options) {
     saveBranding(branding) {
       return request('branding', { branding });
     },
-    /** @param {{ component: string | null, options: Record<string, unknown> }} current */
-    saveCurrent(current) {
-      return request('state', { current });
+    /** Envoie une scène à l'antenne. @param {import('../scene-doc.js').SceneDoc} scene */
+    publishScene(scene) {
+      return request('state', { scene });
     },
-    /** @param {Record<string, unknown>} preset */
-    savePreset(preset) {
-      return request('save-preset', preset);
+    /**
+     * Range une scène comme preset : la crée, ou — avec `id` — remplace celle qui porte cet identifiant.
+     * @param {import('../scene-doc.js').SceneDoc} scene
+     * @param {string | null} [id]
+     */
+    saveScene(scene, id = null) {
+      return request('save-preset', { ...(id === null ? {} : { id }), scene });
     },
     /** @param {string} id @param {string} name */
     renamePreset(id, name) {

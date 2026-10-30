@@ -150,8 +150,8 @@ export function createObsSceneMapController(input) {
     input.statusEl.dataset.tone = message.tone;
 
     const sceneMap = state.sceneMap ?? {};
-    displayRows = sceneRows({ status, sceneMap, presets: state.presets });
-    knownPresets = state.presets;
+    displayRows = sceneRows({ status, sceneMap, presets: state.scenes });
+    knownPresets = state.scenes;
     rows = displayRows.map(({ sceneName, presetId }) => ({ sceneName, presetId }));
     renderRows();
     input.saveButton.disabled = displayRows.length === 0;

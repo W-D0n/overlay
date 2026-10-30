@@ -409,6 +409,28 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     },
 
     /**
+     * Change l'effet d'une couche : nouveau type, options de départ du nouveau type. Le placement, l'opacité, la
+     * visibilité, le verrou et la place dans la pile restent ceux de la couche.
+     * @param {string} id
+     * @param {string} kind
+     * @param {Record<string, unknown>} [options]
+     * @returns {Done | Refused}
+     */
+    setLayerKind(id, kind, options = {}) {
+      const layer = find(id);
+      if (layer === undefined) return refuse('unknown', `couche introuvable : ${id}`);
+      const resolved = resolveKindId(kind);
+      if (resolved === null) return refuse('invalid', `type de couche inconnu : ${kind}`);
+      if (isIdentityKind(resolved) !== isIdentityKind(layer.kind)) return refuse('invalid', 'un effet ne devient pas une couche d’identité');
+      if (isIdentityKind(resolved) && scene.layers.some((other) => other.id !== id && other.kind === resolved)) {
+        return refuse('unique', 'cette couche existe déjà dans la scène');
+      }
+      if (resolved === layer.kind) return { ok: true };
+      const layers = scene.layers.map((candidate) => (candidate.id === id ? { ...candidate, kind: resolved, options } : candidate));
+      return finish(layers, 'Changer l’effet', undefined);
+    },
+
+    /**
      * Propriétés de la scène elle-même (nom, étiquettes, transition d'arrivée). `undefined` retire la propriété.
      * @param {{ name?: string, tags?: string[] | undefined, transition?: SceneDoc['transition'] | undefined }} patch
      * @param {CoalesceOptions} [options]

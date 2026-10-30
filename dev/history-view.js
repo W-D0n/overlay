@@ -1,9 +1,11 @@
 // @ts-check
+import { sceneDetails, sceneEffectsLabel } from './scene-labels.js';
+
 /**
  * dev/history-view.js — Présentation de l'historique des publications : de quoi remplir une ligne du panneau.
  * Pur : le libellé d'effet et l'horloge sont fournis.
  *
- * @typedef {import('./state-wire.js').WireHistoryEntry} HistoryEntry
+ * @typedef {{ at: string, scene: import('../scene-doc.js').SceneDoc }} HistoryEntry
  * @typedef {{ at: string, title: string, when: string, detail: string }} HistoryRow
  */
 
@@ -30,19 +32,14 @@ export function relativeTime(at, nowMs, formatDate) {
 
 /**
  * @param {readonly HistoryEntry[]} entries le plus récent d'abord
- * @param {{ labelOf: (component: string) => string, nowMs: number, formatDate: (date: Date) => string }} deps
+ * @param {{ labelOf: (kind: string) => string, nowMs: number, formatDate: (date: Date) => string }} deps
  * @returns {HistoryRow[]}
  */
 export function historyRows(entries, { labelOf, nowMs, formatDate }) {
-  return entries.map(({ at, current }) => {
-    const details = [];
-    if (current.transition !== undefined) details.push(`transition ${current.transition.type}`);
-    if (current.showBranding === false) details.push('sans branding');
-    return {
-      at,
-      title: current.component === null ? 'Aucun fond' : labelOf(current.component),
-      when: `remplacé ${relativeTime(at, nowMs, formatDate)}`,
-      detail: details.join(' · '),
-    };
-  });
+  return entries.map(({ at, scene }) => ({
+    at,
+    title: sceneEffectsLabel(scene, labelOf),
+    when: `remplacé ${relativeTime(at, nowMs, formatDate)}`,
+    detail: sceneDetails(scene).join(' · '),
+  }));
 }

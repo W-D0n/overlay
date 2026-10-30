@@ -1,6 +1,10 @@
 import { expect, test } from 'bun:test';
 import { createBackgroundPresetController } from './background-preset-controller.js';
 import { STATIC_PORT } from '../ports.config.js';
+import { sceneFromPreset } from '../scene-doc.js';
+
+/** Un preset enregistré, tel que le Studio le détient : une scène nommée. */
+const saved = (kind = 'rain', options = { speed: 1 }) => sceneFromPreset({ id: 'a', name: 'Perso', component: kind, options });
 
 const backgroundPageUrl = `http://localhost:${STATIC_PORT}/background.html`;
 
@@ -60,7 +64,7 @@ test('initialise le parcours d’import avec son panneau de détails', () => {
       persistNow: async () => true,
      
       setActivePresetId() {},
-      snapshot: () => ({ activePresetId: null, current: { component: null, options: {} } }),
+      snapshot: () => ({ activePresetId: null, scene: { version: 1, id: 'current', name: 'En antenne', layers: [] } }),
     },
     report: { ok() {}, error() {} },
     backgroundPageUrl,
@@ -87,7 +91,7 @@ test('présente chaque point de départ comme une ligne cliquable plus un ajout 
     client: {},
     preview: {
       apply() {}, persistNow: async () => true, setActivePresetId() {},
-      snapshot: () => ({ activePresetId: null, current: { component: null, options: {} } }),
+      snapshot: () => ({ activePresetId: null, scene: { version: 1, id: 'current', name: 'En antenne', layers: [] } }),
     },
     report: { ok() {}, error() {} },
     backgroundPageUrl,
@@ -128,7 +132,7 @@ test('re-rendre les presets personnels ne détruit pas les vignettes des points 
     client: {},
     preview: {
       apply() {}, persistNow: async () => true, setActivePresetId() {},
-      snapshot: () => ({ activePresetId: null, current: { component: null, options: {} } }),
+      snapshot: () => ({ activePresetId: null, scene: { version: 1, id: 'current', name: 'En antenne', layers: [] } }),
     },
     report: { ok() {}, error() {} },
     backgroundPageUrl,
@@ -141,7 +145,7 @@ test('re-rendre les presets personnels ne détruit pas les vignettes des points 
   const builtinThumbnails = elements.builtinList.children.map((row) => row.children[0]);
   expect(builtinThumbnails.length).toBeGreaterThan(0);
 
-  controller.renderPresets([{ id: 'a', name: 'Perso', component: 'RainBackground', options: {} }]);
+  controller.renderPresets([saved('rain', {})]);
   expect(builtinThumbnails.filter((thumbnail) => removed.includes(thumbnail))).toEqual([]);
 
   // Une recherche re-rend la liste des points de départ : ses anciennes vignettes sont alors libérées.
@@ -164,14 +168,15 @@ function draftSetup({ drafts, activePresetId = null }) {
   const controller = createBackgroundPresetController({
     elements,
     client: {
-      savePreset: async () => { calls.push('savePreset'); },
-      readState: async () => ({ presets: [{ id: 'a', name: 'Perso', component: 'rain', options: { speed: 1 } }] }),
+      saveScene: async () => { calls.push('saveScene'); },
+      readState: async () => ({ scenes: [saved()] }),
     },
     preview: {
       apply: (next, presetId, asDraft) => applied.push({ next, presetId, asDraft }),
       persistNow: async () => true,
       setActivePresetId() {},
-      snapshot: () => ({ activePresetId, current: { component: 'rain', options: { speed: 1 } }, transition: {}, showBranding: true }),
+      editor: { markSaved() {} },
+      snapshot: () => ({ activePresetId, scene: saved() }),
     },
     drafts,
     report: { ok() {}, error() {} },
@@ -181,7 +186,7 @@ function draftSetup({ drafts, activePresetId = null }) {
     windowRef: { setTimeout: () => 1 },
   });
   controller.initialize();
-  controller.renderPresets([{ id: 'a', name: 'Perso', component: 'rain', options: { speed: 1 } }]);
+  controller.renderPresets([saved()]);
   const row = elements.list.children[0];
   const [, load, , , line] = row.children;
   return { elements, controller, applied, calls, row, load, line, discard: line.children[1] };
@@ -201,7 +206,7 @@ function fakeDrafts(initial = {}) {
 }
 
 test('la pastille « brouillon » et l’abandon n’apparaissent que sur un preset qui a un brouillon', () => {
-  const drafts = fakeDrafts({ a: { component: 'bubble', options: {} } });
+  const drafts = fakeDrafts({ a: saved('bubble', {}) });
   const { controller, line } = draftSetup({ drafts });
   expect(line.hidden).toBe(false);
 
@@ -215,39 +220,41 @@ test('sans brouillon, cliquer un preset applique sa version enregistrée', () =>
   const { load, applied } = draftSetup({ drafts });
   load.onclick();
   expect(applied).toHaveLength(1);
-  expect(applied[0]).toMatchObject({ presetId: 'a', asDraft: true, next: { component: 'rain', options: { speed: 1 } } });
+  expect(applied[0]).toMatchObject({ presetId: 'a', asDraft: true });
+  expect(applied[0].next.layers[0]).toMatchObject({ kind: 'rain', options: { speed: 1 } });
 });
 
 test('avec un brouillon, cliquer le preset restaure ses réglages non enregistrés, après avoir envoyé ceux en attente', () => {
-  const drafts = fakeDrafts({ a: { component: 'bubble', options: { count: 9 }, showBranding: false } });
+  const drafts = fakeDrafts({ a: { ...saved('bubble', { count: 9 }), id: 'current', name: 'En antenne', layers: [saved('bubble', { count: 9 }).layers[0]] } });
   const { load, applied } = draftSetup({ drafts });
   load.onclick();
   expect(drafts.log).toEqual(['flush']);
-  expect(applied[0].next).toMatchObject({ id: 'a', name: 'Perso', component: 'bubble', options: { count: 9 }, showBranding: false });
+  expect(applied[0].next).toMatchObject({ id: 'a', name: 'Perso' });
+  expect(applied[0].next.layers.map((layer) => [layer.kind, layer.options])).toEqual([['bubble', { count: 9 }]]);
 });
 
 test('« Revenir à la version enregistrée » abandonne le brouillon et réaffiche le preset s’il est actif', async () => {
-  const drafts = fakeDrafts({ a: { component: 'bubble', options: {} } });
+  const drafts = fakeDrafts({ a: saved('bubble', {}) });
   const { discard, applied } = draftSetup({ drafts, activePresetId: 'a' });
   await discard.onclick();
   expect(drafts.log).toEqual(['discard:a']);
   expect(applied).toHaveLength(1);
-  expect(applied[0].next.component).toBe('rain');
+  expect(applied[0].next.layers[0].kind).toBe('rain');
 });
 
 test('« Revenir » sur un preset non actif ne change pas l’aperçu', async () => {
-  const drafts = fakeDrafts({ a: { component: 'bubble', options: {} } });
+  const drafts = fakeDrafts({ a: saved('bubble', {}) });
   const { discard, applied } = draftSetup({ drafts, activePresetId: null });
   await discard.onclick();
   expect(applied).toEqual([]);
 });
 
 test('« Mettre à jour » oublie le brouillon du preset actif, pour qu’un envoi en attente ne le recrée pas', async () => {
-  const drafts = fakeDrafts({ a: { component: 'bubble', options: {} } });
+  const drafts = fakeDrafts({ a: saved('bubble', {}) });
   const { elements, calls } = draftSetup({ drafts, activePresetId: 'a' });
   elements.name.value = 'Perso';
   await elements.save.onclick();
-  expect(calls).toEqual(['savePreset']);
+  expect(calls).toEqual(['saveScene']);
   expect(drafts.log).toContain('forget:a');
 });
 

@@ -58,6 +58,7 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 - `scene-doc.js` / `scene-runtime.js` — le document de scène (couches, placement en fractions, chemins) et le moteur qui le monte
   (réconciliation, transitions, routage audio et réactions ; les couches d'identité restent au-dessus des transitions) : consommés par
   `background.html`, l'aperçu du Studio et les vignettes
+- `dev/scene-editor.js` / `dev/studio-document.js` — le modèle d'édition d'une scène (toujours valide, historique annulable) et le document du Studio (scène brouillon, antenne, preset ouvert, brouillon calculé) : consommés par l'aperçu, la liste des presets, les brouillons et la publication
 - `dev/component-field-schemas.js` — vue « formulaire » de `layer-kinds.js` pour le tuner
 - Le **format d'état du fond** — spécifié dans `docs/specs/background-standalone.md` : le serveur manipule des scènes (`dev/background-state-format.js`), l'API et les canaux restent plats (`dev/state-wire.js`)
 - Le **cycle de vie des serveurs** — `dev/start-stream.js`, `dev/supervisor.js`, `dev/stop-servers.js`, `dev/kill-servers.js`,

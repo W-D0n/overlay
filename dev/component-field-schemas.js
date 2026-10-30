@@ -17,6 +17,18 @@ export const BACKGROUND_FIELD_SCHEMAS = Object.fromEntries(
   LAYER_KIND_IDS.map((id) => [id, LAYER_KINDS[id].fields]),
 );
 
+/**
+ * Options de départ d'un effet : la valeur par défaut de chacun de ses champs, dans un objet neuf.
+ * @param {string} kind
+ * @returns {Record<string, unknown>}
+ */
+export function defaultBackgroundOptions(kind) {
+  /** @type {Record<string, unknown>} */
+  const options = {};
+  for (const field of BACKGROUND_FIELD_SCHEMAS[kind]) options[field.key] = field.default;
+  return options;
+}
+
 /** Noms d'effets proposés par le sélecteur du tuner (`(aucun)` géré à part). */
 export const BACKGROUND_COMPONENT_NAMES = EFFECT_KIND_IDS;
 

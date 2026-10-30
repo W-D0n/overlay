@@ -20,8 +20,24 @@ describe('client d’état du tuner', () => {
       },
     });
 
-    expect(await client.readState()).toEqual(stateFile);
+    const state = await client.readState();
+    expect(state).toMatchObject(stateFile);
     expect(requests).toEqual([['http://state.test/state', 'GET']]);
+  });
+
+  test('l’état porte toujours ses scènes : celles du serveur telles quelles, sinon déduites de la forme plate', async () => {
+    const scene = { version: 1, id: 'current', name: 'En antenne', layers: [] };
+    const scenes = [{ version: 1, id: 'pile', name: 'Pile', layers: [] }];
+    const modern = createBackgroundStateClient({ baseUrl: 'http://state.test', fetchImpl: async () => Response.json({ ...stateFile, scene, scenes }) });
+    expect((await modern.readState())).toMatchObject({ scene, scenes });
+
+    const legacy = createBackgroundStateClient({
+      baseUrl: 'http://state.test',
+      fetchImpl: async () => Response.json({ current: { component: 'RainBackground', options: {} }, presets: [{ id: 'a', name: 'A', component: 'BubbleBackground', options: {} }] }),
+    });
+    const state = await legacy.readState();
+    expect(state.scene.layers.map((layer) => layer.kind)).toEqual(['rain', 'branding']);
+    expect(state.scenes.map((s) => [s.id, s.layers[0].kind])).toEqual([['a', 'bubble']]);
   });
 
   test('lit un état écrit avec les anciens noms et valeurs (serveur pas encore migré)', async () => {
@@ -38,7 +54,7 @@ describe('client d’état du tuner', () => {
     expect(state.presets[0]).toMatchObject({ component: 'bubble', options: { audioReactive: false } });
   });
 
-  test('une action de preset encode une seule fois le protocole HTTP', async () => {
+  test('enregistrer une scène encode une seule fois le protocole HTTP : création, puis remplacement par identifiant', async () => {
     const requests = [];
     const client = createBackgroundStateClient({
       baseUrl: 'http://state.test',
@@ -53,24 +69,14 @@ describe('client d’état du tuner', () => {
       },
     });
 
-    await client.savePreset({
-      name: 'Pluie calme',
-      component: 'RainBackground',
-      options: { speed: 0.5 },
-      tags: ['calme'],
-    });
+    const scene = { version: 1, id: 'x', name: 'Pluie calme', tags: ['calme'], layers: [] };
+    await client.saveScene(scene);
+    await client.saveScene(scene, 'pluie-calme');
 
-    expect(requests).toEqual([{
-      url: 'http://state.test/save-preset',
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: {
-        name: 'Pluie calme',
-        component: 'RainBackground',
-        options: { speed: 0.5 },
-        tags: ['calme'],
-      },
-    }]);
+    expect(requests).toEqual([
+      { url: 'http://state.test/save-preset', method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { scene } },
+      { url: 'http://state.test/save-preset', method: 'POST', headers: { 'Content-Type': 'application/json' }, body: { id: 'pluie-calme', scene } },
+    ]);
   });
 
   test('les autres commandes utilisent leurs routes et enveloppes métier', async () => {
@@ -85,16 +91,18 @@ describe('client d’état du tuner', () => {
         return Response.json({ ok: true });
       },
     });
-    const current = { component: 'RainBackground', options: {} };
+    const scene = { version: 1, id: 'current', name: 'En antenne', layers: [] };
 
-    await client.saveCurrent(current);
+    await client.publishScene(scene);
+    await client.saveDraft('pluie', scene);
     await client.renamePreset('pluie', 'Pluie douce');
     await client.duplicatePreset('pluie');
     await client.deletePreset('pluie');
     await client.previewPresetImport('bundle-json');
 
     expect(requests).toEqual([
-      { path: '/state', body: { current } },
+      { path: '/state', body: { scene } },
+      { path: '/draft', body: { presetId: 'pluie', scene } },
       { path: '/rename-preset', body: { id: 'pluie', name: 'Pluie douce' } },
       { path: '/duplicate-preset', body: { id: 'pluie' } },
       { path: '/delete-preset', body: { id: 'pluie' } },

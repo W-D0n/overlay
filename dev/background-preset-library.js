@@ -219,9 +219,11 @@ export function parseBackgroundPresetBundle(input) {
 
 /**
  * Retrouve la nouvelle version du preset édité uniquement lorsque l'import vient de le modifier.
- * @param {import('./background-state-format.js').BackgroundPreset[]} merged
+ * @template {{id:string}} T
+ * @param {T[]} merged
  * @param {{id:string}[]} imported
  * @param {string | null} activeId
+ * @returns {T | null}
  */
 export function findImportedActivePreset(merged, imported, activeId) {
   if (activeId === null || !imported.some(({ id }) => id === activeId)) return null;

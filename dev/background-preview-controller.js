@@ -1,19 +1,34 @@
 // @ts-check
 import { createSceneRuntime } from '../scene-runtime.js';
-import { sceneFromCurrent } from '../scene-doc.js';
+import { isIdentityKind } from '../layer-kinds.js';
 import { ReactionOverlay } from '../components/ReactionOverlay.js';
 import { createReactionCoordinator } from '../background-reactions.js';
 import { createBrowserAudioSession } from '../background-audio.js';
+import { normalizeTransition } from '../background-transition.js';
+import { liveSceneOf } from '../background-selection.js';
 import {
   BACKGROUND_COMPONENT_NAMES,
   backgroundEffectLabel,
+  defaultBackgroundOptions,
 } from './component-field-schemas.js';
 import { createBackgroundFieldRenderer } from './background-field-renderer.js';
-import { createBackgroundPreviewSession } from './background-preview-session.js';
-import { createDraftTracker } from './background-draft.js';
-import { parseRenderUrl } from '../render-url.js';
+import { createStudioDocument } from './studio-document.js';
+import { viewScene } from './scene-editor.js';
+import { sceneFromCurrent } from '../scene-doc.js';
 
 const NONE_VALUE = '__none__';
+
+/**
+ * La couche que le panneau d'effet règle : la couche d'effet sélectionnée en dernier, sinon la première couche d'effet.
+ * @param {import('../scene-doc.js').SceneDoc} scene
+ * @param {string[]} selection
+ * @returns {import('../scene-doc.js').Layer | null}
+ */
+export function targetLayer(scene, selection) {
+  const effects = scene.layers.filter((layer) => !isIdentityKind(layer.kind));
+  const selected = [...selection].reverse().map((id) => effects.find((layer) => layer.id === id)).find((layer) => layer !== undefined);
+  return selected ?? effects[0] ?? null;
+}
 
 /**
  * @param {{
@@ -26,6 +41,7 @@ const NONE_VALUE = '__none__';
  *   runtimeStatus: HTMLElement,
  *   onDraftChange?: (isDraft: boolean) => void,
  *   onEdited?: () => void,
+ *   onAudioStateChange?: (state: *) => void,
  *   client: ReturnType<typeof import('./background-state-client.js').createBackgroundStateClient>,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   documentRef?: Document,
@@ -44,42 +60,30 @@ export function createBackgroundPreviewController(input) {
   const overlay = ReactionOverlay();
   input.layer.appendChild(overlay.el);
   const reactions = createReactionCoordinator({ mount, overlay });
-  const session = createBackgroundPreviewSession();
-  const draft = createDraftTracker();
+  const doc = createStudioDocument({ scene: sceneFromCurrent({ component: null, options: {}, showBranding: false }) });
+  const { editor } = doc;
   let measuredFps = null;
   let fpsFrames = 0;
   let fpsSince = now();
   let frameId = 0;
+
+  /** Vrai pendant qu'on charge une scène (preset, antenne, abandon) : ce n'est pas un réglage de l'utilisateur. */
+  let loading = false;
+  /** Vrai juste après l'ouverture d'un preset : le prochain rendu joue sa transition d'arrivée. */
+  let arrivalPending = false;
+  /** Vrai pendant qu'un champ du formulaire écrit dans l'éditeur : il garde le focus, on ne le redessine pas. */
+  let fieldEdit = false;
+  /** @type {import('../scene-doc.js').SceneDoc | null} */
+  let renderedScene = null;
+  /** @type {string | null} */
+  let renderedSolo = null;
+  let renderedFieldsKey = '';
 
   function createOption(label, value) {
     const option = documentRef.createElement('option');
     option.textContent = label;
     option.value = value;
     return option;
-  }
-
-  function notifyDraft() {
-    input.onDraftChange?.(draft.isDraft());
-  }
-
-  /**
-   * Publie l'aperçu à l'URL OBS. Une arrivée de preset part avec sa `transition` : sans ça,
-   * l'instantané relu au moment de l'envoi l'aurait déjà oubliée et l'URL OBS ne recevrait jamais
-   * l'animation (docs/specs/background-preset-transitions.md).
-   */
-  async function persistNow() {
-    const { current, transition } = session.snapshot();
-    const published = draft.hasArrival() ? { ...current, transition } : current;
-    try {
-      await input.client.saveCurrent(published);
-      draft.synced(published);
-      notifyDraft();
-      input.report.ok();
-      return true;
-    } catch (error) {
-      input.report.error(`state : ${error.message}`);
-      return false;
-    }
   }
 
   /** @type {{ render: (transition: *) => void } | null} */
@@ -91,35 +95,79 @@ export function createBackgroundPreviewController(input) {
     container: input.fields,
     documentRef,
     onChange(key, value) {
-      const state = session.changeOption(key, value);
-      mount.apply(sceneFromCurrent(state.current));
-      draft.edited();
-      notifyDraft();
-      input.onEdited?.();
+      const target = targetLayer(editor.state().scene, editor.state().selection);
+      if (target === null) return;
+      fieldEdit = true;
+      try {
+        editor.setOptions(target.id, { [key]: value }, { coalesceKey: `option:${target.id}:${key}` });
+      } finally {
+        fieldEdit = false;
+      }
     },
   });
 
-  function reflect(state, source = null) {
+  /** Reflète l'état du document dans l'aperçu et dans les panneaux. */
+  function reflect() {
+    const state = doc.state();
+    const { scene } = state;
     input.presetSave.textContent = state.activePresetId === null ? 'Créer' : 'Mettre à jour';
-    input.presetTags.value = Array.isArray(source?.tags) ? source.tags.join(', ') : '';
-    input.effectSelect.value = state.current.component ?? NONE_VALUE;
-    mount.apply(sceneFromCurrent(state.current));
-    fieldRenderer.render(state.current.component, state.current.options);
+    const solo = editor.state().solo;
+    if (scene !== renderedScene || solo !== renderedSolo) {
+      const playArrival = arrivalPending;
+      arrivalPending = false;
+      const shown = viewScene(scene, solo);
+      // Une arrivée (preset essayé, antenne reçue) joue sa transition, ou le fondu par défaut ; un simple réglage
+      // s'applique sans animation.
+      mount.apply(playArrival ? { ...shown, transition: normalizeTransition(shown.transition) } : withoutTransition(shown));
+      renderedScene = scene;
+      renderedSolo = solo;
+    }
+    const target = targetLayer(scene, editor.state().selection);
+    input.effectSelect.value = target?.kind ?? NONE_VALUE;
+    const fieldsKey = `${target?.id ?? ''}|${target?.kind ?? ''}`;
+    if (!fieldEdit || fieldsKey !== renderedFieldsKey) {
+      fieldRenderer.render(target?.kind ?? null, target?.options ?? {});
+      renderedFieldsKey = fieldsKey;
+    }
+    transitionControls?.render(normalizeTransition(scene.transition));
+    brandingControls?.renderShowOnPreset(scene.layers.some((layer) => layer.kind === 'branding'));
+    input.onDraftChange?.(state.isDraft);
+  }
+
+  /** @type {import('../scene-doc.js').SceneDoc | null} */
+  let lastScene = null;
+  doc.subscribe((state) => {
+    reflect();
+    // Seul un changement de la scène est un réglage : sélectionner une couche ou la mettre en solo n'en est pas un.
+    const changed = state.scene !== lastScene;
+    lastScene = state.scene;
+    if (changed && !loading) input.onEdited?.();
+  });
+
+  /** @param {import('../scene-doc.js').SceneDoc} scene */
+  function withoutTransition(scene) {
+    if (scene.transition === undefined) return scene;
+    const { transition: _transition, ...rest } = scene;
+    return rest;
   }
 
   /**
-   * @param {*} next
+   * Ouvre une scène dans l'aperçu.
+   * @param {import('../scene-doc.js').SceneDoc} scene
    * @param {string | null} [presetId]
    * @param {boolean} [asDraft] Vrai pour un preset essayé : l'aperçu change, l'antenne attend « Publier ».
    */
-  function apply(next, presetId = null, asDraft = false) {
-    const state = session.apply(next, presetId);
-    reflect(state, next);
-    transitionControls?.render(state.transition);
-    brandingControls?.renderShowOnPreset(state.showBranding);
-    if (asDraft) draft.arrived(); else draft.synced(state.current);
-    notifyDraft();
-    return state;
+  function apply(scene, presetId = null, asDraft = false) {
+    loading = true;
+    arrivalPending = true;
+    try {
+      doc.open(scene, presetId, asDraft);
+    } finally {
+      loading = false;
+      arrivalPending = false;
+    }
+    input.presetTags.value = Array.isArray(scene.tags) ? scene.tags.join(', ') : '';
+    return doc.state();
   }
 
   input.effectSelect.appendChild(createOption('(aucun)', NONE_VALUE));
@@ -127,14 +175,34 @@ export function createBackgroundPreviewController(input) {
     input.effectSelect.appendChild(createOption(backgroundEffectLabel(name), name));
   }
   input.effectSelect.onchange = () => {
-    const component = input.effectSelect.value === NONE_VALUE ? null : input.effectSelect.value;
-    const state = session.selectEffect(component);
-    input.presetName.value = '';
-    input.presetTags.value = '';
-    reflect(state);
-    draft.edited();
-    notifyDraft();
+    const kind = input.effectSelect.value === NONE_VALUE ? null : input.effectSelect.value;
+    const target = targetLayer(editor.state().scene, editor.state().selection);
+    if (kind === null) {
+      if (target !== null) editor.removeLayers([target.id]);
+    } else if (target === null) {
+      editor.addLayer({ kind, options: defaultBackgroundOptions(kind) });
+    } else {
+      editor.setLayerKind(target.id, kind, defaultBackgroundOptions(kind));
+    }
+    reflect();
   };
+
+  /**
+   * Publie l'aperçu à l'URL OBS. Une arrivée de preset part avec sa `transition` : sans ça, l'URL OBS ne recevrait jamais
+   * l'animation (docs/specs/background-preset-transitions.md).
+   */
+  async function persistNow() {
+    const published = doc.publishable();
+    try {
+      await input.client.publishScene(published);
+      doc.markPublished(published);
+      input.report.ok();
+      return true;
+    } catch (error) {
+      input.report.error(`state : ${error.message}`);
+      return false;
+    }
+  }
 
   function onVisibilityChange() {
     mount.setPaused(documentRef.hidden);
@@ -162,48 +230,57 @@ export function createBackgroundPreviewController(input) {
 
   return {
     apply,
-    /** Branche la case « Afficher sur ce preset » sur la session. */
+    /** Le document du Studio : scène brouillon, antenne, preset ouvert. */
+    document: doc,
+    /** Le modèle d'édition de la scène brouillon. */
+    editor,
+    /** Branche la case « Afficher sur ce preset » : elle ajoute ou retire la couche de branding. */
     attachBrandingControls(controls) {
       brandingControls = controls;
+      controls.renderShowOnPreset(doc.state().scene.layers.some((layer) => layer.kind === 'branding'));
     },
-    /** Branche la section « Arrivée de ce preset » sur la session. */
+    /** Branche la section « Arrivée de ce preset » sur la transition de la scène. */
     attachTransitionControls(controls) {
       transitionControls = controls;
-      controls.render(session.snapshot().transition);
+      controls.render(normalizeTransition(doc.state().scene.transition));
     },
     /** @param {Record<string, unknown>} patch */
     changeTransition(patch) {
-      const state = session.changeTransition(patch);
-      input.onEdited?.();
-      return state;
+      const transition = normalizeTransition({ ...normalizeTransition(doc.state().scene.transition), ...patch });
+      editor.setSceneProps({ transition }, { coalesceKey: 'transition' });
+      return { transition };
     },
     /**
-     * La visibilité du branding appartient au preset : elle rejoint le brouillon et part avec lui
-     * à la publication, sans attendre un enregistrement de preset.
+     * La présence du branding appartient à la scène : sa couche s'ajoute ou se retire du brouillon, et part à la
+     * publication sans attendre un enregistrement de preset.
      * @param {boolean} visible
      */
     changeShowBranding(visible) {
-      const state = session.setShowBranding(visible);
-      draft.edited();
-      notifyDraft();
-      input.onEdited?.();
-      return state;
+      const present = doc.state().scene.layers.find((layer) => layer.kind === 'branding');
+      if (visible && present === undefined) editor.addLayer({ kind: 'branding' });
+      else if (!visible && present !== undefined) editor.removeLayers([present.id]);
+      return doc.state();
     },
-    /** @param {unknown} next */
-    receive(next) {
-      if (!draft.shouldApplyIncoming(next)) return;
-      const current = session.snapshot().current;
-      if (JSON.stringify(next) === JSON.stringify(current)) return;
-      apply(next);
+    /** Message de l'antenne (canal `state`) : il n'écrase jamais un brouillon. @param {unknown} message */
+    receive(message) {
+      loading = true;
+      arrivalPending = true;
+      try {
+        doc.receive(liveSceneOf(/** @type {*} */ (message)));
+      } finally {
+        loading = false;
+        arrivalPending = false;
+      }
     },
     react: reactions.handle,
     audioState: () => audio.getState(),
-    snapshot: session.snapshot,
+    /** L'état du document : `scene`, `onAir`, `activePresetId`, `isDraft`, `hasArrival`. */
+    snapshot: () => doc.state(),
     /** @param {string | null} presetId */
     setActivePresetId(presetId) {
-      const state = session.setActivePresetId(presetId);
+      doc.setActivePresetId(presetId);
       input.presetSave.textContent = presetId === null ? 'Créer' : 'Mettre à jour';
-      return state;
+      return doc.state();
     },
     setPalette: fieldRenderer.setPalette,
     /** Envoie l'aperçu à l'URL OBS. */
@@ -211,10 +288,14 @@ export function createBackgroundPreviewController(input) {
     persistNow,
     /** Remplace le brouillon par ce qui est en antenne. */
     discard() {
-      const onAir = draft.published();
-      if (onAir !== null) apply(onAir);
+      loading = true;
+      try {
+        doc.discard();
+      } finally {
+        loading = false;
+      }
     },
-    isDraft: draft.isDraft,
+    isDraft: () => doc.state().isDraft,
     runtimeMeasurement() {
       return {
         fps: measuredFps,

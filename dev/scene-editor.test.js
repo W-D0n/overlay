@@ -241,6 +241,24 @@ describe('régler', () => {
     expect(editor.setOptions('absent', { count: 3 })).toMatchObject({ ok: false, reason: 'unknown' });
   });
 
+  test('changer l’effet garde placement, opacité, visibilité, verrou et place ; les options repartent de celles fournies', () => {
+    const { editor, ids } = setup([effect('a', 'rain', { opacity: 0.4, locked: true, visible: false, options: { speed: 3 }, placement: { x: 0.2, y: 0.1, width: 0.5, height: 0.5 } }), effect('b', 'bubble')]);
+    expect(editor.setLayerKind('a', 'dotgrid', { spacing: 40 }).ok).toBe(true);
+    expect(editor.state().scene.layers[0]).toMatchObject({ id: 'a', kind: 'dotgrid', opacity: 0.4, locked: true, visible: false, options: { spacing: 40 }, placement: { x: 0.2, y: 0.1, width: 0.5, height: 0.5 } });
+    expect(ids()).toEqual(['a', 'b']);
+    editor.undo();
+    expect(editor.state().scene.layers[0]).toMatchObject({ kind: 'rain', options: { speed: 3 } });
+  });
+
+  test('changer l’effet vers le même type, un type inconnu, une couche d’identité ou depuis une couche inconnue', () => {
+    const { editor } = setup([effect('a'), branding()]);
+    expect(editor.setLayerKind('a', 'rain').ok).toBe(true);
+    expect(editor.state().canUndo).toBe(false);
+    expect(editor.setLayerKind('a', 'inconnu')).toMatchObject({ ok: false, reason: 'invalid' });
+    expect(editor.setLayerKind('a', 'branding')).toMatchObject({ ok: false, reason: 'invalid' });
+    expect(editor.setLayerKind('absent', 'rain')).toMatchObject({ ok: false, reason: 'unknown' });
+  });
+
   test('propriétés de la scène : nom, étiquettes, transition ; undefined retire ; transition fausse refusée', () => {
     const { editor } = setup();
     editor.setSceneProps({ name: 'Soir', tags: ['calme'], transition: { type: 'fade', durationMs: 300 } });

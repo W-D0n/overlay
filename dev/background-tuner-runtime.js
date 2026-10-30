@@ -175,10 +175,10 @@ export async function startBackgroundTuner(environment = {}) {
     client,
     getActivePresetId: () => preview.snapshot().activePresetId,
     getAudio() {
-      const { current } = preview.snapshot();
-      const wanted = current.component !== null
-        && kindCapabilities(current.component).audio
-        && isAudioOn(/** @type {Record<string, unknown>} */ (current.options).audioReactive);
+      // Le micro n'est utile que si une couche visible de la scène brouillon réagit au son.
+      const wanted = preview.snapshot().scene.layers.some((layer) => layer.visible
+        && kindCapabilities(layer.kind).audio
+        && isAudioOn(layer.options.audioReactive));
       return wanted ? preview.audioState() : null;
     },
     backgroundPageUrl: new URL('../background.html', windowRef.location.href).href,
@@ -215,10 +215,9 @@ export async function startBackgroundTuner(environment = {}) {
 
   try {
     const file = await client.readState();
-    preview.apply(file.current);
+    preview.receive({ scene: file.scene });
     brandingControls.render(file.branding);
-    brandingControls.renderShowOnPreset(file.current?.showBranding !== false);
-    presets.renderPresets(file.presets);
+    presets.renderPresets(file.scenes);
     report.ok();
   } catch (error) {
     report.error(stateLoadErrorMessage(error));
