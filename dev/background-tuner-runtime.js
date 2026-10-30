@@ -19,6 +19,7 @@ import { createPublicationController } from './publication-controller.js';
 import { bindStudioShortcuts } from './studio-shortcuts.js';
 import { createCustomCommandStore, createMacroRecorder } from './custom-commands.js';
 import { createStudioSettingsSync } from './studio-settings-sync.js';
+import { createAnnouncer } from './announcer.js';
 import { createObsViewController } from './obs-view-controller.js';
 import { createLayerCostController } from './layer-cost-controller.js';
 import { createTemplatesController } from './templates-controller.js';
@@ -294,6 +295,7 @@ export async function startBackgroundTuner(environment = {}) {
     pageUrl: new URL('../background.html', windowRef.location.href).href,
     windowRef,
   });
+  const announcer = createAnnouncer({ element: byId('studio-announcer'), editor: preview.editor, labelOf: backgroundEffectLabel });
   const scrub = installScrubFields({ documentRef });
   const addableKinds = [...BACKGROUND_COMPONENT_NAMES, 'branding'];
   /** @type {ReturnType<typeof createCommandPaletteController> | null} */
@@ -563,6 +565,7 @@ export async function startBackgroundTuner(environment = {}) {
   function destroy() {
     syncIndicator.destroy();
     scrub.destroy();
+    announcer.destroy();
     obsView.destroy();
     layerCost.destroy();
     templates.destroy();
