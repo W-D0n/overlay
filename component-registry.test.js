@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect, afterEach } from 'bun:test';
 import { COMPONENT_REGISTRY } from './component-registry.js';
-import { LAYER_KIND_IDS } from './layer-kinds.js';
+import { EFFECT_KIND_IDS, LAYER_KIND_IDS } from './layer-kinds.js';
 import { LAYER_KINDS } from './layer-kinds.js';
 import { createLayerHarness } from './components/layer-test-harness.js';
 
@@ -23,7 +23,7 @@ test('contrat : chaque effet expose setAudioLevel et trigger exactement comme so
   globalThis.document = /** @type {*} */ ({ createElement: element, body: { appendChild() {} } });
   globalThis.getComputedStyle = /** @type {*} */ (() => ({ color: 'rgb(200, 185, 122)' }));
 
-  for (const name of LAYER_KIND_IDS) {
+  for (const name of EFFECT_KIND_IDS) {
     const { capabilities } = LAYER_KINDS[name];
     const instance = COMPONENT_REGISTRY[name]({}, createLayerHarness().environment);
     expect(`${name} setAudioLevel ${typeof instance.setAudioLevel === 'function'}`).toBe(`${name} setAudioLevel ${capabilities.audio}`);

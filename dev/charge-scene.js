@@ -4,7 +4,7 @@
  * Sert `dev/charge.html` (docs/specs/scene-doc-etape-4.md, « Mesure de charge »). Pleine taille = pire cas :
  * chaque couche est un canvas de la taille de la source.
  */
-import { LAYER_KINDS, LAYER_KIND_IDS, isLayerKindId } from '../layer-kinds.js';
+import { EFFECT_KIND_IDS, LAYER_KINDS, isLayerKindId } from '../layer-kinds.js';
 import { MAX_LAYERS, SCENE_DOC_VERSION, createLayer } from '../scene-doc.js';
 
 /** Ordre des types quand l'URL n'en nomme pas : les plus courants d'abord. */
@@ -30,7 +30,7 @@ export function parseLoadUrl(search = '') {
  */
 export function buildLoadScene(count, kinds = [...LOAD_KIND_ORDER]) {
   if (!Number.isInteger(count) || count < 0 || count > MAX_LAYERS) throw new RangeError(`couches : 0 à ${MAX_LAYERS}`);
-  const pool = kinds.length > 0 ? kinds : [...LAYER_KIND_IDS];
+  const pool = kinds.length > 0 ? kinds : [...EFFECT_KIND_IDS];
   return {
     version: SCENE_DOC_VERSION,
     id: 'charge',

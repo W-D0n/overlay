@@ -1,5 +1,5 @@
 // @ts-check
-import { LAYER_KINDS, LAYER_KIND_IDS, NUMBER_FIELD_GUIDANCE } from '../layer-kinds.js';
+import { EFFECT_KIND_IDS, LAYER_KINDS, LAYER_KIND_IDS, NUMBER_FIELD_GUIDANCE } from '../layer-kinds.js';
 
 /**
  * dev/component-field-schemas.js — Vue « formulaire » des types de couche pour le tuner.
@@ -18,7 +18,7 @@ export const BACKGROUND_FIELD_SCHEMAS = Object.fromEntries(
 );
 
 /** Noms d'effets proposés par le sélecteur du tuner (`(aucun)` géré à part). */
-export const BACKGROUND_COMPONENT_NAMES = LAYER_KIND_IDS;
+export const BACKGROUND_COMPONENT_NAMES = EFFECT_KIND_IDS;
 
 /**
  * Libellé affiché d'un effet de fond.

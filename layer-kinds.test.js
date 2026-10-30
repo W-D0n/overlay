@@ -1,6 +1,6 @@
 // @ts-check
 import { describe, expect, test } from 'bun:test';
-import { GRID_MODES, LAYER_KINDS, LAYER_KIND_IDS, isAudioOn, isLayerKindId, isKnownKindId, resolveKindId, validateOptions, clampOptions } from './layer-kinds.js';
+import { EFFECT_KIND_IDS, GRID_MODES, LAYER_KINDS, LAYER_KIND_IDS, isAudioOn, isIdentityKind, isLayerKindId, isKnownKindId, resolveKindId, validateOptions, clampOptions } from './layer-kinds.js';
 import { MODE_PARAMS } from './components/DotGridAnimated.js';
 
 describe('valeur persistée de la réactivité audio', () => {
@@ -18,7 +18,7 @@ describe('valeur persistée de la réactivité audio', () => {
 
 describe('description des types de couche', () => {
   test('chaque effet décrit son champ audioReactive comme un booléen désactivé par défaut', () => {
-    for (const id of LAYER_KIND_IDS) {
+    for (const id of EFFECT_KIND_IDS) {
       const field = LAYER_KINDS[id].fields.find(({ key }) => key === 'audioReactive');
       expect(field?.type).toBe('boolean');
       expect(field?.default).toBe(false);
@@ -37,6 +37,28 @@ describe('description des types de couche', () => {
   });
 });
 
+describe('couche d’identité : le branding', () => {
+  test('c’est un type de couche connu, mais pas un effet de fond', () => {
+    expect(isLayerKindId('branding')).toBe(true);
+    expect(LAYER_KIND_IDS).toContain('branding');
+    expect(EFFECT_KIND_IDS).not.toContain('branding');
+    expect(EFFECT_KIND_IDS.length).toBe(LAYER_KIND_IDS.length - 1);
+  });
+
+  test('seul le branding est une couche d’identité ; un type inconnu n’en est pas une', () => {
+    expect(isIdentityKind('branding')).toBe(true);
+    for (const id of EFFECT_KIND_IDS) expect(isIdentityKind(id)).toBe(false);
+    expect(isIdentityKind('inconnu')).toBe(false);
+    expect(isIdentityKind(undefined)).toBe(false);
+  });
+
+  test('il n’a ni micro, ni réaction native, ni réglage propre (son contenu est global)', () => {
+    expect(LAYER_KINDS.branding.capabilities).toEqual({ audio: false, reactions: 'overlay' });
+    expect(LAYER_KINDS.branding.fields).toEqual([]);
+    expect(validateOptions('branding', {})).toEqual([]);
+  });
+});
+
 describe('identifiants neutres et anciens noms', () => {
   const LEGACY = {
     DotGridBackground: 'dotgrid', RainBackground: 'rain', BubbleBackground: 'bubble',
@@ -51,7 +73,7 @@ describe('identifiants neutres et anciens noms', () => {
       expect(resolveKindId(legacy)).toBe(id);
       expect(resolveKindId(id)).toBe(id);
     }
-    expect([...LAYER_KIND_IDS].sort()).toEqual(Object.values(LEGACY).sort());
+    expect([...EFFECT_KIND_IDS].sort()).toEqual(Object.values(LEGACY).sort());
   });
 
   test('un nom inconnu ne se résout pas ; isKnownKindId accepte l’ancien et le nouveau nom', () => {

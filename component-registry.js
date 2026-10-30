@@ -20,6 +20,7 @@ import { StarsParallaxBackground } from './components/StarsParallaxBackground.js
 import { OrbitingShapesBackground } from './components/OrbitingShapesBackground.js';
 import { ShapeMorphBackground } from './components/ShapeMorphBackground.js';
 import { WaterRippleBackground } from './components/WaterRippleBackground.js';
+import { BrandingSceneLayer } from './components/BrandingSceneLayer.js';
 
 /**
  * Les factories ont des signatures hétérogènes ; le registry expose la vue unifiée
@@ -39,5 +40,6 @@ export const COMPONENT_REGISTRY = ({
   'orbiting-shapes': OrbitingShapesBackground,
   'shape-morph': ShapeMorphBackground,
   'water-ripple': WaterRippleBackground,
+  branding: BrandingSceneLayer,
 });
 

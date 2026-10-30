@@ -40,6 +40,8 @@
  * @property {string} label - Libellé affiché dans le Studio
  * @property {LayerCapabilities} capabilities
  * @property {FieldSchema[]} fields
+ * @property {boolean} [identity] - Couche d'identité (branding), pas un effet de fond : absente du sélecteur d'effets,
+ *   et dessinée au-dessus des transitions entre scènes (elle ne s'estompe pas d'une scène à l'autre)
  */
 
 /** Modes de mouvement prédéfinis de DotGrid (hérités des scènes historiques). */
@@ -343,6 +345,15 @@ const KIND_DEFINITIONS = {
       { key: 'audioIntensity', label: 'Intensité de la réaction au son', type: 'number', default: 1 },
     ],
   },
+  branding: {
+    legacyIds: [],
+    label: 'Branding',
+    identity: true,
+    capabilities: { audio: false, reactions: 'overlay' },
+    // Le texte, les tailles et la couleur sont ceux du panneau Branding (contenu global, `branding-format.js`) :
+    // la couche n'a pas de réglage propre, son placement, son opacité et sa visibilité sont ceux de la couche.
+    fields: [],
+  },
   'water-ripple': {
     legacyIds: ['WaterRippleBackground'],
     label: 'WaterRipple',
@@ -391,6 +402,19 @@ export const LAYER_KINDS = /** @type {*} */ (Object.fromEntries(
 
 /** Identifiants des types de couche, dans l'ordre d'affichage du sélecteur. */
 export const LAYER_KIND_IDS = /** @type {LayerKindId[]} */ (Object.keys(KIND_DEFINITIONS));
+
+/** Les effets de fond : les types de couche qui ne sont pas des couches d'identité. */
+export const EFFECT_KIND_IDS = /** @type {LayerKindId[]} */ (LAYER_KIND_IDS.filter((id) => !isIdentityKind(id)));
+
+/**
+ * Vrai pour une couche d'identité (branding) : jamais un effet de fond, toujours au-dessus des transitions.
+ * Un type inconnu n'en est pas une.
+ * @param {unknown} id
+ */
+export function isIdentityKind(id) {
+  const kind = resolveKindId(id);
+  return kind !== null && /** @type {Record<string, LayerKindDefinition>} */ (KIND_DEFINITIONS)[kind].identity === true;
+}
 
 /**
  * Capacités déclarées d'un type de couche ; un type inconnu n'en a aucune (aucune réaction native,
