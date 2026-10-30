@@ -1,6 +1,6 @@
 // @ts-check
 import { backgroundPresetUrl } from '../background-selection.js';
-import { BUILTIN_BACKGROUND_PRESETS } from './builtin-background-presets.js';
+import { BUILTIN_BACKGROUND_PRESETS, BUILTIN_BACKGROUND_SCENES } from './builtin-background-presets.js';
 import { backgroundEffectLabel } from './component-field-schemas.js';
 import { effectLayers, filterScenes, sceneEffectsLabel } from './scene-labels.js';
 import { hasEffectLayer } from './background-state-format.js';
@@ -47,7 +47,7 @@ export function createBackgroundPresetController(input) {
   let cachedPresets = [];
   let presetQuery = '';
   /** Les points de départ intégrés sont des presets plats : ils s'ouvrent comme des scènes. */
-  const builtinScenes = BUILTIN_BACKGROUND_PRESETS.map((preset) => sceneFromPreset(preset));
+  const builtinScenes = [...BUILTIN_BACKGROUND_PRESETS.map((preset) => sceneFromPreset(preset)), ...BUILTIN_BACKGROUND_SCENES];
   const effectLabel = (/** @type {import('../scene-doc.js').SceneDoc} */ scene) => sceneEffectsLabel(scene, backgroundEffectLabel);
   /** @type {Map<string, { line: HTMLElement }>} */
   const draftMarks = new Map();
