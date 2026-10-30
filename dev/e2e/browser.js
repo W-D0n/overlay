@@ -320,6 +320,39 @@ export async function launchBrowser({ stateRedirect, viewport = { width: 1700, h
       await sleep(80);
     },
 
+    /**
+     * Gestes de souris de bas niveau, pour les essais qui observent l'état *pendant* un glissement.
+     * @param {number} x @param {number} y @param {{ modifiers?: string[] }} [options]
+     */
+    async mouseDown(x, y, { modifiers = [] } = {}) {
+      pointer = { x, y };
+      await mouse(x, y, { type: 'mouseMoved', modifiers: modifierBits(modifiers) });
+      await mouse(x, y, { type: 'mousePressed', button: 'left', clickCount: 1, modifiers: modifierBits(modifiers) });
+    },
+    /** @param {number} x @param {number} y @param {{ modifiers?: string[] }} [options] */
+    async mouseMove(x, y, { modifiers = [] } = {}) {
+      pointer = { x, y };
+      await mouse(x, y, { type: 'mouseMoved', button: 'left', buttons: 1, modifiers: modifierBits(modifiers) });
+    },
+    /** @param {number} x @param {number} y @param {{ modifiers?: string[] }} [options] */
+    async mouseUp(x, y, { modifiers = [] } = {}) {
+      await mouse(x, y, { type: 'mouseReleased', button: 'left', clickCount: 1, modifiers: modifierBits(modifiers) });
+    },
+    /** Molette. @param {number} x @param {number} y @param {number} deltaY @param {{ modifiers?: string[] }} [options] */
+    async wheel(x, y, deltaY, { modifiers = [] } = {}) {
+      await mouse(x, y, { type: 'mouseWheel', deltaX: 0, deltaY, modifiers: modifierBits(modifiers) });
+    },
+    /** Appui seul sur une touche (sans relâchement). @param {string} key */
+    async keyDown(key) {
+      const code = key === ' ' ? 'Space' : key;
+      await send('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode: key === ' ' ? 32 : 0, text: key.length === 1 ? key : undefined });
+    },
+    /** @param {string} key */
+    async keyUp(key) {
+      const code = key === ' ' ? 'Space' : key;
+      await send('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode: key === ' ' ? 32 : 0 });
+    },
+
     /** @param {string} path chemin du fichier PNG à écrire */
     async screenshot(path) {
       const { data } = await send('Page.captureScreenshot', { format: 'png' });

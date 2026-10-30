@@ -9,6 +9,8 @@ import { createDiagnosticController } from './diagnostic-controller.js';
 import { createHistoryController } from './history-controller.js';
 import { createLayersPanelController } from './layers-panel-controller.js';
 import { createLayerInspectorController } from './layer-inspector-controller.js';
+import { createCanvasOverlayController } from './canvas-overlay-controller.js';
+import { isIdentityKind } from '../layer-kinds.js';
 import { BACKGROUND_COMPONENT_NAMES, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
 import { createPresetDraftSync } from './preset-draft-sync.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
@@ -160,6 +162,17 @@ export async function startBackgroundTuner(environment = {}) {
       distributeV: /** @type {HTMLButtonElement} */ (byId('distribute-v')),
     },
     studio: preview.document,
+    report,
+    documentRef,
+    windowRef,
+  });
+
+  const canvasOverlay = createCanvasOverlayController({
+    area: byId('stage-area'),
+    overlay: byId('canvas-overlay'),
+    stage,
+    studio: preview.document,
+    isIdentity: isIdentityKind,
     report,
     documentRef,
     windowRef,
@@ -330,6 +343,7 @@ export async function startBackgroundTuner(environment = {}) {
   });
 
   function destroy() {
+    canvasOverlay.destroy();
     layersPanel.destroy();
     antenna.destroy();
     diagnostic.destroy();
@@ -339,5 +353,5 @@ export async function startBackgroundTuner(environment = {}) {
     preview.destroy();
   }
   windowRef.addEventListener('beforeunload', destroy, { once: true });
-  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls, layersPanel, layerInspector };
+  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls, layersPanel, layerInspector, canvasOverlay };
 }
