@@ -281,8 +281,10 @@ export async function startBackgroundTuner(environment = {}) {
   customCommands = createCustomCommandsController({
     registry: commands,
     store: createCustomCommandStore({ backend: settings }),
-    recorder: createMacroRecorder(commands),
+    recorder: createMacroRecorder(commands, { subscribe: (listener) => preview.editor.onOperation(listener), kindOf: (id) => preview.editor.state().scene.layers.find((layer) => layer.id === id)?.kind }),
     batch: (label, run) => preview.editor.batch(label, run),
+    editor: preview.editor,
+    kindLabel: backgroundEffectLabel,
     report,
     elements: {
       dialog: /** @type {HTMLDialogElement} */ (byId('custom-commands')),

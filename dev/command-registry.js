@@ -86,6 +86,7 @@ export function createCommandRegistry() {
   const commands = new Map();
   /** @type {Set<(id: string) => void>} */
   const runListeners = new Set();
+  let runDepth = 0;
 
   return {
     /** @param {Command} command */
@@ -127,6 +128,9 @@ export function createCommandRegistry() {
       return null;
     },
 
+    /** Une commande est en train de s'exécuter : ce que fait l'éditeur à cet instant vient d'elle, pas d'un geste direct. */
+    isRunning: () => runDepth > 0,
+
     /** @param {string} id @returns {boolean} la commande existe et est activée */
     isEnabled(id) {
       const command = commands.get(id);
@@ -143,7 +147,12 @@ export function createCommandRegistry() {
     run(id, { silent = false } = {}) {
       const command = commands.get(id);
       if (command === undefined || !(command.enabled?.() ?? true)) return false;
-      command.run();
+      runDepth += 1;
+      try {
+        command.run();
+      } finally {
+        runDepth -= 1;
+      }
       if (!silent) for (const listener of [...runListeners]) listener(id);
       return true;
     },

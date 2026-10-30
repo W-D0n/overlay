@@ -6,12 +6,13 @@
  *
  * Les définitions vivent dans le stockage (`custom-commands.js`) ; ce contrôleur les inscrit dans le registre de commandes
  * à chaque changement, de sorte que la palette, le menu clic droit et l'aide les montrent sans rien savoir d'elles.
- * L'enregistrement capte les commandes du registre (palette, raccourcis, menu clic droit) ; les gestes directs sur les
- * panneaux n'en sont pas : la barre d'enregistrement le dit.
+ * L'enregistrement capte les commandes du registre (palette, raccourcis, menu clic droit) et les gestes directs sur les
+ * panneaux, l'inspecteur et l'aperçu (`operation-steps.js`) ; les valeurs d'une étape geste se corrigent dans l'éditeur.
  */
 import {
   CUSTOM_PREFIX, MAX_STEPS, checkShortcut, isStepAllowed, parseCustomCommands, shortcutFromEvent, toCommand, uniqueCustomId, validateCustomCommand,
 } from './custom-commands.js';
+import { describeStep, isOperationStep, stepFields, withStepValue } from './operation-steps.js';
 
 /**
  * @param {{
@@ -19,6 +20,8 @@ import {
  *   store: ReturnType<typeof import('./custom-commands.js').createCustomCommandStore>,
  *   recorder: ReturnType<typeof import('./custom-commands.js').createMacroRecorder>,
  *   batch: <T>(label: string, run: () => T) => T,
+ *   editor: import('./scene-editor.js').SceneEditor,
+ *   kindLabel: (kind: string) => string,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   elements: {
  *     dialog: HTMLDialogElement, list: HTMLElement, empty: HTMLElement,
@@ -38,7 +41,7 @@ export function createCustomCommandsController(input) {
   const navigatorRef = input.navigatorRef ?? navigator;
   const { registry, store, recorder, elements } = input;
 
-  /** @type {{ id: string | null, name: string, steps: string[], shortcut: string }} */
+  /** @type {{ id: string | null, name: string, steps: import('./custom-commands.js').CommandStep[], shortcut: string }} */
   let draft = { id: null, name: '', steps: [], shortcut: '' };
   /** Le volet affiché : la liste ne se redessine que si elle est visible. @type {'list' | 'editor' | 'io'} */
   let pane = 'list';
@@ -48,6 +51,8 @@ export function createCustomCommandsController(input) {
 
   /** @param {string} id */
   const labelOf = (id) => registry.list().find((command) => command.id === id)?.label ?? id;
+  /** @param {import('./custom-commands.js').CommandStep} step */
+  const stepLabel = (step) => (isOperationStep(step) ? describeStep(step, input.kindLabel) : labelOf(step));
   const knownIds = () => new Set(registry.list().map((command) => command.id));
 
   /** Les raccourcis pris par les commandes du registre, hors celle qu'on édite. @param {string | null} exceptId */
@@ -65,7 +70,7 @@ export function createCustomCommandsController(input) {
     for (const command of registry.list()) if (command.id.startsWith(CUSTOM_PREFIX)) registry.unregister(command.id);
     for (const definition of store.list()) {
       try {
-        registry.register(toCommand(definition, { registry, batch: input.batch, labelOf, report: input.report }));
+        registry.register(toCommand(definition, { registry, batch: input.batch, labelOf, report: input.report, editor: input.editor, kindLabel: input.kindLabel }));
       } catch {
         // Un identifiant déjà pris (stockage édité à la main) : la commande est ignorée plutôt que de casser le Studio.
       }
@@ -91,7 +96,7 @@ export function createCustomCommandsController(input) {
     }
     const summary = documentRef.createElement('div');
     summary.className = 'cc-card-steps';
-    summary.textContent = `${definition.steps.length} étape${definition.steps.length > 1 ? 's' : ''} : ${definition.steps.map(labelOf).join(' → ')}`;
+    summary.textContent = `${definition.steps.length} étape${definition.steps.length > 1 ? 's' : ''} : ${definition.steps.map(stepLabel).join(' → ')}`;
     const actions = documentRef.createElement('div');
     actions.className = 'cc-card-actions';
     const button = (/** @type {string} */ label, /** @type {string} */ action) => {
@@ -174,7 +179,7 @@ export function createCustomCommandsController(input) {
     elements.shortcutClear.hidden = draft.shortcut === '';
 
     elements.steps.replaceChildren();
-    draft.steps.forEach((id, index) => {
+    draft.steps.forEach((step, index) => {
       const row = documentRef.createElement('li');
       row.className = 'cc-step';
       const position = documentRef.createElement('span');
@@ -182,7 +187,7 @@ export function createCustomCommandsController(input) {
       position.textContent = String(index + 1);
       const label = documentRef.createElement('span');
       label.className = 'cc-step-label';
-      label.textContent = labelOf(id);
+      label.textContent = stepLabel(step);
       const tools = documentRef.createElement('span');
       tools.className = 'cc-step-tools';
       const tool = (/** @type {string} */ text, /** @type {string} */ title, /** @type {() => void} */ onClick, disabled = false) => {
@@ -190,7 +195,7 @@ export function createCustomCommandsController(input) {
         el.type = 'button';
         el.textContent = text;
         el.title = title;
-        el.setAttribute('aria-label', `${title} : ${labelOf(id)}`);
+        el.setAttribute('aria-label', `${title} : ${stepLabel(step)}`);
         el.disabled = disabled;
         el.addEventListener('click', onClick);
         return el;
@@ -201,6 +206,7 @@ export function createCustomCommandsController(input) {
         tool('✕', 'Retirer l’étape', () => { draft.steps.splice(index, 1); renderEditor(); }),
       );
       row.append(position, label, tools);
+      if (isOperationStep(step)) row.appendChild(renderFields(step, index));
       elements.steps.appendChild(row);
     });
     if (draft.steps.length === 0) {
@@ -219,6 +225,51 @@ export function createCustomCommandsController(input) {
     })));
     elements.save.disabled = !result.ok;
     elements.test.disabled = draft.steps.length === 0;
+  }
+
+  /**
+   * Les valeurs d'une étape geste, corrigeables sur place.
+   * @param {import('./operation-steps.js').OperationStep} step
+   * @param {number} index
+   */
+  function renderFields(step, index) {
+    const box = documentRef.createElement('div');
+    box.className = 'cc-step-fields';
+    for (const field of stepFields(step)) {
+      const wrap = documentRef.createElement('label');
+      wrap.className = 'cc-field';
+      const caption = documentRef.createElement('span');
+      caption.textContent = field.type === 'percent' ? `${field.label} (%)` : field.label;
+      const control = documentRef.createElement('input');
+      control.dataset.key = field.key;
+      if (field.type === 'boolean') {
+        control.type = 'checkbox';
+        control.checked = field.value === true;
+      } else if (field.type === 'text') {
+        control.type = 'text';
+        control.value = String(field.value);
+      } else {
+        control.type = 'number';
+        control.step = field.type === 'percent' ? '0.1' : 'any';
+        control.value = String(field.type === 'percent' ? Math.round(Number(field.value) * 1000) / 10 : field.value);
+      }
+      control.addEventListener('change', () => {
+        /** @type {number | boolean | string} */
+        let value;
+        if (field.type === 'boolean') value = control.checked;
+        else if (field.type === 'text') value = control.value;
+        else {
+          const typed = Number(control.value);
+          if (control.value.trim() === '' || !Number.isFinite(typed)) return;
+          value = field.type === 'percent' ? typed / 100 : typed;
+        }
+        draft.steps[index] = withStepValue(step, field.key, value);
+        renderEditor();
+      });
+      wrap.append(caption, control);
+      box.appendChild(wrap);
+    }
+    return box;
   }
 
   function renderStepResults() {
@@ -295,7 +346,7 @@ export function createCustomCommandsController(input) {
   elements.test.addEventListener('click', () => {
     const result = validation();
     const probe = result.ok ? result.command : { id: 'custom.essai', name: draft.name.trim() || 'Essai', steps: draft.steps };
-    const command = toCommand(probe, { registry, batch: input.batch, labelOf, report: input.report });
+    const command = toCommand(probe, { registry, batch: input.batch, labelOf, report: input.report, editor: input.editor, kindLabel: input.kindLabel });
     elements.dialog.close();
     command.run();
   });
@@ -310,7 +361,9 @@ export function createCustomCommandsController(input) {
     if (!recording) return;
     const steps = recorder.steps();
     elements.barCount.textContent = `${steps.length} étape${steps.length > 1 ? 's' : ''}`;
-    elements.barSteps.textContent = steps.length === 0 ? 'Exécutez des commandes (palette, raccourcis, menu clic droit).' : steps.map(labelOf).join(' → ');
+    const skipped = recorder.skipped();
+    const note = skipped.length === 0 ? '' : ` — non enregistré : ${skipped.join(' ; ')}`;
+    elements.barSteps.textContent = (steps.length === 0 ? 'Exécutez des commandes ou agissez directement : panneaux, inspecteur, aperçu.' : steps.map(stepLabel).join(' → ')) + note;
   }
   recorder.subscribe(renderBar);
   elements.record.addEventListener('click', () => { elements.dialog.close(); recorder.start(); });
@@ -318,7 +371,7 @@ export function createCustomCommandsController(input) {
   elements.barFinish.addEventListener('click', () => {
     const steps = recorder.finish();
     if (steps.length === 0) {
-      input.report.error('aucune commande enregistrée');
+      input.report.error('rien n’a été enregistré');
       return;
     }
     openEditor(null, steps);

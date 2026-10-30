@@ -8,8 +8,12 @@
  * annuler / rétablir ; un raccourci porte Ctrl, Alt ou une touche de fonction (jamais une touche de saisie nue), ne
  * recouvre aucune commande existante et ne vise aucune combinaison réservée du navigateur.
  *
- * @typedef {{ id: string, name: string, steps: string[], shortcut?: string }} CustomCommand
+ * Une étape est l'identifiant d'une commande du registre, ou un geste direct (`operation-steps.js`).
+ * @typedef {string | import('./operation-steps.js').OperationStep} CommandStep
+ * @typedef {{ id: string, name: string, steps: CommandStep[], shortcut?: string }} CustomCommand
  */
+
+import { applyStep, describeStep, isOperationStep, mergeSteps, operationToStep, stepErrors } from './operation-steps.js';
 
 export const CUSTOM_PREFIX = 'custom.';
 export const CUSTOM_GROUP = 'Personnalisées';
@@ -91,7 +95,8 @@ export function validateCustomCommand(raw, { knownIds, taken = new Map(), others
   if (!Array.isArray(record.steps) || steps.length === 0) errors.push('au moins une étape est nécessaire');
   if (steps.length > MAX_STEPS) errors.push(`${MAX_STEPS} étapes au plus`);
   for (const step of steps) {
-    if (typeof step !== 'string' || !knownIds.has(step)) errors.push(`étape inconnue : ${String(step)}`);
+    if (isOperationStep(step)) errors.push(...stepErrors(step));
+    else if (typeof step !== 'string' || !knownIds.has(step)) errors.push(`étape inconnue : ${String(step)}`);
     else if (!isStepAllowed(step)) errors.push(`étape non autorisée dans une commande : ${step}`);
   }
 
@@ -107,7 +112,7 @@ export function validateCustomCommand(raw, { knownIds, taken = new Map(), others
   }
   if (errors.length > 0) return { ok: false, errors };
   const id = typeof record.id === 'string' && record.id.startsWith(CUSTOM_PREFIX) ? record.id : `${CUSTOM_PREFIX}${slugify(name)}`;
-  return { ok: true, command: { id, name, steps: /** @type {string[]} */ (steps), ...(shortcut === undefined ? {} : { shortcut }) } };
+  return { ok: true, command: { id, name, steps: /** @type {CommandStep[]} */ (steps), ...(shortcut === undefined ? {} : { shortcut }) } };
 }
 
 /** @param {string} name */
@@ -137,15 +142,19 @@ export function uniqueCustomId(name, used) {
  *   batch: <T>(label: string, run: () => T) => T,
  *   labelOf: (id: string) => string,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
- * }} deps
+ *   editor?: import('./scene-editor.js').SceneEditor,
+ *   kindLabel?: (kind: string) => string,
+ * }} deps `editor` : sur quoi rejouer les étapes geste
  * @returns {import('./command-registry.js').Command}
  */
-export function toCommand(definition, { registry, batch, labelOf, report }) {
+export function toCommand(definition, { registry, batch, labelOf, report, editor, kindLabel }) {
+  /** @param {CommandStep} step */
+  const describe = (step) => (isOperationStep(step) ? describeStep(step, kindLabel) : labelOf(step));
   return {
     id: definition.id,
     label: definition.name,
     group: CUSTOM_GROUP,
-    keywords: ['macro', 'personnalisée', ...definition.steps.map(labelOf)],
+    keywords: ['macro', 'personnalisée', ...definition.steps.map(describe)],
     ...(definition.shortcut === undefined ? {} : { shortcut: definition.shortcut }),
     run() {
       /** @type {string[]} */
@@ -153,7 +162,11 @@ export function toCommand(definition, { registry, batch, labelOf, report }) {
       let done = 0;
       batch(definition.name, () => {
         for (const step of definition.steps) {
-          if (registry.run(step, { silent: true })) done += 1;
+          if (isOperationStep(step)) {
+            const result = editor === undefined ? { ok: false, message: 'éditeur indisponible' } : applyStep(step, editor);
+            if (result.ok) done += 1;
+            else skipped.push(`${describe(step)} (${'message' in result ? result.message : 'refusé'})`);
+          } else if (registry.run(step, { silent: true })) done += 1;
           else skipped.push(registry.has(step) ? labelOf(step) : `${step} (introuvable)`);
         }
       });
@@ -165,21 +178,45 @@ export function toCommand(definition, { registry, batch, labelOf, report }) {
 }
 
 /**
- * L'enregistreur de macro : écoute les commandes exécutées pendant qu'il est actif.
- * @param {{ onRun(listener: (id: string) => void): () => void }} registry
+ * L'enregistreur de macro : écoute les commandes exécutées et, si `operations` est fourni, les gestes directs de l'éditeur
+ * (panneaux, inspecteur, aperçu) pendant qu'il est actif. Ce que fait une commande n'est pas enregistré une seconde fois
+ * comme geste. Les réglages successifs d'une même chose se rassemblent en une étape ; un geste qui ne se rejoue pas d'une
+ * sélection à l'autre est signalé (`skipped`), jamais perdu en silence.
+ * @param {{ onRun(listener: (id: string) => void): () => void, isRunning?: () => boolean }} registry
+ * @param {{ subscribe(listener: (operation: import('./operation-steps.js').EditorOperation) => void): () => void, kindOf(id: string): string | undefined }} [operations]
  */
-export function createMacroRecorder(registry) {
+export function createMacroRecorder(registry, operations) {
   /** @type {(() => void) | null} */
   let stop = null;
-  /** @type {string[]} */
+  /** @type {CommandStep[]} */
   let recorded = [];
+  /** @type {string[]} */
+  let skippedReasons = [];
   /** @type {Set<() => void>} */
   const listeners = new Set();
   const notify = () => { for (const listener of [...listeners]) listener(); };
 
+  /** @param {import('./operation-steps.js').EditorOperation} operation */
+  function onOperation(operation) {
+    if (registry.isRunning?.() === true) return;
+    const converted = operationToStep(operation, { kindOf: (id) => operations?.kindOf(id) });
+    if ('skipped' in converted) {
+      if (!skippedReasons.includes(converted.skipped)) skippedReasons.push(converted.skipped);
+      notify();
+      return;
+    }
+    const last = recorded[recorded.length - 1];
+    const merged = last !== undefined && isOperationStep(last) ? mergeSteps(last, converted.step) : null;
+    if (merged !== null) recorded[recorded.length - 1] = merged;
+    else if (recorded.length < MAX_STEPS) recorded.push(converted.step);
+    notify();
+  }
+
   return {
     isRecording: () => stop !== null,
-    steps: () => [...recorded],
+    steps: () => structuredClone(recorded),
+    /** Les gestes vus mais non enregistrés, avec leur raison. */
+    skipped: () => [...skippedReasons],
     /** @param {() => void} listener @returns {() => void} */
     subscribe(listener) {
       listeners.add(listener);
@@ -188,18 +225,21 @@ export function createMacroRecorder(registry) {
     start() {
       if (stop !== null) return;
       recorded = [];
-      stop = registry.onRun((id) => {
+      skippedReasons = [];
+      const stopCommands = registry.onRun((id) => {
         if (!isStepAllowed(id)) return;
         if (recorded.length < MAX_STEPS) recorded.push(id);
         notify();
       });
+      const stopOperations = operations?.subscribe(onOperation);
+      stop = () => { stopCommands(); stopOperations?.(); };
       notify();
     },
-    /** Arrête l'enregistrement et rend les étapes. @returns {string[]} */
+    /** Arrête l'enregistrement et rend les étapes. @returns {CommandStep[]} */
     finish() {
       stop?.();
       stop = null;
-      const steps = [...recorded];
+      const steps = structuredClone(recorded);
       notify();
       return steps;
     },
@@ -207,6 +247,7 @@ export function createMacroRecorder(registry) {
       stop?.();
       stop = null;
       recorded = [];
+      skippedReasons = [];
       notify();
     },
   };

@@ -23,6 +23,8 @@
  * @typedef {{ ok: true }} Done
  * @typedef {{ ok: false, reason: 'limit' | 'unique' | 'unknown' | 'invalid' | 'empty', message: string }} Refused
  * @typedef {{ coalesceKey?: string }} CoalesceOptions
+ * @typedef {import('./operation-steps.js').EditorOperation} EditorOperation
+ * @typedef {ReturnType<typeof createSceneEditor>} SceneEditor
  */
 import { MAX_LAYERS, canonicalSceneDoc, createLayer, validateSceneDoc } from '../scene-doc.js';
 import { isIdentityKind, resolveKindId } from '../layer-kinds.js';
@@ -99,6 +101,26 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
   let batch = null;
   /** @type {EditorState | null} */
   let cached = null;
+  /** @type {Set<(operation: EditorOperation) => void>} */
+  const operationListeners = new Set();
+
+  /**
+   * Annonce une opération réussie (de quoi enregistrer une macro). Rend le résultat tel quel.
+   * @template {{ ok: boolean }} R
+   * @param {R} result
+   * @param {string} op
+   * @param {string[]} ids
+   * @param {Record<string, unknown>} args
+   * @param {Record<string, Record<string, number>>} [before]
+   * @returns {R}
+   */
+  function announce(result, op, ids, args, before) {
+    if (result.ok && operationListeners.size > 0) {
+      const operation = { op, ids: [...ids], args: structuredClone(args), ...(before === undefined ? {} : { before }) };
+      for (const listener of [...operationListeners]) listener(operation);
+    }
+    return result;
+  }
 
   function state() {
     if (cached === null) {
@@ -194,6 +216,17 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
   return {
     state,
 
+    /**
+     * Prévenu après chaque opération d'édition réussie (hors annuler / rétablir, collage et chargement) : de quoi enregistrer
+     * une macro à partir des gestes directs.
+     * @param {(operation: EditorOperation) => void} listener
+     * @returns {() => void}
+     */
+    onOperation(listener) {
+      operationListeners.add(listener);
+      return () => operationListeners.delete(listener);
+    },
+
     /** @param {(state: EditorState) => void} listener @returns {() => void} */
     subscribe(listener) {
       listeners.add(listener);
@@ -273,7 +306,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       const accepted = accept({ ...scene, layers });
       if (!accepted.ok) return accepted;
       commit('Ajouter une couche', accepted.scene, [id]);
-      return { ok: true, id };
+      return announce({ ok: true, id }, 'addLayer', [id], { kind: resolved, ...(name === undefined ? {} : { name }), ...(options === undefined ? {} : { options }), ...(placement === undefined ? {} : { placement }), ...(opacity === undefined ? {} : { opacity }) });
     },
 
     /**
@@ -286,7 +319,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       const accepted = accept({ ...scene, layers: scene.layers.filter(({ id }) => !targets.includes(id)) });
       if (!accepted.ok) return accepted;
       commit(targets.length === 1 ? 'Supprimer une couche' : `Supprimer ${targets.length} couches`, accepted.scene, selection.filter((id) => !targets.includes(id)));
-      return { ok: true };
+      return announce({ ok: true }, 'removeLayers', targets, {});
     },
 
     /**
@@ -314,7 +347,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       const accepted = accept({ ...scene, layers });
       if (!accepted.ok) return accepted;
       commit(targets.length === 1 ? 'Dupliquer une couche' : `Dupliquer ${targets.length} couches`, accepted.scene, copies);
-      return { ok: true, ids: copies };
+      return announce({ ok: true, ids: copies }, 'duplicateLayers', targets, {});
     },
 
     /**
@@ -353,7 +386,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       const accepted = accept({ ...scene, layers });
       if (!accepted.ok) return accepted;
       commit('Réordonner', accepted.scene);
-      return { ok: true };
+      return announce({ ok: true }, 'moveLayers', targets, { where });
     },
 
     /**
@@ -376,7 +409,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
         if (patch.locked === false) delete next.locked;
         return next;
       });
-      return finish(layers, describePatch(keys, targets.length), coalesceKey);
+      return announce(finish(layers, describePatch(keys, targets.length), coalesceKey), 'setLayers', targets, { patch });
     },
 
     /**
@@ -391,7 +424,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       if (targets.length === 0) return refuse('unknown', 'aucune couche');
       if (Object.keys(patch).some((key) => !PLACEMENT_KEYS.includes(key))) return refuse('invalid', 'clé de placement inconnue');
       const layers = scene.layers.map((layer) => (targets.includes(layer.id) ? { ...layer, placement: { ...layer.placement, ...patch } } : layer));
-      return finish(layers, 'Placer', coalesceKey);
+      return announce(finish(layers, 'Placer', coalesceKey), 'setPlacement', targets, { patch });
     },
 
     /**
@@ -404,8 +437,9 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     setPlacements(patches, { coalesceKey, label: entryLabel = 'Placer' } = {}) {
       const targets = known(Object.keys(patches));
       if (targets.length === 0) return refuse('unknown', 'aucune couche');
+      const before = Object.fromEntries(targets.map((id) => [id, { ...(/** @type {Layer} */ (find(id)).placement) }]));
       const layers = scene.layers.map((layer) => (targets.includes(layer.id) ? { ...layer, placement: { ...layer.placement, ...patches[layer.id] } } : layer));
-      return finish(layers, entryLabel, coalesceKey);
+      return announce(finish(layers, entryLabel, coalesceKey), 'setPlacements', targets, { patches }, before);
     },
 
     /**
@@ -466,7 +500,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       const targets = known(ids);
       if (targets.length === 0) return refuse('unknown', 'aucune couche');
       const layers = scene.layers.map((layer) => (targets.includes(layer.id) ? { ...layer, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } } : layer));
-      return finish(layers, targets.length === 1 ? 'Réinitialiser la couche' : `Réinitialiser ${targets.length} couches`, undefined);
+      return announce(finish(layers, targets.length === 1 ? 'Réinitialiser la couche' : `Réinitialiser ${targets.length} couches`, undefined), 'resetLayers', targets, {});
     },
 
     /**
@@ -479,7 +513,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     setOptions(id, patch, { coalesceKey } = {}) {
       if (find(id) === undefined) return refuse('unknown', `couche introuvable : ${id}`);
       const layers = scene.layers.map((layer) => (layer.id === id ? { ...layer, options: { ...layer.options, ...patch } } : layer));
-      return finish(layers, 'Régler l’effet', coalesceKey);
+      return announce(finish(layers, 'Régler l’effet', coalesceKey), 'setOptions', [id], { patch });
     },
 
     /**
@@ -501,7 +535,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       }
       if (resolved === layer.kind) return { ok: true };
       const layers = scene.layers.map((candidate) => (candidate.id === id ? { ...candidate, kind: resolved, options } : candidate));
-      return finish(layers, 'Changer l’effet', undefined);
+      return announce(finish(layers, 'Changer l’effet', undefined), 'setLayerKind', [id], { kind: resolved, options });
     },
 
     /**
@@ -517,7 +551,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       if (!accepted.ok) return accepted;
       if (stableStringify(accepted.scene) === stableStringify(scene)) return { ok: true };
       commit('Régler la scène', accepted.scene, selection, coalesceKey);
-      return { ok: true };
+      return announce({ ok: true }, 'setSceneProps', [], { patch });
     },
 
     /**

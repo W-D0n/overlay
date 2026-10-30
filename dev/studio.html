@@ -211,6 +211,11 @@
     .cc-step-label { color: var(--color-text-primary); }
     .cc-step-tools { display: flex; gap: 2px; }
     .cc-step-tools button { padding: 0 8px; }
+    .cc-step { grid-template-areas: 'i l t' 'f f f'; }
+    .cc-step-index { grid-area: i; } .cc-step-label { grid-area: l; } .cc-step-tools { grid-area: t; }
+    .cc-step-fields { grid-area: f; display: flex; flex-wrap: wrap; gap: var(--space-sm); padding: 2px 0 var(--space-xs, 4px) 32px; }
+    .cc-field { display: inline-flex; align-items: center; gap: var(--space-xs, 4px); color: var(--color-text-dim); }
+    .cc-field input[type="number"] { width: 72px; }
     .cc-step-empty { padding: var(--space-sm); color: var(--color-text-dim); }
     .cc-results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
     .cc-result { display: grid; grid-template-columns: 90px 1fr; gap: var(--space-sm); width: 100%; text-align: left; padding: 2px var(--space-sm); border-color: transparent; }
