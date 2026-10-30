@@ -59,7 +59,7 @@ export function createBackgroundPresetController(input) {
   function appendEmptyState(container) {
     const empty = documentRef.createElement('p');
     empty.className = 'preset-empty';
-    empty.textContent = 'Aucun preset ne correspond à cette recherche.';
+    empty.textContent = 'Aucune scène ne correspond à cette recherche.';
     container.appendChild(empty);
   }
 
@@ -150,7 +150,7 @@ export function createBackgroundPresetController(input) {
       const copyUrl = documentRef.createElement('button');
       copyUrl.className = 'preset-action';
       copyUrl.textContent = 'URL';
-      copyUrl.title = `Copier l'URL OBS stable du preset « ${preset.name} »`;
+      copyUrl.title = `Copier l'URL OBS stable de la scène « ${preset.name} »`;
       copyUrl.onclick = async () => {
         const url = backgroundPresetUrl(preset.id, input.backgroundPageUrl);
         await navigatorRef.clipboard.writeText(url);
@@ -284,8 +284,8 @@ export function createBackgroundPresetController(input) {
       add.className = 'preset-action preset-add';
       add.type = 'button';
       add.textContent = '+';
-      add.title = `Ajouter « ${preset.name} » à mes presets`;
-      add.setAttribute('aria-label', `Ajouter ${preset.name} à mes presets`);
+      add.title = `Ajouter « ${preset.name} » à mes scènes`;
+      add.setAttribute('aria-label', `Ajouter ${preset.name} à mes scènes`);
       add.onclick = async () => {
         const name = uniquePresetName(`${preset.name} — perso`);
         try {
@@ -309,7 +309,7 @@ export function createBackgroundPresetController(input) {
       renderPresets(file.scenes);
       return file.scenes;
     } catch (error) {
-      reportClientError('lecture des presets impossible', error);
+      reportClientError('lecture des scènes impossible', error);
       return null;
     }
   }

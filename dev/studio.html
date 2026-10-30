@@ -874,15 +874,15 @@
 
       <details class="rail-section" open>
         <summary>Bibliothèque</summary>
-    <p class="section-intro">Essaie une ambiance ou reprends un de tes presets, puis ajuste-la dans les réglages ci-dessous.</p>
+    <p class="section-intro">Essaie une ambiance ou reprends une de tes scènes, puis ajuste-la dans les réglages ci-dessous.</p>
     <div class="library-tools">
-      <input id="preset-search" type="search" aria-label="Rechercher dans les points de départ et les presets" placeholder="chercher par nom, effet ou tag">
+      <input id="preset-search" type="search" aria-label="Rechercher dans les points de départ et les scènes" placeholder="chercher par nom, effet ou tag">
     </div>
-    <h3 class="library-group">Mes presets</h3>
+    <h3 class="library-group">Mes scènes</h3>
     <div class="library-tools">
       <button id="preset-export">Exporter</button>
       <button id="preset-import-trigger">Importer</button>
-      <input id="preset-import" type="file" aria-label="Importer des presets (fichier JSON)" accept="application/json,.json" hidden>
+      <input id="preset-import" type="file" aria-label="Importer des scènes (fichier JSON)" accept="application/json,.json" hidden>
     </div>
     <div id="preset-import-review" class="preset-import-review" hidden>
       <p id="preset-import-summary"></p>
@@ -901,7 +901,7 @@
       <details class="rail-section">
         <summary>Scènes OBS</summary>
     <p class="hint">
-      Associe une scène OBS à un preset : changer de scène change le fond automatiquement.
+      Associe une scène OBS à une scène du Studio : changer de scène dans OBS change le fond automatiquement.
       L’association reprend la main sur un réglage fait ici. Une URL <code>?preset=</code> n’est
       jamais concernée.
     </p>
@@ -918,7 +918,7 @@
       <details class="rail-section">
         <summary>Branding</summary>
     <p class="hint">
-      Ton identité, commune à tous les presets. Attrape le bloc dans l’aperçu pour le déplacer.
+      Ton identité, commune à toutes les scènes. Attrape le bloc dans l’aperçu pour le déplacer.
     </p>
     <label>Pseudo
       <input id="branding-name" type="text" maxlength="40" placeholder="D0n">
@@ -943,7 +943,7 @@
     <div id="branding-position" class="hint"></div>
     <label class="branding-toggle">
       <input id="branding-show-on-preset" type="checkbox">
-      Afficher sur ce preset
+      Afficher sur cette scène
     </label>
 
       </details>
@@ -986,7 +986,7 @@
       </div>
     </section>
 
-    <aside id="inspector" class="inspector" aria-label="Réglages du preset">
+    <aside id="inspector" class="inspector" aria-label="Réglages de la scène">
     <section class="layers-panel" aria-labelledby="layers-title">
       <div class="layers-head">
         <h2 id="layers-title">Couches</h2>
@@ -1066,18 +1066,18 @@
 
     <h2>Enregistrer ce réglage</h2>
     <div class="save-row">
-      <input id="preset-name" type="text" placeholder="nom du preset" maxlength="60" aria-label="Nom du preset">
+      <input id="preset-name" type="text" placeholder="nom de la scène" maxlength="60" aria-label="Nom de la scène">
       <button id="preset-save">Créer</button>
-      <button id="preset-new" title="Créer un nouveau preset">Nouveau</button>
+      <button id="preset-new" title="Créer une nouvelle scène">Nouveau</button>
     </div>
     <div class="save-row">
-      <input id="preset-tags" type="text" placeholder="tags séparés par des virgules" aria-label="Tags du preset">
+      <input id="preset-tags" type="text" placeholder="tags séparés par des virgules" aria-label="Tags de la scène">
     </div>
 
-    <h2>Arrivée de ce preset</h2>
+    <h2>Arrivée de cette scène</h2>
     <p class="hint">
-      Comment ce preset remplace le fond précédent. Sans effet sur tes réglages en cours : la
-      transition se joue quand le preset arrive (clic sur un preset, ou changement de scène OBS).
+      Comment cette scène remplace le fond précédent. Sans effet sur tes réglages en cours : la
+      transition se joue quand la scène arrive (clic sur une scène, ou changement de scène OBS).
     </p>
     <label>Type
       <select id="transition-type">

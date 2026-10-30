@@ -77,8 +77,8 @@ export function formatBackgroundPresetImportSummary(plan) {
  */
 export function formatBackgroundPresetImportChange(change) {
   const note = change.conflict === null
-    ? (change.operation === 'unchanged' ? 'Aucun changement : ce preset sera ignoré.' : '')
-    : `Le nom « ${change.requestedName} » est déjà utilisé par « ${change.conflict.name} » ; le preset sera importé sous « ${change.name} ».`;
+    ? (change.operation === 'unchanged' ? 'Aucun changement : cette scène sera ignorée.' : '')
+    : `Le nom « ${change.requestedName} » est déjà utilisé par « ${change.conflict.name} » ; la scène sera importée sous « ${change.name} ».`;
   return {
     operationLabel: IMPORT_OPERATION_LABELS[change.operation],
     title: change.name,

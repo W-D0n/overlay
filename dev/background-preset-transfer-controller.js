@@ -184,7 +184,8 @@ export function createBackgroundPresetTransferController(input) {
       link.download = 'overlay-background-presets.json';
       link.click();
       windowRef.setTimeout(() => urlApi.revokeObjectURL(url), 0);
-      input.report.ok(`${presets.length} preset(s) exporté(s)${scenes.length === 0 ? '' : ` · ${scenes.length} scène(s) à plusieurs couches exportée(s)`}`);
+      const total = presets.length + scenes.length;
+      input.report.ok(`${total} scène(s) exportée(s)${scenes.length === 0 ? '' : ` (dont ${scenes.length} à plusieurs couches)`}`);
     };
 
     elements.importTrigger.onclick = () => elements.importInput.click();

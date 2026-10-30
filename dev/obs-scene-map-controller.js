@@ -39,7 +39,7 @@ export function createObsSceneMapController(input) {
   /** @param {import('./obs-scene-map-presenter.js').SceneRow} row */
   function createSelect(row) {
     const select = documentRef.createElement('select');
-    select.setAttribute('aria-label', `Preset de la scène OBS « ${row.sceneName} »`);
+    select.setAttribute('aria-label', `Scène du Studio associée à la scène OBS « ${row.sceneName} »`);
     const none = documentRef.createElement('option');
     none.value = '';
     none.textContent = '— aucun —';
@@ -130,7 +130,7 @@ export function createObsSceneMapController(input) {
     const details = documentRef.createElement('details');
     details.className = 'obs-scene-folded';
     const summary = documentRef.createElement('summary');
-    summary.textContent = `${folded.length} sans preset`;
+    summary.textContent = `${folded.length} sans scène associée`;
     details.appendChild(summary);
     for (const row of folded) details.appendChild(createRow(row));
     input.rowsEl.appendChild(details);

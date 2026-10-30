@@ -119,7 +119,7 @@ describe('transfert de presets du tuner', () => {
     });
     expect(JSON.parse(await harness.blobs[0].text())).toEqual(createBackgroundPresetBundle([preset]));
     expect(harness.revoked).toEqual(['blob:presets']);
-    expect(harness.reports.at(-1)).toEqual(['ok', '1 preset(s) exporté(s)']);
+    expect(harness.reports.at(-1)).toEqual(['ok', '1 scène(s) exportée(s)']);
   });
 
   test('exporte aussi les scènes à plusieurs couches, en entier, et le dit', async () => {
@@ -131,7 +131,7 @@ describe('transfert de presets du tuner', () => {
     const exported = JSON.parse(await harness.blobs[0].text());
     expect(exported.version).toBe(3);
     expect(exported.scenes).toEqual([multi]);
-    expect(harness.reports.at(-1)).toEqual(['ok', '1 preset(s) exporté(s) · 1 scène(s) à plusieurs couches exportée(s)']);
+    expect(harness.reports.at(-1)).toEqual(['ok', '2 scène(s) exportée(s) (dont 1 à plusieurs couches)']);
   });
 
   test('prévisualise un import et n’écrit qu’après confirmation', async () => {
@@ -213,7 +213,7 @@ describe('transfert de presets du tuner', () => {
     expect(harness.elements.importReview.hidden).toBeFalse();
     expect(harness.elements.importSummary.textContent).toContain('1 ignoré');
     expect(visibleText(harness.elements.importDetails)).toContain(
-      'Aucun changement : ce preset sera ignoré.',
+      'Aucun changement : cette scène sera ignorée.',
     );
     expect(harness.reports.at(-1)).toEqual([
       'error',

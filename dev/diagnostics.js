@@ -157,13 +157,13 @@ function renderCheck({ renderPages, obs, staticPort }, inspection) {
 function mappingCheck({ obs, sceneMap }) {
   const label = 'Scènes associées';
   const mapped = Object.keys(sceneMap);
-  if (mapped.length === 0) return { id: 'mapping', label, tone: 'off', short: 'aucune', detail: 'Aucune scène OBS n’est associée à un preset : le fond ne change pas avec la scène.', fix: null };
+  if (mapped.length === 0) return { id: 'mapping', label, tone: 'off', short: 'aucune', detail: 'Aucune scène OBS n’est associée à une scène du Studio : le fond ne change pas avec la scène.', fix: null };
   if (obs === null || !obs.connected) return { id: 'mapping', label, tone: 'off', short: `${mapped.length} associée${mapped.length > 1 ? 's' : ''}`, detail: 'Comparaison avec OBS impossible tant qu’OBS n’est pas connecté.', fix: null };
   const orphans = mapped.filter((name) => !obs.scenes.includes(name));
   if (orphans.length > 0) {
-    return { id: 'mapping', label, tone: 'warn', short: `${orphans.length} introuvable${orphans.length > 1 ? 's' : ''}`, detail: `Associées mais absentes d’OBS : ${quoted(orphans)}. La scène a peut-être été renommée ou supprimée.`, fix: 'Dans « Scènes OBS », réassocie le preset à la scène renommée.' };
+    return { id: 'mapping', label, tone: 'warn', short: `${orphans.length} introuvable${orphans.length > 1 ? 's' : ''}`, detail: `Associées mais absentes d’OBS : ${quoted(orphans)}. La scène a peut-être été renommée ou supprimée.`, fix: 'Dans « Scènes OBS », réassocie la scène du Studio à la scène OBS renommée.' };
   }
-  return { id: 'mapping', label, tone: 'ok', short: `${mapped.length}/${obs.scenes.length}`, detail: `${mapped.length} scène${mapped.length > 1 ? 's' : ''} sur ${obs.scenes.length} associée${mapped.length > 1 ? 's' : ''} à un preset, toutes présentes dans OBS.`, fix: null };
+  return { id: 'mapping', label, tone: 'ok', short: `${mapped.length}/${obs.scenes.length}`, detail: `${mapped.length} scène${mapped.length > 1 ? 's' : ''} sur ${obs.scenes.length} associée${mapped.length > 1 ? 's' : ''} à une scène du Studio, toutes présentes dans OBS.`, fix: null };
 }
 
 /**

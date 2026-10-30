@@ -41,7 +41,7 @@ test('le détail d’un preset traduit les champs techniques et explique un conf
   })).toEqual({
     operationLabel: 'Mise à jour',
     title: 'Pluie — import',
-    note: 'Le nom « Pluie » est déjà utilisé par « Pluie » ; le preset sera importé sous « Pluie — import ».',
+    note: 'Le nom « Pluie » est déjà utilisé par « Pluie » ; la scène sera importée sous « Pluie — import ».',
     details: [
       'Nom : Pluie vive → Pluie — import',
       'Tags : coding → calme, discussion',
