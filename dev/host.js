@@ -14,6 +14,9 @@
  *                          remplacé dans l'historique.
  *   GET  /history       — `{ history }` : les états qui ont quitté l'antenne, le plus récent d'abord.
  *   POST /rollback      — `{ at }`, remet à l'antenne l'état de l'historique daté `at` (404 s'il n'existe plus).
+ *   GET  /drafts        — `{ drafts }` : les réglages non enregistrés, par identifiant de preset.
+ *   POST /draft         — `{ presetId, state }`, range le brouillon d'un preset (jamais diffusé à l'antenne).
+ *   POST /discard-draft — `{ presetId }`, abandonne le brouillon d'un preset.
  *   POST /branding      — `{ branding }`, contenu global de la couche d'identité.
  *   POST /event         — événement de réaction éphémère : validé puis diffusé, jamais persisté.
  *   POST /scene-map     — `{ sceneMap }`, table d'association scène OBS → preset.
@@ -34,6 +37,7 @@ import { rejectNonLocalRequest } from './local-access-policy.js';
 import { validateBackgroundEvent } from './background-event-format.js';
 import { createPresetRoutes } from './preset-routes.js';
 import { findEntry, recordReplaced } from './background-history.js';
+import { withDraft, withDrafts, withoutDraft } from './preset-drafts.js';
 import { channelForPath } from './channels.js';
 import { EXIT_RESTART, EXIT_STOP } from './supervisor.js';
 import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
@@ -97,10 +101,47 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
     const read = await store.read();
     if (!read.ok) return jsonError(`fichier d'état invalide : ${read.errors.join(' ; ')}`, 500);
     // L'historique a sa route : les pages de rendu n'ont pas à le charger.
-    const { history: _history, ...state } = read.file;
+    const { history: _history, drafts: _drafts, ...state } = read.file;
     return new Response(JSON.stringify(state), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     });
+  }
+
+  /** @returns {Promise<Response>} */
+  async function handleGetDrafts() {
+    const read = await store.read();
+    if (!read.ok) return jsonError(`fichier d'état invalide : ${read.errors.join(' ; ')}`, 500);
+    return Response.json({ drafts: read.file.drafts ?? {} }, { headers: CORS_HEADERS });
+  }
+
+  /**
+   * POST /draft — `{ presetId, state }`. Le brouillon n'est jamais diffusé : il appartient au Studio.
+   * @param {Request} req
+   * @returns {Promise<Response>}
+   */
+  async function handlePostDraft(req) {
+    const body = /** @type {*} */ (await req.json());
+    if (typeof body?.presetId !== 'string' || body.presetId === '') return jsonError('id de preset manquant', 400);
+    const state = /** @type {import('./background-state-format.js').BackgroundCurrent} */ (canonicalBackgroundCurrent(body?.state));
+    const validation = validateBackgroundCurrent(state);
+    if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
+    if (state.component === null) return jsonError('un brouillon de preset a un effet', 400);
+
+    return update((file) => {
+      if (!file.presets.some((preset) => preset.id === body.presetId)) return jsonError(`preset inconnu : ${body.presetId}`, 404);
+      return withDrafts(file, withDraft(file.drafts, body.presetId, state, now()));
+    });
+  }
+
+  /**
+   * POST /discard-draft — `{ presetId }`. Sans effet si le preset n'a pas de brouillon.
+   * @param {Request} req
+   * @returns {Promise<Response>}
+   */
+  async function handleDiscardDraft(req) {
+    const body = /** @type {*} */ (await req.json());
+    if (typeof body?.presetId !== 'string' || body.presetId === '') return jsonError('id de preset manquant', 400);
+    return update((file) => withDrafts(file, withoutDraft(file.drafts, body.presetId)));
   }
 
   /** @returns {Promise<Response>} */
@@ -264,6 +305,8 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
     '/branding': handlePostBranding,
     '/state': handlePostState,
     '/rollback': handleRollback,
+    '/draft': handlePostDraft,
+    '/discard-draft': handleDiscardDraft,
     '/event': handlePostEvent,
     ...presetRoutes,
   };
@@ -334,6 +377,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
 
       if (req.method === 'GET' && url.pathname === '/state') return handleGetState();
       if (req.method === 'GET' && url.pathname === '/history') return handleGetHistory();
+      if (req.method === 'GET' && url.pathname === '/drafts') return handleGetDrafts();
       if (req.method === 'GET' && url.pathname === '/obs-status') return handleGetObsStatus();
       if (req.method === 'GET' && url.pathname === '/live-status') return handleGetLiveStatus();
       if (req.method === 'GET' && url.pathname === '/diagnostics') return handleGetDiagnostics();

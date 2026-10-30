@@ -215,3 +215,100 @@ describe('historique des publications', () => {
     expect(await history(call)).toHaveLength(1);
   });
 });
+
+describe('brouillons de presets', () => {
+  const DRAFT = { component: 'rain', options: {}, transition: { type: 'fade', durationMs: 500 }, showBranding: false };
+  const drafts = async (call) => (await (await call('/drafts')).json()).drafts;
+
+  /** Un preset « Alpha » (bubble) enregistré ; rend son identifiant. */
+  async function withPreset(context) {
+    await context.post('/save-preset', { name: 'Alpha', component: 'bubble', options: {} });
+    return JSON.parse(readFileSync(context.path, 'utf8')).scenes[0].id;
+  }
+
+  test('un brouillon se range sous le preset, se relit, ne touche ni l’antenne ni le preset enregistré', async () => {
+    const context = setup({ now: () => '2026-10-30T10:00:00.000Z' });
+    const id = await withPreset(context);
+    const onState = context.subscribe('state');
+    expect((await context.post('/draft', { presetId: id, state: DRAFT })).status).toBe(200);
+
+    expect((await drafts(context.call))[id]).toEqual({ at: '2026-10-30T10:00:00.000Z', state: DRAFT });
+    expect(onState).toEqual([]);
+    const file = JSON.parse(readFileSync(context.path, 'utf8'));
+    expect(file.scenes[0].layers[0].kind).toBe('bubble');
+    expect(file.current.layers[0].kind).toBe('dotgrid');
+  });
+
+  test('GET /state ne porte pas les brouillons', async () => {
+    const context = setup();
+    const id = await withPreset(context);
+    await context.post('/draft', { presetId: id, state: DRAFT });
+    expect('drafts' in await (await context.call('/state')).json()).toBe(false);
+  });
+
+  test('preset inconnu : 404 ; état invalide ou sans effet : 400 ; rien n’est écrit', async () => {
+    const context = setup();
+    const id = await withPreset(context);
+    expect((await context.post('/draft', { presetId: 'fantome', state: DRAFT })).status).toBe(404);
+    expect((await context.post('/draft', { presetId: id, state: { component: 'dotgrid', options: { spacing: 'large' } } })).status).toBe(400);
+    expect((await context.post('/draft', { presetId: id, state: { component: null, options: {} } })).status).toBe(400);
+    expect((await context.post('/draft', { state: DRAFT })).status).toBe(400);
+    expect(await drafts(context.call)).toEqual({});
+  });
+
+  test('un brouillon par preset : écrire l’un ne touche pas l’autre, réécrire remplace', async () => {
+    const context = setup();
+    const first = await withPreset(context);
+    await context.post('/save-preset', { name: 'Beta', component: 'rain', options: {} });
+    const second = JSON.parse(readFileSync(context.path, 'utf8')).scenes[1].id;
+    await context.post('/draft', { presetId: first, state: DRAFT });
+    await context.post('/draft', { presetId: second, state: { component: 'fireflies', options: {} } });
+    await context.post('/draft', { presetId: first, state: { component: 'stars-parallax', options: {} } });
+    const all = await drafts(context.call);
+    expect(all[first].state.component).toBe('stars-parallax');
+    expect(all[second].state.component).toBe('fireflies');
+  });
+
+  test('abandonner retire le brouillon, une seconde fois est sans effet', async () => {
+    const context = setup();
+    const id = await withPreset(context);
+    await context.post('/draft', { presetId: id, state: DRAFT });
+    expect((await context.post('/discard-draft', { presetId: id })).status).toBe(200);
+    expect((await context.post('/discard-draft', { presetId: id })).status).toBe(200);
+    expect(await drafts(context.call)).toEqual({});
+    expect('drafts' in JSON.parse(readFileSync(context.path, 'utf8'))).toBe(false);
+  });
+
+  test('« Mettre à jour » et la suppression retirent le brouillon du preset ; le renommage le garde', async () => {
+    const context = setup();
+    const id = await withPreset(context);
+    await context.post('/draft', { presetId: id, state: DRAFT });
+
+    await context.post('/rename-preset', { id, name: 'Alpha bis' });
+    expect(Object.keys(await drafts(context.call))).toEqual([id]);
+
+    await context.post('/save-preset', { id, name: 'Alpha bis', component: 'rain', options: {} });
+    expect(await drafts(context.call)).toEqual({});
+
+    await context.post('/draft', { presetId: id, state: DRAFT });
+    await context.post('/delete-preset', { id });
+    expect(await drafts(context.call)).toEqual({});
+    expect((await context.call('/state')).status).toBe(200);
+  });
+
+  test('un brouillon survit au redémarrage : le fichier se relit avec lui', async () => {
+    const context = setup();
+    const id = await withPreset(context);
+    await context.post('/draft', { presetId: id, state: DRAFT });
+    const again = createHost({
+      store: createStateStore({ path: context.path, log: silent }),
+      channels: createChannels(),
+      obs: { status: () => ({ connected: false, reason: null, scenes: [], activeScene: null }), configured: false, inspect: null },
+      control: { supervised: false, exit() {} },
+      staticPort: 5931,
+      log: silent,
+    });
+    const response = await again.fetch(new Request('http://localhost:5932/drafts'), context.server);
+    expect((await response.json()).drafts[id].state.component).toBe('rain');
+  });
+});

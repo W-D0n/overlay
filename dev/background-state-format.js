@@ -5,6 +5,7 @@ import { validateTransition } from '../background-transition.js';
 import { normalizeBranding, validateBranding } from '../branding-format.js';
 import { presetFromScene, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
 import { validateHistory } from './background-history.js';
+import { validateDrafts } from './preset-drafts.js';
 
 /**
  * dev/background-state-format.js — Logique pure de l'état background standalone (2026-07-14).
@@ -18,7 +19,8 @@ import { validateHistory } from './background-history.js';
  * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[], transition?: BackgroundTransition, showBranding?: boolean }} BackgroundPreset
  * @typedef {import('../branding-format.js').Branding} Branding
  * @typedef {import('./background-history.js').HistoryEntry} HistoryEntry
- * @typedef {{ version?: number, current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string>, branding?: Branding, history?: HistoryEntry[] }} BackgroundFile
+ * @typedef {import('./preset-drafts.js').Drafts} Drafts
+ * @typedef {{ version?: number, current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string>, branding?: Branding, history?: HistoryEntry[], drafts?: Drafts }} BackgroundFile
  */
 
 /** Longueur maximale d'un nom de preset — borne UI (liste lisible), pas une contrainte technique. */
@@ -182,13 +184,14 @@ export function migrateBackgroundFile(raw) {
  * @returns {Record<string, unknown>}
  */
 export function encodePersistedFile(file) {
-  const { current, presets, history, ...rest } = file;
+  const { current, presets, history, drafts, ...rest } = file;
   return {
     ...rest,
     version: BACKGROUND_FILE_VERSION,
     current: current.component === null ? null : sceneFromCurrent(current),
     scenes: presets.map((preset) => sceneFromPreset(preset)),
     ...(history === undefined ? {} : { history: history.map((entry) => ({ at: entry.at, scene: entry.current.component === null ? null : sceneFromCurrent(entry.current) })) }),
+    ...(drafts === undefined ? {} : { drafts: Object.fromEntries(Object.entries(drafts).map(([id, entry]) => [id, { at: entry.at, scene: entry.state.component === null ? null : sceneFromCurrent(entry.state) }])) }),
   };
 }
 
@@ -243,10 +246,21 @@ export function decodePersistedFile(raw) {
   const presets = Array.isArray(raw.scenes)
     ? raw.scenes.map((scene, index) => readScene(scene, `scenes[${index}]`)).filter((preset) => preset !== null)
     : [];
+  /** @type {Drafts | undefined} */
+  let drafts;
+  if (raw.drafts !== undefined) {
+    if (!isPlainObject(raw.drafts)) errors.push('drafts : objet attendu');
+    else {
+      drafts = Object.fromEntries(Object.entries(raw.drafts).map(([id, entry]) => [id, {
+        at: isPlainObject(entry) ? /** @type {string} */ (entry.at) : '',
+        state: readCurrent(isPlainObject(entry) ? entry.scene ?? null : null, `drafts[${id}]`),
+      }]));
+    }
+  }
   if (errors.length > 0) return { ok: false, errors };
 
-  const { current: _current, scenes: _scenes, history: _history, ...rest } = raw;
-  return { ok: true, file: /** @type {BackgroundFile} */ ({ ...rest, current, presets, ...(history === undefined ? {} : { history }) }) };
+  const { current: _current, scenes: _scenes, history: _history, drafts: _drafts, ...rest } = raw;
+  return { ok: true, file: /** @type {BackgroundFile} */ ({ ...rest, current, presets, ...(history === undefined ? {} : { history }), ...(drafts === undefined ? {} : { drafts }) }) };
 }
 
 /**
@@ -356,6 +370,10 @@ export function validateBackgroundFile(raw) {
   const errors = [...validateBackgroundCurrent(raw.current).errors];
   for (const err of validateBranding(raw.branding).errors) errors.push(err);
   errors.push(...validateHistory(raw.history, (current) => validateBackgroundCurrent(current).errors));
+  errors.push(...validateDrafts(raw.drafts, {
+    presetIds: new Set(Array.isArray(raw.presets) ? raw.presets.map((preset) => (isPlainObject(preset) ? preset.id : undefined)).filter((id) => typeof id === 'string') : []),
+    validateState: (state) => validateBackgroundCurrent(state).errors,
+  }));
   if (raw.sceneMap !== undefined) {
     for (const err of validateSceneMap(raw.sceneMap).errors) errors.push(`sceneMap : ${err}`);
   }

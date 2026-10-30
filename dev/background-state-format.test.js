@@ -488,6 +488,35 @@ test('un historique invalide fait refuser le fichier, avec son emplacement', () 
   expect(read.errors.join(' ')).toContain('history[0].at');
 });
 
+const DRAFTS = () => ({ calme: { at: '2026-10-30T12:00:00.000Z', state: { component: 'rain', options: {}, transition: { type: 'fade', durationMs: 500 }, showBranding: false } } });
+
+test('les brouillons se persistent en scènes sous l’identifiant du preset et reviennent à l’identique', () => {
+  const file = { ...WORKING(), drafts: DRAFTS() };
+  const persisted = JSON.parse(JSON.stringify(encodePersistedFile(file)));
+  expect(persisted.drafts.calme).toMatchObject({ at: '2026-10-30T12:00:00.000Z', scene: { layers: [{ kind: 'rain' }] } });
+  const decoded = decodePersistedFile(persisted);
+  expect(decoded.ok).toBe(true);
+  expect(decoded.file).toEqual(file);
+  expect('drafts' in encodePersistedFile(WORKING())).toBe(false);
+});
+
+test('le brouillon d’un preset inconnu fait refuser le fichier, avec son emplacement', () => {
+  const persisted = JSON.parse(JSON.stringify(encodePersistedFile({ ...WORKING(), drafts: DRAFTS() })));
+  persisted.drafts.fantome = persisted.drafts.calme;
+  const read = readBackgroundFile(persisted);
+  expect(read.ok).toBe(false);
+  expect(read.errors.join(' ')).toContain('drafts[fantome]');
+});
+
+test('un brouillon sans effet ou à scène multi-couches est refusé', () => {
+  const noEffect = JSON.parse(JSON.stringify(encodePersistedFile({ ...WORKING(), drafts: DRAFTS() })));
+  noEffect.drafts.calme.scene = null;
+  expect(readBackgroundFile(noEffect).errors.join(' ')).toContain('un effet est requis');
+  const multi = JSON.parse(JSON.stringify(encodePersistedFile({ ...WORKING(), drafts: DRAFTS() })));
+  multi.drafts.calme.scene.layers.push({ ...multi.drafts.calme.scene.layers[0], id: 'second' });
+  expect(readBackgroundFile(multi).errors.join(' ')).toContain('drafts[calme]');
+});
+
 test('un historique à scène multi-couches est refusé comme les autres scènes', () => {
   const persisted = JSON.parse(JSON.stringify(encodePersistedFile({ ...WORKING(), history: HISTORY() })));
   persisted.history[0].scene.layers.push({ ...persisted.history[0].scene.layers[0], id: 'second' });

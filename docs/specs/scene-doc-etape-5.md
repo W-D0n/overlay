@@ -5,7 +5,7 @@ updated: 2026-10-30
 
 # Spec — Décomposition du serveur d'état et brouillon / publication (étape 5)
 
-Statut : **5a livrée, 5b à trancher**. Étape 5 de `docs/architecture-review.md` §5, après l'étape 4 (`scene-doc-etape-4.md`,
+Statut : **5a et 5b-1 livrées, 5b-2 en cours**. Étape 5 de `docs/architecture-review.md` §5, après l'étape 4 (`scene-doc-etape-4.md`,
 livrée). Constats d'origine : F5 (le serveur cumule quatre responsabilités), C2 (module non importable sans démarrer un
 serveur), C3 (ajouter un canal touche cinq endroits, un canal inconnu tombe silencieusement dans `event`), C4 (le champ
 `current` sert à la fois à ce que le tuner édite et à ce qui est diffusé à l'antenne).
@@ -54,8 +54,25 @@ Périmètre retenu par l'owner (2026-10-30) : historique **et** brouillon serveu
   pure dans `dev/history-view.js`). Remettre à l'antenne agit en direct : le premier clic arme le bouton (« Confirmer : en direct »,
   4 s), le second applique. Un serveur sans la route (ancien code) affiche « Historique indisponible » au lieu d'échouer.
 
-### 5b-2 — Brouillon serveur (à concevoir)
+### 5b-2 — Un brouillon par preset (retenu par l'owner, 2026-10-30)
 
-- **Persistance du brouillon** : aujourd'hui un rechargement du Studio le perd.
-- **Séparation édité / en antenne** (C4) : `applySceneMapping` réécrit `current` ; avec un brouillon serveur il ne toucherait que l'antenne.
-- **Scènes à plusieurs couches** : le serveur les refuse à la lecture tant qu'aucun éditeur n'existe (étape 6) ; le brouillon serveur est le lieu naturel de leur édition.
+Un **brouillon** est l'ensemble des réglages non enregistrés d'un preset existant : effet, options, transition, visibilité du
+branding. Il est rangé sur le serveur sous l'identifiant du preset, et survit au rechargement du Studio comme au passage
+à un autre preset.
+
+- **Écriture** : `POST /draft { presetId, state }` (404 si le preset n'existe pas, 400 si l'état est invalide ou sans effet).
+  Le Studio l'envoie après chaque réglage, temporisé (600 ms), tant qu'un preset est actif.
+- **Lecture** : `GET /drafts` → `{ drafts: { <presetId>: { at, state } } }`. `GET /state` ne les renvoie pas (les pages de rendu n'en ont pas l'usage).
+- **Abandon** : `POST /discard-draft { presetId }` (sans effet si absent).
+- **Fin de vie** : « Mettre à jour » (`/save-preset` avec `id`) et la suppression du preset retirent son brouillon dans la même
+  transaction ; le renommage le conserve ; un import qui réécrit un preset ne touche pas à son brouillon (le travail de l'owner est conservé).
+- **Persistance** : clé optionnelle `drafts` du fichier d'état, entrées en scènes (`{ at, scene }`), comme `history`. Un brouillon d'un
+  preset inconnu fait refuser le fichier à la lecture (jamais de réparation silencieuse). Version 3 inchangée.
+- **Hors périmètre, tranché ici** : les réglages qui ne se rattachent à aucun preset enregistré (« Créer », effet choisi dans le
+  sélecteur, point de départ) restent en mémoire dans le Studio, comme aujourd'hui. Aucune diffusion d'un brouillon à d'autres
+  onglets du Studio.
+- **Antenne** : un brouillon n'est jamais diffusé. Il ne dépend ni de `applySceneMapping` ni de la publication : le constat C4
+  (l'édité et l'antenne confondus dans `current`) est levé par la séparation de ces deux zones du fichier.
+- **Studio** : la ligne d'un preset porte une pastille « brouillon » ; cliquer le preset restaure son brouillon (indiqué), « Revenir à la
+  version enregistrée » l'abandonne.
+- Module pur : `dev/preset-drafts.js`.

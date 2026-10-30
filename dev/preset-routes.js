@@ -6,12 +6,13 @@
  * et signale la mutation réussie par `announce`. Aucun accès au disque ni au réseau ici.
  *
  * Routes :
- *   POST /save-preset      — `{ id?, name, component, options, tags?, transition?, showBranding? }`, crée ou met à jour.
+ *   POST /save-preset      — `{ id?, name, component, options, tags?, transition?, showBranding? }`, crée ou met à jour
+ *                            (la mise à jour retire le brouillon du preset).
  *   POST /rename-preset    — `{ id, name }`, renomme sans casser l'URL OBS.
  *   POST /duplicate-preset — `{ id }`, crée une copie autonome.
  *   POST /preview-import   — `{ bundle }`, calcule le plan et la révision sans écrire.
  *   POST /import-presets   — `{ bundle, expectedRevision }`, fusionne si la révision est inchangée.
- *   POST /delete-preset    — `{ id }`, supprime (404 si absent).
+ *   POST /delete-preset    — `{ id }`, supprime (404 si absent) avec son brouillon.
  */
 import {
   createPresetId,
@@ -24,6 +25,7 @@ import {
   removePreset,
 } from './background-state-format.js';
 import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
+import { withDrafts, withoutDraft } from './preset-drafts.js';
 import {
   backgroundPresetRevision,
   mergeBackgroundPresetImport,
@@ -82,7 +84,7 @@ export function createPresetRoutes({ update, inspect, announce }) {
         return jsonError(`preset en double : ${candidate.name}`, 409);
       }
       savedPreset = /** @type {import('./background-state-format.js').BackgroundPreset} */ (candidate);
-      return { ...file, presets: upsertPreset(file.presets, savedPreset) };
+      return withDrafts({ ...file, presets: upsertPreset(file.presets, savedPreset) }, withoutDraft(file.drafts, id));
     });
     if (response.ok && savedPreset !== null) announce(savedPreset, 'saved');
     return response;
@@ -182,7 +184,7 @@ export function createPresetRoutes({ update, inspect, announce }) {
     const response = await update((file) => {
       deleted = file.presets.find((preset) => preset.id === id) ?? null;
       if (deleted === null) return jsonError(`preset inconnu : ${id}`, 404);
-      return { ...file, presets: removePreset(file.presets, id) };
+      return withDrafts({ ...file, presets: removePreset(file.presets, id) }, withoutDraft(file.drafts, id));
     });
     if (response.ok && deleted !== null) announce(deleted, 'deleted');
     return response;
