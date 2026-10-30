@@ -71,7 +71,9 @@ depuis le lanceur ou la coquille (D1).
    contrôle embarqué** (`src-tauri/ui/`), disponible même quand les serveurs sont arrêtés. Trois **boutons indépendants**
    (Démarrer, Redémarrer, Arrêter — pas de menu, pas de confirmation) et « Ouvrir le Studio » (seconde fenêtre, sur le serveur de
    fichiers). Chaque bouton n'est actif que si son geste a un sens (`ui/panel-state.js`, pur et testé) et dit pourquoi sinon.
-   Rien ne se lance sans un clic. Démarrer lance `bun dev/start-stream.js`, attend les deux ports, puis ouvre le Studio ;
+   **À l'ouverture, l'application démarre les serveurs et ouvre le Studio** (demandé par l'owner, 2026-10-30) ; un échec reste
+   affiché dans le panneau, et un geste lancé pendant ce démarrage attend son tour (un seul geste à la fois : sans cela, deux
+   démarrages simultanés échouent tous les deux). Démarrer lance `bun dev/start-stream.js`, attend les deux ports, puis ouvre le Studio ;
    Redémarrer arrête puis relance et recharge le Studio ; Arrêter est forcé (lanceur de l'application, puis `kill-servers`,
    jamais un programme étranger au projet). L'application s'attache à des serveurs déjà lancés et n'arrête, à sa fermeture, que ce
    qu'elle a lancé ; fermer le panneau quitte l'application, fermer la fenêtre du Studio non. Prérequis : Bun absent ou ports tenus
@@ -79,7 +81,9 @@ depuis le lanceur ou la coquille (D1).
    (décochée par défaut). Ports : `STATIC_PORT` / `BACKGROUND_STATE_PORT`, sinon `ports.config.js`. Plus de menu natif ni de boîte
    de dialogue. `tokens.css` est copié dans `ui/` par `build.rs` (copie générée, ignorée par git). Éprouvé sur l'application réelle
    (ports d'essai, fenêtre pilotée par le protocole de débogage de WebView2) : démarrage, redémarrage (les deux PID changent), arrêt,
-   ouverture sans doublon du Studio, fermeture du Studio sans effet sur les serveurs, fermeture du panneau qui arrête ce qui a été lancé.
+   ouverture sans doublon du Studio, fermeture du Studio sans effet sur les serveurs, fermeture du panneau qui arrête ce qui a été lancé ;
+   démarrage automatique sans aucun clic, attache à des serveurs déjà lancés (PID inchangés, laissés en marche à la fermeture), et deux
+   démarrages simultanés (vu échouer tous les deux sans le verrou, réussir avec).
    Non éprouvé : la case de démarrage avec Windows, et un exécutable sans Bun (phase 2 de `zero-install-local-first.md`).
 5. **Application enrichie — livrée** : prérequis dits dans le panneau (Bun absent : adresse d'installation ; port tenu par un autre
    programme : message qui le dit, aucun geste proposé) ; les gestes agissent sans passer par la page, donc même quand elle ne répond plus.

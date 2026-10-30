@@ -3,8 +3,9 @@
 // Sa fenêtre principale est un panneau de contrôle embarqué (`ui/`) : trois boutons indépendants — Démarrer,
 // Redémarrer, Arrêter — qui lancent et arrêtent `bun dev/start-stream.js`, plus « Ouvrir le Studio » (une seconde
 // fenêtre, sur le serveur de fichiers). Le panneau ne dépend pas des serveurs : il sert justement quand ils sont
-// arrêtés ou ne répondent plus. Rien ne se lance sans un clic. Si des serveurs tournent déjà (lancés à la main),
-// l'application s'y attache ; à sa fermeture elle n'arrête que ce qu'elle a lancé.
+// arrêtés ou ne répondent plus. À l'ouverture, l'application démarre les serveurs et ouvre le Studio (ou s'attache à
+// des serveurs déjà lancés à la main) ; un échec reste affiché dans le panneau. À sa fermeture elle n'arrête que ce
+// qu'elle a lancé.
 // Les ports viennent de `STATIC_PORT` / `BACKGROUND_STATE_PORT`, sinon de `ports.config.js` (source unique du projet).
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -39,6 +40,13 @@ struct OwnedLauncher(Mutex<Option<Child>>);
 /// (l'owner peut l'installer pendant que l'application est ouverte).
 struct BunVersion(Mutex<Option<String>>);
 
+/// Un seul geste sur les serveurs à la fois (démarrage à l'ouverture, clics du panneau) : deux démarrages
+/// simultanés lanceraient deux lanceurs.
+struct ActionLock(Mutex<()>);
+
+/// Dernier échec du démarrage à l'ouverture, montré par le panneau (rien ne l'affiche autrement).
+struct StartupNotice(Mutex<Option<String>>);
+
 /// Ce que le panneau affiche (`ui/panel-state.js`).
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -49,6 +57,10 @@ struct ServersStatus {
     static_up: bool,
     state_up: bool,
     state_answers: bool,
+    /// Un geste (démarrage, redémarrage, arrêt) est en cours.
+    busy: bool,
+    /// Échec du démarrage à l'ouverture, `None` s'il n'y en a pas ou si un geste l'a effacé.
+    notice: Option<String>,
 }
 
 /// Valeur d'une constante numérique exportée par `ports.config.js` (`export const NAME = 1234;`).
@@ -213,6 +225,30 @@ fn current_status(app: &AppHandle) -> ServersStatus {
         static_up,
         state_up,
         state_answers: state_up && state_server_answers(config.state_port),
+        busy: app.state::<ActionLock>().0.try_lock().is_err(),
+        notice: app.state::<StartupNotice>().0.lock().unwrap().clone(),
+    }
+}
+
+/// Un geste à la fois ; il efface l'échec du démarrage précédent.
+fn exclusive<T>(app: &AppHandle, work: impl FnOnce() -> T) -> T {
+    let lock = app.state::<ActionLock>();
+    let _turn = lock.0.lock().unwrap();
+    *app.state::<StartupNotice>().0.lock().unwrap() = None;
+    work()
+}
+
+/// Démarrage à l'ouverture : lance les serveurs (ou s'y attache) et ouvre le Studio. Un échec est gardé pour le panneau.
+fn start_on_launch(app: &AppHandle) {
+    let outcome = exclusive(app, || {
+        if bun_version().is_none() {
+            return Ok(());
+        }
+        ensure_servers(app)?;
+        open_studio_window(app)
+    });
+    if let Err(message) = outcome {
+        *app.state::<StartupNotice>().0.lock().unwrap() = Some(message);
     }
 }
 
@@ -263,8 +299,10 @@ async fn servers_status(app: AppHandle) -> Result<ServersStatus, String> {
 #[tauri::command]
 async fn servers_start(app: AppHandle) -> Result<(), String> {
     blocking(move || {
-        ensure_servers(&app)?;
-        open_studio_window(&app)
+        exclusive(&app, || {
+            ensure_servers(&app)?;
+            open_studio_window(&app)
+        })
     })
     .await?
 }
@@ -272,17 +310,19 @@ async fn servers_start(app: AppHandle) -> Result<(), String> {
 #[tauri::command]
 async fn servers_restart(app: AppHandle) -> Result<(), String> {
     blocking(move || {
-        stop_everything(&app);
-        ensure_servers(&app)?;
-        reload_studio(&app);
-        Ok(())
+        exclusive(&app, || {
+            stop_everything(&app);
+            ensure_servers(&app)?;
+            reload_studio(&app);
+            Ok(())
+        })
     })
     .await?
 }
 
 #[tauri::command]
 async fn servers_stop(app: AppHandle) -> Result<(), String> {
-    blocking(move || stop_everything(&app)).await
+    blocking(move || exclusive(&app, || stop_everything(&app))).await
 }
 
 #[tauri::command]
@@ -313,6 +353,8 @@ fn main() {
         .plugin(tauri_plugin_autostart::init(MacosLauncher::LaunchAgent, None))
         .manage(OwnedLauncher(Mutex::new(None)))
         .manage(BunVersion(Mutex::new(None)))
+        .manage(ActionLock(Mutex::new(())))
+        .manage(StartupNotice(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             servers_status,
             servers_start,
@@ -338,6 +380,8 @@ fn main() {
                 state_port: port("BACKGROUND_STATE_PORT", &ports_source)?,
                 root,
             });
+            let handle = app.handle().clone();
+            thread::spawn(move || start_on_launch(&handle));
             Ok(())
         })
         .build(tauri::generate_context!())

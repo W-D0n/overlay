@@ -5,7 +5,7 @@
  * Pur : l'état vient de la commande `servers_status` de l'application (src/main.rs). Les trois boutons sont
  * indépendants : chacun est actif quand son geste a un sens, et dit pourquoi il ne l'est pas sinon.
  *
- * @typedef {{ bun: string | null, staticPort: number, statePort: number, staticUp: boolean, stateUp: boolean, stateAnswers: boolean }} ServersStatus
+ * @typedef {{ bun: string | null, staticPort: number, statePort: number, staticUp: boolean, stateUp: boolean, stateAnswers: boolean, busy: boolean, notice: string | null }} ServersStatus
  * @typedef {'stopped' | 'running' | 'partial' | 'foreign'} Phase
  * @typedef {{ disabled: boolean, reason: string }} ButtonState
  */
@@ -26,6 +26,7 @@ export function phaseOf(status) {
  */
 export function describeServers(status) {
   const phase = phaseOf(status);
+  if (status.busy) return { phase, tone: 'off', headline: 'Opération en cours…', detail: '' };
   if (phase === 'running') return { phase, tone: 'ok', headline: 'Serveurs en marche', detail: '' };
   if (phase === 'stopped') {
     return {
@@ -47,6 +48,7 @@ export function describeServers(status) {
  * @returns {{ start: ButtonState, restart: ButtonState, stop: ButtonState, studio: ButtonState }}
  */
 export function buttonStates(status, busy) {
+  busy = busy || status.busy;
   const phase = phaseOf(status);
   /** @param {boolean} allowed @param {string} reason */
   const button = (allowed, reason) => ({ disabled: busy || !allowed, reason: busy ? 'Action en cours…' : (allowed ? '' : reason) });

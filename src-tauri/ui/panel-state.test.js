@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { buttonStates, describeServers, phaseOf } from './panel-state.js';
 
-const status = (overrides = {}) => ({ bun: '1.3.4', staticPort: 5931, statePort: 5932, staticUp: false, stateUp: false, stateAnswers: false, ...overrides });
+const status = (overrides = {}) => ({ bun: '1.3.4', staticPort: 5931, statePort: 5932, staticUp: false, stateUp: false, stateAnswers: false, busy: false, notice: null, ...overrides });
 const RUNNING = status({ staticUp: true, stateUp: true, stateAnswers: true });
 
 describe('phaseOf', () => {
@@ -65,5 +65,18 @@ describe('describeServers', () => {
     expect(describeServers(status({ bun: null })).detail).toContain('https://bun.sh');
     expect(describeServers(status({ staticUp: true }))).toMatchObject({ tone: 'bad', headline: 'Un seul serveur répond' });
     expect(describeServers(status({ staticUp: true, stateUp: true })).detail).toContain('5931');
+  });
+});
+
+describe('opération en cours (démarrage à l’ouverture ou geste du panneau)', () => {
+  test('l’état « en cours » du serveur verrouille tous les boutons, même sans action locale', () => {
+    const states = buttonStates(status({ busy: true }), false);
+    expect(Object.values(states).every((state) => state.disabled)).toBe(true);
+    expect(states.start.reason).toBe('Action en cours…');
+  });
+
+  test('il se dit à la place de « arrêtés », sans prétendre que les serveurs sont arrêtés', () => {
+    expect(describeServers(status({ busy: true })).headline).toBe('Opération en cours…');
+    expect(describeServers(status({ busy: true, staticUp: true, stateUp: true, stateAnswers: true })).headline).toBe('Opération en cours…');
   });
 });

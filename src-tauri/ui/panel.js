@@ -25,6 +25,8 @@ function say(text, failed = false) {
 
 function paint() {
   if (status === null) return;
+  // Un échec du démarrage à l'ouverture reste affiché tant qu'aucun geste ne l'a effacé.
+  if (!busy && status.notice !== null && byId('message').textContent === '') say(status.notice, true);
   const summary = describeServers(status);
   byId('status').dataset.tone = summary.tone;
   byId('headline').textContent = summary.headline;
