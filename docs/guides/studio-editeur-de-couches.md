@@ -61,6 +61,21 @@ Vos modifications forment un **brouillon** : l'antenne (ce que voit OBS) ne chan
 - Le bouton **Historique** de l'en-tête liste les états qui ont quitté l'antenne et permet d'en remettre un
   (avec confirmation, car cela agit en direct).
 
+### Le rendu OBS, à côté de l'aperçu
+
+Le bouton « Rendu OBS » de la barre de vue ouvre une fenêtre qui charge **la vraie page de rendu**
+(`background.html`, celle de la Browser Source) et montre l'**antenne** en direct. L'aperçu d'édition montre le
+brouillon ; cette fenêtre montre ce que reçoit OBS par le chemin exact d'OBS : tout écart entre les deux se voit.
+Elle affiche aussi le nombre de **sources OBS réellement connectées** (la fenêtre elle-même ne compte pas parmi
+elles). Fermée, la page est déchargée et ne coûte rien.
+
+### Ce que coûte chaque couche
+
+Chaque effet affiche dans la pile le temps que prend son dessin à chaque image, et l'en-tête de la pile donne le
+total de la scène. Vert/neutre : léger ; or : à surveiller ; rouge : une seule couche prend plus de 30 % du budget
+d'une image à 60 i/s. Une couche masquée est signalée « aucun coût ». C'est une mesure **relative prise dans le
+Studio** : elle dit quelle couche pèse, pas ce que fera OBS — vérifiez dans OBS avant de charger une scène.
+
 ## 5. L'historique d'édition
 
 Le bouton horloge de la pile (ou « Historique d'édition… » dans la palette) liste **toutes les étapes de
