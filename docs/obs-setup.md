@@ -1,6 +1,6 @@
 ---
 created: 2026-07-03
-updated: 2026-10-29
+updated: 2026-10-30
 ---
 
 # Configuration OBS — fond autonome
@@ -26,7 +26,7 @@ Les ports se changent dans `ports.config.js` (`STATIC_PORT`, `BACKGROUND_STATE_P
 
 1. **Sources → + → Navigateur**, nom libre.
 2. **URL** : `http://localhost:5931/background.html` (fond courant) ou, pour un preset précis,
-   l'URL copiée depuis le Studio (`?preset=<id>`).
+   l'URL copiée depuis le Studio (`?preset=<id>` ; `?scene=<id>` est accepté comme synonyme).
 3. **Largeur × hauteur** : `1920 × 1080`, le canvas de référence du projet.
 4. **Désactiver la source quand elle n'est pas visible** : décoché, pour que l'effet garde son état.
 5. **Rafraîchir le navigateur quand la scène devient active** : voir la case 5 du QA court dans

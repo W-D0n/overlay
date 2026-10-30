@@ -2,7 +2,7 @@
 /**
  * render-url.js — Contrat d'URL de la page de rendu (`background.html`) : un seul module lit et construit.
  *
- * Paramètres : `preset` (id stable ou ancien nom), `branding` (`off` | `only`), `transparent=1`,
+ * Paramètres : `preset` (id stable ou ancien nom) ou son synonyme `scene` (`preset` l'emporte s'il est renseigné), `branding` (`off` | `only`), `transparent=1`,
  * `quality=performance`. Une valeur inconnue retombe sur la valeur neutre : l'URL d'une Browser Source
  * ancienne doit toujours s'afficher.
  *
@@ -17,7 +17,7 @@
  */
 export function parseRenderUrl(search = '') {
   const params = new URLSearchParams(search);
-  const preset = params.get('preset');
+  const preset = params.get('preset') || params.get('scene');
   const brandingParam = params.get('branding');
   /** @type {BrandingMode} */
   const branding = brandingParam === 'off' || brandingParam === 'only' ? brandingParam : 'on';

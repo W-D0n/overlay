@@ -12,6 +12,10 @@ describe('lecture du contrat d’URL de la page de rendu', () => {
     expect(parseRenderUrl('?preset=discussion-calme&transparent=1'))
       .toEqual({ presetRef: 'discussion-calme', branding: 'on', transparent: true, quality: 'auto' });
     expect(parseRenderUrl('?preset=Discussion%20calme').presetRef).toBe('Discussion calme');
+    expect(parseRenderUrl('?scene=discussion-calme&transparent=1'))
+      .toEqual({ presetRef: 'discussion-calme', branding: 'on', transparent: true, quality: 'auto' });
+    expect(parseRenderUrl('?preset=a&scene=b').presetRef).toBe('a');
+    expect(parseRenderUrl('?preset=&scene=b').presetRef).toBe('b');
     expect(parseRenderUrl('?quality=performance').quality).toBe('performance');
     expect(parseRenderUrl('?branding=off').branding).toBe('off');
   });

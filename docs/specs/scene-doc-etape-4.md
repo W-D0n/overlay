@@ -123,7 +123,8 @@ Le branding reste une surcouche globale (état séparé, `showBranding` par scè
    un état qu'aucune couche ne peut afficher (effet inconnu) laisse le fond en place.
 5. **4e** Routage audio et réactions par capacités ; test de contrat : une scène à trois couches reçoit
    **un seul** dessin de réaction.
-6. **4f** `?scene=` (synonyme), documentation, `CLAUDE.md` (surfaces partagées : `scene-doc.js`).
+6. **4f — livré** : `render-url.js` lit `?scene=<id>` comme synonyme de `?preset=<id>` (`preset` l'emporte s'il est renseigné ;
+   les URL construites restent en `?preset=`). `CLAUDE.md` mentionne déjà `scene-doc.js` / `scene-runtime.js`.
 
 ## Critères de succès (chacun observé, pas déduit)
 
@@ -149,7 +150,9 @@ Le branding reste une surcouche globale (état séparé, `showBranding` par scè
   Lecture : la première couche coûte (0,3 → 0,7 ms) ; les suivantes ne se distinguent pas du bruit (CPU de 8 couches dans
   la fourchette de 1 couche, aucune image manquée). Aucun signe contraire à la borne de 8. Réserve : le dock Statistiques
   mesure le processus OBS ; hypothèse, la page de la Browser Source tourne dans un sous-processus (`obs-browser-page.exe`)
-  que ce CPU peut ne pas inclure. Complément à relever : CPU et GPU de ce sous-processus au Gestionnaire des tâches pour 0, 3 et 8 couches.
+  que ce CPU peut ne pas inclure. **Complément (sous-processus `obs-browser-page.exe`, Gestionnaire des tâches, 8 couches)** : CPU 1,4 % au plus, GPU 7 %,
+  RAM de 52,7 à 62,7 Mo à l'activation. La borne de 8 tient sur ces relevés ; les relevés 3 couches et couche masquée
+  du sous-processus ne sont pas faits.
 - Changement de scène à transition : aucun empilement, une seule scène à la fin (cas déjà au QA, case 5).
 - Une page OBS **non rafraîchie** après la bascule du fichier continue d'afficher le fond ou, au pire, garde
   son dernier état sans erreur ; rafraîchie, elle lit la version 3.
@@ -181,4 +184,5 @@ branding en couche (D1) ; renommage `background.html` → `render.html` (décisi
    refaire une migration à l'étape 6. L'interface continue de dire « preset » jusqu'à l'éditeur.
 3. **D3 — Unités du placement : fractions du canvas (retenu par l'owner, 2026-10-30).** La résolution cible
    n'est pas figée à 1080p : un placement en fractions n'a pas à être migré si la source passe en 1440p.
-4. **D4 — Borne de couches : 8 (proposé).** Valeur de garde, à réviser après la mesure de charge.
+4. **D4 — Borne de couches : 8 (maintenue après mesure OBS, 2026-10-30).** Valeur de garde ; à 8 couches pleine taille
+   le sous-processus de la page reste à 1,4 % de CPU et 7 % de GPU.
