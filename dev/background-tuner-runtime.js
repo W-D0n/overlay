@@ -10,6 +10,7 @@ import { createHistoryController } from './history-controller.js';
 import { createLayersPanelController } from './layers-panel-controller.js';
 import { createLayerInspectorController } from './layer-inspector-controller.js';
 import { createCanvasOverlayController } from './canvas-overlay-controller.js';
+import { createViewAidsController } from './view-aids-controller.js';
 import { isIdentityKind } from '../layer-kinds.js';
 import { BACKGROUND_COMPONENT_NAMES, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
 import { createPresetDraftSync } from './preset-draft-sync.js';
@@ -174,6 +175,24 @@ export async function startBackgroundTuner(environment = {}) {
     studio: preview.document,
     isIdentity: isIdentityKind,
     report,
+    documentRef,
+    windowRef,
+  });
+
+  const viewAids = createViewAidsController({
+    area: byId('stage-area'),
+    stage,
+    canvasOverlay,
+    elements: {
+      zoomOut: /** @type {HTMLButtonElement} */ (byId('view-zoom-out')),
+      zoomIn: /** @type {HTMLButtonElement} */ (byId('view-zoom-in')),
+      zoomLabel: /** @type {HTMLButtonElement} */ (byId('view-zoom-label')),
+      zoom100: /** @type {HTMLButtonElement} */ (byId('view-zoom-100')),
+      snap: /** @type {HTMLButtonElement} */ (byId('view-snap')),
+      grid: /** @type {HTMLButtonElement} */ (byId('view-grid')),
+      rulers: /** @type {HTMLButtonElement} */ (byId('view-rulers')),
+      safe: /** @type {HTMLButtonElement} */ (byId('view-safe')),
+    },
     documentRef,
     windowRef,
   });
@@ -343,6 +362,7 @@ export async function startBackgroundTuner(environment = {}) {
   });
 
   function destroy() {
+    viewAids.destroy();
     canvasOverlay.destroy();
     layersPanel.destroy();
     antenna.destroy();
@@ -353,5 +373,5 @@ export async function startBackgroundTuner(environment = {}) {
     preview.destroy();
   }
   windowRef.addEventListener('beforeunload', destroy, { once: true });
-  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls, layersPanel, layerInspector, canvasOverlay };
+  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls, layersPanel, layerInspector, canvasOverlay, viewAids };
 }

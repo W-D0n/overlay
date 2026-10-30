@@ -48,7 +48,7 @@ export function createCanvasOverlayController(input) {
   const { editor } = studio;
 
   /** Marge de sécurité proposée comme cible d'aimantation, en pixels de la source, ou `null`. */
-  let safeMargin = /** @type {number | null} */ (null);
+  let safeMargin = /** @type {{ x: number, y: number } | null} */ (null);
   let snapEnabled = true;
   let spaceDown = false;
   /** @type {string | null} */
@@ -453,7 +453,7 @@ export function createCanvasOverlayController(input) {
     /** Active ou non l'aimantation. @param {boolean} enabled */
     setSnapEnabled(enabled) { snapEnabled = enabled; },
     isSnapEnabled: () => snapEnabled,
-    /** Propose les marges de sécurité comme cibles d'aimantation (pixels de la source), ou `null`. @param {number | null} margin */
+    /** Propose les marges de sécurité comme cibles d'aimantation (pixels de la source, par axe), ou `null`. @param {{ x: number, y: number } | null} margin */
     setSafeMargin(margin) { safeMargin = margin; },
     destroy() {
       documentRef.removeEventListener('keydown', onKeyDown);

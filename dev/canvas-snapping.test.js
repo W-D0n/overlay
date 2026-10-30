@@ -14,6 +14,13 @@ describe('collectTargets', () => {
     expect(margins.ys.filter((t) => t.kind === 'margin').map((t) => t.pos)).toEqual([96, 984]);
   });
 
+  test('la marge peut différer selon l’axe (5 % de chaque dimension) ; un retrait nul ne crée aucune cible', () => {
+    const margins = collectTargets({ canvas: CANVAS, others: [], margin: { x: 96, y: 54 } });
+    expect(margins.xs.filter((t) => t.kind === 'margin').map((t) => t.pos)).toEqual([96, 1824]);
+    expect(margins.ys.filter((t) => t.kind === 'margin').map((t) => t.pos)).toEqual([54, 1026]);
+    expect(collectTargets({ canvas: CANVAS, others: [], margin: { x: 0, y: 54 } }).xs).toHaveLength(3);
+  });
+
   test('chaque autre couche apporte ses bords et son centre', () => {
     const targets = collectTargets({ canvas: CANVAS, others: [R(100, 200, 300, 100)] });
     expect(targets.xs.filter((t) => t.kind.startsWith('layer')).map((t) => t.pos)).toEqual([100, 250, 400]);

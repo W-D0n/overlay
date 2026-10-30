@@ -22,11 +22,14 @@ const ALIGNED_EPSILON = 0.5;
  * @param {{
  *   canvas: { width: number, height: number },
  *   others: readonly Rect[],
- *   margin?: number | null,
- * }} input `margin` : retrait des marges de sécurité en pixels de la source, ou `null` pour ne pas en proposer
+ *   margin?: number | { x: number, y: number } | null,
+ * }} input `margin` : retrait des marges de sécurité en pixels de la source (un nombre pour les deux axes, ou un retrait par
+ * axe), ou `null` pour ne pas en proposer
  * @returns {{ xs: Target[], ys: Target[] }}
  */
 export function collectTargets({ canvas, others, margin = null }) {
+  const marginX = margin === null ? 0 : typeof margin === 'number' ? margin : margin.x;
+  const marginY = margin === null ? 0 : typeof margin === 'number' ? margin : margin.y;
   /** @type {Target[]} */
   const xs = [
     { pos: 0, kind: 'canvas-edge', span: [0, canvas.height] },
@@ -39,10 +42,8 @@ export function collectTargets({ canvas, others, margin = null }) {
     { pos: canvas.height / 2, kind: 'canvas-center', span: [0, canvas.width] },
     { pos: canvas.height, kind: 'canvas-edge', span: [0, canvas.width] },
   ];
-  if (margin !== null && margin > 0) {
-    xs.push({ pos: margin, kind: 'margin', span: [0, canvas.height] }, { pos: canvas.width - margin, kind: 'margin', span: [0, canvas.height] });
-    ys.push({ pos: margin, kind: 'margin', span: [0, canvas.width] }, { pos: canvas.height - margin, kind: 'margin', span: [0, canvas.width] });
-  }
+  if (marginX > 0) xs.push({ pos: marginX, kind: 'margin', span: [0, canvas.height] }, { pos: canvas.width - marginX, kind: 'margin', span: [0, canvas.height] });
+  if (marginY > 0) ys.push({ pos: marginY, kind: 'margin', span: [0, canvas.width] }, { pos: canvas.height - marginY, kind: 'margin', span: [0, canvas.width] });
   for (const rect of others) {
     xs.push(
       { pos: rect.x, kind: 'layer-edge', span: [rect.y, rect.y + rect.height] },

@@ -145,6 +145,21 @@
     .co-guide { position: absolute; background: #E26FB4; }
     .co-guide-canvas-edge, .co-guide-margin { background: var(--color-gold); }
     .co-readout { position: absolute; transform: translateX(-50%); padding: 2px 6px; background: var(--color-bg); border: 1px solid var(--color-gold-dim); color: var(--color-gold); font-size: var(--text-xs); white-space: nowrap; pointer-events: none; }
+
+    /* ── Barre de vue et aides ──────────────────────────────────────── */
+    .view-bar { position: absolute; left: var(--space-sm); bottom: var(--space-sm); z-index: 7; display: flex; flex-wrap: wrap; gap: 2px; padding: 2px; background: rgba(8, 8, 8, .85); border: 1px solid var(--color-rule-mid); }
+    .view-bar button { padding: 2px 8px; font-size: var(--text-xs); border-color: transparent; color: var(--color-text-mid); background: transparent; cursor: pointer; }
+    .view-bar button:hover:not(:disabled) { color: var(--color-gold); border-color: var(--color-gold-dim); }
+    .view-bar button[aria-pressed="true"] { color: var(--color-gold); }
+    .view-bar button:disabled { opacity: .35; cursor: default; }
+    .view-bar-gap { width: var(--space-sm); }
+    .va-grid { position: absolute; z-index: 3; pointer-events: none; background-image: linear-gradient(to right, rgba(200, 185, 122, .16) 1px, transparent 1px), linear-gradient(to bottom, rgba(200, 185, 122, .16) 1px, transparent 1px); }
+    .va-safe { position: absolute; z-index: 3; box-sizing: border-box; pointer-events: none; border: 1px dashed rgba(200, 185, 122, .45); }
+    .va-safe-action { border-color: rgba(200, 185, 122, .25); }
+    .va-ruler { position: absolute; z-index: 6; pointer-events: none; }
+    .va-ruler-x { left: 0; top: 0; }
+    .va-ruler-y { left: 0; top: 0; }
+    .va-grid[hidden], .va-safe[hidden], .va-ruler[hidden] { display: none; }
     #layer-gallery { max-width: min(720px, 92vw); }
     .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: var(--space-sm); padding: var(--space-md); }
     .gallery-card { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); color: var(--color-text-primary); cursor: pointer; text-align: left; }
@@ -730,7 +745,19 @@
     <div class="runtime-row">
       <span id="runtime-status">FPS —</span>
     </div>
-      <div id="stage-area"><div id="bg-layer"></div><div id="canvas-overlay" class="canvas-overlay"></div></div>
+      <div id="stage-area"><div id="bg-layer"></div><div id="canvas-overlay" class="canvas-overlay"></div>
+        <div class="view-bar" role="toolbar" aria-label="Vue de l’aperçu">
+          <button id="view-zoom-out" type="button" title="Dézoomer (−)" aria-label="Dézoomer">−</button>
+          <button id="view-zoom-label" type="button" title="Ajuster à la zone (0)">Ajusté</button>
+          <button id="view-zoom-in" type="button" title="Zoomer (+)" aria-label="Zoomer">+</button>
+          <button id="view-zoom-100" type="button" title="Taille réelle de la source (1)">100 %</button>
+          <span class="view-bar-gap"></span>
+          <button id="view-snap" type="button" title="Aimantation aux bords, centres et autres couches (Ctrl tenu : suspendue)" aria-pressed="true">Aimant</button>
+          <button id="view-grid" type="button" title="Grille de 120 px" aria-pressed="false">Grille</button>
+          <button id="view-rulers" type="button" title="Règles en pixels de la source" aria-pressed="false">Règles</button>
+          <button id="view-safe" type="button" title="Zones de sécurité (5 % et 2,5 %), aussi cibles d’aimantation" aria-pressed="false">Sécurité</button>
+        </div>
+      </div>
     </section>
 
     <aside id="inspector" class="inspector" aria-label="Réglages du preset">
