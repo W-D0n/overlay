@@ -1,44 +1,21 @@
 // @ts-check
 /**
- * dev/server-control.js — Textes et décisions du menu « Serveurs » du Studio (docs/specs/controle-processus.md).
+ * dev/server-control.js — Messages des boutons « Redémarrer » et « Arrêter » du Studio (docs/specs/controle-processus.md).
  *
- * Pur : ce que dit la confirmation selon qu'une source OBS affiche le fond, et comment lire la réponse
- * du serveur. Le Studio ne peut pas redémarrer ce qu'il arrête : le message le dit.
+ * Pur : comment lire un refus ou un silence du serveur. Le message dit la cause réelle (code HTTP, texte du serveur ou
+ * de la connexion) : un refus ne doit jamais se réduire à une phrase qui ne permet pas de savoir quoi corriger.
  */
 
 /**
- * @param {'restart' | 'stop'} action
- * @param {number | null} renderPages pages de rendu connectées (`null` : inconnu)
- * @returns {{ title: string, warning: string | null, confirmLabel: string }}
- */
-export function controlPrompt(action, renderPages) {
-  const live = renderPages !== null && renderPages > 0;
-  if (action === 'restart') {
-    return {
-      title: 'Redémarrer les serveurs ?',
-      warning: live
-        ? 'Une source OBS affiche le fond : elle restera noire quelques secondes, puis se reconnectera seule.'
-        : null,
-      confirmLabel: 'Redémarrer',
-    };
-  }
-  return {
-    title: 'Arrêter les serveurs ?',
-    warning: live
-      ? 'Une source OBS affiche le fond : elle restera noire tant que les serveurs sont arrêtés. Le Studio ne peut pas les relancer : utilise start-stream.bat.'
-      : 'Le Studio ne peut pas relancer les serveurs : utilise start-stream.bat.',
-    confirmLabel: 'Arrêter',
-  };
-}
-
-/**
- * Message à afficher quand le serveur refuse ou ne répond pas à la demande.
- * @param {number | null} status code HTTP, `null` si le serveur est injoignable
+ * @param {number | null} status code HTTP, `null` si le serveur n'a pas répondu
+ * @param {string} [detail] texte de l'erreur (réponse du serveur ou de la connexion)
  * @returns {string}
  */
-export function controlFailure(status) {
+export function controlFailure(status, detail = '') {
   if (status === 501) return 'Ce serveur n’a pas été lancé par start-stream : il ne peut pas être piloté d’ici.';
   if (status === 403) return 'Demande refusée : origine non autorisée.';
   if (status === 404) return 'Ce serveur est antérieur à cette fonction : relance-le une fois avec start-stream.bat.';
-  return 'Le serveur n’a pas accepté la demande.';
+  const reason = detail === '' ? '' : ` : ${detail}`;
+  if (status === null) return `Le serveur n’a pas répondu${reason}.`;
+  return `Le serveur a refusé la demande (HTTP ${status})${reason}.`;
 }

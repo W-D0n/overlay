@@ -19,7 +19,7 @@ use std::time::{Duration, Instant};
 use tauri::menu::{CheckMenuItemBuilder, MenuBuilder, MenuItemBuilder, SubmenuBuilder};
 use tauri::{AppHandle, Manager, RunEvent, WebviewUrl, WebviewWindowBuilder};
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 const SERVERS_READY_TIMEOUT: Duration = Duration::from_secs(20);
@@ -193,15 +193,6 @@ fn reload_studio(app: &AppHandle) {
     }
 }
 
-fn confirm(app: &AppHandle, title: &str, message: &str, label: &str) -> bool {
-    app.dialog()
-        .message(message)
-        .title(title)
-        .kind(MessageDialogKind::Warning)
-        .buttons(MessageDialogButtons::OkCancelCustom(label.to_string(), "Annuler".to_string()))
-        .blocking_show()
-}
-
 /// Gestes du menu « Serveurs », hors du fil de l'interface : ils attendent des processus.
 fn run_server_action(app: AppHandle, id: String) {
     thread::spawn(move || match id.as_str() {
@@ -210,20 +201,13 @@ fn run_server_action(app: AppHandle, id: String) {
             Err(message) => alert(&app, "Démarrage impossible", &message),
         },
         RESTART_MENU_ID => {
-            if !confirm(&app, "Redémarrer les serveurs ?", "Une source OBS qui affiche le fond restera noire quelques secondes, puis se reconnectera seule.", "Redémarrer") {
-                return;
-            }
             stop_everything(&app);
             match ensure_servers(&app) {
                 Ok(()) => reload_studio(&app),
                 Err(message) => alert(&app, "Redémarrage impossible", &message),
             }
         }
-        STOP_MENU_ID => {
-            if confirm(&app, "Arrêter les serveurs ?", "Arrêt forcé : le fond des sources OBS restera noir tant que les serveurs sont arrêtés. Relance-les par « Serveurs > Démarrer ».", "Arrêter") {
-                stop_everything(&app);
-            }
-        }
+        STOP_MENU_ID => stop_everything(&app),
         _ => {}
     });
 }

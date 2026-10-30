@@ -1,39 +1,36 @@
 // @ts-check
-import { controlFailure, controlPrompt } from './server-control.js';
+import { controlFailure } from './server-control.js';
 
 const RECONNECT_POLL_MS = 1000;
 const RECONNECT_MAX_TRIES = 30;
 
 /**
- * Menu « Serveurs » : Redémarrer / Arrêter, avec confirmation. Les décisions de texte sont dans
- * `server-control.js` ; ce module peint le DOM et relaie la demande.
+ * Boutons « Redémarrer » et « Arrêter » de la barre du Studio : un clic agit, sans menu ni confirmation. Les messages
+ * d'échec sont dans `server-control.js` ; ce module relaie la demande et dit où elle en est.
  *
  * @param {{
  *   root: HTMLElement,
- *   toggle: HTMLButtonElement,
- *   panel: HTMLElement,
  *   status: HTMLElement,
  *   client: {
  *     control(action: 'restart' | 'stop'): Promise<unknown>,
  *     readObsStatus(): Promise<unknown>,
  *   },
- *   getRenderPages: () => number | null,
- *   documentRef?: Document,
  *   windowRef?: Window,
  * }} input
  */
 export function createServerControlController(input) {
-  const documentRef = input.documentRef ?? document;
   const windowRef = input.windowRef ?? window;
+  const buttons = /** @type {HTMLButtonElement[]} */ ([...input.root.querySelectorAll('[data-control]')]);
 
-  function closePanel() {
-    input.panel.hidden = true;
-    input.toggle.setAttribute('aria-expanded', 'false');
+  /** @param {string} message @param {boolean} [failed] */
+  function say(message, failed = false) {
+    input.status.textContent = message;
+    input.status.dataset.tone = failed ? 'bad' : 'info';
   }
 
-  /** @param {string} message */
-  function say(message) {
-    input.status.textContent = message;
+  /** @param {boolean} busy */
+  function setBusy(busy) {
+    for (const button of buttons) button.disabled = busy;
   }
 
   async function waitForServer() {
@@ -51,6 +48,7 @@ export function createServerControlController(input) {
 
   /** @param {'restart' | 'stop'} action */
   async function run(action) {
+    setBusy(true);
     say(action === 'restart' ? 'Redémarrage en cours…' : 'Arrêt en cours…');
     try {
       await input.client.control(action);
@@ -58,52 +56,28 @@ export function createServerControlController(input) {
       const status = typeof error === 'object' && error !== null && 'status' in error
         ? /** @type {{ status: number | null }} */ (error).status
         : null;
-      say(controlFailure(status));
+      say(controlFailure(status, error instanceof Error ? error.message : String(error)), true);
+      setBusy(false);
       return;
     }
     if (action === 'stop') {
-      say('Serveurs arrêtés. Pour les relancer : start-stream.bat.');
+      say('Serveurs arrêtés. Pour les relancer : start-stream.bat ou l’application.');
       return;
     }
-    say((await waitForServer()) ? 'Serveurs redémarrés.' : 'Le serveur n’est pas revenu : relance start-stream.bat.');
+    if (!(await waitForServer())) {
+      say('Le serveur n’est pas revenu : relance start-stream.bat.', true);
+      setBusy(false);
+      return;
+    }
     windowRef.location.reload();
   }
 
-  /** @param {'restart' | 'stop'} action */
-  function ask(action) {
-    const prompt = controlPrompt(action, input.getRenderPages());
-    input.status.replaceChildren();
-    const title = documentRef.createElement('strong');
-    title.textContent = prompt.title;
-    input.status.appendChild(title);
-    if (prompt.warning !== null) {
-      const warning = documentRef.createElement('p');
-      warning.textContent = prompt.warning;
-      input.status.appendChild(warning);
-    }
-    const confirm = documentRef.createElement('button');
-    confirm.type = 'button';
-    confirm.textContent = prompt.confirmLabel;
-    confirm.onclick = () => { confirm.disabled = true; run(action); };
-    const cancel = documentRef.createElement('button');
-    cancel.type = 'button';
-    cancel.textContent = 'Annuler';
-    cancel.onclick = () => { input.status.replaceChildren(); closePanel(); };
-    input.status.append(confirm, cancel);
-  }
-
-  input.toggle.onclick = () => {
-    const opening = input.panel.hidden;
-    input.panel.hidden = !opening;
-    input.toggle.setAttribute('aria-expanded', String(opening));
-    if (opening) input.status.replaceChildren();
-  };
-  for (const button of input.panel.querySelectorAll('[data-control]')) {
+  for (const button of buttons) {
     button.addEventListener('click', () => {
       const action = button.getAttribute('data-control');
-      if (action === 'restart' || action === 'stop') ask(action);
+      if (action === 'restart' || action === 'stop') run(action);
     });
   }
 
-  return { closePanel };
+  return { run };
 }

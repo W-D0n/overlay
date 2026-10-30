@@ -136,14 +136,10 @@ export async function startBackgroundTuner(environment = {}) {
     });
   }
 
-  const serverControl = createServerControlController({
+  createServerControlController({
     root: byId('servers'),
-    toggle: byId('servers-toggle'),
-    panel: byId('servers-panel'),
     status: byId('servers-status'),
     client,
-    getRenderPages: () => antenna.renderPages(),
-    documentRef,
     windowRef,
   });
 
@@ -268,7 +264,6 @@ export async function startBackgroundTuner(environment = {}) {
 
   function destroy() {
     antenna.destroy();
-    serverControl.closePanel();
     diagnostic.destroy();
     history.destroy();
     stage.destroy();

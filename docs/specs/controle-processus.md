@@ -40,12 +40,12 @@ pas boucler pendant un live).
 qu'une page étrangère ne passe pas. **Aucune route ne tue un processus par son numéro** : le serveur ne
 demande que sa propre sortie.
 
-### C3. Garde-fou pour le direct
+### C3. Pas de confirmation (décision de l'owner, 2026-10-30)
 
-Si `GET /live-status` indique des pages de rendu connectées (une source OBS affiche le fond), arrêter ou
-redémarrer **demande confirmation** et nomme la conséquence : « Une source OBS affiche le fond : elle restera
-noire jusqu'au retour du serveur » (la page de rendu se reconnecte seule, `render-transport.js`). Après un
-redémarrage, le Studio se reconnecte seul (attente + bandeau Antenne).
+Arrêter et redémarrer **agissent au clic**, sans confirmation : l'owner les juge inutiles. La conséquence (une source
+OBS affichant le fond reste noire jusqu'au retour du serveur) est celle de l'action demandée ; la page de rendu se
+reconnecte seule (`render-transport.js`). Après un redémarrage, le Studio se reconnecte seul (attente puis rechargement).
+Un refus ou un silence du serveur affiche sa cause réelle (code HTTP et texte), jamais une phrase vague.
 
 ### C4. Remplacer `kill-servers.bat`
 
@@ -56,8 +56,8 @@ silencieux avant un live (règle déjà posée dans `start-stream.js`). `kill-se
 
 ### C5. Où cela apparaît dans le Studio
 
-Dans l'en-tête, à droite du bandeau Antenne : un bouton « Serveurs » ouvrant un menu **Redémarrer** /
-**Arrêter**, avec la confirmation de C3. Sans serveur, il n'y a pas de Studio : l'état « arrêté » se constate
+Dans l'en-tête, à droite du bandeau Antenne : deux boutons **Redémarrer** et **Arrêter**, autonomes (ni menu ni
+confirmation, voir C3). Il n'y a pas de bouton « Démarrer » dans le Studio : sans serveur, il n'y a pas de Studio : l'état « arrêté » se constate
 depuis le lanceur ou la coquille (D1).
 
 ## Ordre de livraison
@@ -66,17 +66,17 @@ depuis le lanceur ou la coquille (D1).
    `/control/stop`, avec tests d'intégration (arrêt à `0`, relance à `75`, 501 hors lanceur, refus sans en-tête
    et d'une autre origine) et preuve de bout en bout (les deux PID changent au redémarrage, zéro port à l'arrêt).
 2. **C4 — partiellement livré** : `kill-servers` demande l'arrêt au lanceur avant de tuer (`dev/stop-servers.js`) ; l'invite « remplacer l'instance ? » au lancement de `start-stream` reste à faire.
-3. **C5 + C3 — livré** : menu « Serveurs » du Studio (Redémarrer / Arrêter), confirmation qui nomme la source OBS connectée ; vérifié de bout en bout (les deux PID changent au redémarrage, zéro port après l'arrêt).
+3. **C5 + C3 — livré** : boutons Redémarrer et Arrêter du Studio, sans confirmation (2026-10-30) ; vérifié de bout en bout (les deux PID changent au redémarrage, zéro port après l'arrêt).
 4. **Coquille Tauri — livrée** (`src-tauri/`) : lance `bun dev/start-stream.js` à l'ouverture, ouvre le Studio, arrête le
    lanceur et ses enfants à la fermeture, s'attache sans rien arrêter si les serveurs tournent déjà, instance unique.
    Menu Application > « Lancer au démarrage de Windows », décoché par défaut (valeur `Run` absente du registre à
    l'installation). Ports : `STATIC_PORT` / `BACKGROUND_STATE_PORT`, sinon `ports.config.js`. Redémarrer / Arrêter
-   restent dans le menu « Serveurs » du Studio. Non éprouvé : le clic sur la case de démarrage Windows, et un exécutable
+   sont les deux boutons de la barre du Studio. Non éprouvé : le clic sur la case de démarrage Windows, et un exécutable
    sans Bun (phase 2 de `zero-install-local-first.md`).
 5. **Application enrichie — livrée** : prérequis vérifiés au lancement (Bun absent → message avec l'adresse
    d'installation, puis sortie ; port tenu par un autre programme → message qui le dit, sans rien lancer) ; menu natif
    « Serveurs » (Démarrer, Redémarrer, Arrêter forcé) qui agit sans passer par la page, donc même quand elle ne
-   répond plus, avec confirmation ; arrêt forcé = lanceur de l'application puis `kill-servers` (jamais un programme
+   répond plus, sans confirmation (2026-10-30) ; arrêt forcé = lanceur de l'application puis `kill-servers` (jamais un programme
    étranger au projet). Non éprouvé par un clic : les entrées du menu natif (les gestes sous-jacents le sont).
 6. **Diagnostic — livré** : bouton « Diagnostic » du Studio ; contrôles serveurs, connexion OBS, source navigateur
    (présente, bon port), scène active (le fond y est-il visible ?), page de rendu, scènes associées (renommées ou
@@ -94,13 +94,12 @@ depuis le lanceur ou la coquille (D1).
 - Un serveur lancé directement refuse l'arrêt (501) au lieu de mourir sans lanceur.
 - Un second `start-stream` pendant qu'un premier tourne nomme l'instance en place et demande avant de la
   remplacer ; il ne touche pas un port tenu par un autre programme.
-- Pendant qu'une source OBS est connectée, l'arrêt demande confirmation.
 
 ## Risques
 
 | Risque | Parade |
 |---|---|
-| Un bouton qui coupe le fond en plein direct | Confirmation C3 nommant la conséquence ; la page de rendu se reconnecte seule |
+| Un bouton qui coupe le fond en plein direct | Assumé par l'owner (pas de confirmation, C3) ; la page de rendu se reconnecte seule |
 | Boucle de redémarrage | Limite de 3 relances en 60 s, puis arrêt avec message |
 | Une page étrangère déclenche l'arrêt | Loopback + origine + en-tête personnalisé ; la route n'accepte que POST |
 | Processus orphelin après un crash | Job Object existant ; C4 propose le remplacement au lancement suivant |
@@ -114,5 +113,4 @@ depuis le lanceur ou la coquille (D1).
    « ne pas engager Tauri » de `zero-install-local-first.md` est levée ; Tauri est un outil de packaging (permis
    par `CLAUDE.md` §1, amendement du 2026-10-29) ; la coquille lance d'abord `bun dev/start-stream.js` (phase
    « Bun présent »), l'exécutable sans Bun (phase 2 de la spec zéro-installation) venant ensuite.
-2. **D2 — Arrêt en direct** : confirmation (proposé) ou blocage tant qu'une source est connectée ?
-   *Recommandation : confirmation.*
+2. **D2 — Arrêt en direct** : tranché par l'owner le 2026-10-30 : aucune confirmation, aucun blocage.

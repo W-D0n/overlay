@@ -455,26 +455,11 @@
     .diagnostic-check[data-tone="ok"] .diagnostic-mark { color: var(--color-gold); }
     .diagnostic-check[data-tone="bad"] .diagnostic-mark, .diagnostic-check[data-tone="bad"] .diagnostic-short { color: var(--color-danger); }
     .diagnostic-check[data-tone="warn"] .diagnostic-mark, .diagnostic-check[data-tone="warn"] .diagnostic-short { color: var(--color-text-primary); }
-    .servers { position: relative; }
-    #servers-toggle { padding: 3px 10px; }
-    .servers-panel {
-      position: absolute;
-      top: calc(100% + 6px);
-      left: 0;
-      z-index: 20;
-      display: grid;
-      gap: var(--space-xs);
-      min-width: 16rem;
-      max-width: 22rem;
-      padding: var(--space-sm);
-      background: #0B0B0D;
-      border: 1px solid var(--color-rule);
-      border-radius: var(--radius-sm);
-      font-size: var(--text-base);
-    }
-    .servers-panel[hidden] { display: none; }
-    #servers-status p { margin: var(--space-xs) 0; color: var(--color-text-mid); }
-    #servers-status button { margin-right: var(--space-xs); }
+    .servers { display: flex; align-items: center; gap: var(--space-xs); }
+    .servers button { padding: 3px 10px; }
+    #servers-status { color: var(--color-text-mid); font-size: var(--text-base); }
+    #servers-status[data-tone="bad"] { color: var(--color-danger); }
+    #servers-status:empty { display: none; }
 
     .branding-toggle { display: flex; align-items: center; gap: var(--space-xs); }
     #branding-position { margin-bottom: var(--space-xs); }
@@ -516,13 +501,10 @@
       <button id="diagnostic-open" type="button">Diagnostic</button>
       <button id="history-open" type="button">Historique</button>
     </div>
-    <div id="servers" class="servers">
-      <button id="servers-toggle" type="button" aria-expanded="false" aria-controls="servers-panel">Serveurs ▾</button>
-      <div id="servers-panel" class="servers-panel" hidden>
-        <button type="button" data-control="restart">Redémarrer</button>
-        <button type="button" data-control="stop">Arrêter</button>
-        <div id="servers-status" role="status" aria-live="polite"></div>
-      </div>
+    <div id="servers" class="servers" role="group" aria-label="Serveurs">
+      <button id="servers-restart" type="button" data-control="restart">Redémarrer</button>
+      <button id="servers-stop" type="button" data-control="stop">Arrêter</button>
+      <span id="servers-status" role="status" aria-live="polite"></span>
     </div>
     <span class="studio-spacer"></span>
     <div id="server-status"></div>
