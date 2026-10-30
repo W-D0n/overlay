@@ -535,30 +535,32 @@ test('le brouillon d’un preset inconnu fait refuser le fichier, avec son empla
   expect(read.errors.join(' ')).toContain('drafts[fantome]');
 });
 
-test('un brouillon sans effet ou à scène multi-couches est refusé', () => {
+test('un brouillon sans effet est refusé ; à plusieurs couches, il est lu', () => {
   const noEffect = JSON.parse(JSON.stringify(encodePersistedFile({ ...WORKING(), drafts: DRAFTS() })));
   noEffect.drafts.calme.scene = sceneFromCurrent({ component: null, options: {} });
   expect(readBackgroundFile(noEffect).errors.join(' ')).toContain('un effet est requis');
   const multi = JSON.parse(JSON.stringify(encodePersistedFile({ ...WORKING(), drafts: DRAFTS() })));
   multi.drafts.calme.scene.layers.push({ ...multi.drafts.calme.scene.layers[0], id: 'second' });
-  expect(readBackgroundFile(multi).errors.join(' ')).toContain('drafts[calme]');
+  const read = readBackgroundFile(multi);
+  expect(read.ok && read.file.drafts.calme.scene.layers.map((l) => l.id)).toEqual(['main', 'second']);
 });
 
-test('un historique à scène multi-couches est refusé comme les autres scènes', () => {
-  const persisted = JSON.parse(JSON.stringify(encodePersistedFile({ ...WORKING(), history: HISTORY() })));
-  persisted.history[0].scene.layers.push({ ...persisted.history[0].scene.layers[0], id: 'second' });
-  const read = readBackgroundFile(persisted);
-  expect(read.ok).toBe(false);
-  expect(read.errors.join(' ')).toContain('history[0]');
+test('une scène à plusieurs couches se lit, à l’antenne, dans l’historique et dans la bibliothèque, et revient à l’identique', () => {
+  const stack = (scene) => ({ ...scene, layers: [...scene.layers, { ...scene.layers[0], id: 'second', opacity: 0.5, placement: { x: 0.25, y: 0, width: 0.5, height: 1 } }] });
+  const file = WORKING();
+  const multi = { ...file, current: stack(file.current), scenes: [stack(file.scenes[0]), file.scenes[1]], history: [{ at: '2026-10-30T11:00:00.000Z', scene: stack(file.current) }] };
+  const read = readBackgroundFile(JSON.parse(JSON.stringify(encodePersistedFile(multi))));
+  expect(read.ok).toBe(true);
+  expect(read.file).toEqual(multi);
 });
 
-test('une scène à plusieurs couches est refusée avec son emplacement, jamais lue comme un preset', () => {
+test('une scène à plusieurs couches dont une couche est invalide est refusée avec son emplacement', () => {
   const persisted = JSON.parse(JSON.stringify(encodePersistedFile(WORKING())));
-  persisted.scenes[1].layers.push({ ...persisted.scenes[1].layers[0], id: 'second' });
+  persisted.scenes[1].layers.push({ ...persisted.scenes[1].layers[0], id: 'second', opacity: 'opaque' });
   const decoded = decodePersistedFile(persisted);
   expect(decoded.ok).toBe(false);
   expect(decoded.errors.join(' ')).toContain('scenes[1]');
-  expect(decoded.errors.join(' ')).toContain('plusieurs couches');
+  expect(decoded.errors.join(' ')).toContain('layers[second].opacity');
 });
 
 test('une scène invalide est refusée avec son emplacement', () => {

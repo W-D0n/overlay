@@ -3,7 +3,7 @@ import { clampOptions, isIdentityKind, isKnownKindId, neutralizeOptions, resolve
 import { validateSceneMap } from '../obs-scene-mapping.js';
 import { validateTransition } from '../background-transition.js';
 import { normalizeBranding, validateBranding } from '../branding-format.js';
-import { BRANDING_LAYER_ID, CURRENT_SCENE, SCENE_DOC_VERSION, currentFromScene, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
+import { BRANDING_LAYER_ID, CURRENT_SCENE, SCENE_DOC_VERSION, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
 import { validateHistory } from './background-history.js';
 import { validateDrafts } from './preset-drafts.js';
 
@@ -207,8 +207,6 @@ function fileFromFlat(flat) {
 /** @param {SceneDoc} scene @returns {SceneDoc | null} `null` : ni fond ni branding, la forme persistée de la scène vide */
 const persistedScene = (scene) => (scene.layers.length === 0 ? null : scene);
 
-const UNSUPPORTED_SCENE = 'scène à plusieurs couches ou à couche réglée (déplacée, masquée, atténuée), non prise en charge par ce serveur';
-
 /**
  * Forme persistée (version 4) d'un fichier d'état : celle du modèle, hormis la scène vide (`null`) de l'antenne, de
  * l'historique.
@@ -227,8 +225,7 @@ export function encodePersistedFile(file) {
 }
 
 /**
- * Inverse de `encodePersistedFile`. Une scène qui n'est pas « un effet et son branding » ne se lit pas encore : le
- * serveur et le Studio n'ont pas d'éditeur de couches, et la prendre pour un preset en perdrait.
+ * Inverse de `encodePersistedFile`. Toute scène valide se lit, quel que soit le nombre de ses couches.
  * @param {Record<string, unknown>} raw fichier de version 4
  * @returns {{ ok: true, file: BackgroundFile } | { ok: false, errors: string[] }}
  */
@@ -239,11 +236,7 @@ export function decodePersistedFile(raw) {
   const readScene = (value, where, live) => {
     if (value === null && live) return emptyLiveScene();
     const validation = validateSceneDoc(value);
-    if (!validation.ok) {
-      for (const error of validation.errors) errors.push(`${where} : ${error}`);
-    } else if (currentFromScene(/** @type {SceneDoc} */ (value)) === null) {
-      errors.push(`${where} : ${UNSUPPORTED_SCENE}`);
-    }
+    if (!validation.ok) for (const error of validation.errors) errors.push(`${where} : ${error}`);
     return /** @type {SceneDoc} */ (value);
   };
 
@@ -421,7 +414,7 @@ function duplicated(values) {
 }
 
 /** @param {unknown} scene @returns {boolean} la scène porte au moins une couche d'effet (le branding seul n'est pas un fond) */
-function hasEffectLayer(scene) {
+export function hasEffectLayer(scene) {
   return isPlainObject(scene) && Array.isArray(scene.layers)
     && scene.layers.some((layer) => isPlainObject(layer) && !isIdentityKind(/** @type {string} */ (layer.kind)));
 }
@@ -432,7 +425,7 @@ function hasEffectLayer(scene) {
  * @param {unknown} scene
  * @returns {string[]}
  */
-function namedSceneErrors(scene) {
+export function validateNamedScene(scene) {
   const validation = validateSceneDoc(scene);
   if (!validation.ok) return validation.errors;
   const named = /** @type {SceneDoc} */ (scene);
@@ -476,7 +469,7 @@ export function validateSceneFile(raw) {
   if (scenes === null) errors.push('scenes : tableau attendu');
   else {
     scenes.forEach((scene, index) => {
-      for (const err of namedSceneErrors(scene)) errors.push(`scenes[${index}] : ${err}`);
+      for (const err of validateNamedScene(scene)) errors.push(`scenes[${index}] : ${err}`);
     });
     const names = scenes.map((scene) => (isPlainObject(scene) ? scene.name : undefined));
     for (const name of duplicated(names)) errors.push(`preset en double : ${name}`);

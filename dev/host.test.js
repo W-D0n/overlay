@@ -52,7 +52,8 @@ describe('état courant', () => {
     const onEvent = subscribe('event');
     const response = await post('/state', { current: RAIN });
     expect(response.status).toBe(200);
-    expect(JSON.parse(onState[0])).toEqual(RAIN);
+    expect(JSON.parse(onState[0])).toMatchObject(RAIN);
+    expect(JSON.parse(onState[0]).scene.layers.map((layer) => layer.kind)).toEqual(['rain', 'branding']);
     expect(onEvent).toEqual([]);
     expect(JSON.parse(readFileSync(path, 'utf8')).current.layers[0].kind).toBe('rain');
   });
@@ -232,7 +233,7 @@ describe('brouillons de presets', () => {
     const onState = context.subscribe('state');
     expect((await context.post('/draft', { presetId: id, state: DRAFT })).status).toBe(200);
 
-    expect((await drafts(context.call))[id]).toEqual({ at: '2026-10-30T10:00:00.000Z', state: DRAFT });
+    expect((await drafts(context.call))[id]).toMatchObject({ at: '2026-10-30T10:00:00.000Z', state: DRAFT });
     expect(onState).toEqual([]);
     const file = JSON.parse(readFileSync(context.path, 'utf8'));
     expect(file.scenes[0].layers[0].kind).toBe('bubble');
@@ -310,5 +311,211 @@ describe('brouillons de presets', () => {
     });
     const response = await again.fetch(new Request('http://localhost:5932/drafts'), context.server);
     expect((await response.json()).drafts[id].state.component).toBe('rain');
+  });
+});
+
+// ── scènes à plusieurs couches ───────────────────────────────────────────
+
+const layer = (id, kind, over = {}) => ({ id, kind, visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {}, ...over });
+/** Pluie en fond, bulles dans le quart haut gauche à moitié transparentes, branding par-dessus : aucune forme plate. */
+const STACK = (over = {}) => ({
+  version: 1,
+  id: 'quelconque',
+  name: 'Quelconque',
+  layers: [layer('fond', 'rain'), layer('bulles', 'bubble', { opacity: 0.5, placement: { x: 0, y: 0, width: 0.5, height: 0.5 } }), layer('marque', 'branding')],
+  ...over,
+});
+const BLANK = { component: null, options: {}, showBranding: false };
+const fileOf = (path) => JSON.parse(readFileSync(path, 'utf8'));
+
+describe('scènes à plusieurs couches', () => {
+  test('POST /state { scene } : persistée telle quelle sous l’identité de l’antenne, diffusée avec une projection plate vide', async () => {
+    const { post, path, subscribe, call } = setup();
+    const onState = subscribe('state');
+    expect((await post('/state', { scene: STACK() })).status).toBe(200);
+
+    const stored = fileOf(path).current;
+    expect(stored).toMatchObject({ id: 'current', name: 'En antenne' });
+    expect(stored.layers).toEqual(STACK().layers);
+    const message = JSON.parse(onState[0]);
+    expect(message).toMatchObject({ ...BLANK, scene: { id: 'current', layers: STACK().layers } });
+
+    const state = await (await call('/state')).json();
+    expect(state.scene.layers).toEqual(STACK().layers);
+    expect(state.current).toEqual(BLANK);
+  });
+
+  test('l’une ou l’autre : scène et forme plate ensemble, une scène invalide ou à neuf couches sont refusées sans rien écrire', async () => {
+    const { post, path, subscribe } = setup();
+    const onState = subscribe('state');
+    expect((await post('/state', { scene: STACK(), current: RAIN })).status).toBe(400);
+    expect((await post('/state', { scene: STACK({ layers: [layer('a', 'inconnu')] }) })).status).toBe(400);
+    const nine = Array.from({ length: 9 }, (_, index) => layer(`c${index}`, 'rain'));
+    const tooMany = await post('/state', { scene: STACK({ layers: nine }) });
+    expect(tooMany.status).toBe(400);
+    expect(await tooMany.text()).toContain('8 couches au plus');
+    expect(onState).toEqual([]);
+    expect(existsSync(path)).toBe(false);
+  });
+
+  test('une scène vide est une antenne valide ; une scène reçue est ramenée à la forme neutre (ancien nom d’effet)', async () => {
+    const { post, path } = setup();
+    expect((await post('/state', { scene: STACK({ layers: [] }) })).status).toBe(200);
+    expect(fileOf(path).current).toBeNull();
+    expect((await post('/state', { scene: STACK({ layers: [layer('a', 'RainBackground', { options: { audioReactive: 'Oui' } })] }) })).status).toBe(200);
+    expect(fileOf(path).current.layers[0]).toMatchObject({ kind: 'rain', options: { audioReactive: true } });
+  });
+
+  test('la scène remplacée entre dans l’historique avec toutes ses couches ; revenir en arrière la remet et la diffuse', async () => {
+    const { post, call, subscribe, path } = setup({ now: () => '2026-10-30T10:00:00.000Z' });
+    await post('/state', { scene: STACK() });
+    await post('/state', { current: RAIN });
+    const history = (await (await call('/history')).json()).history;
+    expect(history).toHaveLength(2);
+    expect(history[0].scene.layers).toEqual(STACK().layers);
+    expect(history[0].current).toEqual(BLANK);
+
+    const onState = subscribe('state');
+    expect((await post('/rollback', { at: history[0].at })).status).toBe(200);
+    expect(JSON.parse(onState[0]).scene.layers).toEqual(STACK().layers);
+    expect(fileOf(path).current.layers).toEqual(STACK().layers);
+  });
+
+  test('un preset se range par sa scène complète, se relit, et GET /state le garde hors de la liste plate', async () => {
+    const { post, call, path } = setup();
+    expect((await post('/save-preset', { scene: STACK({ name: 'Pile', tags: ['soir'] }) })).status).toBe(200);
+    const [stored] = fileOf(path).scenes;
+    expect(stored).toMatchObject({ id: 'pile', name: 'Pile', tags: ['soir'] });
+    expect(stored.layers).toEqual(STACK().layers);
+
+    const state = await (await call('/state')).json();
+    expect(state.scenes.map(({ id }) => id)).toEqual(['pile']);
+    expect(state.presets).toEqual([]);
+  });
+
+  test('une scène sans effet ou au nom invalide est refusée comme preset ; scène et forme plate ensemble aussi', async () => {
+    const { post } = setup();
+    expect((await post('/save-preset', { scene: STACK({ layers: [layer('marque', 'branding')] }) })).status).toBe(400);
+    expect((await post('/save-preset', { scene: STACK({ name: ' ' }) })).status).toBe(400);
+    expect((await post('/save-preset', { scene: STACK(), name: 'Alpha', component: 'rain', options: {} })).status).toBe(400);
+  });
+
+  test('enregistrer sur un preset existant le remplace en gardant son identifiant, retire son brouillon, refuse un nom déjà pris', async () => {
+    const { post, path } = setup();
+    await post('/save-preset', { scene: STACK({ name: 'Pile' }) });
+    await post('/save-preset', { name: 'Autre', component: 'rain', options: {} });
+    await post('/draft', { presetId: 'pile', scene: STACK() });
+    expect(fileOf(path).drafts.pile).toBeDefined();
+
+    const updated = STACK({ name: 'Pile', layers: [layer('seul', 'bubble')] });
+    expect((await post('/save-preset', { id: 'pile', scene: updated })).status).toBe(200);
+    const file = fileOf(path);
+    expect(file.scenes.find(({ id }) => id === 'pile').layers.map((l) => l.id)).toEqual(['seul']);
+    expect(file.drafts).toBeUndefined();
+    expect((await post('/save-preset', { id: 'pile', scene: STACK({ name: 'Autre' }) })).status).toBe(409);
+  });
+
+  test('l’enregistrement plat d’un preset à plusieurs couches est refusé (409), jamais appliqué en le tronquant', async () => {
+    const { post, path } = setup();
+    await post('/save-preset', { scene: STACK({ name: 'Pile' }) });
+    const before = readFileSync(path, 'utf8');
+    const response = await post('/save-preset', { id: 'pile', name: 'Pile', component: 'rain', options: {} });
+    expect(response.status).toBe(409);
+    expect(readFileSync(path, 'utf8')).toBe(before);
+  });
+
+  test('un brouillon de scène se range, se relit avec ses couches, exige un effet, et n’atteint pas l’antenne', async () => {
+    const { post, call, subscribe, path } = setup({ now: () => '2026-10-30T10:00:00.000Z' });
+    await post('/save-preset', { scene: STACK({ name: 'Pile' }) });
+    const onState = subscribe('state');
+    expect((await post('/draft', { presetId: 'pile', scene: STACK({ layers: [layer('fond', 'rain'), layer('x', 'bubble')] }) })).status).toBe(200);
+    const stored = (await (await call('/drafts')).json()).drafts.pile;
+    expect(stored.scene.layers.map((l) => l.id)).toEqual(['fond', 'x']);
+    expect(stored.state).toEqual(BLANK);
+    expect(onState).toEqual([]);
+    expect(fileOf(path).current.layers[0].kind).toBe('dotgrid');
+    expect((await post('/draft', { presetId: 'pile', scene: STACK({ layers: [layer('marque', 'branding')] }) })).status).toBe(400);
+    expect((await post('/draft', { presetId: 'pile', scene: STACK(), state: RAIN })).status).toBe(400);
+  });
+
+  test('une scène OBS associée à un preset à plusieurs couches l’applique en entier, sans ses étiquettes', async () => {
+    const { post, host, subscribe, path } = setup();
+    await post('/save-preset', { scene: STACK({ name: 'Pile', tags: ['soir'], transition: { type: 'fade', durationMs: 300 } }) });
+    await post('/scene-map', { sceneMap: { Jeu: 'pile' } });
+    const onState = subscribe('state');
+    await host.applySceneMapping('Jeu');
+    const current = fileOf(path).current;
+    expect(current).toMatchObject({ id: 'current', name: 'En antenne', transition: { type: 'fade', durationMs: 300 } });
+    expect(current.tags).toBeUndefined();
+    expect(current.layers).toEqual(STACK().layers);
+    expect(JSON.parse(onState[0]).scene.layers).toEqual(STACK().layers);
+  });
+
+  test('renommer, dupliquer et supprimer valent aussi pour une scène à plusieurs couches', async () => {
+    const { post, path } = setup();
+    await post('/save-preset', { scene: STACK({ name: 'Pile' }) });
+    expect((await post('/rename-preset', { id: 'pile', name: 'Pile bis' })).status).toBe(200);
+    expect((await post('/duplicate-preset', { id: 'pile' })).status).toBe(200);
+    const scenes = fileOf(path).scenes;
+    expect(scenes.map(({ name }) => name)).toEqual(['Pile bis', 'Pile bis — copie']);
+    expect(scenes[1].layers).toEqual(STACK().layers);
+    expect((await post('/delete-preset', { id: 'pile' })).status).toBe(200);
+    expect(fileOf(path).scenes.map(({ id }) => id)).toEqual(['pile-bis-copie']);
+  });
+
+  test('un fichier qui porte une scène à plusieurs couches se relit après redémarrage (nouveau magasin, même fichier)', async () => {
+    const first = setup();
+    await first.post('/save-preset', { scene: STACK({ name: 'Pile' }) });
+    await first.post('/state', { scene: STACK() });
+    await first.post('/draft', { presetId: 'pile', scene: STACK() });
+    const again = createHost({
+      store: createStateStore({ path: first.path, log: silent }),
+      channels: createChannels(),
+      obs: { status: () => ({ connected: false, reason: 'not-configured', scenes: [], activeScene: null }), configured: false, inspect: null },
+      control: { supervised: false, exit() {} },
+      staticPort: 5931,
+      log: silent,
+    });
+    const state = await (await again.fetch(new Request('http://localhost:5932/state'), first.server)).json();
+    expect(state.scene.layers).toEqual(STACK().layers);
+    expect(state.scenes[0].layers).toEqual(STACK().layers);
+  });
+});
+
+describe('import de presets avec des scènes à plusieurs couches', () => {
+  const bundle = (presets) => ({ format: 'overlay-background-presets', version: 2, presets });
+  const flat = (over = {}) => ({ id: 'plat', name: 'Plat', component: 'rain', options: {}, ...over });
+
+  test('la bibliothèque garde sa scène à plusieurs couches intacte, à sa place, et son nom reste pris', async () => {
+    const { post, path } = setup();
+    await post('/save-preset', { scene: STACK({ name: 'Pile' }) });
+    await post('/save-preset', { name: 'Zeta', component: 'rain', options: {} });
+    const preview = await (await post('/preview-import', { bundle: bundle([flat({ name: 'Pile' }), flat({ id: 'autre', name: 'Autre' })]) })).json();
+    expect(preview.created).toBe(2);
+    expect(preview.renamed).toBe(1);
+    expect((await post('/import-presets', { bundle: bundle([flat({ name: 'Pile' }), flat({ id: 'autre', name: 'Autre' })]), expectedRevision: preview.revision })).status).toBe(200);
+
+    const scenes = fileOf(path).scenes;
+    expect(scenes.map(({ id }) => id)).toEqual(['pile', 'zeta', 'plat', 'autre']);
+    expect(scenes[0].layers).toEqual(STACK().layers);
+    expect(scenes[2].name).toBe('Pile — import');
+  });
+
+  test('un lot qui reprend l’identifiant d’une scène à plusieurs couches est refusé (409), aperçu comme import', async () => {
+    const { post, path } = setup();
+    await post('/save-preset', { scene: STACK({ name: 'Pile' }) });
+    const before = readFileSync(path, 'utf8');
+    const clash = bundle([flat({ id: 'pile', name: 'Pile' })]);
+    expect((await post('/preview-import', { bundle: clash })).status).toBe(409);
+    expect((await post('/import-presets', { bundle: clash, expectedRevision: 'x' })).status).toBe(409);
+    expect(readFileSync(path, 'utf8')).toBe(before);
+  });
+
+  test('modifier une scène à plusieurs couches entre l’aperçu et l’import invalide la révision (409)', async () => {
+    const { post } = setup();
+    await post('/save-preset', { scene: STACK({ name: 'Pile' }) });
+    const preview = await (await post('/preview-import', { bundle: bundle([flat()]) })).json();
+    await post('/save-preset', { id: 'pile', scene: STACK({ name: 'Pile', layers: [layer('seul', 'rain')] }) });
+    expect((await post('/import-presets', { bundle: bundle([flat()]), expectedRevision: preview.revision })).status).toBe(409);
   });
 });

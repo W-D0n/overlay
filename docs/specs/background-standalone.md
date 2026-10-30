@@ -63,10 +63,19 @@ Le fichier est en **version 4** (`scenes` : documents de scène, `scene-doc.js`,
 (un preset = une scène nommée), `history` et `drafts` portant des scènes. `readBackgroundFile` / `encodePersistedFile`
 ne font que valider et écrire ce modèle (la scène vide de l'antenne s'écrit `null`).
 
-L'API HTTP et les canaux WebSocket gardent la **forme plate** décrite ci-dessous (`current` et `presets`, `component` /
-`options` / `transition` / `showBranding`) : `dev/state-wire.js` la convertit à la frontière, dans les deux sens, et
-lève sur une scène qui n'y tient pas plutôt que de l'envoyer tronquée. Le Studio, les pages de rendu et les lots
-d'import (versions 1 et 2) parlent donc cette forme, inchangée.
+L'API HTTP et les canaux WebSocket portent **deux formes** (`dev/state-wire.js` convertit à la frontière, dans les deux
+sens) :
+
+- la **scène** (`scene`, `scenes`, et `scene` dans chaque entrée d'historique et de brouillon), autoritaire et complète :
+  toutes les couches, leur placement, leur opacité, leur visibilité ;
+- la **forme plate** décrite ci-dessous (`current` et `presets`, `component` / `options` / `transition` /
+  `showBranding`), pour les pages de rendu et le Studio déjà chargés. Elle n'existe que pour une scène « un effet et son
+  branding » : pour toute autre scène, la projection plate de l'antenne est *vide* (`component: null`,
+  `showBranding: false`) et celle d'un preset est absente de `presets` — une page non rechargée n'affiche alors rien
+  plutôt qu'une version tronquée.
+
+Les lots d'import (versions 1 et 2) restent plats : l'import laisse intactes les scènes qu'il ne représente pas, refuse
+(409) un lot qui reprendrait leur identifiant, et leur nom reste pris.
 
 ```json
 {
@@ -113,15 +122,17 @@ importé reçoit le suffixe `— import` (puis un numéro si nécessaire).
 
 | Route | Corps | Comportement |
 |---|---|---|
-| `GET /state` | — | Renvoie `{ current, presets }`. |
-| `POST /state` | `{ current }` | Valide, persiste, diffuse `current` sur le WS. 400 si invalide. |
-| `POST /save-preset` | `{ id?, name, component, options, tags? }` | Sans `id`, crée un identifiant unique ; avec `id`, met à jour le preset. |
+| `GET /state` | — | Renvoie `{ scene, scenes, current, presets, … }` : les scènes et leur projection plate. |
+| `POST /state` | `{ scene }` ou `{ current }` | Valide (une scène de 0 à 8 couches, ou la forme plate), persiste, diffuse `{ …projection plate, scene }` sur le WS, range la scène remplacée dans l'historique. 400 si invalide ou si les deux sont fournis. |
+| `GET /history`, `POST /rollback` | — ; `{ at }` | Les scènes qui ont quitté l'antenne (`{ at, scene, current }`) ; remet l'une d'elles à l'antenne. |
+| `GET /drafts`, `POST /draft`, `POST /discard-draft` | — ; `{ presetId, scene }` ou `{ presetId, state }` ; `{ presetId }` | Brouillons par preset (`{ at, scene, state }`), jamais diffusés à l'antenne ; un brouillon exige un effet. |
+| `POST /save-preset` | `{ id?, name, component, options, tags? }` ou `{ id?, scene }` | Sans `id`, crée un identifiant unique ; avec `id`, met à jour le preset. Un preset à plusieurs couches ne se met à jour que par sa scène complète (409 sinon). |
 | `POST /rename-preset` | `{ id, name }` | Renomme sans modifier l'identifiant ni l'URL. |
 | `POST /duplicate-preset` | `{ id }` | Crée une copie autonome au nom et à l'identifiant uniques. |
 | `POST /preview-import` | `{ bundle }` | Calcule `{ revision, created, updated, renamed, unchanged, changes }` sans écrire ; `changes` décrit l'opération et les valeurs utiles de chaque preset. |
 | `POST /import-presets` | `{ bundle, expectedRevision }` | Fusionne atomiquement si la révision est inchangée ; sinon 409 sans écriture. |
 | `POST /delete-preset` | `{ id }` | Supprime. 404 si absent. |
-| `WS /state-ws` | — | Diffuse le JSON de `current` à chaque `POST /state` réussi. |
+| `WS /state-ws` | — | Diffuse la projection plate de l'antenne et sa `scene` à chaque changement d'antenne réussi. |
 | `WS /presets-ws` | — | Diffuse `{ id, name, action }` après une mutation de preset. |
 
 Toutes les écritures passent par un `keyed-lock` (clé unique) — même motif que

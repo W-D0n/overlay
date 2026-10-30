@@ -7,8 +7,9 @@
  * scènes ; les corps de requête sont en forme plate (`dev/state-wire.js`), comme les lots d'import.
  *
  * Routes :
- *   POST /save-preset      — `{ id?, name, component, options, tags?, transition?, showBranding? }`, crée ou met à jour
- *                            (la mise à jour retire le brouillon du preset).
+ *   POST /save-preset      — `{ id?, name, component, options, tags?, transition?, showBranding? }` ou `{ id?, scene }`
+ *                            (scène complète, nommée par `scene.name`), crée ou met à jour (la mise à jour retire le
+ *                            brouillon du preset).
  *   POST /rename-preset    — `{ id, name }`, renomme sans casser l'URL OBS.
  *   POST /duplicate-preset — `{ id }`, crée une copie autonome.
  *   POST /preview-import   — `{ bundle }`, calcule le plan et la révision sans écrire.
@@ -31,7 +32,7 @@ import {
   parseBackgroundPresetBundle,
 } from './background-preset-library.js';
 import { sceneFromPreset } from '../scene-doc.js';
-import { sceneFromWirePreset, wirePreset } from './state-wire.js';
+import { namedSceneFromWire, sceneFromWirePreset, wirePreset } from './state-wire.js';
 
 /**
  * @typedef {import('./background-state-format.js').BackgroundFile} BackgroundFile
@@ -42,6 +43,36 @@ import { sceneFromWirePreset, wirePreset } from './state-wire.js';
  *   announce: (preset: { id: string, name: string }, action: PresetAction) => void,
  * }} PresetRouteDeps
  */
+
+/**
+ * La bibliothèque telle que la voit un lot d'import (forme plate) : les presets qui ont une forme plate, et les autres
+ * scènes, que le lot ne sait pas représenter (plusieurs effets, couche déplacée…) et que l'import doit laisser intactes.
+ * @param {BackgroundFile} file
+ */
+function flatLibrary(file) {
+  /** @type {import('./background-state-format.js').BackgroundPreset[]} */
+  const presets = [];
+  /** @type {{ id: string, name: string }[]} */
+  const reserved = [];
+  for (const scene of file.scenes) {
+    const preset = wirePreset(scene);
+    if (preset === null) reserved.push({ id: scene.id, name: scene.name });
+    else presets.push(preset);
+  }
+  return { presets, reserved };
+}
+
+/**
+ * Un lot qui reprendrait l'identifiant d'une scène qu'il ne sait pas représenter l'écraserait en la tronquant : refus.
+ * @param {BackgroundFile} file
+ * @param {{ id: string }[]} imported
+ * @returns {string | null} le message d'erreur, ou `null`
+ */
+function takenIds(file, imported) {
+  const { reserved } = flatLibrary(file);
+  const clash = imported.find(({ id }) => reserved.some((scene) => scene.id === id));
+  return clash === undefined ? null : `l’identifiant ${clash.id} est celui d’une scène à plusieurs couches, que ce lot ne peut pas remplacer`;
+}
 
 /**
  * @param {PresetRouteDeps} deps
@@ -61,10 +92,17 @@ export function createPresetRoutes({ update, inspect, announce }) {
       const requestedId = typeof body?.id === 'string' ? body.id : null;
       const existingScene = requestedId === null ? undefined : file.scenes.find(({ id }) => id === requestedId);
       if (requestedId !== null && existingScene === undefined) return jsonError(`preset inconnu : ${requestedId}`, 404);
-      const existing = existingScene === undefined ? undefined : wirePreset(existingScene);
+      if (body?.scene !== undefined && ['name', 'component', 'options', 'tags', 'transition', 'showBranding'].some((key) => body?.[key] !== undefined)) {
+        return jsonError('scène et forme plate : l’une ou l’autre', 400);
+      }
+      // Un preset sans forme plate (plusieurs effets, couche déplacée…) ne se met à jour que par sa scène complète.
+      const existing = existingScene === undefined ? undefined : wirePreset(existingScene) ?? undefined;
+      if (body?.scene === undefined && existingScene !== undefined && existing === undefined) {
+        return jsonError(`preset ${existingScene.id} : scène à plusieurs couches, à enregistrer par sa scène complète`, 409);
+      }
 
-      const id = existing?.id ?? createPresetId(String(body?.name ?? ''), file.scenes);
-      const candidate = sceneFromWirePreset({
+      const id = existingScene?.id ?? createPresetId(String(body?.scene?.name ?? body?.name ?? ''), file.scenes);
+      const candidate = body?.scene !== undefined ? namedSceneFromWire(body.scene, id) : sceneFromWirePreset({
         id,
         name: body?.name,
         component: body?.component,
@@ -140,10 +178,12 @@ export function createPresetRoutes({ update, inspect, announce }) {
     if (!parsed.ok) return jsonError(parsed.errors.join(' ; '), 400);
 
     return inspect((file) => {
-      const presets = file.scenes.map(wirePreset);
-      const plan = mergeBackgroundPresetImport(presets, parsed.presets);
+      const library = flatLibrary(file);
+      const taken = takenIds(file, parsed.presets);
+      if (taken !== null) return jsonError(taken, 409);
+      const plan = mergeBackgroundPresetImport(library.presets, parsed.presets, library.reserved);
       return new Response(JSON.stringify({
-        revision: backgroundPresetRevision(presets),
+        revision: backgroundPresetRevision(file.scenes),
         created: plan.created,
         updated: plan.updated,
         renamed: plan.renamed,
@@ -163,14 +203,23 @@ export function createPresetRoutes({ update, inspect, announce }) {
     /** @type {import('./background-state-format.js').BackgroundPreset[]} */
     let importedPresets = [];
     const response = await update((file) => {
-      const presets = file.scenes.map(wirePreset);
-      if (backgroundPresetRevision(presets) !== body.expectedRevision) {
+      if (backgroundPresetRevision(file.scenes) !== body.expectedRevision) {
         return jsonError('bibliothèque modifiée depuis l’aperçu — recalcul nécessaire', 409);
       }
-      const merged = mergeBackgroundPresetImport(presets, parsed.presets);
+      const taken = takenIds(file, parsed.presets);
+      if (taken !== null) return jsonError(taken, 409);
+      const library = flatLibrary(file);
+      const merged = mergeBackgroundPresetImport(library.presets, parsed.presets, library.reserved);
       const importedIds = new Set(parsed.presets.map(({ id }) => id));
       importedPresets = merged.presets.filter(({ id }) => importedIds.has(id));
-      return { ...file, scenes: merged.presets.map((preset) => sceneFromPreset(preset)) };
+      // Les scènes que le lot ne représente pas gardent leur place et leur contenu ; les autres suivent la fusion.
+      const mergedById = new Map(merged.presets.map((preset) => [preset.id, preset]));
+      const known = new Set(file.scenes.map(({ id }) => id));
+      const scenes = [
+        ...file.scenes.map((scene) => (mergedById.has(scene.id) ? sceneFromPreset(/** @type {*} */ (mergedById.get(scene.id))) : scene)),
+        ...merged.presets.filter(({ id }) => !known.has(id)).map((preset) => sceneFromPreset(preset)),
+      ];
+      return { ...file, scenes };
     });
     if (response.ok) importedPresets.forEach((preset) => announce(preset, 'imported'));
     return response;

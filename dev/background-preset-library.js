@@ -157,7 +157,7 @@ function describeUpdatedPreset(before, after) {
 
 /**
  * Empreinte courte du contenu courant, utilisée comme verrou optimiste entre aperçu et import.
- * @param {import('./background-state-format.js').BackgroundPreset[]} presets
+ * @param {readonly unknown[]} presets
  */
 export function backgroundPresetRevision(presets) {
   const serialized = JSON.stringify(presets);
@@ -230,7 +230,7 @@ export function findImportedActivePreset(merged, imported, activeId) {
 
 /**
  * @param {string} requested
- * @param {import('./background-state-format.js').BackgroundPreset[]} presets
+ * @param {{id:string,name:string}[]} presets
  * @param {string} importingId
  */
 function uniqueImportedName(requested, presets, importingId) {
@@ -269,11 +269,13 @@ function createBackgroundPresetImportChange(source, preset, resolution, operatio
 
 /**
  * Fusion atomique : un id connu est mis à jour, un id nouveau est ajouté. Un nom déjà porté par
- * un autre id est suffixé plutôt que d'écraser silencieusement ce preset.
+ * un autre id est suffixé plutôt que d'écraser silencieusement ce preset. `reserved` : les scènes de la bibliothèque
+ * que ce lot ne sait pas représenter — elles ne sont ni modifiées ni lues, mais leur nom reste pris.
  * @param {import('./background-state-format.js').BackgroundPreset[]} existing
  * @param {import('./background-state-format.js').BackgroundPreset[]} imported
+ * @param {{id:string,name:string}[]} [reserved]
  */
-export function mergeBackgroundPresetImport(existing, imported) {
+export function mergeBackgroundPresetImport(existing, imported, reserved = []) {
   const presets = existing.map(clonePreset);
   let created = 0;
   let updated = 0;
@@ -283,7 +285,7 @@ export function mergeBackgroundPresetImport(existing, imported) {
   const changes = [];
 
   for (const source of imported) {
-    const resolution = uniqueImportedName(source.name, presets, source.id);
+    const resolution = uniqueImportedName(source.name, [...presets, ...reserved], source.id);
     const { name } = resolution;
     if (name !== source.name) renamed += 1;
     const preset = clonePreset({ ...source, name });

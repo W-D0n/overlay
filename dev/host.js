@@ -8,14 +8,16 @@
  * en appelant `fetch` directement.
  *
  * Routes (les routes de presets sont dans `dev/preset-routes.js`) :
- *   GET  /state         — renvoie `{ current, presets, … }` en forme plate (`dev/state-wire.js`) ; 500 + erreurs si le
- *                          fichier est invalide — jamais de reset silencieux.
- *   POST /state         — `{ current }`, valide, persiste, diffuse `current` sur le canal `state` et range l'état
- *                          remplacé dans l'historique.
- *   GET  /history       — `{ history }` : les états qui ont quitté l'antenne, le plus récent d'abord.
- *   POST /rollback      — `{ at }`, remet à l'antenne l'état de l'historique daté `at` (404 s'il n'existe plus).
+ *   GET  /state         — renvoie la scène en antenne et les scènes (`scene`, `scenes`) avec leur projection plate
+ *                          (`current`, `presets`, voir `dev/state-wire.js`) ; 500 + erreurs si le fichier est invalide —
+ *                          jamais de reset silencieux.
+ *   POST /state         — `{ scene }` (scène complète) ou `{ current }` (forme plate), valide, persiste, diffuse sur le
+ *                          canal `state` et range la scène remplacée dans l'historique.
+ *   GET  /history       — `{ history }` : les scènes qui ont quitté l'antenne, la plus récente d'abord.
+ *   POST /rollback      — `{ at }`, remet à l'antenne la scène de l'historique datée `at` (404 si elle n'existe plus).
  *   GET  /drafts        — `{ drafts }` : les réglages non enregistrés, par identifiant de preset.
- *   POST /draft         — `{ presetId, state }`, range le brouillon d'un preset (jamais diffusé à l'antenne).
+ *   POST /draft         — `{ presetId, scene }` ou `{ presetId, state }`, range le brouillon d'un preset (jamais diffusé
+ *                          à l'antenne).
  *   POST /discard-draft — `{ presetId }`, abandonne le brouillon d'un preset.
  *   POST /branding      — `{ branding }`, contenu global de la couche d'identité.
  *   POST /event         — événement de réaction éphémère : validé puis diffusé, jamais persisté.
@@ -26,9 +28,9 @@
  *
  * Voir docs/specs/background-standalone.md.
  */
-import { readSceneMap, readBranding } from './background-state-format.js';
+import { hasEffectLayer, readSceneMap, readBranding } from './background-state-format.js';
 import { liveFromScene } from '../scene-doc.js';
-import { sceneFromWireCurrent, wireCurrent, wireDrafts, wireHistory, wireState } from './state-wire.js';
+import { liveSceneFromWire, sceneFromWireCurrent, wireBroadcast, wireDrafts, wireHistory, wireState } from './state-wire.js';
 import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
 import { rejectNonLocalRequest } from './local-access-policy.js';
 import { validateBackgroundEvent } from './background-event-format.js';
@@ -84,8 +86,18 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
     return result.value;
   }
 
-  /** Diffuse la scène en antenne aux pages de rendu, en forme plate. @param {import('../scene-doc.js').SceneDoc} scene */
-  const broadcastCurrent = (scene) => channels.broadcast('state', wireCurrent(scene));
+  /** Diffuse la scène en antenne aux pages de rendu : la scène, et sa forme plate pour les pages non rechargées. @param {import('../scene-doc.js').SceneDoc} scene */
+  const broadcastCurrent = (scene) => channels.broadcast('state', wireBroadcast(scene));
+
+  /**
+   * La scène qu'un client veut mettre à l'antenne ou en brouillon : `scene` (complète) ou la forme plate `flat`.
+   * @param {unknown} scene
+   * @param {unknown} flat
+   */
+  const clientScene = (scene, flat) => {
+    if (scene !== undefined && flat !== undefined) return /** @type {const} */ ({ ok: false, errors: ['scène et forme plate : l’une ou l’autre'] });
+    return scene !== undefined ? liveSceneFromWire(scene) : sceneFromWireCurrent(flat);
+  };
 
   const presetRoutes = createPresetRoutes({
     update,
@@ -118,9 +130,9 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
   async function handlePostDraft(req) {
     const body = /** @type {*} */ (await req.json());
     if (typeof body?.presetId !== 'string' || body.presetId === '') return jsonError('id de preset manquant', 400);
-    const draft = sceneFromWireCurrent(body?.state);
+    const draft = clientScene(body?.scene, body?.state);
     if (!draft.ok) return jsonError(draft.errors.join(' ; '), 400);
-    if (draft.current.component === null) return jsonError('un brouillon de preset a un effet', 400);
+    if (!hasEffectLayer(draft.scene)) return jsonError('un brouillon de preset a un effet', 400);
 
     return update((file) => {
       if (!file.scenes.some((scene) => scene.id === body.presetId)) return jsonError(`preset inconnu : ${body.presetId}`, 404);
@@ -153,7 +165,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
    */
   async function handlePostState(req) {
     const body = /** @type {*} */ (await req.json());
-    const published = sceneFromWireCurrent(body?.current);
+    const published = clientScene(body?.scene, body?.current);
     if (!published.ok) return jsonError(published.errors.join(' ; '), 400);
 
     const response = await update((file) => ({

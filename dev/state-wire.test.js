@@ -4,6 +4,7 @@ import { emptyLiveScene } from './background-state-format.js';
 import {
   sceneFromWireCurrent,
   sceneFromWirePreset,
+  wireBroadcast,
   wireCurrent,
   wireDrafts,
   wireHistory,
@@ -43,11 +44,12 @@ describe('état en antenne : forme plate ↔ scène', () => {
     expect(sceneFromWireCurrent(null).ok).toBe(false);
   });
 
-  test('une scène qui n’a pas de forme plate lève au lieu de partir tronquée', () => {
+  test('une scène qui n’a pas de forme plate donne une antenne plate vide et aucun preset plat, jamais une version tronquée', () => {
     const scene = sceneFromCurrent({ component: 'rain', options: {} });
     const twoEffects = { ...scene, layers: [scene.layers[0], { ...scene.layers[0], id: 'second' }] };
-    expect(() => wireCurrent(twoEffects)).toThrow('sans forme plate');
-    expect(() => wirePreset({ ...twoEffects, id: 'a', name: 'A' })).toThrow('sans forme plate');
+    expect(wireCurrent(twoEffects)).toEqual({ component: null, options: {}, showBranding: false });
+    expect(wirePreset({ ...twoEffects, id: 'a', name: 'A' })).toBeNull();
+    expect(wireBroadcast(twoEffects).scene).toBe(twoEffects);
   });
 });
 
@@ -78,21 +80,32 @@ describe('état complet, historique et brouillons', () => {
     drafts: { nuit: { at: '2026-10-30T11:00:00.000Z', scene: sceneFromCurrent(CURRENTS['branding masqué']) } },
   });
 
-  test('GET /state : états et presets en forme plate, historique et brouillons absents, le reste conservé', () => {
-    expect(wireState(file())).toEqual({
+  test('GET /state : scènes et forme plate, historique et brouillons absents, le reste conservé', () => {
+    const f = file();
+    expect(wireState(f)).toEqual({
       version: 4,
       current: CURRENTS['avec transition'],
+      scene: f.current,
       presets: [{ id: 'nuit', name: 'Nuit', component: 'rain', options: {} }],
+      scenes: f.scenes,
       sceneMap: { Jeu: 'nuit' },
       branding: { name: 'D0n' },
     });
   });
 
+  test('un preset sans forme plate reste dans `scenes` et sort de `presets`', () => {
+    const f = file();
+    const stacked = { ...f.scenes[0], id: 'pile', name: 'Pile', layers: [...f.scenes[0].layers, { ...f.scenes[0].layers[0], id: 'second' }] };
+    const state = wireState({ ...f, scenes: [...f.scenes, stacked] });
+    expect(state.scenes.map(({ id }) => id)).toEqual(['nuit', 'pile']);
+    expect(state.presets.map(({ id }) => id)).toEqual(['nuit']);
+  });
+
   test('l’historique garde ses instants et rend chaque scène en forme plate, scène vide comprise', () => {
-    expect(wireHistory(file().history)).toEqual([{ at: '2026-10-30T10:00:00.000Z', current: CURRENTS['aucun fond, branding masqué'] }]);
+    expect(wireHistory(file().history)).toEqual([{ at: '2026-10-30T10:00:00.000Z', current: CURRENTS['aucun fond, branding masqué'], scene: emptyLiveScene() }]);
   });
 
   test('les brouillons sont rendus par identifiant de preset, sous la clé `state` des clients', () => {
-    expect(wireDrafts(file().drafts)).toEqual({ nuit: { at: '2026-10-30T11:00:00.000Z', state: CURRENTS['branding masqué'] } });
+    expect(wireDrafts(file().drafts)).toEqual({ nuit: { at: '2026-10-30T11:00:00.000Z', state: CURRENTS['branding masqué'], scene: file().drafts.nuit.scene } });
   });
 });
