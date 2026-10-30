@@ -8,6 +8,7 @@ import {
   MAX_LAYERS,
   presetFromScene,
   readPath,
+  liveFromScene,
   sceneForBrandingMode,
   sceneFromCurrent,
   sceneFromPreset,
@@ -105,8 +106,15 @@ describe('validation', () => {
     expect(errorsOf({ ...scene(), id: 'a.b' })).toContain('id : identifiant de scène invalide');
   });
 
+  test('une transition invalide est signalée, une transition valide ou absente passe', () => {
+    expect(errorsOf({ ...scene(), transition: { type: 'spin' } })).toContain('transition.type : fade ou wipe attendu');
+    expect(validateSceneDoc({ ...scene(), transition: { type: 'wipe', durationMs: 300 } }).ok).toBe(true);
+    expect(validateSceneDoc(scene()).ok).toBe(true);
+  });
+
   test('zéro couche ou plus de huit couches sont refusés', () => {
     expect(errorsOf({ ...scene(), layers: [] })).toContain('layers : au moins une couche');
+    expect(validateSceneDoc({ ...scene(), layers: [] }, { allowEmpty: true }).ok).toBe(true);
     const nine = Array.from({ length: MAX_LAYERS + 1 }, (_, index) => createLayer({ id: `c${index}`, kind: 'rain' }));
     expect(errorsOf({ ...scene(), layers: nine })).toContain(`layers : ${MAX_LAYERS} couches au plus`);
     const eight = nine.slice(0, MAX_LAYERS);
@@ -270,5 +278,22 @@ describe('réglage ?branding= d’une Browser Source', () => {
     const scene = sceneFromCurrent({ component: 'rain', options: {}, transition: { type: 'fade', durationMs: 400, easing: 'linear' } });
     expect(sceneForBrandingMode(scene, 'off').transition).toEqual(scene.transition);
     expect(sceneForBrandingMode(scene, 'off').id).toBe(scene.id);
+  });
+});
+
+describe('mise à l’antenne d’un preset', () => {
+  const preset = () => sceneFromPreset({ id: 'nuit', name: 'Nuit', component: 'rain', options: { speed: 2 }, tags: ['calme'], transition: { type: 'fade', durationMs: 500 } });
+
+  test('les couches et la transition suivent, l’identité devient celle de l’antenne et les étiquettes restent au preset', () => {
+    const live = liveFromScene(preset());
+    expect(live).toMatchObject({ id: 'current', name: 'En antenne', transition: { type: 'fade', durationMs: 500 } });
+    expect(live.layers).toEqual(preset().layers);
+    expect('tags' in live).toBe(false);
+  });
+
+  test('ne modifie pas le preset', () => {
+    const source = preset();
+    liveFromScene(source);
+    expect(source).toEqual(preset());
   });
 });

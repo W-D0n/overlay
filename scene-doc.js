@@ -1,4 +1,5 @@
 // @ts-check
+import { validateTransition } from './background-transition.js';
 import { clampOptions, isIdentityKind, neutralizeOptions, resolveKindId, validateOptions } from './layer-kinds.js';
 
 /**
@@ -137,6 +138,17 @@ export function sceneFromCurrent(current) {
 }
 
 /**
+ * La scène d'un preset mise à l'antenne : mêmes couches et même transition, sous l'identité de l'antenne et sans les
+ * étiquettes (qui appartiennent au preset).
+ * @param {SceneDoc} scene
+ * @returns {SceneDoc}
+ */
+export function liveFromScene(scene) {
+  const { tags: _tags, ...rest } = scene;
+  return { ...rest, ...CURRENT_SCENE };
+}
+
+/**
  * La scène telle que la montre une Browser Source selon son réglage `?branding=` : `on` la scène entière, `off` sans
  * ses couches d'identité (fond seul), `only` avec elles seules (à poser sur une cam ou un gameplay).
  * @param {SceneDoc} scene
@@ -220,9 +232,10 @@ function canonicalPlacement(placement) {
 
 /**
  * @param {unknown} raw
+ * @param {{ allowEmpty?: boolean }} [options] `allowEmpty` : la scène en antenne peut n'avoir aucune couche (ni fond ni branding)
  * @returns {{ ok: true } | { ok: false, errors: string[] }}
  */
-export function validateSceneDoc(raw) {
+export function validateSceneDoc(raw, { allowEmpty = false } = {}) {
   /** @type {string[]} */
   const errors = [];
   if (!isPlainObject(raw)) return { ok: false, errors: ['scène : objet attendu'] };
@@ -235,12 +248,13 @@ export function validateSceneDoc(raw) {
   if (raw.tags !== undefined && !(Array.isArray(raw.tags) && raw.tags.every((tag) => typeof tag === 'string'))) {
     errors.push('tags : liste de textes attendue');
   }
+  errors.push(...validateTransition(raw.transition).errors);
 
   if (!Array.isArray(raw.layers)) {
     errors.push('layers : liste attendue');
     return { ok: false, errors };
   }
-  if (raw.layers.length < 1) errors.push('layers : au moins une couche');
+  if (raw.layers.length < 1 && !allowEmpty) errors.push('layers : au moins une couche');
   if (raw.layers.length > MAX_LAYERS) errors.push(`layers : ${MAX_LAYERS} couches au plus`);
 
   const seen = new Set();
