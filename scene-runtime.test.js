@@ -3,17 +3,22 @@ import { createSceneRuntime } from './scene-runtime.js';
 import { createLayer } from './scene-doc.js';
 
 /** Monde factice : un journal ordonné de tout ce que le moteur fait, sans DOM. */
-function setup({ failing = [] } = {}) {
+function setup({ failing = [], timers = null } = {}) {
   const events = [];
   const calques = [];
+  const stages = [];
   const container = { appendChild: () => {} };
-  const createStageCalque = () => ({
-    tag: 'scene',
-    style: {},
-    children: [],
-    appendChild(child) { events.push(`attach:${child.tag}`); this.children.push(child); },
-    remove() { events.push('remove:scene'); },
-  });
+  const createStageCalque = () => {
+    const stage = {
+      tag: 'scene',
+      style: {},
+      children: [],
+      appendChild(child) { events.push(`attach:${child.tag}`); this.children.push(child); },
+      remove() { events.push('remove:scene'); },
+    };
+    stages.push(stage);
+    return stage;
+  };
   const createCalque = () => {
     const calque = {
       tag: `calque${calques.length + 1}`,
@@ -26,7 +31,7 @@ function setup({ failing = [] } = {}) {
     return calque;
   };
   const registry = {};
-  for (const kind of ['rain', 'bubble', 'dotgrid', 'broken-update']) {
+  for (const kind of ['rain', 'bubble', 'dotgrid', 'broken-update', 'branding']) {
     registry[kind] = (options) => {
       if (failing.includes(kind)) throw new Error(`fabrique en panne : ${kind}`);
       events.push(`create:${kind}:${options.n ?? ''}`);
@@ -41,8 +46,9 @@ function setup({ failing = [] } = {}) {
     };
   }
   const errors = [];
-  const runtime = createSceneRuntime(container, { registry, createCalque, createStageCalque, onLayerError: (failure) => errors.push(failure) });
-  return { runtime, events, calques, errors };
+  const schedule = timers === null ? {} : { scheduleFrame: (callback) => callback(), scheduleTimeout: (callback) => timers.push(callback) };
+  const runtime = createSceneRuntime(container, { registry, createCalque, createStageCalque, onLayerError: (failure) => errors.push(failure), ...schedule });
+  return { runtime, events, calques, errors, stages };
 }
 
 const scene = (...layers) => ({ version: 1, id: 's', name: 'S', layers });
@@ -272,5 +278,105 @@ describe('scene-runtime : fin de vie', () => {
     runtime.destroy();
     expect(events).toEqual(['destroy:rain', 'remove:calque1', 'destroy:bubble', 'remove:calque2', 'remove:scene']);
     expect(runtime.layers()).toEqual([]);
+  });
+});
+
+describe('scene-runtime : couches d’identité (branding)', () => {
+  const fade = { type: 'fade', durationMs: 500, easing: 'linear' };
+  const withBranding = (...layers) => scene(...layers, layer('branding', 'branding'));
+
+  test('la couche d’identité vit dans un calque à part, au-dessus des scènes, et se liste après les effets', () => {
+    const { runtime, calques, stages } = setup();
+    runtime.apply(withBranding(layer('fond', 'rain')));
+    expect(runtime.layers().map(({ id, kind }) => [id, kind])).toEqual([['fond', 'rain'], ['branding', 'branding']]);
+    expect(runtime.stageCount()).toBe(1);
+    expect(calques).toHaveLength(2);
+    // Deux calques de scène : celui des effets (sans z-index) et celui de l'identité, au-dessus.
+    expect(stages).toHaveLength(2);
+    expect(stages.filter((stage) => stage.style.zIndex === '2')).toHaveLength(1);
+    expect(stages.find((stage) => stage.style.zIndex === '2').children[0].children[0].tag).toBe('el-branding');
+  });
+
+  test('d’une scène à l’autre, le branding est réconcilié en place : jamais recréé', () => {
+    const { runtime, events } = setup();
+    runtime.apply(withBranding(layer('fond', 'rain')));
+    const before = runtime.layers().find(({ kind }) => kind === 'branding').instance;
+    events.length = 0;
+    runtime.apply(withBranding(layer('fond', 'bubble')));
+    expect(events.filter((event) => event.includes('branding') && !event.startsWith('update:'))).toEqual([]);
+    expect(runtime.layers().find(({ kind }) => kind === 'branding').instance).toBe(before);
+  });
+
+  test('pendant une arrivée, le branding n’est ni dupliqué ni emporté par l’ancienne scène, ni retiré à sa fin', () => {
+    const timers = [];
+    const { runtime, events } = setup({ timers });
+    runtime.apply(withBranding(layer('fond', 'rain')));
+    const branding = runtime.layers().find(({ kind }) => kind === 'branding').instance;
+    events.length = 0;
+
+    runtime.apply({ ...withBranding(layer('fond', 'bubble')), transition: fade });
+    expect(runtime.stageCount()).toBe(2);
+    expect(runtime.layers().filter(({ kind }) => kind === 'branding')).toHaveLength(1);
+    expect(events.filter((event) => event.includes('branding'))).toEqual(['update:branding:']);
+
+    timers.splice(0).forEach((callback) => callback());
+    expect(runtime.stageCount()).toBe(1);
+    expect(events).toContain('destroy:rain');
+    expect(events).not.toContain('destroy:branding');
+    expect(runtime.layers().find(({ kind }) => kind === 'branding').instance).toBe(branding);
+  });
+
+  test('une scène sans couche branding la retire tout de suite, même pendant une arrivée', () => {
+    const timers = [];
+    const { runtime } = setup({ timers });
+    runtime.apply(withBranding(layer('fond', 'rain')));
+    runtime.apply({ ...scene(layer('fond', 'bubble')), transition: fade });
+    expect(runtime.layers().some(({ kind }) => kind === 'branding')).toBe(false);
+    expect(runtime.stageCount()).toBe(2);
+  });
+
+  test('une scène qui n’a que du branding démonte les effets et garde le branding', () => {
+    const { runtime, events } = setup();
+    runtime.apply(withBranding(layer('fond', 'rain')));
+    runtime.apply(scene(layer('branding', 'branding')));
+    expect(runtime.stageCount()).toBe(0);
+    expect(runtime.layers().map(({ kind }) => kind)).toEqual(['branding']);
+    expect(events).toContain('destroy:rain');
+    expect(events).not.toContain('destroy:branding');
+  });
+
+  test('un effet qui ne peut pas être monté garde le fond en place ; le branding suit quand même la scène', () => {
+    const { runtime, errors } = setup({ failing: ['bubble'] });
+    runtime.apply(scene(layer('fond', 'rain')));
+    runtime.apply(withBranding(layer('fond', 'bubble')));
+    expect(runtime.layers().map(({ kind }) => kind)).toEqual(['rain', 'branding']);
+    expect(errors).toHaveLength(1);
+  });
+
+  test('la pause démonte aussi le branding ; la reprise le remonte', () => {
+    const { runtime, events } = setup();
+    runtime.apply(withBranding(layer('fond', 'rain')));
+    runtime.setPaused(true);
+    expect(runtime.layers()).toEqual([]);
+    expect(events).toContain('destroy:branding');
+    runtime.setPaused(false);
+    expect(runtime.layers().map(({ kind }) => kind)).toEqual(['rain', 'branding']);
+  });
+
+  test('destroy démonte tout, branding compris', () => {
+    const { runtime, events } = setup();
+    runtime.apply(withBranding(layer('fond', 'rain')));
+    runtime.destroy();
+    expect(runtime.layers()).toEqual([]);
+    expect(events).toContain('destroy:branding');
+  });
+
+  test('une scène à plusieurs couches d’identité les réconcilie par id comme les autres couches', () => {
+    const { runtime, events } = setup();
+    runtime.apply(scene(layer('fond', 'rain'), layer('b1', 'branding'), layer('b2', 'branding')));
+    events.length = 0;
+    runtime.apply(scene(layer('fond', 'rain'), layer('b2', 'branding')));
+    expect(events.filter((event) => event.includes('branding'))).toEqual(['destroy:branding', 'update:branding:']);
+    expect(runtime.layers().filter(({ kind }) => kind === 'branding').map(({ id }) => id)).toEqual(['b2']);
   });
 });

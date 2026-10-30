@@ -1,7 +1,7 @@
 // @ts-check
 import { COMPONENT_REGISTRY } from './component-registry.js';
 import { cssEasing, normalizeTransition, transitionStyles } from './background-transition.js';
-import { isAudioOn, kindCapabilities } from './layer-kinds.js';
+import { isAudioOn, isIdentityKind, kindCapabilities } from './layer-kinds.js';
 
 /**
  * scene-runtime.js — Monte une scène (une pile de couches, `scene-doc.js`) dans un conteneur.
@@ -27,6 +27,10 @@ import { isAudioOn, kindCapabilities } from './layer-kinds.js';
  * (type inconnu sur un fond d'une seule couche, par exemple un état plus récent que le code chargé par OBS)
  * laisse la scène en place plutôt que de vider l'écran en direct.
  *
+ * Les couches d'**identité** (le branding, `layer-kinds.js`) ne sont pas des effets de fond : elles vivent dans un calque à
+ * part, au-dessus des scènes, réconcilié en place à chaque scène et jamais animé par une arrivée. Sans cela, le branding
+ * s'estomperait et se refondrait à chaque changement de scène alors qu'il doit rester fixe.
+ *
  * Routage selon les capacités déclarées par `layer-kinds.js` : l'audio alimente chaque couche visible qui le
  * déclare et dont le réglage `audioReactive` est actif ; une réaction est traitée par les couches visibles qui
  * la gèrent nativement, sinon l'appelant la fait dessiner **une seule fois** par la surcouche partagée.
@@ -45,6 +49,7 @@ import { isAudioOn, kindCapabilities } from './layer-kinds.js';
  *   createCalque?: () => *,
  *   createStageCalque?: () => *,
  *   capabilitiesOf?: (kind: string) => import('./layer-kinds.js').LayerCapabilities,
+ *   identityOf?: (kind: string) => boolean,
  *   onLayerError?: (failure: { layerId: string, error: unknown }) => void,
  *   onMountChange?: () => void,
  *   scheduleFrame?: (callback: () => void) => void,
@@ -56,6 +61,7 @@ export function createSceneRuntime(container, deps = {}) {
   const createCalque = deps.createCalque ?? defaultCreateCalque;
   const createStageCalque = deps.createStageCalque ?? defaultCreateStageCalque;
   const capabilitiesOf = deps.capabilitiesOf ?? kindCapabilities;
+  const identityOf = deps.identityOf ?? isIdentityKind;
   const onLayerError = deps.onLayerError ?? ((failure) => console.error(`[scene-runtime] couche « ${failure.layerId} » : `, failure.error));
   const onMountChange = deps.onMountChange ?? (() => {});
   const scheduleFrame = deps.scheduleFrame
@@ -66,6 +72,8 @@ export function createSceneRuntime(container, deps = {}) {
   let current = null;
   /** @type {Stage[]} */
   let outgoing = [];
+  /** Calque des couches d'identité, au-dessus de toutes les scènes ; `null` tant qu'aucune n'est montée. @type {Stage | null} */
+  let identity = null;
   /** @type {SceneDoc | null} */
   let latestScene = null;
   let paused = false;
@@ -92,10 +100,34 @@ export function createSceneRuntime(container, deps = {}) {
     outgoing = [];
   }
 
-  function unmountAll() {
+  function unmountEffects() {
     flushOutgoing();
     if (current !== null) disposeStage(current);
     current = null;
+  }
+
+  function unmountAll() {
+    unmountEffects();
+    if (identity !== null) disposeStage(identity);
+    identity = null;
+  }
+
+  /**
+   * Les couches d'identité de la scène, réconciliées en place : elles apparaissent, se règlent et disparaissent
+   * tout de suite, sans suivre l'animation d'arrivée des effets.
+   * @param {Layer[]} layers
+   */
+  function reconcileIdentity(layers) {
+    if (layers.length === 0) {
+      if (identity !== null) disposeStage(identity);
+      identity = null;
+      return;
+    }
+    if (identity === null) {
+      identity = createStage();
+      identity.calque.style.zIndex = '2';
+    }
+    reconcile(identity, { layers });
   }
 
   /** @returns {Stage} */
@@ -137,7 +169,7 @@ export function createSceneRuntime(container, deps = {}) {
 
   /**
    * Réconcilie une scène avec une pile existante (ou neuve).
-   * @param {Stage} stage @param {SceneDoc} scene
+   * @param {Stage} stage @param {{ layers: Layer[] }} scene
    */
   function reconcile(stage, scene) {
     const wanted = new Set(scene.layers.map(({ id }) => id));
@@ -216,10 +248,12 @@ export function createSceneRuntime(container, deps = {}) {
     }, transition.durationMs);
   }
 
-  /** @param {SceneDoc} scene */
-  function applyScene(scene) {
+  /** @param {SceneDoc} fullScene */
+  function applyScene(fullScene) {
+    reconcileIdentity(fullScene.layers.filter(({ kind }) => identityOf(kind)));
+    const scene = { ...fullScene, layers: fullScene.layers.filter(({ kind }) => !identityOf(kind)) };
     if (scene.layers.length === 0) {
-      unmountAll();
+      unmountEffects();
       return;
     }
 
@@ -304,7 +338,8 @@ export function createSceneRuntime(container, deps = {}) {
 
     /** Couches de la scène affichée, dans l'ordre. @returns {MountedLayerInfo[]} */
     layers() {
-      return current === null ? [] : [...current.layers.values()].map(({ id, kind, instance, visible }) => ({ id, kind, instance, visible }));
+      const stages = [current, identity].filter((stage) => stage !== null);
+      return stages.flatMap((stage) => [...stage.layers.values()].map(({ id, kind, instance, visible }) => ({ id, kind, instance, visible })));
     },
 
     /** Nombre de calques de scène présents : un en régime stable, deux pendant une transition. */
