@@ -32,7 +32,7 @@ import {
  *   preview: ReturnType<typeof import('./background-preview-controller.js').createBackgroundPreviewController>,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   getPresets: () => Array<Record<string, any>>,
- *   getOmittedCount?: () => number,
+ *   getScenes?: () => import('../scene-doc.js').SceneDoc[],
  *   refreshPresets: () => Promise<import("../scene-doc.js").SceneDoc[] | null>,
  *   documentRef?: Document,
  *   windowRef?: Window,
@@ -176,15 +176,15 @@ export function createBackgroundPresetTransferController(input) {
   function initialize() {
     elements.exportButton.onclick = () => {
       const presets = input.getPresets();
-      const content = `${JSON.stringify(createBackgroundPresetBundle(presets), null, 2)}\n`;
+      const scenes = input.getScenes?.() ?? [];
+      const content = `${JSON.stringify(createBackgroundPresetBundle(presets, scenes), null, 2)}\n`;
       const url = urlApi.createObjectURL(new BlobImpl([content], { type: 'application/json' }));
       const link = documentRef.createElement('a');
       link.href = url;
       link.download = 'overlay-background-presets.json';
       link.click();
       windowRef.setTimeout(() => urlApi.revokeObjectURL(url), 0);
-      const omitted = input.getOmittedCount?.() ?? 0;
-      input.report.ok(`${presets.length} preset(s) exporté(s)${omitted === 0 ? '' : ` · ${omitted} scène(s) à plusieurs couches non exportée(s) (export complet à venir)`}`);
+      input.report.ok(`${presets.length} preset(s) exporté(s)${scenes.length === 0 ? '' : ` · ${scenes.length} scène(s) à plusieurs couches exportée(s)`}`);
     };
 
     elements.importTrigger.onclick = () => elements.importInput.click();

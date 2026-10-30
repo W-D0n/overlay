@@ -1,17 +1,22 @@
 // @ts-check
+import { canonicalSceneDoc, validateSceneDoc } from '../scene-doc.js';
 import { PRESET_NAME_MAX_LENGTH, canonicalBackgroundPreset, validateBackgroundFile } from './background-state-format.js';
 import { backgroundEffectLabel } from './component-field-schemas.js';
 
 export const BACKGROUND_PRESET_BUNDLE_FORMAT = 'overlay-background-presets';
-export const BACKGROUND_PRESET_BUNDLE_VERSION = 2;
-/** Versions de lot lues à l'import : la 1 porte encore `audioReactive` « Oui » / « Non ». */
-const READABLE_BUNDLE_VERSIONS = [1, 2];
+export const BACKGROUND_PRESET_BUNDLE_VERSION = 3;
+/**
+ * Versions de lot lues à l'import : la 1 porte encore `audioReactive` « Oui » / « Non » ; la 3 ajoute `scenes`, les scènes à
+ * plusieurs couches (placement, opacité, ordre) que la forme plate des presets ne sait pas représenter.
+ */
+const READABLE_BUNDLE_VERSIONS = [1, 2, 3];
 
 /**
  * @typedef {object} BackgroundPresetBundle
  * @property {'overlay-background-presets'} format
- * @property {2} version
+ * @property {3} version
  * @property {import('./background-state-format.js').BackgroundPreset[]} presets
+ * @property {import('../scene-doc.js').SceneDoc[]} scenes
  */
 
 /** @typedef {'created'|'updated'|'unchanged'} BackgroundPresetImportOperation */
@@ -171,19 +176,21 @@ export function backgroundPresetRevision(presets) {
 
 /**
  * @param {import('./background-state-format.js').BackgroundPreset[]} presets
+ * @param {import('../scene-doc.js').SceneDoc[]} [scenes] les scènes à plusieurs couches, exportées en entier
  * @returns {BackgroundPresetBundle}
  */
-export function createBackgroundPresetBundle(presets) {
+export function createBackgroundPresetBundle(presets, scenes = []) {
   return {
     format: BACKGROUND_PRESET_BUNDLE_FORMAT,
     version: BACKGROUND_PRESET_BUNDLE_VERSION,
     presets: presets.map(clonePreset),
+    scenes: structuredClone(scenes),
   };
 }
 
 /**
  * @param {unknown} input
- * @returns {{ok:true,presets:import('./background-state-format.js').BackgroundPreset[]}|{ok:false,errors:string[]}}
+ * @returns {{ok:true,presets:import('./background-state-format.js').BackgroundPreset[],scenes:import('../scene-doc.js').SceneDoc[]}|{ok:false,errors:string[]}}
  */
 export function parseBackgroundPresetBundle(input) {
   /** @type {unknown} */
@@ -209,8 +216,19 @@ export function parseBackgroundPresetBundle(input) {
 
   const validation = validateBackgroundFile({ current: { component: null, options: {} }, presets: bundle.presets });
   if (!validation.ok) return { ok: false, errors: validation.errors };
+  // `scenes` (version 3) : chaque scène est validée comme une scène d'antenne ; une seule invalide refuse tout le lot.
+  const rawScenes = bundle.scenes === undefined ? [] : bundle.scenes;
+  if (!Array.isArray(rawScenes)) return { ok: false, errors: ['scenes : tableau attendu'] };
+  /** @type {string[]} */
+  const sceneErrors = [];
+  rawScenes.forEach((scene, index) => {
+    const checked = validateSceneDoc(scene);
+    if (!checked.ok) sceneErrors.push(...checked.errors.map((message) => `scenes[${index}] : ${message}`));
+  });
+  if (sceneErrors.length > 0) return { ok: false, errors: sceneErrors };
   return {
     ok: true,
+    scenes: /** @type {import('../scene-doc.js').SceneDoc[]} */ (rawScenes).map((scene) => canonicalSceneDoc(structuredClone(scene))),
     presets: /** @type {import('./background-state-format.js').BackgroundPreset[]} */ (bundle.presets)
       .map(clonePreset)
       .map(canonicalBackgroundPreset),
@@ -328,4 +346,53 @@ export function mergeBackgroundPresetImport(existing, imported, reserved = []) {
   }
 
   return { presets, created, updated, renamed, unchanged, changes };
+}
+
+/** @param {import('../scene-doc.js').SceneDoc} scene @returns {string} */
+const sceneKey = (scene) => JSON.stringify(canonicalSceneDoc(structuredClone(scene)));
+
+/**
+ * L'import des scènes à plusieurs couches : elles ne remplacent jamais une scène existante. Identique à une scène déjà là
+ * (même identifiant et même contenu) : ignorée. Identifiant déjà pris par une scène différente : importée sous un identifiant
+ * libre. Nom déjà pris : importée sous un nom ajusté. Le plan se calcule sans rien écrire (c'est l'aperçu).
+ * @param {readonly import('../scene-doc.js').SceneDoc[]} existing les scènes de la bibliothèque, flat comme multi-couches
+ * @param {readonly import('../scene-doc.js').SceneDoc[]} imported
+ * @returns {{ scenes: import('../scene-doc.js').SceneDoc[], created: number, renamed: number, unchanged: number, changes: BackgroundPresetImportChange[] }}
+ */
+export function planSceneImport(existing, imported) {
+  /** @type {import('../scene-doc.js').SceneDoc[]} */
+  const added = [];
+  /** @type {BackgroundPresetImportChange[]} */
+  const changes = [];
+  let renamed = 0;
+  let unchanged = 0;
+  for (const source of imported) {
+    const same = existing.find((scene) => scene.id === source.id);
+    const layersLabel = `scène de ${source.layers.length} couche${source.layers.length > 1 ? 's' : ''}`;
+    if (same !== undefined && sceneKey(same) === sceneKey(source)) {
+      unchanged += 1;
+      changes.push({ id: source.id, operation: 'unchanged', name: source.name, component: layersLabel, requestedName: source.name, renamed: false, conflict: null, differences: [] });
+      continue;
+    }
+    const taken = [...existing, ...added];
+    let id = source.id;
+    for (let n = 2; taken.some((scene) => scene.id === id); n += 1) id = `${source.id.slice(0, 56)}-${n}`;
+    const resolution = uniqueImportedName(source.name, taken, id);
+    if (resolution.name !== source.name) renamed += 1;
+    added.push({ ...structuredClone(source), id, name: resolution.name });
+    changes.push({
+      id,
+      operation: 'created',
+      name: resolution.name,
+      component: layersLabel,
+      requestedName: source.name,
+      renamed: resolution.name !== source.name,
+      conflict: resolution.conflict,
+      differences: [
+        ...(resolution.name === source.name ? [] : [/** @type {const} */ ({ field: 'name', before: source.name, after: resolution.name })]),
+        { field: 'component', after: layersLabel },
+      ],
+    });
+  }
+  return { scenes: added, created: added.length, renamed, unchanged, changes };
 }

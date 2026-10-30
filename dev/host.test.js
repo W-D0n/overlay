@@ -520,6 +520,63 @@ describe('import de presets avec des scènes à plusieurs couches', () => {
   });
 });
 
+describe('import de scènes à plusieurs couches (lot version 3)', () => {
+  const bundle = (presets, scenes) => ({ format: 'overlay-background-presets', version: 3, presets, scenes });
+
+  test('un lot version 3 ajoute ses scènes en entier, à la suite, et annonce le détail dans l’aperçu', async () => {
+    const { post, path } = setup();
+    await post('/save-preset', { name: 'Zeta', component: 'rain', options: {} });
+    const imported = STACK({ id: 'nuit', name: 'Nuit' });
+    const preview = await (await post('/preview-import', { bundle: bundle([], [imported]) })).json();
+    expect(preview.created).toBe(1);
+    expect(preview.changes[0]).toMatchObject({ id: 'nuit', operation: 'created', component: expect.stringContaining('couches') });
+    expect((await post('/import-presets', { bundle: bundle([], [imported]), expectedRevision: preview.revision })).status).toBe(200);
+    const scenes = fileOf(path).scenes;
+    expect(scenes.map(({ id }) => id)).toEqual(['zeta', 'nuit']);
+    expect(scenes[1].layers).toEqual(STACK().layers);
+  });
+
+  test('une scène identique à une scène existante est ignorée, une scène différente de même identifiant ne l’écrase jamais', async () => {
+    const { post, path } = setup();
+    await post('/save-preset', { scene: STACK({ id: 'pile', name: 'Pile' }) });
+    const same = await (await post('/preview-import', { bundle: bundle([], [fileOf(path).scenes[0]]) })).json();
+    expect(same.unchanged).toBe(1);
+    expect(same.created).toBe(0);
+    const different = STACK({ id: 'pile', name: 'Pile', layers: [layer('seul', 'rain')] });
+    const preview = await (await post('/preview-import', { bundle: bundle([], [different]) })).json();
+    expect(preview.created).toBe(1);
+    await post('/import-presets', { bundle: bundle([], [different]), expectedRevision: preview.revision });
+    const scenes = fileOf(path).scenes;
+    expect(scenes).toHaveLength(2);
+    expect(scenes[0].layers).toEqual(STACK().layers);
+    expect(scenes[1].id).toBe('pile-2');
+    expect(scenes[1].name).toContain('import');
+  });
+
+  test('un lot qui mêle presets plats et scènes à plusieurs couches applique les deux, noms compris', async () => {
+    const { post, path } = setup();
+    await post('/save-preset', { name: 'Zeta', component: 'rain', options: {} });
+    const flat = { id: 'plat', name: 'Zeta', component: 'rain', options: {} };
+    const multi = STACK({ id: 'nuit', name: 'Zeta' });
+    const preview = await (await post('/preview-import', { bundle: bundle([flat], [multi]) })).json();
+    expect(preview.created).toBe(2);
+    expect(preview.renamed).toBe(2);
+    await post('/import-presets', { bundle: bundle([flat], [multi]), expectedRevision: preview.revision });
+    const names = fileOf(path).scenes.map(({ name }) => name);
+    expect(new Set(names).size).toBe(3);
+  });
+
+  test('une scène invalide refuse tout le lot (400), sans rien écrire', async () => {
+    const { post, path } = setup();
+    const before = existsSync(path);
+    const bad = { version: 1, id: 'x', name: 'X', layers: [{ id: 'a', kind: 'inconnu' }] };
+    const response = await post('/preview-import', { bundle: bundle([], [bad]) });
+    expect(response.status).toBe(400);
+    expect(await response.text()).toContain('scenes[0]');
+    expect(existsSync(path)).toBe(before);
+  });
+});
+
 describe('réglages du Studio', () => {
   const COMMAND = { id: 'custom.ma-macro', name: 'Ma macro', steps: ['edit.copy', { op: 'setPlacements', args: { patch: { x: 0.1 } }, target: 'selection' }], shortcut: 'Ctrl+Maj+K' };
   const settings = async (call) => (await call('/studio-settings')).json();

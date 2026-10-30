@@ -329,9 +329,9 @@ export function createBackgroundPresetController(input) {
     client: input.client,
     preview: input.preview,
     report: input.report,
-    // L'export est en forme plate : une scène à plusieurs couches n'en fait pas partie avant la version 3 du lot (6g).
+    // Les scènes à un effet s'exportent à plat (lisibles par les versions précédentes) ; les autres, en entier.
     getPresets: () => cachedPresets.flatMap((scene) => presetFromScene(scene) ?? []),
-    getOmittedCount: () => cachedPresets.filter((scene) => presetFromScene(scene) === null).length,
+    getScenes: () => cachedPresets.filter((scene) => presetFromScene(scene) === null),
     refreshPresets: refresh,
     documentRef,
     windowRef,

@@ -122,6 +122,18 @@ describe('transfert de presets du tuner', () => {
     expect(harness.reports.at(-1)).toEqual(['ok', '1 preset(s) exporté(s)']);
   });
 
+  test('exporte aussi les scènes à plusieurs couches, en entier, et le dit', async () => {
+    const multi = { version: 1, id: 'nuit', name: 'Nuit', layers: [{ id: 'rain', kind: 'rain', visible: true, opacity: 0.5, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {} }] };
+    const harness = createHarness({ getScenes: () => [multi] });
+
+    harness.elements.exportButton.onclick();
+
+    const exported = JSON.parse(await harness.blobs[0].text());
+    expect(exported.version).toBe(3);
+    expect(exported.scenes).toEqual([multi]);
+    expect(harness.reports.at(-1)).toEqual(['ok', '1 preset(s) exporté(s) · 1 scène(s) à plusieurs couches exportée(s)']);
+  });
+
   test('prévisualise un import et n’écrit qu’après confirmation', async () => {
     const harness = createHarness();
     const content = JSON.stringify(createBackgroundPresetBundle([preset]));

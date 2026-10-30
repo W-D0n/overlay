@@ -30,6 +30,7 @@ import {
   backgroundPresetRevision,
   mergeBackgroundPresetImport,
   parseBackgroundPresetBundle,
+  planSceneImport,
 } from './background-preset-library.js';
 import { sceneFromPreset } from '../scene-doc.js';
 import { namedSceneFromWire, sceneFromWirePreset, wirePreset } from './state-wire.js';
@@ -72,6 +73,38 @@ function takenIds(file, imported) {
   const { reserved } = flatLibrary(file);
   const clash = imported.find(({ id }) => reserved.some((scene) => scene.id === id));
   return clash === undefined ? null : `l’identifiant ${clash.id} est celui d’une scène à plusieurs couches, que ce lot ne peut pas remplacer`;
+}
+
+/**
+ * La bibliothèque après un lot : d'abord les presets plats (fusion, mises à jour), puis les scènes à plusieurs couches du lot,
+ * qui s'ajoutent sans jamais remplacer une scène existante. Aperçu et import passent par ici : ce que l'un annonce, l'autre le fait.
+ * @param {BackgroundFile} file
+ * @param {{ presets: import('./background-state-format.js').BackgroundPreset[], scenes: import('../scene-doc.js').SceneDoc[] }} parsed
+ */
+function applyImport(file, parsed) {
+  const library = flatLibrary(file);
+  const merged = mergeBackgroundPresetImport(library.presets, parsed.presets, library.reserved);
+  const importedIds = new Set(parsed.presets.map(({ id }) => id));
+  const mergedById = new Map(merged.presets.map((preset) => [preset.id, preset]));
+  const known = new Set(file.scenes.map(({ id }) => id));
+  const flatScenes = [
+    ...file.scenes.map((scene) => (mergedById.has(scene.id) ? sceneFromPreset(/** @type {*} */ (mergedById.get(scene.id))) : scene)),
+    ...merged.presets.filter(({ id }) => !known.has(id)).map((preset) => sceneFromPreset(preset)),
+  ];
+  const scenePlan = planSceneImport(flatScenes, parsed.scenes);
+  return {
+    merged,
+    scenePlan,
+    scenes: [...flatScenes, ...scenePlan.scenes],
+    importedPresets: merged.presets.filter(({ id }) => importedIds.has(id)),
+    totals: {
+      created: merged.created + scenePlan.created,
+      updated: merged.updated,
+      renamed: merged.renamed + scenePlan.renamed,
+      unchanged: merged.unchanged + scenePlan.unchanged,
+      changes: [...merged.changes, ...scenePlan.changes],
+    },
+  };
 }
 
 /**
@@ -178,17 +211,16 @@ export function createPresetRoutes({ update, inspect, announce }) {
     if (!parsed.ok) return jsonError(parsed.errors.join(' ; '), 400);
 
     return inspect((file) => {
-      const library = flatLibrary(file);
       const taken = takenIds(file, parsed.presets);
       if (taken !== null) return jsonError(taken, 409);
-      const plan = mergeBackgroundPresetImport(library.presets, parsed.presets, library.reserved);
+      const { totals } = applyImport(file, parsed);
       return new Response(JSON.stringify({
         revision: backgroundPresetRevision(file.scenes),
-        created: plan.created,
-        updated: plan.updated,
-        renamed: plan.renamed,
-        unchanged: plan.unchanged,
-        changes: plan.changes,
+        created: totals.created,
+        updated: totals.updated,
+        renamed: totals.renamed,
+        unchanged: totals.unchanged,
+        changes: totals.changes,
       }), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
     });
   }
@@ -202,26 +234,24 @@ export function createPresetRoutes({ update, inspect, announce }) {
 
     /** @type {import('./background-state-format.js').BackgroundPreset[]} */
     let importedPresets = [];
+    /** @type {import('../scene-doc.js').SceneDoc[]} */
+    let importedScenes = [];
     const response = await update((file) => {
       if (backgroundPresetRevision(file.scenes) !== body.expectedRevision) {
         return jsonError('bibliothèque modifiée depuis l’aperçu — recalcul nécessaire', 409);
       }
       const taken = takenIds(file, parsed.presets);
       if (taken !== null) return jsonError(taken, 409);
-      const library = flatLibrary(file);
-      const merged = mergeBackgroundPresetImport(library.presets, parsed.presets, library.reserved);
-      const importedIds = new Set(parsed.presets.map(({ id }) => id));
-      importedPresets = merged.presets.filter(({ id }) => importedIds.has(id));
       // Les scènes que le lot ne représente pas gardent leur place et leur contenu ; les autres suivent la fusion.
-      const mergedById = new Map(merged.presets.map((preset) => [preset.id, preset]));
-      const known = new Set(file.scenes.map(({ id }) => id));
-      const scenes = [
-        ...file.scenes.map((scene) => (mergedById.has(scene.id) ? sceneFromPreset(/** @type {*} */ (mergedById.get(scene.id))) : scene)),
-        ...merged.presets.filter(({ id }) => !known.has(id)).map((preset) => sceneFromPreset(preset)),
-      ];
-      return { ...file, scenes };
+      const applied = applyImport(file, parsed);
+      importedPresets = applied.importedPresets;
+      importedScenes = applied.scenePlan.scenes;
+      return { ...file, scenes: applied.scenes };
     });
-    if (response.ok) importedPresets.forEach((preset) => announce(preset, 'imported'));
+    if (response.ok) {
+      importedPresets.forEach((preset) => announce(preset, 'imported'));
+      importedScenes.forEach((scene) => announce(scene, 'imported'));
+    }
     return response;
   }
 

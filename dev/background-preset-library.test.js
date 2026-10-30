@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import {
   createBackgroundPresetBundle,
   backgroundPresetRevision,
@@ -6,6 +6,7 @@ import {
   findImportedActivePreset,
   mergeBackgroundPresetImport,
   parseBackgroundPresetBundle,
+  planSceneImport,
 } from './background-preset-library.js';
 
 const presets = [
@@ -24,14 +25,15 @@ test('un export de presets se relit avec son format versionné sans partager les
   const bundle = createBackgroundPresetBundle(presets);
   expect(bundle).toEqual({
     format: 'overlay-background-presets',
-    version: 2,
+    version: 3,
     presets,
+    scenes: [],
   });
   bundle.presets[0].options.changed = true;
   expect(presets[0].options).toEqual({});
 
   const parsed = parseBackgroundPresetBundle(JSON.stringify(createBackgroundPresetBundle(presets)));
-  expect(parsed).toEqual({ ok: true, presets });
+  expect(parsed).toEqual({ ok: true, presets, scenes: [] });
 });
 
 test('un import rejette entièrement un bundle invalide', () => {
@@ -254,9 +256,9 @@ test('un import qui ne change que la transition ou showBranding est une mise à 
   expect(plan.changes[0].differences.map(({ field }) => field).sort()).toEqual(['showBranding', 'transition']);
 });
 
-test('un export est en version 2 ; un lot version 1 s’importe en convertissant « Oui » en booléen', () => {
+test('un export est en version 3 ; un lot version 1 s’importe en convertissant « Oui » en booléen', () => {
   const exported = createBackgroundPresetBundle([{ id: 'a', name: 'A', component: 'rain', options: { audioReactive: true } }]);
-  expect(exported.version).toBe(2);
+  expect(exported.version).toBe(3);
 
   const legacyBundle = JSON.stringify({
     format: 'overlay-background-presets',
@@ -281,4 +283,61 @@ test('un lot version 1 qui porte d’anciens noms d’effet s’importe sous leu
   }));
   expect(parsed.ok).toBe(true);
   expect(parsed.presets[0].component).toBe('stars-parallax');
+});
+
+describe('scènes à plusieurs couches (version 3)', () => {
+  const layer = (id, kind) => ({ id, kind, visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {} });
+  const scene = (id, name, layers = [layer('rain', 'rain'), layer('bubble', 'bubble')]) => ({ version: 1, id, name, layers });
+
+  test('un export porte les scènes à plusieurs couches en entier et se relit à l’identique', () => {
+    const multi = scene('nuit', 'Nuit');
+    const bundle = createBackgroundPresetBundle(presets, [multi]);
+    expect(bundle.scenes).toEqual([multi]);
+    const parsed = parseBackgroundPresetBundle(JSON.stringify(bundle));
+    expect(parsed.ok).toBe(true);
+    expect(parsed.scenes).toHaveLength(1);
+    expect(parsed.scenes[0].layers.map((l) => l.id)).toEqual(['rain', 'bubble']);
+    bundle.scenes[0].name = 'changé';
+    expect(multi.name).toBe('Nuit');
+  });
+
+  test('une scène invalide refuse tout le lot, avec son emplacement', () => {
+    const bad = scene('x', 'X', [{ ...layer('rain', 'rain'), placement: 'non' }]);
+    const parsed = parseBackgroundPresetBundle({ format: 'overlay-background-presets', version: 3, presets: [], scenes: [bad] });
+    expect(parsed.ok).toBe(false);
+    expect(parsed.errors[0]).toContain('scenes[0]');
+    expect(parseBackgroundPresetBundle({ format: 'overlay-background-presets', version: 3, presets: [], scenes: 'non' }).ok).toBe(false);
+  });
+
+  test('un lot sans « scenes » (versions 1 et 2) se lit avec une liste vide', () => {
+    const parsed = parseBackgroundPresetBundle({ format: 'overlay-background-presets', version: 2, presets: [] });
+    expect(parsed).toEqual({ ok: true, presets: [], scenes: [] });
+  });
+
+  test('planSceneImport : nouvelle scène créée, identique ignorée, jamais d’écrasement', () => {
+    const existing = [scene('nuit', 'Nuit')];
+    const plan = planSceneImport(existing, [scene('nuit', 'Nuit'), scene('jour', 'Jour')]);
+    expect(plan.unchanged).toBe(1);
+    expect(plan.created).toBe(1);
+    expect(plan.scenes.map((s) => s.id)).toEqual(['jour']);
+    expect(plan.changes.map((c) => c.operation)).toEqual(['unchanged', 'created']);
+  });
+
+  test('un identifiant pris par une scène différente reçoit un identifiant libre, un nom pris un nom ajusté', () => {
+    const existing = [scene('nuit', 'Nuit')];
+    const different = scene('nuit', 'Nuit', [layer('rain', 'rain')]);
+    const plan = planSceneImport(existing, [different]);
+    expect(plan.created).toBe(1);
+    expect(plan.scenes[0].id).toBe('nuit-2');
+    expect(plan.scenes[0].name).toContain('import');
+    expect(plan.renamed).toBe(1);
+    expect(plan.changes[0].conflict).toEqual({ id: 'nuit', name: 'Nuit' });
+    expect(existing[0].layers).toHaveLength(2);
+  });
+
+  test('deux scènes importées du même nom ne se marchent pas dessus', () => {
+    const plan = planSceneImport([], [scene('a', 'Pareil'), scene('b', 'Pareil')]);
+    expect(new Set(plan.scenes.map((s) => s.name)).size).toBe(2);
+    expect(new Set(plan.scenes.map((s) => s.id)).size).toBe(2);
+  });
 });
