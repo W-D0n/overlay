@@ -30,6 +30,9 @@ Bun.serve({
     if (rejected !== null) return rejected;
 
     const url = new URL(req.url);
+    // Le navigateur réclame cette icône à chaque page ; le projet n'en a pas, et un 404 pollue la console.
+    if (url.pathname === '/favicon.ico') return new Response(null, { status: 204 });
+
     const pathname = url.pathname === '/' || url.pathname.endsWith('/')
       ? `${url.pathname}index.html`
       : url.pathname;
