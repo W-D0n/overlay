@@ -13,5 +13,5 @@
     "types": []
   },
   "include": ["*.js", "components/**/*.js", "dev/**/*.js", "dev/types/*.d.ts"],
-  "exclude": ["**/*.test.js", "src-tauri", "docs", ".playwright-mcp"]
+  "exclude": ["**/*.test.js", "dev/e2e", "src-tauri", "docs", ".playwright-mcp"]
 }

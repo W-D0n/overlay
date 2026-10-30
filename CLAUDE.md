@@ -65,6 +65,10 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
   routes `/control/*` du serveur d'état : tout changement passe `dev/lifecycle.test.js` (vrais processus, ports d'essai
   attribués par le système, jamais 5931/5932). Une doublure ne prouve pas qu'un port est libéré.
 
+- **Essais de bout en bout** — `bun dev/e2e/run.js` (ou `--only <suite>`, `--shots <dossier>`) : le Studio dans un vrai Chrome, avec de vrais serveurs
+  sur des ports d'essai et de vrais événements d'entrée (souris, clavier, glisser), sans aucune dépendance (protocole CDP par la WebSocket de
+  Bun). Toute modification du Studio (panneaux, éditeur, aperçu) la passe ; une classe de défaut d'interface trouvée à la main y repart en contrôle.
+
 Modifier l'une de ces surfaces impacte tous les effets : vérifier en aval avant d'éditer.
 
 ---
