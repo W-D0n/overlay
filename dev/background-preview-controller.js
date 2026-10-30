@@ -25,6 +25,7 @@ const NONE_VALUE = '__none__';
  *   presetSave: HTMLButtonElement,
  *   runtimeStatus: HTMLElement,
  *   onDraftChange?: (isDraft: boolean) => void,
+ *   onEdited?: () => void,
  *   client: ReturnType<typeof import('./background-state-client.js').createBackgroundStateClient>,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   documentRef?: Document,
@@ -94,6 +95,7 @@ export function createBackgroundPreviewController(input) {
       mount.apply(sceneFromCurrent(state.current));
       draft.edited();
       notifyDraft();
+      input.onEdited?.();
     },
   });
 
@@ -171,7 +173,9 @@ export function createBackgroundPreviewController(input) {
     },
     /** @param {Record<string, unknown>} patch */
     changeTransition(patch) {
-      return session.changeTransition(patch);
+      const state = session.changeTransition(patch);
+      input.onEdited?.();
+      return state;
     },
     /**
      * La visibilité du branding appartient au preset : elle rejoint le brouillon et part avec lui
@@ -182,6 +186,7 @@ export function createBackgroundPreviewController(input) {
       const state = session.setShowBranding(visible);
       draft.edited();
       notifyDraft();
+      input.onEdited?.();
       return state;
     },
     /** @param {unknown} next */

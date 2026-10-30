@@ -27,6 +27,7 @@ import { createBackgroundPresetTransferController } from './background-preset-tr
  *   },
  *   client: ReturnType<typeof import('./background-state-client.js').createBackgroundStateClient>,
  *   preview: ReturnType<typeof import('./background-preview-controller.js').createBackgroundPreviewController>,
+ *   drafts?: ReturnType<typeof import('./preset-draft-sync.js').createPresetDraftSync>,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   backgroundPageUrl: string,
  *   documentRef?: Document,
@@ -41,6 +42,8 @@ export function createBackgroundPresetController(input) {
   const elements = input.elements;
   let cachedPresets = [];
   let presetQuery = '';
+  /** @type {Map<string, { line: HTMLElement }>} */
+  const draftMarks = new Map();
 
   function reportClientError(prefix, error) {
     input.report.error(`${prefix} : ${error.message}`);
@@ -87,8 +90,16 @@ export function createBackgroundPresetController(input) {
     return { row, load, meta };
   }
 
+  /** Montre la pastille et l'abandon sur les presets qui ont un brouillon, sans refaire la liste ni ses vignettes. */
+  function syncDraftMarks() {
+    for (const [presetId, marks] of draftMarks) {
+      marks.line.hidden = !(input.drafts?.has(presetId) ?? false);
+    }
+  }
+
   function renderPresets(presets) {
     disposeThumbnails(presetThumbnails);
+    draftMarks.clear();
     cachedPresets = presets;
     elements.exportButton.disabled = presets.length === 0;
     elements.list.replaceChildren();
@@ -101,9 +112,32 @@ export function createBackgroundPresetController(input) {
         [`#${preset.id}`, ...(preset.tags ?? [])].join(' · '),
       );
       load.onclick = () => {
-        input.preview.apply(preset, preset.id, true);
+        // Ce qui attendait d'être envoyé pour le preset quitté part avant que l'aperçu ne change.
+        input.drafts?.flush();
+        const draft = input.drafts?.get(preset.id) ?? null;
+        input.preview.apply(draft === null ? preset : { ...preset, ...draft }, preset.id, true);
         elements.name.value = preset.name;
       };
+
+      const draftBadge = documentRef.createElement('span');
+      draftBadge.className = 'preset-draft';
+      draftBadge.textContent = 'brouillon';
+      draftBadge.title = 'Réglages non enregistrés, gardés sur le serveur';
+      const discardDraft = documentRef.createElement('button');
+      discardDraft.className = 'preset-action';
+      discardDraft.textContent = '↺';
+      discardDraft.title = 'Revenir à la version enregistrée';
+      discardDraft.setAttribute('aria-label', `Revenir à la version enregistrée de ${preset.name}`);
+      discardDraft.onclick = async () => {
+        await input.drafts?.discard(preset.id);
+        if (input.preview.snapshot().activePresetId === preset.id) input.preview.apply(preset, preset.id, true);
+        input.report.ok();
+      };
+      // Pastille et abandon ont leur propre rangée, sur toute la largeur de la carte (la colonne des métadonnées est étroite).
+      const draftLine = documentRef.createElement('div');
+      draftLine.className = 'preset-draft-line';
+      draftLine.append(draftBadge, discardDraft);
+      draftMarks.set(preset.id, { line: draftLine });
 
       const copyUrl = documentRef.createElement('button');
       copyUrl.className = 'preset-action';
@@ -172,6 +206,7 @@ export function createBackgroundPresetController(input) {
         yes.onclick = async () => {
           try {
             await input.client.deletePreset(preset.id);
+            input.drafts?.forget(preset.id);
             input.report.ok();
             if (input.preview.snapshot().activePresetId === preset.id) {
               input.preview.setActivePresetId(null);
@@ -192,9 +227,10 @@ export function createBackgroundPresetController(input) {
       const actions = documentRef.createElement('div');
       actions.className = 'preset-actions';
       actions.append(copyUrl, rename, duplicate, remove);
-      row.append(load, meta, actions);
+      row.append(load, meta, actions, draftLine);
       elements.list.appendChild(row);
     }
+    syncDraftMarks();
   }
 
   function uniquePresetName(base) {
@@ -317,6 +353,8 @@ export function createBackgroundPresetController(input) {
           transition,
           showBranding,
         });
+        // Le serveur a retiré le brouillon avec la mise à jour ; un envoi en attente ne doit pas le recréer.
+        if (activePresetId !== null) input.drafts?.forget(activePresetId);
         input.report.ok();
         const presets = await refresh();
         const savedPreset = presets?.find((preset) => preset.name === name);
@@ -345,5 +383,6 @@ export function createBackgroundPresetController(input) {
     initialize,
     refresh,
     renderPresets,
+    syncDraftMarks,
   };
 }

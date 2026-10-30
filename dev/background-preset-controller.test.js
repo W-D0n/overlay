@@ -151,3 +151,109 @@ test('re-rendre les presets personnels ne détruit pas les vignettes des points 
   const survivors = elements.builtinList.children.map((row) => row.children[0]);
   expect(survivors.filter((thumbnail) => removed.includes(thumbnail))).toEqual([]);
 });
+
+function draftSetup({ drafts, activePresetId = null }) {
+  const elements = {
+    list: element(), builtinList: element(), name: element(), tags: element(), search: element(),
+    exportButton: element(), importTrigger: element(), importInput: element(), importReview: element(),
+    importSummary: element(), importDetails: element(), importConfirm: element(), importCancel: element(),
+    save: element(), createNew: element(),
+  };
+  const applied = [];
+  const calls = [];
+  const controller = createBackgroundPresetController({
+    elements,
+    client: {
+      savePreset: async () => { calls.push('savePreset'); },
+      readState: async () => ({ presets: [{ id: 'a', name: 'Perso', component: 'rain', options: { speed: 1 } }] }),
+    },
+    preview: {
+      apply: (next, presetId, asDraft) => applied.push({ next, presetId, asDraft }),
+      persistNow: async () => true,
+      setActivePresetId() {},
+      snapshot: () => ({ activePresetId, current: { component: 'rain', options: { speed: 1 } }, transition: {}, showBranding: true }),
+    },
+    drafts,
+    report: { ok() {}, error() {} },
+    backgroundPageUrl,
+    documentRef: { createElement: () => element() },
+    navigatorRef: { clipboard: { writeText: async () => {} } },
+    windowRef: { setTimeout: () => 1 },
+  });
+  controller.initialize();
+  controller.renderPresets([{ id: 'a', name: 'Perso', component: 'rain', options: { speed: 1 } }]);
+  const row = elements.list.children[0];
+  const [, load, , , line] = row.children;
+  return { elements, controller, applied, calls, row, load, line, discard: line.children[1] };
+}
+
+function fakeDrafts(initial = {}) {
+  const store = new Map(Object.entries(initial));
+  const log = [];
+  return {
+    store, log,
+    has: (id) => store.has(id),
+    get: (id) => store.get(id) ?? null,
+    flush: () => { log.push('flush'); return Promise.resolve(); },
+    forget: (id) => { log.push(`forget:${id}`); store.delete(id); },
+    discard: async (id) => { log.push(`discard:${id}`); store.delete(id); },
+  };
+}
+
+test('la pastille « brouillon » et l’abandon n’apparaissent que sur un preset qui a un brouillon', () => {
+  const drafts = fakeDrafts({ a: { component: 'bubble', options: {} } });
+  const { controller, line } = draftSetup({ drafts });
+  expect(line.hidden).toBe(false);
+
+  drafts.store.delete('a');
+  controller.syncDraftMarks();
+  expect(line.hidden).toBe(true);
+});
+
+test('sans brouillon, cliquer un preset applique sa version enregistrée', () => {
+  const drafts = fakeDrafts();
+  const { load, applied } = draftSetup({ drafts });
+  load.onclick();
+  expect(applied).toHaveLength(1);
+  expect(applied[0]).toMatchObject({ presetId: 'a', asDraft: true, next: { component: 'rain', options: { speed: 1 } } });
+});
+
+test('avec un brouillon, cliquer le preset restaure ses réglages non enregistrés, après avoir envoyé ceux en attente', () => {
+  const drafts = fakeDrafts({ a: { component: 'bubble', options: { count: 9 }, showBranding: false } });
+  const { load, applied } = draftSetup({ drafts });
+  load.onclick();
+  expect(drafts.log).toEqual(['flush']);
+  expect(applied[0].next).toMatchObject({ id: 'a', name: 'Perso', component: 'bubble', options: { count: 9 }, showBranding: false });
+});
+
+test('« Revenir à la version enregistrée » abandonne le brouillon et réaffiche le preset s’il est actif', async () => {
+  const drafts = fakeDrafts({ a: { component: 'bubble', options: {} } });
+  const { discard, applied } = draftSetup({ drafts, activePresetId: 'a' });
+  await discard.onclick();
+  expect(drafts.log).toEqual(['discard:a']);
+  expect(applied).toHaveLength(1);
+  expect(applied[0].next.component).toBe('rain');
+});
+
+test('« Revenir » sur un preset non actif ne change pas l’aperçu', async () => {
+  const drafts = fakeDrafts({ a: { component: 'bubble', options: {} } });
+  const { discard, applied } = draftSetup({ drafts, activePresetId: null });
+  await discard.onclick();
+  expect(applied).toEqual([]);
+});
+
+test('« Mettre à jour » oublie le brouillon du preset actif, pour qu’un envoi en attente ne le recrée pas', async () => {
+  const drafts = fakeDrafts({ a: { component: 'bubble', options: {} } });
+  const { elements, calls } = draftSetup({ drafts, activePresetId: 'a' });
+  elements.name.value = 'Perso';
+  await elements.save.onclick();
+  expect(calls).toEqual(['savePreset']);
+  expect(drafts.log).toContain('forget:a');
+});
+
+test('sans brouillons fournis, la liste reste utilisable', () => {
+  const { load, applied, line } = draftSetup({ drafts: undefined });
+  expect(line.hidden).toBe(true);
+  load.onclick();
+  expect(applied).toHaveLength(1);
+});

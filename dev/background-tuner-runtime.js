@@ -7,6 +7,7 @@ import { createAntennaController } from './antenna-controller.js';
 import { createServerControlController } from './server-control-controller.js';
 import { createDiagnosticController } from './diagnostic-controller.js';
 import { createHistoryController } from './history-controller.js';
+import { createPresetDraftSync } from './preset-draft-sync.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
 import { createBrandingController } from './branding-controller.js';
@@ -66,6 +67,8 @@ export async function startBackgroundTuner(environment = {}) {
   const stage = createPreviewStage({ layer: byId('bg-layer'), container: byId('stage-area'), windowRef: /** @type {Window & typeof globalThis} */ (windowRef) });
 
   const client = createBackgroundStateClient({ baseUrl: STATE_SERVER });
+  /** @type {ReturnType<typeof createPresetDraftSync> | null} */
+  let drafts = null;
   const preview = createBackgroundPreviewController({
     layer: byId('bg-layer'),
     effectSelect: byId('effect-select'),
@@ -80,10 +83,18 @@ export async function startBackgroundTuner(environment = {}) {
       byId('publish-send').hidden = !isDraft;
       byId('publish-discard').hidden = !isDraft;
     },
+    onEdited: () => drafts?.schedule(),
     client,
     report,
     documentRef,
     windowRef,
+  });
+
+  drafts = createPresetDraftSync({
+    client,
+    snapshot: preview.snapshot,
+    onChange: () => presets.syncDraftMarks(),
+    onError: report.error,
   });
 
   byId('publish-send').addEventListener('click', () => preview.publish());
@@ -109,6 +120,7 @@ export async function startBackgroundTuner(environment = {}) {
     },
     client,
     preview,
+    drafts,
     report,
     backgroundPageUrl: new URL('../background.html', windowRef.location.href).href,
     documentRef,
@@ -215,6 +227,7 @@ export async function startBackgroundTuner(environment = {}) {
   } catch (error) {
     report.error(stateLoadErrorMessage(error));
   }
+  await drafts.load();
 
   preview.attachTransitionControls(createTransitionController({
     typeSelect: byId('transition-type'),

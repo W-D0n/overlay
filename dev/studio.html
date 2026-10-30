@@ -264,6 +264,10 @@
       padding-left: calc(var(--space-xs) / 2);
     }
     .preset-action { padding: var(--space-xs) var(--space-sm); }
+    .preset-draft { color: var(--color-gold); font-size: var(--text-base); }
+    .preset-draft-line .preset-action { padding: 0 var(--space-xs); }
+    .preset-row [hidden] { display: none; }
+    .preset-draft-line { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--space-sm); }
     /* Chaque point de départ tenait sur trois lignes ; en deux colonnes la liste passe de
        cinq cartes hautes à cinq lignes lisibles. */
     .preset-row-builtin {

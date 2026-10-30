@@ -5,7 +5,7 @@ updated: 2026-10-30
 
 # Spec — Décomposition du serveur d'état et brouillon / publication (étape 5)
 
-Statut : **5a et 5b-1 livrées, 5b-2 en cours**. Étape 5 de `docs/architecture-review.md` §5, après l'étape 4 (`scene-doc-etape-4.md`,
+Statut : **5a, 5b-1 et 5b-2 livrées**. Étape 5 de `docs/architecture-review.md` §5, après l'étape 4 (`scene-doc-etape-4.md`,
 livrée). Constats d'origine : F5 (le serveur cumule quatre responsabilités), C2 (module non importable sans démarrer un
 serveur), C3 (ajouter un canal touche cinq endroits, un canal inconnu tombe silencieusement dans `event`), C4 (le champ
 `current` sert à la fois à ce que le tuner édite et à ce qui est diffusé à l'antenne).
@@ -73,6 +73,8 @@ branding. Il est rangé sur le serveur sous l'identifiant du preset, et survit a
   onglets du Studio.
 - **Antenne** : un brouillon n'est jamais diffusé. Il ne dépend ni de `applySceneMapping` ni de la publication : le constat C4
   (l'édité et l'antenne confondus dans `current`) est levé par la séparation de ces deux zones du fichier.
-- **Studio** : la ligne d'un preset porte une pastille « brouillon » ; cliquer le preset restaure son brouillon (indiqué), « Revenir à la
-  version enregistrée » l'abandonne.
-- Module pur : `dev/preset-drafts.js`.
+- **Studio** : la ligne d'un preset porte une rangée « brouillon » avec son bouton « Revenir à la version enregistrée » ; cliquer le
+  preset restaure son brouillon. Envoi : `dev/preset-draft-sync.js` capture l'état au réglage (pas à l'échéance du délai), envoie tout de
+  suite le brouillon du preset quitté, et signale une fois un serveur sans la route plutôt que d'échouer à chaque réglage.
+- Limite connue : un brouillon redevenu identique au preset enregistré reste signalé « brouillon » jusqu'à son abandon ou à la mise à jour.
+- Modules : `dev/preset-drafts.js` (pur, serveur), `dev/preset-draft-sync.js` (Studio).

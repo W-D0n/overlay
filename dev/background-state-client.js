@@ -105,6 +105,18 @@ export function createBackgroundStateClient(options) {
     rollback(at) {
       return request('rollback', { at });
     },
+    /** Réglages non enregistrés, par identifiant de preset. @returns {Promise<Record<string, import('./preset-draft-sync.js').DraftEntry>>} */
+    async readDrafts() {
+      return (await request('drafts')).drafts;
+    },
+    /** @param {string} presetId @param {unknown} state */
+    saveDraft(presetId, state) {
+      return request('draft', { presetId, state });
+    },
+    /** @param {string} presetId */
+    discardDraft(presetId) {
+      return request('discard-draft', { presetId });
+    },
     /** @param {Record<string, string>} sceneMap */
     saveSceneMap(sceneMap) {
       return request('scene-map', { sceneMap });
