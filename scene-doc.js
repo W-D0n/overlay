@@ -15,6 +15,7 @@ import { clampOptions, isIdentityKind, neutralizeOptions, resolveKindId, validat
  *   kind: import('./layer-kinds.js').LayerKindId,
  *   name?: string,
  *   visible: boolean,
+ *   locked?: boolean,
  *   opacity: number,
  *   placement: Placement,
  *   options: Record<string, unknown>,
@@ -273,6 +274,7 @@ export function validateSceneDoc(raw, { allowEmpty = false } = {}) {
     }
     if (resolveKindId(layer.kind) === null) errors.push(`${where}.kind : type de couche inconnu`);
     if (typeof layer.visible !== 'boolean') errors.push(`${where}.visible : booléen attendu`);
+    if (layer.locked !== undefined && typeof layer.locked !== 'boolean') errors.push(`${where}.locked : booléen attendu`);
     if (!isFraction(layer.opacity)) errors.push(`${where}.opacity : nombre attendu`);
     errors.push(...placementErrors(where, layer.placement));
     if (!isPlainObject(layer.options)) errors.push(`${where}.options : objet attendu`);
@@ -300,7 +302,7 @@ function placementErrors(where, placement) {
 
 // ── Chemins adressables ──────────────────────────────────────────────────────
 
-const LAYER_SCALARS = new Set(['name', 'visible', 'opacity']);
+const LAYER_SCALARS = new Set(['name', 'visible', 'locked', 'opacity']);
 const PLACEMENT_KEYS = new Set(['x', 'y', 'width', 'height']);
 
 /**

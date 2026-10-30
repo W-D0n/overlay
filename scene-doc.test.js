@@ -106,6 +106,14 @@ describe('validation', () => {
     expect(errorsOf({ ...scene(), id: 'a.b' })).toContain('id : identifiant de scène invalide');
   });
 
+  test('locked est optionnel et booléen ; il s’adresse par chemin', () => {
+    const layers = scene().layers;
+    expect(validateSceneDoc({ ...scene(), layers: [{ ...layers[0], locked: true }] }).ok).toBe(true);
+    expect(errorsOf({ ...scene(), layers: [{ ...layers[0], locked: 'oui' }] }).join(' ')).toContain('.locked : booléen attendu');
+    const written = writePath(scene(), `layers[${layers[0].id}].locked`, true);
+    expect(written.ok && written.scene.layers[0].locked).toBe(true);
+  });
+
   test('une transition invalide est signalée, une transition valide ou absente passe', () => {
     expect(errorsOf({ ...scene(), transition: { type: 'spin' } })).toContain('transition.type : fade ou wipe attendu');
     expect(validateSceneDoc({ ...scene(), transition: { type: 'wipe', durationMs: 300 } }).ok).toBe(true);
