@@ -15,7 +15,8 @@
 import { RENDER_REFERENCE } from '../render-reference.js';
 import { rulerTicks } from './ruler-ticks.js';
 
-const STORAGE_KEY = 'overlay.studio.view-aids';
+const KEYS = /** @type {const} */ (['snap', 'grid', 'rulers', 'safe']);
+const DEFAULTS = { snap: true, grid: false, rulers: false, safe: false };
 const RULER_THICKNESS = 20;
 const GRID_CELL_PX = 120;
 const TITLE_SAFE = 0.05;
@@ -25,6 +26,7 @@ const ACTION_SAFE = 0.025;
  * @param {{
  *   area: HTMLElement,
  *   stage: ReturnType<typeof import('./preview-stage.js').createPreviewStage>,
+ *   preferences: { getPreference: (key: string, fallback: boolean) => boolean, setPreference: (key: string, value: boolean) => void, subscribe: (listener: () => void) => () => void },
  *   canvasOverlay: { setSnapEnabled(enabled: boolean): void, setSafeMargin(margin: { x: number, y: number } | null): void },
  *   elements: {
  *     zoomOut: HTMLButtonElement, zoomIn: HTMLButtonElement, zoomLabel: HTMLButtonElement, zoom100: HTMLButtonElement,
@@ -39,15 +41,12 @@ export function createViewAidsController(input) {
   const windowRef = input.windowRef ?? window;
   const { area, stage, elements } = input;
 
-  const state = { snap: true, grid: false, rulers: false, safe: false };
-  try {
-    const saved = JSON.parse(windowRef.localStorage?.getItem(STORAGE_KEY) ?? 'null');
-    if (saved !== null && typeof saved === 'object') {
-      for (const key of /** @type {const} */ (['snap', 'grid', 'rulers', 'safe'])) if (typeof saved[key] === 'boolean') state[key] = saved[key];
-    }
-  } catch {
-    // Préférences illisibles ou stockage indisponible : les valeurs par défaut valent.
+  const state = { ...DEFAULTS };
+  /** Relit les préférences (au départ, et quand un autre onglet les change). */
+  function readPreferences() {
+    for (const key of KEYS) state[key] = input.preferences.getPreference(`view.${key}`, DEFAULTS[key]);
   }
+  readPreferences();
 
   /** @param {string} className @param {string} [tag] */
   const make = (className, tag = 'div') => {
@@ -149,17 +148,13 @@ export function createViewAidsController(input) {
   function apply() {
     input.canvasOverlay.setSnapEnabled(state.snap);
     input.canvasOverlay.setSafeMargin(state.safe ? { x: RENDER_REFERENCE.width * TITLE_SAFE, y: RENDER_REFERENCE.height * TITLE_SAFE } : null);
-    try {
-      windowRef.localStorage?.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      // Sans stockage, les préférences valent pour cette session.
-    }
     render();
   }
 
   /** @param {'snap' | 'grid' | 'rulers' | 'safe'} key */
   function toggle(key) {
     state[key] = !state[key];
+    input.preferences.setPreference(`view.${key}`, state[key]);
     apply();
   }
 
@@ -173,6 +168,10 @@ export function createViewAidsController(input) {
   elements.safe.addEventListener('click', () => toggle('safe'));
 
   const unsubscribe = stage.subscribe(render);
+  const unsubscribePreferences = input.preferences.subscribe(() => {
+    readPreferences();
+    apply();
+  });
   apply();
 
   return {
@@ -182,6 +181,7 @@ export function createViewAidsController(input) {
     render,
     destroy() {
       unsubscribe();
+      unsubscribePreferences();
       for (const el of [grid, safeOuter, safeInner, rulerX, rulerY]) el.remove();
     },
   };

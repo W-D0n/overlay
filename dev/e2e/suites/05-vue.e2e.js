@@ -73,13 +73,17 @@ export async function run({ page, stack, check, errors }) {
   const free = await inspectorX();
   check('aimantation coupée : le bord s’arrête là où le pointeur l’a mené (≈ 4 px), sans coller à 0', Math.abs(free - 4) <= 3);
 
-  // Les préférences survivent au rechargement.
+  // Les préférences vivent sur le serveur : elles survivent même à la perte du stockage du navigateur.
+  await page.sleep(900);
+  await page.evaluate('localStorage.clear()');
   await page.goto(`http://localhost:${stack.staticPort}/dev/studio.html`);
   await page.waitFor("(document.getElementById('server-status')?.textContent ?? '').includes('connecté')", 15_000);
   await page.sleep(500);
   const prefs = await page.evaluate("({ grid: document.getElementById('view-grid').getAttribute('aria-pressed'), rulers: document.getElementById('view-rulers').getAttribute('aria-pressed'), snap: document.getElementById('view-snap').getAttribute('aria-pressed') })");
-  check('grille et règles restent actives, aimantation coupée : les préférences sont mémorisées', prefs.grid === 'true' && prefs.rulers === 'true' && prefs.snap === 'false');
-  await page.evaluate("localStorage.removeItem('overlay.studio.view-aids')");
+  check('grille et règles restent actives, aimantation coupée, le stockage du navigateur ayant été vidé : les préférences sont sur le serveur', prefs.grid === 'true' && prefs.rulers === 'true' && prefs.snap === 'false');
+  const onServer = await stack.api('/studio-settings');
+  check('le serveur détient ces préférences', onServer.preferences['view.grid'] === true && onServer.preferences['view.snap'] === false);
+  await stack.api('/studio-settings', { preferences: { 'view.grid': null, 'view.rulers': null, 'view.snap': null, 'view.safe': null } });
 
   check('aucune erreur dans la console', errors.length === 0 ? true : errors.slice());
 }

@@ -519,3 +519,66 @@ describe('import de presets avec des scènes à plusieurs couches', () => {
     expect((await post('/import-presets', { bundle: bundle([flat()]), expectedRevision: preview.revision })).status).toBe(409);
   });
 });
+
+describe('réglages du Studio', () => {
+  const COMMAND = { id: 'custom.ma-macro', name: 'Ma macro', steps: ['edit.copy', { op: 'setPlacements', args: { patch: { x: 0.1 } }, target: 'selection' }], shortcut: 'Ctrl+Maj+K' };
+  const settings = async (call) => (await call('/studio-settings')).json();
+
+  test('un fichier neuf rend des réglages vides', async () => {
+    const { call } = setup();
+    expect(await settings(call)).toEqual({ customCommands: [], preferences: {} });
+  });
+
+  test('POST range les commandes en bloc et fusionne les préférences ; null retire une clé ; le fichier les garde', async () => {
+    const { post, call, path } = setup();
+    expect((await post('/studio-settings', { customCommands: [COMMAND], preferences: { 'view.grid': true, 'placement.unit': 'pixel' } })).status).toBe(200);
+    expect((await post('/studio-settings', { preferences: { 'view.grid': null, 'view.rulers': true } })).status).toBe(200);
+    expect(await settings(call)).toEqual({ customCommands: [COMMAND], preferences: { 'placement.unit': 'pixel', 'view.rulers': true } });
+    expect(JSON.parse(readFileSync(path, 'utf8')).studio.customCommands[0].name).toBe('Ma macro');
+    await post('/studio-settings', { customCommands: [] });
+    expect((await settings(call)).customCommands).toEqual([]);
+    expect((await settings(call)).preferences['placement.unit']).toBe('pixel');
+  });
+
+  test('une demande invalide est refusée en 400 sans rien écrire ni diffuser', async () => {
+    const { post, subscribe, path } = setup();
+    const onStudio = subscribe('studio');
+    const refused = await post('/studio-settings', { customCommands: [{ id: 'pas-custom', name: 'x', steps: ['a'] }] });
+    expect(refused.status).toBe(400);
+    expect(await refused.text()).toContain('identifiant');
+    expect((await post('/studio-settings', { preferences: { a: { b: 1 } } })).status).toBe(400);
+    expect(onStudio).toEqual([]);
+    expect(existsSync(path)).toBe(false);
+  });
+
+  test('le changement est diffusé sur le canal studio seulement, avec les réglages complets', async () => {
+    const { post, subscribe } = setup();
+    const onStudio = subscribe('studio');
+    const onState = subscribe('state');
+    await post('/studio-settings', { customCommands: [COMMAND], preferences: { a: 1 } });
+    expect(JSON.parse(onStudio[0])).toEqual({ customCommands: [COMMAND], preferences: { a: 1 } });
+    expect(onState).toEqual([]);
+  });
+
+  test('GET /state ne porte pas les réglages du Studio, et publier ne les efface pas', async () => {
+    const { post, call, path } = setup();
+    await post('/studio-settings', { customCommands: [COMMAND] });
+    await post('/state', { current: RAIN });
+    expect('studio' in (await (await call('/state')).json())).toBe(false);
+    expect(JSON.parse(readFileSync(path, 'utf8')).studio.customCommands).toHaveLength(1);
+  });
+
+  test('un fichier dont les réglages sont invalides est refusé à la lecture, avec leur emplacement', async () => {
+    const { call, path } = setup();
+    writeFileSync(path, JSON.stringify({ version: 4, current: null, scenes: [], studio: { customCommands: [{ id: 'x' }] } }));
+    const response = await call('/studio-settings');
+    expect(response.status).toBe(500);
+    expect(await response.text()).toContain('studio : customCommands[0]');
+  });
+
+  test('/studio-ws est un canal reconnu', async () => {
+    const { call, server } = setup();
+    await call('/studio-ws');
+    expect(server.upgrades).toEqual([{ channel: 'studio', role: 'studio' }]);
+  });
+});

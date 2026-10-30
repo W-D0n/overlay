@@ -40,6 +40,8 @@ export function createCustomCommandsController(input) {
 
   /** @type {{ id: string | null, name: string, steps: string[], shortcut: string }} */
   let draft = { id: null, name: '', steps: [], shortcut: '' };
+  /** Le volet affiché : la liste ne se redessine que si elle est visible. @type {'list' | 'editor' | 'io'} */
+  let pane = 'list';
   let capturing = false;
   /** Le mode d'import / export en cours : `import` ou `export`. @type {'import' | 'export' | null} */
   let ioMode = null;
@@ -135,15 +137,16 @@ export function createCustomCommandsController(input) {
 
   // ── Éditeur ─────────────────────────────────────────────────────────────
 
-  function showPane(/** @type {'list' | 'editor' | 'io'} */ pane) {
-    elements.editor.hidden = pane !== 'editor';
-    elements.io.hidden = pane !== 'io';
-    elements.list.hidden = pane !== 'list';
-    elements.empty.hidden = pane !== 'list' || store.list().length > 0;
-    elements.create.disabled = pane !== 'list';
-    elements.record.disabled = pane !== 'list';
-    elements.importButton.disabled = pane !== 'list';
-    elements.exportButton.disabled = pane !== 'list';
+  function showPane(/** @type {'list' | 'editor' | 'io'} */ next) {
+    pane = next;
+    elements.editor.hidden = next !== 'editor';
+    elements.io.hidden = next !== 'io';
+    elements.list.hidden = next !== 'list';
+    elements.empty.hidden = next !== 'list' || store.list().length > 0;
+    elements.create.disabled = next !== 'list';
+    elements.record.disabled = next !== 'list';
+    elements.importButton.disabled = next !== 'list';
+    elements.exportButton.disabled = next !== 'list';
   }
 
   /** @param {import('./custom-commands.js').CustomCommand | null} definition */
@@ -392,7 +395,11 @@ export function createCustomCommandsController(input) {
     /** Démarre l'enregistrement d'une macro. */
     startRecording() { recorder.start(); },
     isRecording: () => recorder.isRecording(),
-    reload() { syncRegistry(); renderList(); },
+    /** Les commandes ont changé (autre fenêtre) : le registre suit, la liste aussi si elle est affichée. */
+    reload() {
+      syncRegistry();
+      if (pane === 'list') renderList();
+    },
     /** Les raccourcis existants, pour l'aide. */
     checkShortcut: (/** @type {string} */ shortcut) => checkShortcut(shortcut, { taken: takenShortcuts(null) }),
   };

@@ -7,7 +7,7 @@
  *
  * `role` : une page de rendu (OBS) s'annonce par `?role=render` ; le Studio ne s'annonce pas.
  *
- * @typedef {'state' | 'presets' | 'event' | 'branding'} ChannelName
+ * @typedef {'state' | 'presets' | 'event' | 'branding' | 'studio'} ChannelName
  * @typedef {{ channel: ChannelName, role: 'render' | 'studio' }} SocketData
  * @typedef {{ data: SocketData, send(payload: string): unknown }} ChannelSocket
  */
@@ -18,6 +18,7 @@ export const CHANNEL_PATHS = Object.freeze({
   '/presets-ws': 'presets',
   '/event-ws': 'event',
   '/branding-ws': 'branding',
+  '/studio-ws': 'studio',
 });
 
 /**

@@ -10,7 +10,8 @@ export const name = 'commandes personnalisées';
 /** @param {*} ctx */
 export async function run({ page, stack, check, errors }) {
   await openStudio({ page, stack });
-  await page.evaluate("localStorage.removeItem('overlay.studio.custom-commands')");
+  await stack.api('/studio-settings', { customCommands: [] });
+  await page.evaluate('localStorage.clear()');
   await page.goto(`http://localhost:${stack.staticPort}/dev/studio.html`);
   await page.waitFor("(document.getElementById('server-status')?.textContent ?? '').includes('connecté')", 15_000);
   await page.sleep(500);
@@ -144,8 +145,10 @@ export async function run({ page, stack, check, errors }) {
   await page.click('#cc-list .cc-card:nth-child(4) button[data-action="remove-confirm"]');
   check('« Oui » la supprime', (await cards()).length === 3 && !(await cards()).some((/** @type {*} */ c) => c.name === 'Bulles en coin (copie)'));
 
-  // Exécuter depuis le gestionnaire, puis persistance.
+  // Exécuter depuis le gestionnaire, puis persistance : sur le serveur, le stockage du navigateur ayant été vidé.
   await page.click('#cc-close');
+  await page.sleep(900);
+  await page.evaluate('localStorage.clear()');
   await page.goto(`http://localhost:${stack.staticPort}/dev/studio.html`);
   await page.waitFor("(document.getElementById('server-status')?.textContent ?? '').includes('connecté')", 15_000);
   await page.sleep(500);
@@ -161,6 +164,8 @@ export async function run({ page, stack, check, errors }) {
   await page.sleep(300);
   check('la macro enregistrée rejoue ses étapes : une couche de plus, en coin', (await layerRows(page)).length === rowsBefore + 1);
 
-  await page.evaluate("localStorage.removeItem('overlay.studio.custom-commands')");
+  const stored = await stack.api('/studio-settings');
+  check('le serveur détient les commandes', stored.customCommands.some((/** @type {*} */ c) => c.name === 'Bulles en coin'));
+  await stack.api('/studio-settings', { customCommands: [] });
   check('aucune erreur dans la console', errors.length === 0 ? true : errors.slice());
 }

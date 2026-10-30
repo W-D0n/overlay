@@ -213,15 +213,20 @@ export function createMacroRecorder(registry) {
 }
 
 /**
- * Le stockage des commandes personnalisées (navigateur), avec repli en mémoire.
- * @param {{ storage?: Pick<Storage, 'getItem' | 'setItem'> | null }} [options]
+ * Le stockage des commandes personnalisées. Avec `backend` (la synchronisation avec le serveur), c'est lui la référence ;
+ * sinon le navigateur, avec repli en mémoire.
+ * @param {{
+ *   storage?: Pick<Storage, 'getItem' | 'setItem'> | null,
+ *   backend?: { getCommands(): import('./studio-settings.js').StoredCommand[], setCommands(commands: CustomCommand[]): void, subscribe(listener: () => void): () => void },
+ * }} [options]
  */
-export function createCustomCommandStore({ storage = null } = {}) {
+export function createCustomCommandStore({ storage = null, backend } = {}) {
   /** @type {CustomCommand[] | null} */
   let memory = null;
 
   /** @returns {CustomCommand[]} */
   function read() {
+    if (backend !== undefined) return backend.getCommands().filter(isShape);
     if (memory !== null) return memory;
     try {
       const text = storage?.getItem(STORAGE_KEY);
@@ -235,6 +240,10 @@ export function createCustomCommandStore({ storage = null } = {}) {
 
   /** @param {CustomCommand[]} list */
   function write(list) {
+    if (backend !== undefined) {
+      backend.setCommands(list);
+      return;
+    }
     memory = list;
     try {
       storage?.setItem(STORAGE_KEY, JSON.stringify(list));
@@ -245,6 +254,8 @@ export function createCustomCommandStore({ storage = null } = {}) {
 
   return {
     list: () => [...read()],
+    /** Prévenu quand les commandes changent ailleurs (autre onglet, autre fenêtre). @param {() => void} listener @returns {() => void} */
+    subscribe: (listener) => (backend === undefined ? () => {} : backend.subscribe(listener)),
     /** Ajoute la commande, ou remplace celle de même identifiant. @param {CustomCommand} command */
     save(command) {
       const list = read();

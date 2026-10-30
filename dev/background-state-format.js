@@ -6,6 +6,7 @@ import { normalizeBranding, validateBranding } from '../branding-format.js';
 import { BRANDING_LAYER_ID, CURRENT_SCENE, SCENE_DOC_VERSION, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
 import { validateHistory } from './background-history.js';
 import { validateDrafts } from './preset-drafts.js';
+import { validateStudioSettings } from './studio-settings.js';
 
 /**
  * dev/background-state-format.js — Logique pure de l'état background standalone (2026-07-14).
@@ -25,7 +26,8 @@ import { validateDrafts } from './preset-drafts.js';
  * @typedef {import('../branding-format.js').Branding} Branding
  * @typedef {import('./background-history.js').HistoryEntry} HistoryEntry
  * @typedef {import('./preset-drafts.js').Drafts} Drafts
- * @typedef {{ version?: number, current: SceneDoc, scenes: SceneDoc[], sceneMap?: Record<string, string>, branding?: Branding, history?: HistoryEntry[], drafts?: Drafts }} BackgroundFile
+ * @typedef {import('./studio-settings.js').StudioSettings} StudioSettings
+ * @typedef {{ version?: number, current: SceneDoc, scenes: SceneDoc[], sceneMap?: Record<string, string>, branding?: Branding, history?: HistoryEntry[], drafts?: Drafts, studio?: Partial<StudioSettings> }} BackgroundFile
  * @typedef {{ version?: number, current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string>, branding?: Branding }} FlatBackgroundFile
  */
 
@@ -457,6 +459,8 @@ export function validateSceneFile(raw) {
   /** @type {string[]} */
   const errors = liveErrors(raw.current).map((error) => `current : ${error}`);
   errors.push(...validateBranding(raw.branding).errors);
+  const studio = validateStudioSettings(raw.studio);
+  if (!studio.ok) errors.push(...studio.errors.map((error) => `studio : ${error}`));
   errors.push(...validateHistory(raw.history, liveErrors));
   const scenes = Array.isArray(raw.scenes) ? raw.scenes : null;
   errors.push(...validateDrafts(raw.drafts, {

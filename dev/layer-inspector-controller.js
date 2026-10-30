@@ -17,7 +17,7 @@ import {
 } from './placement-math.js';
 
 const KEYS = /** @type {const} */ (['x', 'y', 'width', 'height']);
-const UNIT_STORAGE_KEY = 'overlay.studio.placement-unit';
+const UNIT_PREFERENCE = 'placement.unit';
 
 /**
  * @param {{
@@ -38,6 +38,7 @@ const UNIT_STORAGE_KEY = 'overlay.studio.placement-unit';
  *     distributeV: HTMLButtonElement,
  *   },
  *   studio: ReturnType<typeof import('./studio-document.js').createStudioDocument>,
+ *   preferences: { getPreference: (key: string, fallback: string) => string, setPreference: (key: string, value: string) => void, subscribe: (listener: () => void) => () => void },
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   documentRef?: Document,
  *   windowRef?: Window,
@@ -49,13 +50,9 @@ export function createLayerInspectorController(input) {
   const { elements, studio } = input;
   const { editor } = studio;
 
-  /** @type {Unit} */
-  let unit = 'percent';
-  try {
-    if (windowRef.localStorage?.getItem(UNIT_STORAGE_KEY) === 'pixel') unit = 'pixel';
-  } catch {
-    // Stockage indisponible (fenêtre privée, accès refusé) : l'unité par défaut reste valable.
-  }
+  /** @returns {Unit} */
+  const storedUnit = () => (input.preferences.getPreference(UNIT_PREFERENCE, 'percent') === 'pixel' ? 'pixel' : 'percent');
+  let unit = storedUnit();
   let lockRatio = false;
 
   /** @returns {import('../scene-doc.js').Layer[]} les couches sélectionnées, du dessous au dessus */
@@ -150,11 +147,7 @@ export function createLayerInspectorController(input) {
   /** @param {Unit} next */
   function setUnit(next) {
     unit = next;
-    try {
-      windowRef.localStorage?.setItem(UNIT_STORAGE_KEY, next);
-    } catch {
-      // Sans stockage, l'unité vaut pour cette session seulement.
-    }
+    input.preferences.setPreference(UNIT_PREFERENCE, next);
     render();
   }
   elements.unitPercent.addEventListener('click', () => setUnit('percent'));
@@ -210,6 +203,11 @@ export function createLayerInspectorController(input) {
   }
 
   studio.subscribe(render);
+  // L'unité choisie dans un autre onglet ou une autre fenêtre s'applique ici aussi.
+  input.preferences.subscribe(() => {
+    unit = storedUnit();
+    render();
+  });
   render();
 
   return { render };

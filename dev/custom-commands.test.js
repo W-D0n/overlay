@@ -270,6 +270,43 @@ describe('stockage', () => {
   });
 });
 
+describe('stockage adossé à la synchronisation', () => {
+  function fakeBackend(initial = []) {
+    let list = initial;
+    const listeners = new Set();
+    return {
+      getCommands: () => structuredClone(list),
+      setCommands: (next) => { list = structuredClone(next); },
+      subscribe: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
+      emit: (next) => { list = next; for (const fn of listeners) fn(); },
+    };
+  }
+
+  test('la référence est le serveur : le magasin lit et écrit par lui, sans toucher au navigateur', () => {
+    const backend = fakeBackend([{ id: 'custom.a', name: 'A', steps: ['edit.copy'] }]);
+    const storage = { getItem() { throw new Error('ne doit pas être lu'); }, setItem() { throw new Error('ne doit pas être écrit'); } };
+    const store = createCustomCommandStore({ storage, backend });
+    expect(store.list().map((c) => c.id)).toEqual(['custom.a']);
+    store.save({ id: 'custom.b', name: 'B', steps: ['edit.copy'] });
+    expect(backend.getCommands().map((c) => c.id)).toEqual(['custom.a', 'custom.b']);
+    store.remove('custom.a');
+    expect(store.list().map((c) => c.id)).toEqual(['custom.b']);
+  });
+
+  test('prévient quand les commandes changent ailleurs ; ignore les entrées mal formées', () => {
+    const backend = fakeBackend();
+    const store = createCustomCommandStore({ backend });
+    let seen = 0;
+    const off = store.subscribe(() => { seen += 1; });
+    backend.emit([{ id: 'custom.a', name: 'A', steps: ['x'] }, { id: 3 }]);
+    expect(seen).toBe(1);
+    expect(store.list()).toHaveLength(1);
+    off();
+    backend.emit([]);
+    expect(seen).toBe(1);
+  });
+});
+
 describe('import', () => {
   const exported = (commands) => JSON.stringify({ format: 'overlay-custom-commands', version: 1, commands });
 

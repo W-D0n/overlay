@@ -53,13 +53,15 @@ export function createBackgroundStateClient(options) {
    * @param {unknown} [body]
    * @param {Record<string, string>} [extraHeaders]
    */
-  async function request(operation, body, extraHeaders = {}) {
+  async function request(operation, body, extraHeaders = {}, keepalive = false) {
     const init = body === undefined
       ? { method: 'GET' }
       : {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...extraHeaders },
           body: JSON.stringify(body),
+          // Un envoi demandé au moment de quitter la page doit pouvoir lui survivre.
+          ...(keepalive ? { keepalive: true } : {}),
         };
 
     let response;
@@ -135,6 +137,17 @@ export function createBackgroundStateClient(options) {
     discardDraft(presetId) {
       return request('discard-draft', { presetId });
     },
+    /** Les réglages du Studio qui suivent l'utilisateur. @returns {Promise<import('./studio-settings.js').StudioSettings>} */
+    readStudioSettings() {
+      return request('studio-settings');
+    },
+    /**
+     * Commandes remplacées en bloc, préférences fusionnées (`null` retire une clé).
+     * @param {{ customCommands?: import('./studio-settings.js').StoredCommand[], preferences?: Record<string, string | number | boolean | null> }} patch
+     */
+    saveStudioSettings(patch) {
+      return request('studio-settings', patch, {}, true);
+    },
     /** @param {Record<string, string>} sceneMap */
     saveSceneMap(sceneMap) {
       return request('scene-map', { sceneMap });
@@ -184,6 +197,7 @@ export function createBackgroundStateClient(options) {
      *   onCurrent: (current: unknown) => void,
      *   onPresets: () => void,
      *   onEvent?: (event: unknown) => void,
+     *   onSettings?: (settings: unknown) => void,
      *   onError?: (error: unknown) => void,
      * }} listeners
      */
@@ -225,6 +239,7 @@ export function createBackgroundStateClient(options) {
       connect('state-ws', listeners.onCurrent);
       connect('presets-ws', listeners.onPresets);
       if (listeners.onEvent) connect('event-ws', listeners.onEvent);
+      if (listeners.onSettings) connect('studio-ws', listeners.onSettings);
 
       return () => {
         stopped = true;

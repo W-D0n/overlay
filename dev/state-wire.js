@@ -60,7 +60,7 @@ export function wireBroadcast(scene) {
  * @param {BackgroundFile} file
  */
 export function wireState(file) {
-  const { current, scenes, history: _history, drafts: _drafts, ...rest } = file;
+  const { current, scenes, history: _history, drafts: _drafts, studio: _studio, ...rest } = file;
   return {
     ...rest,
     current: wireCurrent(current),

@@ -22,9 +22,12 @@
  *   POST /branding      — `{ branding }`, contenu global de la couche d'identité.
  *   POST /event         — événement de réaction éphémère : validé puis diffusé, jamais persisté.
  *   POST /scene-map     — `{ sceneMap }`, table d'association scène OBS → preset.
+ *   GET  /studio-settings — `{ customCommands, preferences }` : les réglages du Studio qui suivent l'utilisateur.
+ *   POST /studio-settings — `{ customCommands?, preferences? }`, commandes remplacées en bloc, préférences fusionnées
+ *                          (`null` retire une clé) ; diffusé sur le canal `studio`.
  *   POST /control/restart | /control/stop — demande au lanceur de relancer ou d'arrêter les serveurs.
  *   GET  /obs-status, /live-status, /diagnostics — état d'OBS, pages de rendu, faits du diagnostic.
- *   WS   /state-ws, /presets-ws, /event-ws, /branding-ws — voir `dev/channels.js`.
+ *   WS   /state-ws, /presets-ws, /event-ws, /branding-ws, /studio-ws — voir `dev/channels.js`.
  *
  * Voir docs/specs/background-standalone.md.
  */
@@ -41,6 +44,7 @@ import { channelForPath } from './channels.js';
 import { EXIT_RESTART, EXIT_STOP } from './supervisor.js';
 import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
 import { validateBranding } from '../branding-format.js';
+import { applySettingsPatch, normalizeStudioSettings, validateSettingsPatch } from './studio-settings.js';
 
 /**
  * @typedef {import('./background-state-format.js').BackgroundFile} BackgroundFile
@@ -244,6 +248,32 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
     return update((file) => ({ ...file, sceneMap: body.sceneMap }));
   }
 
+  /** @returns {Promise<Response>} */
+  async function handleGetStudioSettings() {
+    const read = await store.read();
+    if (!read.ok) return jsonError(`fichier d'état invalide : ${read.errors.join(' ; ')}`, 500);
+    return Response.json(normalizeStudioSettings(read.file.studio), { headers: CORS_HEADERS });
+  }
+
+  /**
+   * POST /studio-settings — `{ customCommands?, preferences? }`.
+   * @param {Request} req
+   * @returns {Promise<Response>}
+   */
+  async function handlePostStudioSettings(req) {
+    const body = /** @type {*} */ (await req.json());
+    const validation = validateSettingsPatch(body);
+    if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
+    /** @type {import('./studio-settings.js').StudioSettings | null} */
+    let next = null;
+    const response = await update((file) => {
+      next = applySettingsPatch(normalizeStudioSettings(file.studio), body);
+      return { ...file, studio: next };
+    });
+    if (response.ok && next !== null) channels.broadcast('studio', next);
+    return response;
+  }
+
   /** GET /obs-status — connexion OBS et scènes réelles, pour la section « Scènes OBS » du tuner. */
   function handleGetObsStatus() {
     return Response.json({ ...obs.status(), configured: obs.configured }, { headers: CORS_HEADERS });
@@ -307,6 +337,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
     '/control/restart': controlHandler('restart'),
     '/control/stop': controlHandler('stop'),
     '/scene-map': handlePostSceneMap,
+    '/studio-settings': handlePostStudioSettings,
     '/branding': handlePostBranding,
     '/state': handlePostState,
     '/rollback': handleRollback,
@@ -378,6 +409,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
       if (req.method === 'GET' && url.pathname === '/state') return handleGetState();
       if (req.method === 'GET' && url.pathname === '/history') return handleGetHistory();
       if (req.method === 'GET' && url.pathname === '/drafts') return handleGetDrafts();
+      if (req.method === 'GET' && url.pathname === '/studio-settings') return handleGetStudioSettings();
       if (req.method === 'GET' && url.pathname === '/obs-status') return handleGetObsStatus();
       if (req.method === 'GET' && url.pathname === '/live-status') return handleGetLiveStatus();
       if (req.method === 'GET' && url.pathname === '/diagnostics') return handleGetDiagnostics();

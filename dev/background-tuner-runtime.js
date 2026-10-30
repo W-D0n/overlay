@@ -18,6 +18,7 @@ import { createContextMenuController } from './context-menu-controller.js';
 import { createPublicationController } from './publication-controller.js';
 import { bindStudioShortcuts } from './studio-shortcuts.js';
 import { createCustomCommandStore, createMacroRecorder } from './custom-commands.js';
+import { createStudioSettingsSync } from './studio-settings-sync.js';
 import { createCustomCommandsController } from './custom-commands-controller.js';
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 import { isIdentityKind } from '../layer-kinds.js';
@@ -82,6 +83,18 @@ export async function startBackgroundTuner(environment = {}) {
   const stage = createPreviewStage({ layer: byId('bg-layer'), container: byId('stage-area'), windowRef: /** @type {Window & typeof globalThis} */ (windowRef) });
 
   const client = createBackgroundStateClient({ baseUrl: STATE_SERVER });
+  // Les réglages du Studio (commandes personnalisées, préférences) viennent du serveur : ils suivent l'utilisateur d'un
+  // navigateur à l'autre. Lus avant la construction des panneaux, puisqu'ils les consultent au départ.
+  /** @type {Pick<Storage, 'getItem' | 'setItem'> | null} */
+  let storage = null;
+  try {
+    storage = windowRef.localStorage;
+  } catch {
+    // Stockage refusé : le serveur reste la référence, le presse-papiers reste en mémoire pour la session.
+  }
+  const settings = createStudioSettingsSync({ client, storage, onError: (message) => console.warn(`[background-tuner] ${message}`) });
+  await settings.load();
+  windowRef.addEventListener('pagehide', () => { settings.flush(); });
   /** @type {ReturnType<typeof createPresetDraftSync> | null} */
   let drafts = null;
   const preview = createBackgroundPreviewController({
@@ -146,6 +159,7 @@ export async function startBackgroundTuner(environment = {}) {
   });
 
   const layerInspector = createLayerInspectorController({
+    preferences: settings,
     elements: {
       empty: byId('inspector-empty'),
       body: byId('inspector-body'),
@@ -193,6 +207,7 @@ export async function startBackgroundTuner(environment = {}) {
   });
 
   const viewAids = createViewAidsController({
+    preferences: settings,
     area: byId('stage-area'),
     stage,
     canvasOverlay,
@@ -228,13 +243,6 @@ export async function startBackgroundTuner(environment = {}) {
     documentRef,
   });
 
-  /** @type {Pick<Storage, 'getItem' | 'setItem'> | null} */
-  let storage = null;
-  try {
-    storage = windowRef.localStorage;
-  } catch {
-    // Stockage refusé : le presse-papiers reste en mémoire pour la session.
-  }
   const addableKinds = [...BACKGROUND_COMPONENT_NAMES, 'branding'];
   /** @type {ReturnType<typeof createCommandPaletteController> | null} */
   let palette = null;
@@ -270,7 +278,7 @@ export async function startBackgroundTuner(environment = {}) {
   });
   customCommands = createCustomCommandsController({
     registry: commands,
-    store: createCustomCommandStore({ storage }),
+    store: createCustomCommandStore({ backend: settings }),
     recorder: createMacroRecorder(commands),
     batch: (label, run) => preview.editor.batch(label, run),
     report,
@@ -473,7 +481,16 @@ export async function startBackgroundTuner(environment = {}) {
   obsSceneMap.refresh();
 
   presets.initialize();
+  // Les commandes modifiées ailleurs (autre fenêtre) rejoignent le registre ; un réglage qui n'y touche pas ne le dérange pas.
+  let knownCommands = JSON.stringify(settings.getCommands());
+  settings.subscribe(() => {
+    const current = JSON.stringify(settings.getCommands());
+    if (current === knownCommands) return;
+    knownCommands = current;
+    customCommands?.reload();
+  });
   const unsubscribe = client.subscribe({
+    onSettings: (value) => settings.applyRemote(value),
     onCurrent: preview.receive,
     onPresets() {
       presets.refresh();
