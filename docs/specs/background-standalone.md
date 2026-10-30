@@ -58,7 +58,7 @@ Décisions validées (AskUserQuestion, 2026-07-14) :
 
 ### État persisté — `dev/data/background-state.json`
 
-Le fichier est en **version 3** (`scenes` : documents de scène, `scene-doc.js`). Le serveur le lit et l'écrit à sa
+Le fichier est en **version 4** (`scenes` : documents de scène, `scene-doc.js`, où le branding est une couche). Le serveur le lit et l'écrit à sa
 frontière (`readBackgroundFile` / `encodePersistedFile`) ; tout le reste (API HTTP et WebSocket, Studio, page de
 rendu) manipule la forme ci-dessous, inchangée : `current` et `presets`.
 
@@ -71,12 +71,16 @@ rendu) manipule la forme ci-dessous, inchangée : `current` et `presets`.
 }
 ```
 
-Sur disque, la même donnée s'écrit : `current` = scène en antenne (`id: "current"`, `null` si aucun fond) et `presets`
-devient `scenes`, chaque preset étant une scène d'une couche (`layers: [{ id: "main", kind, visible, opacity,
-placement, options }]`). Une scène de plusieurs couches est refusée à la lecture tant qu'aucun éditeur de couches
-n'existe. Les versions 1 et 2 se lisent (migration en mémoire) ; l'original est copié dans
-`background-state.json.pre-v3.bak` avant la première réécriture, et la version 3 n'est pas lisible par un serveur
-antérieur (retour arrière : restaurer la sauvegarde).
+Sur disque, la même donnée s'écrit : `current` = scène en antenne (`id: "current"`, `null` si ni fond ni branding) et
+`presets` devient `scenes`, chaque preset étant une scène : son effet (`layers: [{ id: "main", kind, visible, opacity,
+placement, options }]`) puis, s'il affiche le branding, une couche `{ id: "branding", kind: "branding" }` (contenu
+global : clé `branding` du fichier). `showBranding` n'existe plus sur disque : `false` = pas de couche `branding`, et la
+forme historique n'écrit `showBranding` que s'il est faux (absent = affiché). Une scène à plusieurs effets, ou dont une
+couche est déplacée, masquée ou atténuée, est refusée à la lecture tant qu'aucun éditeur de couches n'existe. Les
+versions 1 et 2 se lisent (migration en mémoire), la 3 se met à niveau (`upgradePersistedV3` : une scène qui affichait
+le branding reçoit sa couche ; « aucun fond » devient une scène du seul branding). L'original est copié dans
+`background-state.json.pre-v4.bak` avant la première réécriture (les sauvegardes `pre-v3.bak` d'avant restent), et la
+version 4 n'est pas lisible par un serveur antérieur (retour arrière : restaurer la sauvegarde).
 
 - `current.component` : `null` (aucun fond) ou un nom de `BACKGROUND_COMPONENT_NAMES`
   (`dev/component-field-schemas.js` — source unique du vocabulaire des effets).

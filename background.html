@@ -29,19 +29,18 @@
 
   <script type="module">
     import { createSceneRuntime } from './scene-runtime.js';
-    import { sceneFromCurrent } from './scene-doc.js';
+    import { sceneForBrandingMode, sceneFromCurrent } from './scene-doc.js';
+    import { brandingContent } from './branding-content.js';
     import { selectBackground } from './background-selection.js';
     import { ReactionOverlay } from './components/ReactionOverlay.js';
     import { createReactionCoordinator } from './background-reactions.js';
     import { createBrowserAudioSession } from './background-audio.js';
-    import { BrandingLayer } from './components/BrandingLayer.js';
     import { BACKGROUND_STATE_PORT } from './ports.config.js';
     import { parseRenderUrl } from './render-url.js';
     import { createLocalTransport } from './render-transport.js';
 
     // `only` : couche d'identité seule, à poser sur une cam ou un gameplay. `off` : fond seul.
     const { presetRef, branding: brandingMode, transparent } = parseRenderUrl(location.search);
-    const brandingOnly = brandingMode === 'only';
 
     if (transparent) document.body.classList.add('transparent');
 
@@ -60,31 +59,17 @@
     bgLayer.appendChild(overlay.el);
     const coordinator = createReactionCoordinator({ mount, overlay });
 
-    // Branding : au-dessus de tout le reste, c'est l'élément le plus lisible de l'écran.
-    const branding = brandingMode === 'off' ? null : BrandingLayer();
-    if (branding !== null) {
-      branding.el.style.zIndex = '2';
-      bgLayer.appendChild(branding.el);
-    }
-
     /**
-     * Le contenu est global, sa visibilité appartient au preset affiché : un preset qui masque le
-     * branding le démonte, il ne le laisse pas invisible dans le DOM.
+     * Le branding est une couche de la scène (sa visibilité appartient au preset affiché : un preset qui le masque n'en a
+     * pas) ; son contenu est global, déposé dans `brandingContent` par son canal. `?branding=` filtre ces couches.
      */
-    let latestBranding;
-    let latestCurrent = null;
-
-    function applyBranding() {
-      if (branding === null) return;
-      const visible = latestCurrent?.showBranding !== false;
-      branding.update(visible ? latestBranding : undefined);
+    function render(current) {
+      mount.apply(sceneForBrandingMode(sceneFromCurrent(current), brandingMode));
     }
 
     function applySafely(current) {
-      latestCurrent = current;
-      applyBranding();
       try {
-        if (!brandingOnly) mount.apply(sceneFromCurrent(current));
+        render(current);
       } catch (err) {
         // État illisible : on garde le fond en place plutôt qu'un écran vide en live, et on trace
         // pour diagnostic. Un effet inconnu est déjà géré par le moteur de scène (couche signalée, fond conservé).
@@ -99,10 +84,10 @@
 
     transport.subscribe({
       onState(file) {
-        latestBranding = file.branding;
+        brandingContent.set(file.branding);
         const selected = selectBackground(file, presetRef);
         if (selected === null) {
-          mount.apply(sceneFromCurrent({ component: null, options: {} }));
+          render({ component: null, options: {} });
           console.error(`[background] preset inconnu : ${presetRef}`);
           return;
         }
@@ -110,12 +95,7 @@
       },
       onCurrent: applySafely,
       // Contenu du branding : canal séparé, global, indépendant du preset et de l'effet.
-      ...(branding === null ? {} : {
-        onBranding(next) {
-          latestBranding = next;
-          applyBranding();
-        },
-      }),
+      ...(brandingMode === 'off' ? {} : { onBranding: (next) => brandingContent.set(next) }),
       // Réactions : canal actif quel que soit le mode (courant ou preset).
       onEvent: coordinator.handle,
       onError: (err) => console.error('[background] transport :', err),

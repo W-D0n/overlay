@@ -137,6 +137,18 @@ export function sceneFromCurrent(current) {
 }
 
 /**
+ * La scène telle que la montre une Browser Source selon son réglage `?branding=` : `on` la scène entière, `off` sans
+ * ses couches d'identité (fond seul), `only` avec elles seules (à poser sur une cam ou un gameplay).
+ * @param {SceneDoc} scene
+ * @param {'on' | 'off' | 'only'} mode
+ * @returns {SceneDoc}
+ */
+export function sceneForBrandingMode(scene, mode) {
+  if (mode === 'on') return scene;
+  return { ...scene, layers: scene.layers.filter(({ kind }) => isIdentityKind(kind) === (mode === 'only')) };
+}
+
+/**
  * Inverse de `sceneFromCurrent` : la forme historique d'une scène, ou `null` si elle n'y tient pas (plusieurs effets,
  * plusieurs brandings, couche déplacée, masquée ou atténuée) — plutôt qu'une couche choisie au hasard ou une
  * propriété perdue en silence. `showBranding` ne s'écrit que s'il est faux : absent signifie affiché.

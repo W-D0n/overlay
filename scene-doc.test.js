@@ -8,6 +8,7 @@ import {
   MAX_LAYERS,
   presetFromScene,
   readPath,
+  sceneForBrandingMode,
   sceneFromCurrent,
   sceneFromPreset,
   validateSceneDoc,
@@ -238,5 +239,36 @@ describe('état en antenne ↔ scène', () => {
   test('une scène qui ne tient pas dans la forme historique donne null', () => {
     const many = { ...sceneFromCurrent({ component: 'rain', options: {} }), layers: [createLayer({ id: 'a', kind: 'rain' }), createLayer({ id: 'b', kind: 'bubble' })] };
     expect(currentFromScene(many)).toBeNull();
+  });
+});
+
+describe('réglage ?branding= d’une Browser Source', () => {
+  const full = () => sceneFromCurrent({ component: 'rain', options: {} });
+  const kinds = (scene) => scene.layers.map((layer) => layer.kind);
+
+  test('on : la scène entière, telle quelle', () => {
+    expect(sceneForBrandingMode(full(), 'on')).toEqual(full());
+  });
+
+  test('off : le fond seul, sans aucune couche d’identité', () => {
+    expect(kinds(sceneForBrandingMode(full(), 'off'))).toEqual(['rain']);
+  });
+
+  test('only : le branding seul, le fond retiré', () => {
+    expect(kinds(sceneForBrandingMode(full(), 'only'))).toEqual(['branding']);
+  });
+
+  test('une scène sans branding donne rien en only, et la scène d’origine n’est pas modifiée', () => {
+    const hidden = sceneFromCurrent({ component: 'rain', options: {}, showBranding: false });
+    expect(sceneForBrandingMode(hidden, 'only').layers).toEqual([]);
+    const original = full();
+    sceneForBrandingMode(original, 'only');
+    expect(kinds(original)).toEqual(['rain', 'branding']);
+  });
+
+  test('la transition et l’identité de la scène voyagent avec le filtre', () => {
+    const scene = sceneFromCurrent({ component: 'rain', options: {}, transition: { type: 'fade', durationMs: 400, easing: 'linear' } });
+    expect(sceneForBrandingMode(scene, 'off').transition).toEqual(scene.transition);
+    expect(sceneForBrandingMode(scene, 'off').id).toBe(scene.id);
   });
 });
