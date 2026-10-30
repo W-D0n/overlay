@@ -396,6 +396,55 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     },
 
     /**
+     * Insère des couches venues d'ailleurs (un collage) : identifiants neufs, juste au-dessus de la sélection, sélectionnées
+     * ensuite. Tout ou rien : si la limite de couches serait dépassée ou si le branding existe déjà, rien n'est inséré.
+     * @param {Layer[]} incoming
+     * @returns {(Done & { ids: string[] }) | Refused}
+     */
+    insertLayers(incoming) {
+      if (incoming.length === 0) return refuse('empty', 'rien à coller');
+      if (scene.layers.length + incoming.length > MAX_LAYERS) return refuse('limit', `${MAX_LAYERS} couches au plus`);
+      if (incoming.some((layer) => isIdentityKind(layer.kind) && scene.layers.some((existing) => existing.kind === layer.kind))) {
+        return refuse('unique', 'cette couche existe déjà dans la scène');
+      }
+      let working = scene;
+      /** @type {Layer[]} */
+      const added = [];
+      for (const layer of incoming) {
+        const id = uniqueLayerId({ ...working, layers: [...working.layers, ...added] }, layer.id.replace(/-\d+$/, ''));
+        const { locked: _locked, ...unlocked } = structuredClone(layer);
+        added.push({ ...unlocked, id });
+      }
+      const layers = [...scene.layers];
+      const effects = added.filter((layer) => !isIdentityKind(layer.kind));
+      const identities = added.filter((layer) => isIdentityKind(layer.kind));
+      layers.splice(insertionIndex(layers, false), 0, ...effects);
+      layers.push(...identities);
+      const accepted = accept({ ...working, layers });
+      if (!accepted.ok) return accepted;
+      const ids = added.map(({ id }) => id);
+      commit(added.length === 1 ? 'Coller une couche' : `Coller ${added.length} couches`, accepted.scene, ids);
+      return { ok: true, ids };
+    },
+
+    /**
+     * Applique un style à des couches : l'opacité à toutes, les réglages d'effet à celles du même type que le style. Une
+     * seule entrée d'historique.
+     * @param {string[]} ids
+     * @param {{ kind: string, opacity: number, options: Record<string, unknown> }} style
+     * @returns {Done | Refused}
+     */
+    applyStyle(ids, style) {
+      const targets = known(ids);
+      if (targets.length === 0) return refuse('unknown', 'aucune couche');
+      const layers = scene.layers.map((layer) => {
+        if (!targets.includes(layer.id)) return layer;
+        return { ...layer, opacity: style.opacity, ...(layer.kind === style.kind ? { options: structuredClone(style.options) } : {}) };
+      });
+      return finish(layers, targets.length === 1 ? 'Coller le style' : `Coller le style sur ${targets.length} couches`, undefined);
+    },
+
+    /**
      * Remet des couches plein cadre et opaques (visibilité, verrou, nom et réglages d'effet restent), en une entrée.
      * @param {string[]} ids
      * @returns {Done | Refused}

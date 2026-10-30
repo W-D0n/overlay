@@ -78,6 +78,10 @@ export function createBackgroundPreviewController(input) {
   let renderedScene = null;
   /** @type {string | null} */
   let renderedSolo = null;
+  /** Vrai pendant la comparaison : l'aperçu montre l'antenne, le brouillon reste intact derrière. */
+  let comparing = false;
+  /** @type {ReturnType<typeof setTimeout> | null} */
+  let testTimer = null;
   let renderedFieldsKey = '';
 
   function createOption(label, value) {
@@ -112,15 +116,17 @@ export function createBackgroundPreviewController(input) {
     const state = doc.state();
     const { scene } = state;
     input.presetSave.textContent = state.activePresetId === null ? 'Créer' : 'Mettre à jour';
+    if (comparing && !state.isDraft) setCompare(false);
     const solo = editor.state().solo;
-    if (scene !== renderedScene || solo !== renderedSolo) {
-      const playArrival = arrivalPending;
+    const displayed = comparing ? state.onAir : scene;
+    if (displayed !== renderedScene || solo !== renderedSolo) {
+      const playArrival = arrivalPending && !comparing;
       arrivalPending = false;
-      const shown = viewScene(scene, solo);
+      const shown = viewScene(displayed, comparing ? null : solo);
       // Une arrivée (preset essayé, antenne reçue) joue sa transition, ou le fondu par défaut ; un simple réglage
       // s'applique sans animation.
       mount.apply(playArrival ? { ...shown, transition: normalizeTransition(shown.transition) } : withoutTransition(shown));
-      renderedScene = scene;
+      renderedScene = displayed;
       renderedSolo = solo;
     }
     const target = targetLayer(scene, editor.state().selection);
@@ -147,6 +153,33 @@ export function createBackgroundPreviewController(input) {
     lastScene = state.scene;
     if (changed && !loading) input.onEdited?.();
   });
+
+  /** @param {boolean} on */
+  function setCompare(on) {
+    comparing = on && doc.state().isDraft;
+    input.layer.parentElement?.classList.toggle('is-comparing', comparing);
+    reflect();
+  }
+
+  /**
+   * Rejoue la transition d'arrivée de la scène brouillon dans l'aperçu : on part de l'antenne (ou d'un écran vide s'il n'y a
+   * pas de brouillon), puis la scène arrive avec sa transition. L'antenne n'est pas touchée.
+   */
+  function testArrival() {
+    if (comparing) setCompare(false);
+    const state = doc.state();
+    const transition = normalizeTransition(state.scene.transition);
+    const base = state.isDraft ? withoutTransition(viewScene(state.onAir, null)) : sceneFromCurrent({ component: null, options: {}, showBranding: false });
+    if (testTimer !== null) windowRef.clearTimeout(testTimer);
+    mount.apply(base);
+    renderedScene = null;
+    testTimer = windowRef.setTimeout(() => {
+      testTimer = null;
+      const latest = doc.state().scene;
+      mount.apply({ ...viewScene(latest, editor.state().solo), transition });
+      renderedScene = latest;
+    }, 200);
+  }
 
   /** @param {import('../scene-doc.js').SceneDoc} scene */
   function withoutTransition(scene) {
@@ -265,6 +298,9 @@ export function createBackgroundPreviewController(input) {
       else if (!visible && present !== undefined) editor.removeLayers([present.id]);
       return doc.state();
     },
+    setCompare,
+    isComparing: () => comparing,
+    testArrival,
     /** Message de l'antenne (canal `state`) : il n'écrase jamais un brouillon. @param {unknown} message */
     receive(message) {
       loading = true;

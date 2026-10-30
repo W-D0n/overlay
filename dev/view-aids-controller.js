@@ -177,6 +177,8 @@ export function createViewAidsController(input) {
 
   return {
     state: () => ({ ...state }),
+    /** Bascule une aide (aimantation, grille, règles, zones de sécurité). @param {'snap' | 'grid' | 'rulers' | 'safe'} key */
+    toggle,
     render,
     destroy() {
       unsubscribe();

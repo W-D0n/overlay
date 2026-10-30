@@ -51,6 +51,7 @@ const THUMBNAIL_DEBOUNCE_MS = 450;
  *   addableKinds: readonly string[],
  *   defaultOptions: (kind: string) => Record<string, unknown>,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
+ *   onContextMenu?: (x: number, y: number) => void,
  *   documentRef?: Document,
  *   windowRef?: Window,
  * }} input
@@ -353,6 +354,15 @@ export function createLayersPanelController(input) {
     }
     if (target.closest('.layer-rename') !== null) return;
     selectFromClick(/** @type {MouseEvent} */ (event), id);
+  });
+
+  elements.list.addEventListener('contextmenu', (event) => {
+    const row = /** @type {HTMLElement | null} */ ((/** @type {HTMLElement} */ (event.target)).closest('.layer-row'));
+    if (row === null) return;
+    event.preventDefault();
+    const id = row.dataset.id ?? '';
+    if (!editor.state().selection.includes(id)) editor.select([id]);
+    input.onContextMenu?.(event.clientX, event.clientY);
   });
 
   elements.list.addEventListener('dblclick', (event) => {

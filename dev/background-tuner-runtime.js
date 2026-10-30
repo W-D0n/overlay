@@ -11,6 +11,13 @@ import { createLayersPanelController } from './layers-panel-controller.js';
 import { createLayerInspectorController } from './layer-inspector-controller.js';
 import { createCanvasOverlayController } from './canvas-overlay-controller.js';
 import { createViewAidsController } from './view-aids-controller.js';
+import { createLayerClipboard } from './layer-clipboard.js';
+import { createStudioCommands } from './studio-commands.js';
+import { createCommandPaletteController } from './command-palette-controller.js';
+import { createContextMenuController } from './context-menu-controller.js';
+import { createPublicationController } from './publication-controller.js';
+import { bindStudioShortcuts } from './studio-shortcuts.js';
+import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 import { isIdentityKind } from '../layer-kinds.js';
 import { BACKGROUND_COMPONENT_NAMES, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
 import { createPresetDraftSync } from './preset-draft-sync.js';
@@ -104,6 +111,8 @@ export async function startBackgroundTuner(environment = {}) {
     onError: report.error,
   });
 
+  /** @type {ReturnType<typeof createContextMenuController> | null} */
+  let contextMenu = null;
   const layersPanel = createLayersPanelController({
     elements: {
       list: byId('layers-list'),
@@ -129,6 +138,7 @@ export async function startBackgroundTuner(environment = {}) {
     addableKinds: [...BACKGROUND_COMPONENT_NAMES, 'branding'],
     defaultOptions: defaultBackgroundOptions,
     report,
+    onContextMenu: (x, y) => contextMenu?.open(x, y),
     documentRef,
     windowRef,
   });
@@ -175,6 +185,7 @@ export async function startBackgroundTuner(environment = {}) {
     studio: preview.document,
     isIdentity: isIdentityKind,
     report,
+    onContextMenu: (x, y) => contextMenu?.open(x, y),
     documentRef,
     windowRef,
   });
@@ -196,6 +207,69 @@ export async function startBackgroundTuner(environment = {}) {
     documentRef,
     windowRef,
   });
+
+  const publication = createPublicationController({
+    elements: {
+      changes: /** @type {HTMLButtonElement} */ (byId('publish-changes')),
+      compare: /** @type {HTMLButtonElement} */ (byId('publish-compare')),
+      test: /** @type {HTMLButtonElement} */ (byId('publish-test')),
+      dialog: /** @type {HTMLDialogElement} */ (byId('changes-dialog')),
+      summary: byId('changes-summary'),
+      list: byId('changes-list'),
+      send: /** @type {HTMLButtonElement} */ (byId('changes-send')),
+      close: /** @type {HTMLButtonElement} */ (byId('changes-close')),
+    },
+    studio: preview.document,
+    preview,
+    labelOf: backgroundEffectLabel,
+    optionLabel: (kind, key) => BACKGROUND_FIELD_SCHEMAS[kind]?.find((field) => field.key === key)?.label ?? key,
+    documentRef,
+  });
+
+  /** @type {Pick<Storage, 'getItem' | 'setItem'> | null} */
+  let storage = null;
+  try {
+    storage = windowRef.localStorage;
+  } catch {
+    // Stockage refusé : le presse-papiers reste en mémoire pour la session.
+  }
+  const addableKinds = [...BACKGROUND_COMPONENT_NAMES, 'branding'];
+  /** @type {ReturnType<typeof createCommandPaletteController> | null} */
+  let palette = null;
+  const commands = createStudioCommands({
+    studio: preview.document,
+    clipboard: createLayerClipboard({ storage }),
+    labelOf: backgroundEffectLabel,
+    addableKinds,
+    defaultOptions: defaultBackgroundOptions,
+    view: {
+      zoomIn: () => stage.stepZoom(1),
+      zoomOut: () => stage.stepZoom(-1),
+      fit: () => stage.fit(),
+      zoom100: () => stage.setScale(1),
+      toggle: (key) => viewAids.toggle(key),
+    },
+    publication,
+    dialogs: {
+      palette: () => palette?.open(),
+      shortcuts: () => palette?.openHelp(),
+      history: () => byId('history-open').click(),
+      diagnostic: () => byId('diagnostic-open').click(),
+    },
+    report,
+  });
+  palette = createCommandPaletteController({
+    registry: commands,
+    palette: /** @type {HTMLDialogElement} */ (byId('command-palette')),
+    input: /** @type {HTMLInputElement} */ (byId('palette-input')),
+    list: byId('palette-list'),
+    help: /** @type {HTMLDialogElement} */ (byId('shortcuts-help')),
+    helpBody: byId('help-body'),
+    helpClose: /** @type {HTMLButtonElement} */ (byId('help-close')),
+    documentRef,
+  });
+  contextMenu = createContextMenuController({ menu: byId('context-menu'), registry: commands, documentRef });
+  const shortcuts = bindStudioShortcuts({ registry: commands, documentRef });
 
   byId('publish-send').addEventListener('click', () => preview.publish());
   byId('publish-discard').addEventListener('click', () => preview.discard());
@@ -362,6 +436,9 @@ export async function startBackgroundTuner(environment = {}) {
   });
 
   function destroy() {
+    shortcuts.destroy();
+    contextMenu?.destroy();
+    publication.destroy();
     viewAids.destroy();
     canvasOverlay.destroy();
     layersPanel.destroy();
@@ -373,5 +450,5 @@ export async function startBackgroundTuner(environment = {}) {
     preview.destroy();
   }
   windowRef.addEventListener('beforeunload', destroy, { once: true });
-  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls, layersPanel, layerInspector, canvasOverlay, viewAids };
+  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls, layersPanel, layerInspector, canvasOverlay, viewAids, commands, publication };
 }

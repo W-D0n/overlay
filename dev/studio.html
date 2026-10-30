@@ -160,6 +160,36 @@
     .va-ruler-x { left: 0; top: 0; }
     .va-ruler-y { left: 0; top: 0; }
     .va-grid[hidden], .va-safe[hidden], .va-ruler[hidden] { display: none; }
+
+    /* ── Palette, aide, changements, menu contextuel ─────────────────── */
+    .palette { width: min(620px, 92vw); margin-top: 12vh; padding: 0; }
+    .palette-input { width: 100%; box-sizing: border-box; padding: var(--space-md) var(--space-lg); font-size: var(--text-lg); background: var(--color-bg); border: 0; border-bottom: var(--border-rule); }
+    .palette-list { list-style: none; margin: 0; padding: var(--space-xs); max-height: 50vh; overflow-y: auto; }
+    .palette-item { display: grid; grid-template-columns: 90px 1fr auto; gap: var(--space-sm); align-items: center; padding: var(--space-xs) var(--space-sm); cursor: pointer; }
+    .palette-item.is-active { background: rgba(200, 185, 122, .12); outline: 1px solid var(--color-gold-dim); }
+    .palette-item.is-disabled { opacity: .4; cursor: default; }
+    .palette-group { color: var(--color-text-dim); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: var(--tracking-label); }
+    .palette-empty { padding: var(--space-md); color: var(--color-text-mid); }
+    kbd { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-mid); background: var(--color-bg-widget); border: 1px solid var(--color-rule-mid); padding: 0 6px; }
+    .help-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-lg); padding: var(--space-lg); overflow-y: auto; }
+    .help-section h3 { margin: 0 0 var(--space-sm); font-size: var(--text-base); color: var(--color-gold); text-transform: uppercase; letter-spacing: var(--tracking-label); }
+    .help-section dl { display: grid; grid-template-columns: auto 1fr; gap: 4px var(--space-md); margin: 0; }
+    .help-section dd { margin: 0; color: var(--color-text-mid); }
+    .change-row { padding: var(--space-sm) 0; border-bottom: var(--border-rule); }
+    .change-head { display: flex; gap: var(--space-sm); align-items: center; }
+    .change-badge { font-size: var(--text-xs); padding: 0 6px; border: 1px solid var(--color-gold-dim); color: var(--color-gold); }
+    .change-removed .change-badge { border-color: var(--color-danger); color: var(--color-danger); }
+    .change-detail { margin-left: var(--space-lg); color: var(--color-text-mid); }
+    .change-empty { padding: var(--space-md); color: var(--color-text-mid); }
+    .context-menu { position: fixed; z-index: 50; min-width: 240px; padding: var(--space-xs); background: var(--color-bg-panel); border: 1px solid var(--color-rule-mid); box-shadow: 0 8px 24px rgba(0, 0, 0, .5); }
+    .context-menu[hidden] { display: none; }
+    .context-item { display: flex; justify-content: space-between; gap: var(--space-lg); width: 100%; padding: var(--space-xs) var(--space-sm); border: 0; background: transparent; color: var(--color-text-primary); text-align: left; cursor: pointer; }
+    .context-item:hover:not(:disabled), .context-item:focus-visible { background: rgba(200, 185, 122, .12); outline: none; }
+    .context-item:disabled { opacity: .35; cursor: default; }
+    .context-rule { height: 1px; margin: var(--space-xs) 0; background: var(--color-rule); }
+    #publish-bar .publish-extra { margin-left: var(--space-sm); }
+    #stage-area.is-comparing .canvas-overlay { pointer-events: none; }
+    #stage-area.is-comparing::after { content: 'Antenne (avant)'; position: absolute; top: var(--space-sm); right: var(--space-sm); z-index: 8; padding: 2px 8px; background: var(--color-bg); border: 1px solid var(--color-gold); color: var(--color-gold); font-size: var(--text-xs); }
     #layer-gallery { max-width: min(720px, 92vw); }
     .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: var(--space-sm); padding: var(--space-md); }
     .gallery-card { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); color: var(--color-text-primary); cursor: pointer; text-align: left; }
@@ -645,6 +675,33 @@
     <ul id="history-list" class="diagnostic-list"></ul>
   </dialog>
 
+  <dialog id="command-palette" class="diagnostic palette" aria-label="Palette de commandes">
+    <input id="palette-input" type="text" class="palette-input" placeholder="Rechercher une commande…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="palette-list">
+    <ul id="palette-list" class="palette-list" role="listbox"></ul>
+  </dialog>
+
+  <dialog id="shortcuts-help" class="diagnostic" aria-labelledby="help-title">
+    <div class="diagnostic-bar">
+      <h2 id="help-title">Raccourcis et gestes</h2>
+      <div class="diagnostic-actions"><button id="help-close" type="button">Fermer</button></div>
+    </div>
+    <div id="help-body" class="help-body"></div>
+  </dialog>
+
+  <dialog id="changes-dialog" class="diagnostic" aria-labelledby="changes-title">
+    <div class="diagnostic-bar">
+      <h2 id="changes-title">Changements avant publication</h2>
+      <span id="changes-summary" role="status"></span>
+      <div class="diagnostic-actions">
+        <button id="changes-send" type="button">Publier</button>
+        <button id="changes-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <ul id="changes-list" class="diagnostic-list"></ul>
+  </dialog>
+
+  <div id="context-menu" class="context-menu" role="menu" aria-label="Actions sur la couche" hidden></div>
+
   <dialog id="layer-gallery" class="diagnostic" aria-labelledby="gallery-title">
     <div class="diagnostic-bar">
       <h2 id="gallery-title">Ajouter une couche</h2>
@@ -739,6 +796,9 @@
     <section class="stage-zone" aria-label="Aperçu à la taille de la source OBS">
     <div id="publish-bar" data-state="live" role="status" aria-live="polite">
       <span id="publish-state">En antenne</span>
+      <button id="publish-changes" type="button" class="publish-extra" hidden title="Voir ce qui change par rapport à l’antenne">Aucun changement</button>
+      <button id="publish-compare" type="button" class="publish-extra" hidden aria-pressed="false" title="Montrer l’antenne à la place du brouillon (Ctrl+B)">Avant / après</button>
+      <button id="publish-test" type="button" class="publish-extra" title="Rejouer la transition d’arrivée dans l’aperçu, sans toucher à l’antenne">Tester la transition</button>
       <button id="publish-discard" type="button" hidden>Annuler</button>
       <button id="publish-send" type="button" hidden>Publier</button>
     </div>

@@ -241,6 +241,50 @@ describe('régler', () => {
     expect(editor.setOptions('absent', { count: 3 })).toMatchObject({ ok: false, reason: 'unknown' });
   });
 
+  test('insertLayers : identifiants neufs, au-dessus de la sélection, sélectionnées ; le verrou ne suit pas', () => {
+    const { editor, ids } = setup([effect('a'), effect('b', 'bubble')]);
+    editor.select(['a']);
+    const result = editor.insertLayers([effect('a', 'rain', { name: 'Pluie', locked: true, options: { speed: 4 } }), effect('b', 'bubble')]);
+    expect(result).toEqual({ ok: true, ids: ['a-2', 'b-2'] });
+    expect(ids()).toEqual(['a', 'a-2', 'b-2', 'b']);
+    expect(editor.state().selection).toEqual(['a-2', 'b-2']);
+    const pasted = editor.state().scene.layers[1];
+    expect(pasted).toMatchObject({ name: 'Pluie', options: { speed: 4 } });
+    expect('locked' in pasted).toBe(false);
+    expect(editor.state().undoLabel).toBe('Coller 2 couches');
+    editor.undo();
+    expect(ids()).toEqual(['a', 'b']);
+  });
+
+  test('insertLayers : tout ou rien — limite de couches, branding déjà présent, liste vide', () => {
+    const { editor, ids } = setup(Array.from({ length: 7 }, (_, i) => effect(`l${i}`)));
+    expect(editor.insertLayers([effect('x'), effect('y')])).toMatchObject({ ok: false, reason: 'limit' });
+    expect(ids()).toHaveLength(7);
+    const withBranding = setup([effect('a'), branding()]).editor;
+    expect(withBranding.insertLayers([branding()])).toMatchObject({ ok: false, reason: 'unique' });
+    expect(withBranding.insertLayers([])).toMatchObject({ ok: false, reason: 'empty' });
+    expect(withBranding.state().canUndo).toBe(false);
+  });
+
+  test('insertLayers : un branding collé reste au sommet, au-dessus des effets', () => {
+    const { editor, ids } = setup([effect('a')]);
+    editor.insertLayers([branding(), effect('b')]);
+    expect(ids()).toEqual(['a', 'b', 'branding']);
+  });
+
+  test('applyStyle : l’opacité à toutes, les réglages seulement aux couches du même type, en une entrée', () => {
+    const { editor } = setup([effect('a', 'rain', { options: { speed: 1 } }), effect('b', 'bubble', { options: { count: 5 } }), effect('c', 'rain')]);
+    expect(editor.applyStyle(['a', 'b', 'c'], { kind: 'rain', opacity: 0.4, options: { speed: 3 } }).ok).toBe(true);
+    const [a, b, c] = editor.state().scene.layers;
+    expect(a).toMatchObject({ opacity: 0.4, options: { speed: 3 } });
+    expect(b).toMatchObject({ opacity: 0.4, options: { count: 5 } });
+    expect(c).toMatchObject({ opacity: 0.4, options: { speed: 3 } });
+    expect(editor.state().undoLabel).toBe('Coller le style sur 3 couches');
+    editor.undo();
+    expect(editor.state().canUndo).toBe(false);
+    expect(editor.applyStyle(['absent'], { kind: 'rain', opacity: 1, options: {} })).toMatchObject({ ok: false, reason: 'unknown' });
+  });
+
   test('réinitialiser remet plein cadre et opaque, garde le reste, en une seule entrée ; rien à faire si déjà neutre', () => {
     const { editor } = setup([effect('a', 'rain', { opacity: 0.3, name: 'Fond', locked: true, options: { speed: 3 }, placement: { x: 0.2, y: 0.2, width: 0.4, height: 0.4 } }), effect('b', 'bubble')]);
     expect(editor.resetLayers(['a', 'b']).ok).toBe(true);

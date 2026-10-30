@@ -38,6 +38,7 @@ const CLICK_SLOP_PX = 3;
  *   studio: ReturnType<typeof import('./studio-document.js').createStudioDocument>,
  *   isIdentity: (kind: string) => boolean,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
+ *   onContextMenu?: (x: number, y: number) => void,
  *   documentRef?: Document,
  *   windowRef?: Window,
  * }} input
@@ -381,6 +382,13 @@ export function createCanvasOverlayController(input) {
   overlay.addEventListener('pointerup', onUp);
   overlay.addEventListener('pointercancel', onUp);
   overlay.addEventListener('pointerleave', () => { if (hoverId !== null && gesture === null) { hoverId = null; render(); } });
+  overlay.addEventListener('contextmenu', (event) => {
+    event.preventDefault();
+    if (gesture !== null) return;
+    const hit = hitTestAll(layers(), sourcePoint(event), isIdentity)[0] ?? null;
+    if (hit !== null && !selection().includes(hit)) editor.select([hit]);
+    input.onContextMenu?.(event.clientX, event.clientY);
+  });
   overlay.addEventListener('wheel', (event) => {
     if (!(event.ctrlKey || event.metaKey)) return;
     event.preventDefault();
