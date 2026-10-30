@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overlay — Banc de mesure OBS</title>
+  <!--
+    Banc de mesure du coût du rendu étendu (étape 6d, docs/specs/scene-doc-etape-6.md). À charger comme Browser Source dans OBS
+    (http://localhost:5931/dev/obs-bench.html, taille de la source habituelle) : la page empile 8 effets pleine toile et enchaîne des
+    scénarios (fusion, rotation, flou, rognage) en mesurant le temps réel de chaque image. Elle n'écrit rien nulle part et ne parle
+    à aucun serveur d'état. Le tableau final se lit à l'écran ; « Rejouer » (clic sur la source, ou `?auto=1`) recommence.
+  -->
+  <link rel="stylesheet" href="../tokens.css">
+  <style>
+    html, body { margin: 0; height: 100%; background: #0b0b0d; color: #e8e6df; font: 15px/1.35 system-ui, sans-serif; overflow: hidden; }
+    #stage { position: absolute; inset: 0; }
+    #panel { position: absolute; left: 16px; top: 16px; z-index: 10; max-width: min(760px, calc(100% - 32px)); padding: 12px 14px; background: rgba(8, 8, 10, .88); border: 1px solid #3a3a40; }
+    h1 { margin: 0 0 6px; font-size: 16px; font-weight: 600; }
+    #now { margin: 0 0 8px; color: #c8b97a; }
+    table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+    td, th { padding: 2px 8px; text-align: left; border-bottom: 1px solid #26262b; white-space: nowrap; }
+    td.verdict-ok { color: #7fbf8a; } td.verdict-watch { color: #e0b85a; } td.verdict-too-costly { color: #d9776f; }
+    small { color: #8d8d96; }
+  </style>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="panel">
+    <h1>Banc de mesure — rendu étendu (6d)</h1>
+    <p id="now">Préparation…</p>
+    <table><thead><tr><th>Scénario</th><th>Mesure</th><th>Écart</th><th>Verdict</th></tr></thead><tbody id="rows"></tbody></table>
+    <small id="env"></small>
+  </div>
+
+  <script type="module">
+    import { createSceneRuntime } from '../scene-runtime.js';
+    import { createLayer } from '../scene-doc.js';
+    import { EFFECT_KIND_IDS } from '../layer-kinds.js';
+    import { defaultBackgroundOptions } from './component-field-schemas.js';
+    import { SCENARIOS, compareToBaseline, formatSummary, summarizeFrames } from './obs-bench.js';
+
+    // `?quick=1` : fenêtres courtes, pour vérifier que le banc tourne (essais automatiques) ; la vraie mesure prend ~75 s.
+    const quick = new URLSearchParams(location.search).get('quick') === '1';
+    const WARMUP_MS = quick ? 150 : 1500;
+    const MEASURE_MS = quick ? 500 : 6000;
+    const stage = document.getElementById('stage');
+    const now = document.getElementById('now');
+    const rows = document.getElementById('rows');
+    document.getElementById('env').textContent = `Source ${innerWidth}×${innerHeight} · ratio ${devicePixelRatio} · ${navigator.userAgent.match(/(Chrome|CEF)\/[\d.]+/)?.[0] ?? navigator.userAgent}`;
+
+    // Huit effets pleine toile : le pire cas de la scène (8 couches).
+    const layers = Array.from({ length: 8 }, (_, index) => {
+      const kind = EFFECT_KIND_IDS[index % EFFECT_KIND_IDS.length];
+      return createLayer({ id: `bench-${index + 1}`, kind, options: defaultBackgroundOptions(kind), opacity: 1 });
+    });
+    const runtime = createSceneRuntime(stage);
+    runtime.apply({ version: 1, id: 'bench', name: 'Banc', layers });
+
+    const calques = () => [...stage.children].flatMap((stageEl) => [...stageEl.children]);
+    const apply = (style) => {
+      for (const el of calques()) {
+        for (const key of ['opacity', 'mixBlendMode', 'transform', 'clipPath', 'filter']) el.style[key] = '';
+        Object.assign(el.style, style);
+      }
+    };
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const measure = (duration) => new Promise((resolve) => {
+      const deltas = [];
+      let last = performance.now();
+      const end = last + duration;
+      const tick = (time) => {
+        deltas.push(time - last);
+        last = time;
+        if (time < end) requestAnimationFrame(tick); else resolve(deltas);
+      };
+      requestAnimationFrame(tick);
+    });
+
+    let running = false;
+    async function run() {
+      if (running) return;
+      running = true;
+      rows.replaceChildren();
+      let base = null;
+      for (const scenario of SCENARIOS) {
+        now.textContent = `Mesure en cours : ${scenario.label}…`;
+        apply(scenario.style);
+        await sleep(WARMUP_MS);
+        const summary = summarizeFrames(await measure(MEASURE_MS));
+        if (scenario.id === 'base') base = summary;
+        const compared = scenario.id === 'base' ? { deltaMs: 0, deltaFps: 0, verdict: 'ok' } : compareToBaseline(base, summary);
+        const tr = document.createElement('tr');
+        const cells = [scenario.label, formatSummary(summary), scenario.id === 'base' ? '—' : `${compared.deltaMs >= 0 ? '+' : ''}${compared.deltaMs.toFixed(1)} ms · ${compared.deltaFps >= 0 ? '+' : ''}${compared.deltaFps.toFixed(1)} i/s`, { 'ok': 'ok', 'watch': 'à surveiller', 'too-costly': 'trop coûteux' }[compared.verdict]];
+        cells.forEach((text, index) => {
+          const td = document.createElement('td');
+          td.textContent = text;
+          if (index === 3) td.className = `verdict-${compared.verdict}`;
+          tr.appendChild(td);
+        });
+        rows.appendChild(tr);
+        console.info(`[obs-bench] ${scenario.id} : ${formatSummary(summary)} → ${compared.verdict}`);
+      }
+      apply({});
+      now.textContent = 'Terminé. Cliquez sur la source (ou rechargez) pour rejouer. Relevez le tableau : il décide ce qu\'on expose dans l\'éditeur.';
+      window.__benchDone = true;
+      running = false;
+    }
+    document.addEventListener('click', () => { if (!running) run(); });
+    run();
+  </script>
+</body>
+</html>
