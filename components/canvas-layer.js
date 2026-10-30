@@ -1,6 +1,7 @@
 // @ts-check
 import { getRenderClock } from '../render-clock.js';
 import { referenceScale } from '../render-reference.js';
+import { smooth } from '../layer-cost.js';
 
 /**
  * components/canvas-layer.js — Squelette commun des effets de fond dessinés sur un canvas.
@@ -30,6 +31,7 @@ import { referenceScale } from '../render-reference.js';
  *   clock?: Pick<ReturnType<typeof import('../render-clock.js').createRenderClock>, 'subscribe' | 'pixelRatio'>,
  *   documentRef?: Document,
  *   ResizeObserverImpl?: typeof ResizeObserver,
+ *   now?: () => number,
  * }} CanvasLayerEnvironment
  */
 
@@ -54,6 +56,9 @@ export function defineCanvasLayer(create) {
     let surface = { width: 0, height: 0 };
     let ratio = 0;
     let firstFrame = true;
+    const now = environment.now ?? (() => performance.now());
+    /** Temps de `draw` par image, lissé (`layer-cost.js`) ; `null` tant qu'aucune image n'est dessinée. @type {number | null} */
+    let cost = null;
 
     /**
      * Ajuste le canvas à son conteneur ; ne rappelle `resize` que si la taille ou le ratio a changé.
@@ -84,12 +89,15 @@ export function defineCanvasLayer(create) {
       const current = firstFrame ? { ...frame, dt: 0 } : frame;
       firstFrame = false;
       ctx.clearRect(0, 0, size.width, size.height);
+      const started = now();
       layer.draw(ctx, current, size);
+      cost = smooth(cost, now() - started);
     });
 
     /** @type {import('../types.js').ComponentInstance} */
     const instance = {
       el: canvas,
+      cost: () => cost,
       update(newOptions) {
         layer.update?.(newOptions);
       },

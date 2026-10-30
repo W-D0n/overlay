@@ -336,6 +336,10 @@ export function createBackgroundPreviewController(input) {
       }
     },
     isDraft: () => doc.state().isDraft,
+    /** Le coût de dessin lissé de chaque couche montée (ms), `null` pour une couche sans mesure. @returns {Record<string, number | null>} */
+    layerCosts() {
+      return Object.fromEntries(mount.layers().map(({ id, instance }) => [id, instance.cost?.() ?? null]));
+    },
     runtimeMeasurement() {
       return {
         fps: measuredFps,

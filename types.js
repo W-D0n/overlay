@@ -37,6 +37,8 @@
  *   `docs/specs/background-effects-library.md`). Implémenté par `DotGridBackground`.
  * @property {(levels: import('./audio-levels.js').AudioLevels) => void} [setAudioLevel] - Niveaux audio
  *   (général, graves, aigus) ; présent seulement si l'effet réagit au son (`scene-runtime.js`).
+ * @property {() => number | null} [cost]          - Temps de dessin moyen d'une image, en ms (`layer-cost.js`) ;
+ *   présent sur les effets canvas, `null` avant la première image.
  * @property {() => void} [destroy]                 - Libère les ressources (observers, timers)
  * @property {(payload: unknown) => void} [trigger] - Réaction impérative à un événement discret
  *   (alerte stream). Optionnel : un effet sans `trigger` est couvert par `ReactionOverlay`

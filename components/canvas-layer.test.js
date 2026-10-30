@@ -178,3 +178,33 @@ describe('échelle de la source', () => {
     expect(harness.calls.find(([name]) => name === 'clearRect')).toEqual(['clearRect', 0, 0, 1920, 1080]);
   });
 });
+
+describe('coût de dessin', () => {
+  test('mesure le temps de draw par image, lissé ; null avant la première image', () => {
+    const harness = createHarness();
+    let time = 0;
+    const durations = [4, 4, 4];
+    const instance = defineCanvasLayer(() => ({
+      resize: () => {},
+      draw: () => { time += durations.shift() ?? 4; },
+    }))({}, { ...harness.environment, now: () => time });
+    expect(instance.cost()).toBeNull();
+    harness.tick(16);
+    expect(instance.cost()).toBe(4);
+    harness.tick(32);
+    expect(instance.cost()).toBeCloseTo(4);
+  });
+
+  test('une couche plus lente que la précédente coûte plus, et la mesure suit le changement doucement', () => {
+    const harness = createHarness();
+    let time = 0;
+    let step = 1;
+    const instance = defineCanvasLayer(() => ({ resize: () => {}, draw: () => { time += step; } }))({}, { ...harness.environment, now: () => time });
+    harness.tick(16);
+    const light = instance.cost();
+    step = 10;
+    harness.tick(32);
+    expect(instance.cost()).toBeGreaterThan(light);
+    expect(instance.cost()).toBeLessThan(10);
+  });
+});

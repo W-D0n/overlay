@@ -19,6 +19,7 @@ import { createPublicationController } from './publication-controller.js';
 import { bindStudioShortcuts } from './studio-shortcuts.js';
 import { createCustomCommandStore, createMacroRecorder } from './custom-commands.js';
 import { createStudioSettingsSync } from './studio-settings-sync.js';
+import { createLayerCostController } from './layer-cost-controller.js';
 import { createTemplatesController } from './templates-controller.js';
 import { installScrubFields } from './scrub-field.js';
 import { createEditHistoryController } from './edit-history-controller.js';
@@ -278,6 +279,7 @@ export async function startBackgroundTuner(environment = {}) {
     report,
     documentRef,
   });
+  const layerCost = createLayerCostController({ list: byId('layers-list'), total: byId('layers-cost'), preview, editor: preview.editor, documentRef, windowRef });
   const scrub = installScrubFields({ documentRef });
   const addableKinds = [...BACKGROUND_COMPONENT_NAMES, 'branding'];
   /** @type {ReturnType<typeof createCommandPaletteController> | null} */
@@ -546,6 +548,7 @@ export async function startBackgroundTuner(environment = {}) {
   function destroy() {
     syncIndicator.destroy();
     scrub.destroy();
+    layerCost.destroy();
     templates.destroy();
     editHistory.destroy();
     shortcuts.destroy();

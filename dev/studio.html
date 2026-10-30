@@ -627,6 +627,11 @@
     .diagnostic-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-xs) var(--space-md); }
     .diagnostic-short { color: var(--color-text-dim); }
     .diagnostic-check p.diagnostic-fix { color: var(--color-text-primary); }
+    .layers-cost { font-size: var(--text-xs); color: var(--color-text-dim); }
+    .layers-cost[data-level="warn"], .layer-cost[data-level="warn"] { color: var(--color-gold); }
+    .layers-cost[data-level="high"], .layer-cost[data-level="high"] { color: var(--color-danger); }
+    .layer-cost { font-size: var(--text-xs); color: var(--color-text-dim); font-variant-numeric: tabular-nums; }
+    .layer-cost[data-level="none"] { font-style: italic; }
     label[data-scrub] { cursor: ew-resize; user-select: none; touch-action: none; }
     label[data-scrubbing] { color: var(--color-text-primary); }
     .tpl-save { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-lg); }
@@ -968,6 +973,7 @@
       <div class="layers-head">
         <h2 id="layers-title">Couches</h2>
         <span id="layers-gauge" class="layers-gauge" data-level="ok" title="Couches de la scène sur la limite"></span>
+        <span id="layers-cost" class="layers-cost" data-level="none"></span>
         <span class="layers-tools">
           <button id="layers-history" type="button" class="layer-button" aria-label="Historique d’édition" title="Historique d’édition"></button>
           <button id="layers-undo" type="button" class="layer-button" disabled aria-label="Annuler"></button>
