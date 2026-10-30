@@ -95,6 +95,8 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
   let baseline = stableStringify(initial);
   /** @type {Set<(state: EditorState) => void>} */
   const listeners = new Set();
+  /** Le lot de commandes en cours (`batch`), ou `null`. @type {{ before: { scene: SceneDoc, selection: string[] } | null } | null} */
+  let batch = null;
   /** @type {EditorState | null} */
   let cached = null;
 
@@ -129,6 +131,17 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
    * @param {string} [coalesceKey]
    */
   function commit(entryLabel, next, nextSelection = selection, coalesceKey) {
+    if (batch !== null) {
+      // Dans un lot : l'état d'avant la première commande est gardé, rien n'est empilé ni notifié avant la fin.
+      if (batch.before === null) batch.before = { scene, selection };
+      scene = next;
+      selection = nextSelection;
+      future = [];
+      lastCoalesce = null;
+      if (solo !== null && !scene.layers.some(({ id }) => id === solo)) solo = null;
+      cached = null;
+      return;
+    }
     const at = now();
     const merges = coalesceKey !== undefined && lastCoalesce !== null && lastCoalesce.key === coalesceKey
       && at - lastCoalesce.at <= coalesceMs && past.length > 0;
@@ -507,8 +520,35 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       return { ok: true };
     },
 
+    /**
+     * Exécute plusieurs commandes comme une seule : une entrée d'historique (annulable d'un coup), une notification. Si rien
+     * n'a changé, rien n'est empilé. Les annulations demandées pendant le lot sont refusées.
+     * @template T
+     * @param {string} entryLabel
+     * @param {() => T} run
+     * @returns {T}
+     */
+    batch(entryLabel, run) {
+      if (batch !== null) return run();
+      batch = { before: null };
+      try {
+        return run();
+      } finally {
+        const finished = batch;
+        batch = null;
+        if (finished.before !== null) {
+          past.push({ scene: finished.before.scene, selection: finished.before.selection, label: entryLabel });
+          if (past.length > historyLimit) past = past.slice(past.length - historyLimit);
+          label = entryLabel;
+          lastCoalesce = null;
+          notify();
+        }
+      }
+    },
+
     /** @returns {Done | Refused} */
     undo() {
+      if (batch !== null) return refuse('invalid', 'annuler est impossible pendant un lot de commandes');
       const previous = past.pop();
       if (previous === undefined) return refuse('empty', 'rien à annuler');
       future.push({ scene, selection, label });
@@ -523,6 +563,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
 
     /** @returns {Done | Refused} */
     redo() {
+      if (batch !== null) return refuse('invalid', 'rétablir est impossible pendant un lot de commandes');
       const next = future.pop();
       if (next === undefined) return refuse('empty', 'rien à rétablir');
       past.push({ scene, selection, label: next.label });

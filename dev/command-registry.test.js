@@ -95,6 +95,33 @@ describe('registre', () => {
   });
 });
 
+describe('retrait et écoute des exécutions', () => {
+  test('unregister retire la commande : elle ne se trouve ni ne s’exécute plus', () => {
+    const registry = createCommandRegistry();
+    registry.register(command('x', 'X'));
+    expect(registry.unregister('x')).toBe(true);
+    expect(registry.has('x')).toBe(false);
+    expect(registry.run('x')).toBe(false);
+    expect(registry.unregister('x')).toBe(false);
+    registry.register(command('x', 'X de nouveau'));
+  });
+
+  test('onRun est prévenu après une exécution réussie, pas après un refus ni une exécution silencieuse ; se désabonne', () => {
+    const registry = createCommandRegistry();
+    registry.register(command('a', 'A'));
+    registry.register(command('b', 'B', { enabled: () => false }));
+    const seen = [];
+    const off = registry.onRun((id) => seen.push(id));
+    registry.run('a');
+    registry.run('b');
+    registry.run('a', { silent: true });
+    expect(seen).toEqual(['a']);
+    off();
+    registry.run('a');
+    expect(seen).toEqual(['a']);
+  });
+});
+
 describe('shortcutMatches', () => {
   const key = (k, over = {}) => ({ key: k, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...over });
 

@@ -485,7 +485,7 @@ export function createLayersPanelController(input) {
     if (key === 'z' && !event.shiftKey) {
       event.preventDefault();
       editor.undo();
-    } else if ((key === 'z' && event.shiftKey) || key === 'y') {
+    } else if ((key === 'z' && event.shiftKey) || (key === 'y' && !event.shiftKey && !event.altKey)) {
       event.preventDefault();
       editor.redo();
     }

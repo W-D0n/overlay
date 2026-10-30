@@ -28,10 +28,11 @@ import { PLACEMENT_PRESETS, alignPlacements, distributePlacements } from './plac
  *     publish(): void, discard(): void, showChanges(): void, toggleCompare(): void, testTransition(): void,
  *   },
  *   dialogs: { palette(): void, shortcuts(): void, history(): void, diagnostic(): void },
+ *   customCommands: { open(): void, create(): void, startRecording(): void, isRecording(): boolean },
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  * }} deps
  */
-export function createStudioCommands({ studio, clipboard, labelOf, addableKinds, defaultOptions, view, publication, dialogs, report }) {
+export function createStudioCommands({ studio, clipboard, labelOf, addableKinds, defaultOptions, view, publication, dialogs, customCommands, report }) {
   const registry = createCommandRegistry();
   const { editor } = studio;
 
@@ -167,6 +168,13 @@ export function createStudioCommands({ studio, clipboard, labelOf, addableKinds,
     { id: 'publish.changes', label: 'Voir les changements avant de publier', group: 'Publication', keywords: ['récapitulatif', 'diff'], enabled: isDraft, run: () => publication.showChanges() },
     { id: 'publish.compare', label: 'Comparer avec l’antenne (avant / après)', group: 'Publication', shortcut: 'Ctrl+B', keywords: ['bascule'], enabled: isDraft, run: () => publication.toggleCompare() },
     { id: 'publish.testTransition', label: 'Tester la transition d’arrivée', group: 'Publication', keywords: ['animation', 'fondu', 'balayage'], run: () => publication.testTransition() },
+  ]);
+
+  // ── Commandes personnalisées ────────────────────────────────────────────
+  add([
+    { id: 'commands.manage', label: 'Gérer les commandes personnalisées', group: 'Commandes', keywords: ['macro', 'raccourci', 'créer'], run: () => customCommands.open() },
+    { id: 'commands.create', label: 'Créer une commande personnalisée', group: 'Commandes', keywords: ['macro', 'nouvelle'], run: () => customCommands.create() },
+    { id: 'commands.record', label: 'Enregistrer une macro', group: 'Commandes', keywords: ['commande', 'personnalisée', 'enregistrer'], enabled: () => !customCommands.isRecording(), run: () => customCommands.startRecording() },
   ]);
 
   // ── Aide et fenêtres ────────────────────────────────────────────────────

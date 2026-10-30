@@ -84,12 +84,27 @@ export function scoreCommand(command, query) {
 export function createCommandRegistry() {
   /** @type {Map<string, Command>} */
   const commands = new Map();
+  /** @type {Set<(id: string) => void>} */
+  const runListeners = new Set();
 
   return {
     /** @param {Command} command */
     register(command) {
       if (commands.has(command.id)) throw new Error(`commande déjà enregistrée : ${command.id}`);
       commands.set(command.id, command);
+    },
+
+    /** Retire une commande (une commande personnalisée supprimée). @param {string} id @returns {boolean} */
+    unregister: (id) => commands.delete(id),
+
+    /**
+     * Prévenu après chaque exécution réussie d'une commande (hors exécutions `silent`) : de quoi enregistrer une macro.
+     * @param {(id: string) => void} listener
+     * @returns {() => void}
+     */
+    onRun(listener) {
+      runListeners.add(listener);
+      return () => runListeners.delete(listener);
     },
 
     /** @param {Command[]} list */
@@ -119,14 +134,17 @@ export function createCommandRegistry() {
     },
 
     /**
-     * Exécute une commande activée.
+     * Exécute une commande activée. `silent` : sans prévenir les écouteurs (une macro qui rejoue ses étapes ne s'enregistre pas
+     * elle-même).
      * @param {string} id
+     * @param {{ silent?: boolean }} [options]
      * @returns {boolean} vrai si elle a été exécutée
      */
-    run(id) {
+    run(id, { silent = false } = {}) {
       const command = commands.get(id);
       if (command === undefined || !(command.enabled?.() ?? true)) return false;
       command.run();
+      if (!silent) for (const listener of [...runListeners]) listener(id);
       return true;
     },
 

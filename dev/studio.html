@@ -190,6 +190,40 @@
     #publish-bar .publish-extra { margin-left: var(--space-sm); }
     #stage-area.is-comparing .canvas-overlay { pointer-events: none; }
     #stage-area.is-comparing::after { content: 'Antenne (avant)'; position: absolute; top: var(--space-sm); right: var(--space-sm); z-index: 8; padding: 2px 8px; background: var(--color-bg); border: 1px solid var(--color-gold); color: var(--color-gold); font-size: var(--text-xs); }
+
+    /* ── Commandes personnalisées ────────────────────────────────────── */
+    .cc-dialog { width: min(760px, 94vw); }
+    .cc-empty { padding: var(--space-lg); color: var(--color-text-mid); line-height: 1.5; margin: 0; }
+    .cc-list { list-style: none; margin: 0; padding: var(--space-sm) var(--space-lg); display: flex; flex-direction: column; gap: var(--space-sm); overflow-y: auto; }
+    .cc-card { padding: var(--space-sm) var(--space-md); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
+    .cc-card-title { display: flex; gap: var(--space-sm); align-items: center; }
+    .cc-card-steps { color: var(--color-text-mid); margin: 2px 0 var(--space-sm); }
+    .cc-card-actions { display: flex; gap: var(--space-xs); align-items: center; }
+    .cc-editor, .cc-io { padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); overflow-y: auto; }
+    .cc-field { display: flex; flex-direction: column; gap: var(--space-xs); color: var(--color-text-mid); }
+    .cc-field input[type="text"] { padding: var(--space-xs) var(--space-sm); }
+    .cc-shortcut-row { display: flex; gap: var(--space-xs); }
+    .cc-shortcut { flex: 1; text-align: left; padding: var(--space-xs) var(--space-sm); }
+    .cc-shortcut.is-capturing { border-color: var(--color-gold); color: var(--color-gold); }
+    .cc-steps { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+    .cc-step { display: grid; grid-template-columns: 24px 1fr auto; gap: var(--space-sm); align-items: center; padding: 2px var(--space-sm); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
+    .cc-step-index { color: var(--color-text-dim); }
+    .cc-step-label { color: var(--color-text-primary); }
+    .cc-step-tools { display: flex; gap: 2px; }
+    .cc-step-tools button { padding: 0 8px; }
+    .cc-step-empty { padding: var(--space-sm); color: var(--color-text-dim); }
+    .cc-results { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+    .cc-result { display: grid; grid-template-columns: 90px 1fr; gap: var(--space-sm); width: 100%; text-align: left; padding: 2px var(--space-sm); border-color: transparent; }
+    .cc-result-group { color: var(--color-text-dim); font-size: var(--text-xs); text-transform: uppercase; }
+    .cc-errors { margin: 0; padding: 0 0 0 var(--space-lg); color: var(--color-danger); }
+    .cc-errors:empty { display: none; }
+    .cc-editor-actions { display: flex; gap: var(--space-sm); }
+    .cc-io textarea { width: 100%; box-sizing: border-box; font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-bg); }
+    .macro-bar { position: fixed; left: 50%; top: var(--space-sm); transform: translateX(-50%); z-index: 60; display: flex; gap: var(--space-sm); align-items: center; max-width: 92vw; padding: var(--space-xs) var(--space-md); background: var(--color-bg-panel); border: 1px solid var(--color-danger); }
+    .macro-bar[hidden] { display: none; }
+    .macro-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-danger); animation: macro-pulse 1.2s infinite; }
+    .macro-steps { color: var(--color-text-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40vw; }
+    @keyframes macro-pulse { 50% { opacity: .35; } }
     #layer-gallery { max-width: min(720px, 92vw); }
     .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: var(--space-sm); padding: var(--space-md); }
     .gallery-card { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); color: var(--color-text-primary); cursor: pointer; text-align: left; }
@@ -674,6 +708,58 @@
     </div>
     <ul id="history-list" class="diagnostic-list"></ul>
   </dialog>
+
+  <dialog id="custom-commands" class="diagnostic cc-dialog" aria-labelledby="cc-title">
+    <div class="diagnostic-bar">
+      <h2 id="cc-title">Commandes personnalisées</h2>
+      <div class="diagnostic-actions">
+        <button id="cc-create" type="button">Nouvelle commande</button>
+        <button id="cc-record" type="button" title="Enregistrer les commandes que vous exécutez, puis en faire une commande">Enregistrer une macro</button>
+        <button id="cc-import" type="button">Importer</button>
+        <button id="cc-export" type="button">Exporter</button>
+        <button id="cc-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <p id="cc-empty" class="cc-empty">Une commande personnalisée enchaîne plusieurs commandes sous un nom et, si vous le voulez, un raccourci. Elle s’exécute d’un seul geste, annulable d’un seul Ctrl+Z. Créez-en une, ou enregistrez ce que vous faites.</p>
+    <ul id="cc-list" class="cc-list"></ul>
+    <div id="cc-editor" class="cc-editor" hidden>
+      <label class="cc-field">Nom <input id="cc-name" type="text" maxlength="40" autocomplete="off" placeholder="Mise en page du direct"></label>
+      <div class="cc-field">
+        <span>Raccourci</span>
+        <span class="cc-shortcut-row"><button id="cc-shortcut" type="button" class="cc-shortcut"></button><button id="cc-shortcut-clear" type="button" hidden aria-label="Retirer le raccourci">✕</button></span>
+      </div>
+      <div class="cc-field">
+        <span>Étapes, dans l’ordre</span>
+        <ol id="cc-steps" class="cc-steps"></ol>
+        <input id="cc-step-search" type="text" autocomplete="off" placeholder="Ajouter une étape : chercher une commande…" aria-label="Chercher une commande à ajouter">
+        <ul id="cc-step-results" class="cc-results"></ul>
+      </div>
+      <ul id="cc-errors" class="cc-errors" role="alert"></ul>
+      <div class="cc-editor-actions">
+        <button id="cc-save" type="button">Enregistrer</button>
+        <button id="cc-test" type="button" title="Exécuter maintenant les étapes sur la scène (annulable d’un coup)">Essayer</button>
+        <button id="cc-cancel" type="button">Annuler</button>
+      </div>
+    </div>
+    <div id="cc-io" class="cc-io" hidden>
+      <p id="cc-io-status" role="status"></p>
+      <textarea id="cc-io-text" rows="12" spellcheck="false" aria-label="Contenu JSON"></textarea>
+      <div class="cc-editor-actions">
+        <button id="cc-io-confirm" type="button">Importer</button>
+        <button id="cc-io-copy" type="button" hidden>Copier</button>
+        <button id="cc-io-cancel" type="button">Retour</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="macro-bar" class="macro-bar" role="status" hidden>
+    <span class="macro-dot" aria-hidden="true"></span>
+    <strong>Enregistrement d’une macro</strong>
+    <span id="macro-count"></span>
+    <span id="macro-steps" class="macro-steps"></span>
+    <button id="macro-finish" type="button">Terminer</button>
+    <button id="macro-cancel" type="button">Annuler</button>
+  </div>
 
   <dialog id="command-palette" class="diagnostic palette" aria-label="Palette de commandes">
     <input id="palette-input" type="text" class="palette-input" placeholder="Rechercher une commande…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="palette-list">

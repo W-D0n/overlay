@@ -415,6 +415,79 @@ describe('annuler et rétablir', () => {
   });
 });
 
+describe('lot de commandes', () => {
+  test('plusieurs commandes forment une seule entrée : un annuler les défait toutes, un rétablir les rejoue', () => {
+    const { editor, ids } = setup([effect('a')]);
+    editor.batch('Ma macro', () => {
+      editor.addLayer({ kind: 'bubble' });
+      editor.setLayers(['bubble'], { opacity: 0.4 });
+      editor.setPlacement(['bubble'], { x: 0.5 });
+    });
+    expect(ids()).toEqual(['a', 'bubble']);
+    expect(editor.state().undoLabel).toBe('Ma macro');
+    editor.undo();
+    expect(ids()).toEqual(['a']);
+    expect(editor.state().canUndo).toBe(false);
+    editor.redo();
+    expect(editor.state().scene.layers[1]).toMatchObject({ opacity: 0.4, placement: { x: 0.5 } });
+  });
+
+  test('les abonnés ne sont prévenus qu’une fois, à la fin ; la lecture de l’état pendant le lot est à jour', () => {
+    const { editor } = setup([effect('a')]);
+    let notifications = 0;
+    editor.subscribe(() => { notifications += 1; });
+    let seen = 0;
+    editor.batch('Lot', () => {
+      editor.addLayer({ kind: 'bubble' });
+      seen = editor.state().scene.layers.length;
+      editor.addLayer({ kind: 'dotgrid' });
+    });
+    expect(seen).toBe(2);
+    expect(notifications).toBe(1);
+  });
+
+  test('un lot qui ne change rien n’empile rien ni ne notifie ; son résultat est rendu', () => {
+    const { editor } = setup();
+    let notifications = 0;
+    editor.subscribe(() => { notifications += 1; });
+    expect(editor.batch('Vide', () => 42)).toBe(42);
+    editor.batch('Refus', () => { editor.removeLayers(['absent']); });
+    expect(editor.state().canUndo).toBe(false);
+    expect(notifications).toBe(0);
+  });
+
+  test('un lot qui lève garde ce qui a déjà été appliqué, groupé, et relève l’erreur', () => {
+    const { editor, ids } = setup([effect('a')]);
+    expect(() => editor.batch('Cassé', () => { editor.addLayer({ kind: 'bubble' }); throw new Error('boum'); })).toThrow('boum');
+    expect(ids()).toEqual(['a', 'bubble']);
+    editor.undo();
+    expect(ids()).toEqual(['a']);
+  });
+
+  test('annuler ou rétablir pendant un lot est refusé ; un lot dans un lot se fond dans le premier', () => {
+    const { editor } = setup([effect('a')]);
+    editor.addLayer({ kind: 'bubble' });
+    editor.batch('Externe', () => {
+      expect(editor.undo()).toMatchObject({ ok: false, reason: 'invalid' });
+      expect(editor.redo()).toMatchObject({ ok: false, reason: 'invalid' });
+      editor.batch('Interne', () => { editor.setLayers(['a'], { opacity: 0.2 }); });
+      editor.setLayers(['a'], { opacity: 0.3 });
+    });
+    expect(editor.state().undoLabel).toBe('Externe');
+    editor.undo();
+    expect(editor.state().scene.layers[0].opacity).toBe(1);
+    expect(editor.state().scene.layers).toHaveLength(2);
+  });
+
+  test('l’historique reste borné malgré les lots', () => {
+    const { editor } = setup([effect('a')], { historyLimit: 2 });
+    for (let i = 0; i < 4; i += 1) editor.batch(`Lot ${i}`, () => { editor.setLayers(['a'], { opacity: i / 10 }); editor.setLayers(['a'], { visible: i % 2 === 0 }); });
+    let undone = 0;
+    while (editor.undo().ok) undone += 1;
+    expect(undone).toBe(2);
+  });
+});
+
 describe('sélection et solo', () => {
   test('remplacer, ajouter, basculer ; les identifiants inconnus sont ignorés ; ordre = ordre des couches', () => {
     const { editor } = setup([effect('a'), effect('b'), effect('c')]);

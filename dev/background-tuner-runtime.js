@@ -17,6 +17,8 @@ import { createCommandPaletteController } from './command-palette-controller.js'
 import { createContextMenuController } from './context-menu-controller.js';
 import { createPublicationController } from './publication-controller.js';
 import { bindStudioShortcuts } from './studio-shortcuts.js';
+import { createCustomCommandStore, createMacroRecorder } from './custom-commands.js';
+import { createCustomCommandsController } from './custom-commands-controller.js';
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 import { isIdentityKind } from '../layer-kinds.js';
 import { BACKGROUND_COMPONENT_NAMES, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
@@ -236,6 +238,8 @@ export async function startBackgroundTuner(environment = {}) {
   const addableKinds = [...BACKGROUND_COMPONENT_NAMES, 'branding'];
   /** @type {ReturnType<typeof createCommandPaletteController> | null} */
   let palette = null;
+  /** @type {ReturnType<typeof createCustomCommandsController> | null} */
+  let customCommands = null;
   const commands = createStudioCommands({
     studio: preview.document,
     clipboard: createLayerClipboard({ storage }),
@@ -256,7 +260,54 @@ export async function startBackgroundTuner(environment = {}) {
       history: () => byId('history-open').click(),
       diagnostic: () => byId('diagnostic-open').click(),
     },
+    customCommands: {
+      open: () => customCommands?.open(),
+      create: () => customCommands?.create(),
+      startRecording: () => customCommands?.startRecording(),
+      isRecording: () => customCommands?.isRecording() ?? false,
+    },
     report,
+  });
+  customCommands = createCustomCommandsController({
+    registry: commands,
+    store: createCustomCommandStore({ storage }),
+    recorder: createMacroRecorder(commands),
+    batch: (label, run) => preview.editor.batch(label, run),
+    report,
+    elements: {
+      dialog: /** @type {HTMLDialogElement} */ (byId('custom-commands')),
+      list: byId('cc-list'),
+      empty: byId('cc-empty'),
+      create: /** @type {HTMLButtonElement} */ (byId('cc-create')),
+      record: /** @type {HTMLButtonElement} */ (byId('cc-record')),
+      importButton: /** @type {HTMLButtonElement} */ (byId('cc-import')),
+      exportButton: /** @type {HTMLButtonElement} */ (byId('cc-export')),
+      close: /** @type {HTMLButtonElement} */ (byId('cc-close')),
+      editor: byId('cc-editor'),
+      name: /** @type {HTMLInputElement} */ (byId('cc-name')),
+      shortcut: /** @type {HTMLButtonElement} */ (byId('cc-shortcut')),
+      shortcutClear: /** @type {HTMLButtonElement} */ (byId('cc-shortcut-clear')),
+      steps: byId('cc-steps'),
+      stepSearch: /** @type {HTMLInputElement} */ (byId('cc-step-search')),
+      stepResults: byId('cc-step-results'),
+      errors: byId('cc-errors'),
+      save: /** @type {HTMLButtonElement} */ (byId('cc-save')),
+      test: /** @type {HTMLButtonElement} */ (byId('cc-test')),
+      cancel: /** @type {HTMLButtonElement} */ (byId('cc-cancel')),
+      io: byId('cc-io'),
+      ioText: /** @type {HTMLTextAreaElement} */ (byId('cc-io-text')),
+      ioConfirm: /** @type {HTMLButtonElement} */ (byId('cc-io-confirm')),
+      ioCopy: /** @type {HTMLButtonElement} */ (byId('cc-io-copy')),
+      ioCancel: /** @type {HTMLButtonElement} */ (byId('cc-io-cancel')),
+      ioStatus: byId('cc-io-status'),
+      bar: byId('macro-bar'),
+      barCount: byId('macro-count'),
+      barSteps: byId('macro-steps'),
+      barFinish: /** @type {HTMLButtonElement} */ (byId('macro-finish')),
+      barCancel: /** @type {HTMLButtonElement} */ (byId('macro-cancel')),
+    },
+    documentRef,
+    navigatorRef,
   });
   palette = createCommandPaletteController({
     registry: commands,
@@ -450,5 +501,5 @@ export async function startBackgroundTuner(environment = {}) {
     preview.destroy();
   }
   windowRef.addEventListener('beforeunload', destroy, { once: true });
-  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls, layersPanel, layerInspector, canvasOverlay, viewAids, commands, publication };
+  return { destroy, antenna, presets, preview, obsSceneMap, brandingControls, layersPanel, layerInspector, canvasOverlay, viewAids, commands, publication, customCommands };
 }

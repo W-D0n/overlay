@@ -62,6 +62,8 @@ export async function run({ page, stack, check, errors }) {
   await page.sleep(1200);
   s = await snap();
   check('ouvrir Pile : 3 canvas, effet ciblé rain, brouillon, branding coché', s.canvases === 3 && s.effect === 'rain' && s.bar === 'draft' && s.branding === true);
+  // La capture passe par une file (≥ 500 ms par vignette) : on attend la vignette elle-même, pas un délai.
+  await page.waitFor("(() => { const row = [...document.querySelectorAll('#preset-list .preset-row')].find((r) => r.textContent.includes('Pile')); const img = row?.querySelector('.preset-thumb-still'); return !!img && !!img.getAttribute('src'); })()", 20_000);
   const thumb = await page.evaluate(`(async () => {
     const row = [...document.querySelectorAll('#preset-list .preset-row')].find((r) => r.textContent.includes('Pile'));
     const img = row?.querySelector('.preset-thumb-still');
