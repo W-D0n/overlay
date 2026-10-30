@@ -27,7 +27,7 @@ import { PLACEMENT_PRESETS, alignPlacements, distributePlacements } from './plac
  *   publication: {
  *     publish(): void, discard(): void, showChanges(): void, toggleCompare(): void, testTransition(): void,
  *   },
- *   dialogs: { palette(): void, shortcuts(): void, history(): void, diagnostic(): void },
+ *   dialogs: { palette(): void, shortcuts(): void, history(): void, editHistory(): void, diagnostic(): void },
  *   customCommands: { open(): void, create(): void, startRecording(): void, isRecording(): boolean },
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  * }} deps
@@ -54,6 +54,7 @@ export function createStudioCommands({ studio, clipboard, labelOf, addableKinds,
 
   // ── Édition ─────────────────────────────────────────────────────────────
   add([
+    { id: 'edit.history', label: 'Historique d’édition…', group: 'Édition', keywords: ['journal', 'revenir', 'étapes', 'annulations'], run: () => dialogs.editHistory() },
     { id: 'edit.undo', label: 'Annuler', group: 'Édition', shortcut: 'Ctrl+Z', bind: false, keywords: ['défaire'], enabled: () => editor.state().canUndo, run: () => { settle(editor.undo()); } },
     { id: 'edit.redo', label: 'Rétablir', group: 'Édition', shortcut: 'Ctrl+Maj+Z', bind: false, keywords: ['refaire'], enabled: () => editor.state().canRedo, run: () => { settle(editor.redo()); } },
     {

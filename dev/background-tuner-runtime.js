@@ -19,6 +19,7 @@ import { createPublicationController } from './publication-controller.js';
 import { bindStudioShortcuts } from './studio-shortcuts.js';
 import { createCustomCommandStore, createMacroRecorder } from './custom-commands.js';
 import { createStudioSettingsSync } from './studio-settings-sync.js';
+import { createEditHistoryController } from './edit-history-controller.js';
 import { createSettingsSyncIndicator } from './settings-sync-indicator.js';
 import { createCustomCommandsController } from './custom-commands-controller.js';
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
@@ -245,6 +246,20 @@ export async function startBackgroundTuner(environment = {}) {
     documentRef,
   });
 
+  const editHistory = createEditHistoryController({
+    elements: {
+      dialog: /** @type {HTMLDialogElement} */ (byId('edits-dialog')),
+      list: byId('edits-list'),
+      summary: byId('edits-summary'),
+      close: /** @type {HTMLButtonElement} */ (byId('edits-close')),
+      open: /** @type {HTMLButtonElement} */ (byId('layers-history')),
+    },
+    editor: preview.editor,
+    labelOf: backgroundEffectLabel,
+    optionLabel: (kind, key) => BACKGROUND_FIELD_SCHEMAS[kind]?.find((field) => field.key === key)?.label ?? key,
+    report,
+    documentRef,
+  });
   const addableKinds = [...BACKGROUND_COMPONENT_NAMES, 'branding'];
   /** @type {ReturnType<typeof createCommandPaletteController> | null} */
   let palette = null;
@@ -268,6 +283,7 @@ export async function startBackgroundTuner(environment = {}) {
       palette: () => palette?.open(),
       shortcuts: () => palette?.openHelp(),
       history: () => byId('history-open').click(),
+      editHistory: () => editHistory.open(),
       diagnostic: () => byId('diagnostic-open').click(),
     },
     customCommands: {
@@ -509,6 +525,7 @@ export async function startBackgroundTuner(environment = {}) {
 
   function destroy() {
     syncIndicator.destroy();
+    editHistory.destroy();
     shortcuts.destroy();
     contextMenu?.destroy();
     publication.destroy();

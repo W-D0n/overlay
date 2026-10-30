@@ -80,7 +80,7 @@ export function viewScene(scene, solo) {
  * }} options
  */
 export function createSceneEditor({ scene: initial, now = Date.now, historyLimit = DEFAULT_HISTORY_LIMIT, coalesceMs = DEFAULT_COALESCE_MS }) {
-  /** @typedef {{ scene: SceneDoc, selection: string[], label: string }} Snapshot */
+  /** @typedef {{ scene: SceneDoc, selection: string[], label: string, at: number }} Snapshot */
   /** @type {SceneDoc} */
   let scene = initial;
   /** @type {string[]} */
@@ -94,6 +94,8 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
   /** @type {{ key: string, at: number } | null} */
   let lastCoalesce = null;
   let label = '';
+  /** L'heure de l'entrée courante (celle que `label` nomme). */
+  let labelAt = 0;
   let baseline = stableStringify(initial);
   /** @type {Set<(state: EditorState) => void>} */
   const listeners = new Set();
@@ -168,12 +170,13 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     const merges = coalesceKey !== undefined && lastCoalesce !== null && lastCoalesce.key === coalesceKey
       && at - lastCoalesce.at <= coalesceMs && past.length > 0;
     if (!merges) {
-      past.push({ scene, selection, label: entryLabel });
+      past.push({ scene, selection, label: entryLabel, at });
       if (past.length > historyLimit) past = past.slice(past.length - historyLimit);
     }
     scene = next;
     selection = nextSelection;
     label = merges ? label : entryLabel;
+    labelAt = merges ? labelAt : at;
     future = [];
     lastCoalesce = coalesceKey === undefined ? null : { key: coalesceKey, at };
     if (solo !== null && !scene.layers.some(({ id }) => id === solo)) solo = null;
@@ -242,6 +245,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       future = [];
       lastCoalesce = null;
       label = '';
+      labelAt = 0;
       baseline = stableStringify(next);
       notify();
     },
@@ -571,9 +575,10 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
         const finished = batch;
         batch = null;
         if (finished.before !== null) {
-          past.push({ scene: finished.before.scene, selection: finished.before.selection, label: entryLabel });
+          past.push({ scene: finished.before.scene, selection: finished.before.selection, label: entryLabel, at: now() });
           if (past.length > historyLimit) past = past.slice(past.length - historyLimit);
           label = entryLabel;
+          labelAt = now();
           lastCoalesce = null;
           notify();
         }
@@ -583,14 +588,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     /** @returns {Done | Refused} */
     undo() {
       if (batch !== null) return refuse('invalid', 'annuler est impossible pendant un lot de commandes');
-      const previous = past.pop();
-      if (previous === undefined) return refuse('empty', 'rien à annuler');
-      future.push({ scene, selection, label });
-      scene = previous.scene;
-      selection = known(previous.selection);
-      label = past.length === 0 ? '' : past[past.length - 1].label;
-      lastCoalesce = null;
-      if (solo !== null && find(solo) === undefined) solo = null;
+      if (!stepBack()) return refuse('empty', 'rien à annuler');
       notify();
       return { ok: true };
     },
@@ -598,17 +596,66 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     /** @returns {Done | Refused} */
     redo() {
       if (batch !== null) return refuse('invalid', 'rétablir est impossible pendant un lot de commandes');
-      const next = future.pop();
-      if (next === undefined) return refuse('empty', 'rien à rétablir');
-      past.push({ scene, selection, label: next.label });
-      scene = next.scene;
-      selection = known(next.selection);
-      label = next.label;
-      lastCoalesce = null;
+      if (!stepForward()) return refuse('empty', 'rien à rétablir');
+      notify();
+      return { ok: true };
+    },
+
+    /**
+     * Toutes les entrées de l'historique, de la plus ancienne à la plus récente, avec l'état avant et après chacune ;
+     * `position` est le nombre d'entrées appliquées (les suivantes sont des entrées défaites, rétablissables).
+     * @returns {{ entries: { label: string, at: number, before: SceneDoc, after: SceneDoc }[], position: number }}
+     */
+    history() {
+      const undone = [...future].reverse();
+      const states = [...past.map((snapshot) => snapshot.scene), scene, ...undone.map((snapshot) => snapshot.scene)];
+      const entries = [...past, ...undone].map((snapshot, index) => ({ label: snapshot.label, at: snapshot.at, before: states[index], after: states[index + 1] }));
+      return { entries, position: past.length };
+    },
+
+    /**
+     * Revient (ou avance) à l'état après `position` entrées, en une seule notification. Rien n'est perdu : les entrées
+     * dépassées restent rétablissables jusqu'à la prochaine modification.
+     * @param {number} position 0 = l'état de départ
+     * @returns {Done | Refused}
+     */
+    goTo(position) {
+      if (batch !== null) return refuse('invalid', 'l’historique est inaccessible pendant un lot de commandes');
+      const target = Math.max(0, Math.min(past.length + future.length, Math.trunc(position)));
+      if (target === past.length) return { ok: true };
+      while (past.length > target && stepBack());
+      while (past.length < target && stepForward());
       notify();
       return { ok: true };
     },
   };
+
+  /** Annule une entrée, sans notifier. @returns {boolean} */
+  function stepBack() {
+    const previous = past.pop();
+    if (previous === undefined) return false;
+    future.push({ scene, selection, label, at: labelAt });
+    scene = previous.scene;
+    selection = known(previous.selection);
+    label = past.length === 0 ? '' : past[past.length - 1].label;
+    labelAt = past.length === 0 ? 0 : past[past.length - 1].at;
+    lastCoalesce = null;
+    if (solo !== null && find(solo) === undefined) solo = null;
+    return true;
+  }
+
+  /** Rétablit une entrée, sans notifier. @returns {boolean} */
+  function stepForward() {
+    const next = future.pop();
+    if (next === undefined) return false;
+    past.push({ scene, selection, label: next.label, at: next.at });
+    scene = next.scene;
+    selection = known(next.selection);
+    label = next.label;
+    labelAt = next.at;
+    lastCoalesce = null;
+    return true;
+  }
 
   /**
    * @param {Layer[]} layers

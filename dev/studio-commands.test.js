@@ -20,7 +20,7 @@ function setup() {
     defaultOptions: defaultBackgroundOptions,
     view: { zoomIn: record('zoomIn'), zoomOut: record('zoomOut'), fit: record('fit'), zoom100: record('zoom100'), toggle: (key) => calls.push(`toggle:${key}`) },
     publication: { publish: record('publish'), discard: record('discard'), showChanges: record('changes'), toggleCompare: record('compare'), testTransition: record('test') },
-    dialogs: { palette: record('palette'), shortcuts: record('shortcuts'), history: record('history'), diagnostic: record('diagnostic') },
+    dialogs: { palette: record('palette'), shortcuts: record('shortcuts'), history: record('history'), editHistory: record('editHistory'), diagnostic: record('diagnostic') },
     customCommands: { open: record('custom.open'), create: record('custom.create'), startRecording: record('custom.record'), isRecording: () => false },
     report: { ok() {}, error: (message) => errors.push(message) },
   });
@@ -184,9 +184,9 @@ describe('délégation vers la vue, la publication et les fenêtres', () => {
   test('chaque commande appelle sa doublure', () => {
     const { registry, editor, calls } = setup();
     editor.setOptions('main', { speed: 2 });
-    for (const id of ['view.zoomIn', 'view.zoomOut', 'view.fit', 'view.zoom100', 'view.snap', 'view.grid', 'view.rulers', 'view.safe', 'publish.send', 'publish.discard', 'publish.changes', 'publish.compare', 'publish.testTransition', 'help.palette', 'help.shortcuts', 'help.history', 'help.diagnostic']) {
+    for (const id of ['view.zoomIn', 'view.zoomOut', 'view.fit', 'view.zoom100', 'view.snap', 'view.grid', 'view.rulers', 'view.safe', 'publish.send', 'publish.discard', 'publish.changes', 'publish.compare', 'publish.testTransition', 'help.palette', 'help.shortcuts', 'help.history', 'edit.history', 'help.diagnostic']) {
       expect(registry.run(id)).toBe(true);
     }
-    expect(calls).toEqual(['zoomIn', 'zoomOut', 'fit', 'zoom100', 'toggle:snap', 'toggle:grid', 'toggle:rulers', 'toggle:safe', 'publish', 'discard', 'changes', 'compare', 'test', 'palette', 'shortcuts', 'history', 'diagnostic']);
+    expect(calls).toEqual(['zoomIn', 'zoomOut', 'fit', 'zoom100', 'toggle:snap', 'toggle:grid', 'toggle:rulers', 'toggle:safe', 'publish', 'discard', 'changes', 'compare', 'test', 'palette', 'shortcuts', 'history', 'editHistory', 'diagnostic']);
   });
 });

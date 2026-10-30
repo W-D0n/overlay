@@ -14,6 +14,7 @@ const PATHS = {
   trash: '<path d="M2.5 4.5h11M6 4.5V3h4v1.5M4 4.5l.6 8.5h6.8l.6-8.5"/>',
   plus: '<path d="M8 3v10M3 8h10"/>',
   undo: '<path d="M5 3L2 6l3 3"/><path d="M2 6h6.5a4 4 0 0 1 0 8H6"/>',
+  history: '<circle cx="8" cy="8" r="5.5"/><path d="M8 4.5V8l2.5 1.5"/>',
   redo: '<path d="M11 3l3 3-3 3"/><path d="M14 6H7.5a4 4 0 0 0 0 8H10"/>',
   grip: '<circle cx="6" cy="4" r=".9"/><circle cx="10" cy="4" r=".9"/><circle cx="6" cy="8" r=".9"/><circle cx="10" cy="8" r=".9"/><circle cx="6" cy="12" r=".9"/><circle cx="10" cy="12" r=".9"/>',
   type: '<path d="M3 4V3h10v1M8 3v10M6 13h4"/>',

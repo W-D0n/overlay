@@ -627,6 +627,17 @@
     .diagnostic-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-xs) var(--space-md); }
     .diagnostic-short { color: var(--color-text-dim); }
     .diagnostic-check p.diagnostic-fix { color: var(--color-text-primary); }
+    .edit-list { display: flex; flex-direction: column; gap: 2px; }
+    .edit-row { display: flex; flex-direction: column; gap: 2px; padding: var(--space-sm); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
+    .edit-row[data-state="current"] { border-color: var(--color-accent, var(--color-text-primary)); }
+    .edit-row[data-state="undone"] { opacity: 0.6; }
+    .edit-row-head { display: flex; align-items: baseline; gap: var(--space-sm); }
+    .edit-row-age { color: var(--color-text-dim); }
+    .edit-row-actions { margin-left: auto; display: flex; gap: var(--space-sm); }
+    .edit-row-summary { color: var(--color-text-dim); }
+    .edit-row-detail { padding-top: var(--space-sm); }
+    .edit-row-changes { margin: 0; padding-left: 18px; }
+    .edit-row-versus { margin: var(--space-sm) 0 2px; color: var(--color-text-dim); }
     .history-row { grid-template-columns: 1fr auto; align-items: center; }
     .history-row button[data-armed] { color: var(--color-danger); border-color: var(--color-danger); }
     .diagnostic-fix::before { content: '→ '; color: var(--color-gold); }
@@ -796,6 +807,17 @@
     <ul id="changes-list" class="diagnostic-list"></ul>
   </dialog>
 
+  <dialog id="edits-dialog" class="diagnostic" aria-labelledby="edits-title">
+    <div class="diagnostic-bar">
+      <h2 id="edits-title">Historique d’édition</h2>
+      <span id="edits-summary" role="status"></span>
+      <div class="diagnostic-actions">
+        <button id="edits-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <ol id="edits-list" class="diagnostic-list edit-list"></ol>
+  </dialog>
+
   <div id="context-menu" class="context-menu" role="menu" aria-label="Actions sur la couche" hidden></div>
 
   <dialog id="layer-gallery" class="diagnostic" aria-labelledby="gallery-title">
@@ -922,6 +944,7 @@
         <h2 id="layers-title">Couches</h2>
         <span id="layers-gauge" class="layers-gauge" data-level="ok" title="Couches de la scène sur la limite"></span>
         <span class="layers-tools">
+          <button id="layers-history" type="button" class="layer-button" aria-label="Historique d’édition" title="Historique d’édition"></button>
           <button id="layers-undo" type="button" class="layer-button" disabled aria-label="Annuler"></button>
           <button id="layers-redo" type="button" class="layer-button" disabled aria-label="Rétablir"></button>
           <button id="layers-add" type="button" class="layers-add" aria-haspopup="dialog">+ Ajouter</button>
