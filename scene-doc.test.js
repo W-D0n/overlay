@@ -1,11 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  BRANDING_LAYER_ID,
   canonicalSceneDoc,
   createLayer,
+  currentFromScene,
   FULL_PLACEMENT,
   MAX_LAYERS,
   presetFromScene,
   readPath,
+  sceneFromCurrent,
   sceneFromPreset,
   validateSceneDoc,
   writePath,
@@ -18,38 +21,70 @@ const preset = {
   options: { speed: 1.5 },
   tags: ['coding'],
   transition: { type: 'fade', durationMs: 600, direction: 'right', easing: 'easeInOut' },
-  showBranding: true,
 };
 
 const scene = () => sceneFromPreset(preset);
 const errorsOf = (raw) => (validateSceneDoc(raw).ok ? [] : validateSceneDoc(raw).errors);
 
-describe('preset ↔ scène à une couche', () => {
-  test('un preset devient une scène d’une couche pleine page, sans rien perdre', () => {
+describe('preset ↔ scène : un effet et son branding', () => {
+  test('un preset devient une scène : son effet pleine page, puis le branding (une couche d’identité)', () => {
     expect(scene()).toEqual({
       version: 1,
       id: 'pluie-lente',
       name: 'Pluie lente',
       tags: ['coding'],
       transition: preset.transition,
-      showBranding: true,
-      layers: [{ id: 'main', kind: 'rain', visible: true, opacity: 1, placement: FULL_PLACEMENT, options: { speed: 1.5 } }],
+      layers: [
+        { id: 'main', kind: 'rain', visible: true, opacity: 1, placement: FULL_PLACEMENT, options: { speed: 1.5 } },
+        { id: BRANDING_LAYER_ID, kind: 'branding', visible: true, opacity: 1, placement: FULL_PLACEMENT, options: {} },
+      ],
     });
     expect(validateSceneDoc(scene()).ok).toBe(true);
   });
 
-  test('l’aller-retour rend le preset d’origine', () => {
+  test('l’aller-retour rend le preset d’origine ; « branding affiché » est l’absence de réglage', () => {
     expect(presetFromScene(scene())).toEqual(preset);
+    expect(presetFromScene(sceneFromPreset({ ...preset, showBranding: true }))).toEqual(preset);
   });
 
-  test('un preset sans transition ni branding n’en gagne pas', () => {
+  test('un preset qui masque le branding n’a pas de couche branding, et le retrouve à l’aller-retour', () => {
+    const hidden = sceneFromPreset({ ...preset, showBranding: false });
+    expect(hidden.layers.map(({ kind }) => kind)).toEqual(['rain']);
+    expect(presetFromScene(hidden)).toEqual({ ...preset, showBranding: false });
+  });
+
+  test('un preset sans transition ni étiquettes n’en gagne pas', () => {
     const bare = sceneFromPreset({ id: 'a', name: 'A', component: 'bubble', options: {} });
     expect(Object.keys(bare)).toEqual(['version', 'id', 'name', 'layers']);
   });
 
-  test('une scène de plusieurs couches n’est pas un preset', () => {
+  test('une scène de plusieurs effets n’est pas un preset', () => {
     const many = { ...scene(), layers: [...scene().layers, createLayer({ id: 'deux', kind: 'bubble' })] };
     expect(presetFromScene(many)).toBeNull();
+  });
+
+  test('une couche déplacée, masquée ou atténuée ne se perd pas en silence : la scène n’est pas un preset', () => {
+    const moved = scene();
+    moved.layers[0] = { ...moved.layers[0], placement: { ...FULL_PLACEMENT, x: 0.1 } };
+    expect(presetFromScene(moved)).toBeNull();
+    const hidden = scene();
+    hidden.layers[0] = { ...hidden.layers[0], visible: false };
+    expect(presetFromScene(hidden)).toBeNull();
+    const faded = scene();
+    faded.layers[1] = { ...faded.layers[1], opacity: 0.5 };
+    expect(presetFromScene(faded)).toBeNull();
+  });
+
+  test('deux brandings, ou un branding à réglages, ne tiennent pas dans un preset', () => {
+    const two = { ...scene(), layers: [...scene().layers, createLayer({ id: 'deux', kind: 'branding' })] };
+    expect(presetFromScene(two)).toBeNull();
+    const tuned = scene();
+    tuned.layers[1] = { ...tuned.layers[1], options: { x: 1 } };
+    expect(presetFromScene(tuned)).toBeNull();
+  });
+
+  test('une scène du seul branding n’est pas un preset (il n’a pas d’effet)', () => {
+    expect(presetFromScene({ ...scene(), layers: [createLayer({ id: BRANDING_LAYER_ID, kind: 'branding' })] })).toBeNull();
   });
 
   test('l’ancien nom d’un type est lu, pas rejeté', () => {
@@ -174,5 +209,34 @@ describe('chemins adressables', () => {
     expect(writePath(many(), 'layers[coin].options.__proto__', { x: 1 }).ok).toBe(false);
     expect(writePath(many(), 'layers[coin].options.constructor', 1).ok).toBe(false);
     expect({}.x).toBeUndefined();
+  });
+});
+
+describe('état en antenne ↔ scène', () => {
+  test('un fond et son branding : la forme historique se retrouve, showBranding seulement s’il est faux', () => {
+    const current = { component: 'rain', options: { speed: 2 } };
+    expect(currentFromScene(sceneFromCurrent(current))).toEqual(current);
+    expect(currentFromScene(sceneFromCurrent({ ...current, showBranding: true }))).toEqual(current);
+    expect(currentFromScene(sceneFromCurrent({ ...current, showBranding: false }))).toEqual({ ...current, showBranding: false });
+  });
+
+  test('aucun fond : une scène du seul branding, ou sans couche si le branding est masqué', () => {
+    const none = sceneFromCurrent({ component: null, options: {} });
+    expect(none.layers.map(({ kind }) => kind)).toEqual(['branding']);
+    expect(currentFromScene(none)).toEqual({ component: null, options: {} });
+    const bare = sceneFromCurrent({ component: null, options: {}, showBranding: false });
+    expect(bare.layers).toEqual([]);
+    expect(currentFromScene(bare)).toEqual({ component: null, options: {}, showBranding: false });
+  });
+
+  test('la transition voyage avec la scène, aussi sans fond', () => {
+    const transition = { type: 'fade', durationMs: 300, easing: 'linear' };
+    expect(currentFromScene(sceneFromCurrent({ component: 'rain', options: {}, transition })).transition).toEqual(transition);
+    expect(sceneFromCurrent({ component: null, options: {}, transition }).transition).toEqual(transition);
+  });
+
+  test('une scène qui ne tient pas dans la forme historique donne null', () => {
+    const many = { ...sceneFromCurrent({ component: 'rain', options: {} }), layers: [createLayer({ id: 'a', kind: 'rain' }), createLayer({ id: 'b', kind: 'bubble' })] };
+    expect(currentFromScene(many)).toBeNull();
   });
 });

@@ -3,7 +3,7 @@ import { clampOptions, isKnownKindId, neutralizeOptions, resolveKindId, validate
 import { validateSceneMap } from '../obs-scene-mapping.js';
 import { validateTransition } from '../background-transition.js';
 import { normalizeBranding, validateBranding } from '../branding-format.js';
-import { presetFromScene, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
+import { BRANDING_LAYER_ID, CURRENT_SCENE, SCENE_DOC_VERSION, currentFromScene, presetFromScene, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
 import { validateHistory } from './background-history.js';
 import { validateDrafts } from './preset-drafts.js';
 
@@ -31,15 +31,16 @@ const RETIRED_BACKGROUND_COMPONENT = 'MatrixGridBackground';
 
 /**
  * Version du fichier d'état : 2 = valeurs persistées neutres (`audioReactive` booléen) ; 3 = `scenes` (documents de
- * scène, `scene-doc.js`) à la place de `presets`, `current` devenu la scène en antenne.
+ * scène, `scene-doc.js`) à la place de `presets`, `current` devenu la scène en antenne ; 4 = le branding est une couche
+ * de la scène (type `branding`) au lieu de l'indicateur `showBranding` de la scène.
  */
-export const BACKGROUND_FILE_VERSION = 3;
+export const BACKGROUND_FILE_VERSION = 4;
 
 
 /**
  * Forme persistée d'un état courant : identifiant neutre de l'effet et options aux valeurs neutres.
  * Ne valide rien : un nom inconnu est laissé tel quel pour que la validation le signale.
- * @template {{ component: string | null, options: Record<string, unknown> }} T
+ * @template {{ component: string | null, options: Record<string, unknown>, showBranding?: boolean }} T
  * @param {T} current
  * @returns {T}
  */
@@ -49,7 +50,9 @@ export function canonicalBackgroundCurrent(current) {
   const options = isPlainObject(current.options)
     ? clampOptions(component, neutralizeOptions(current.options))
     : current.options;
-  return { ...current, component, options };
+  // Le branding affiché est l'état par défaut : seul « masqué » s'écrit (une scène sans couche branding).
+  const { showBranding, ...rest } = current;
+  return /** @type {T} */ ({ ...rest, component, options, ...(showBranding === undefined || showBranding === true ? {} : { showBranding }) });
 }
 
 /**
@@ -178,8 +181,20 @@ export function migrateBackgroundFile(raw) {
 }
 
 /**
- * Forme persistée (version 3) d'un fichier d'état : chaque preset est une scène à une couche, l'état courant est la
- * scène en antenne (`null` : aucun fond). Le reste du serveur manipule la forme `current` / `presets`.
+ * Un état comme scène persistée : `null` quand il n'a aucune couche (ni fond, ni branding).
+ * @param {BackgroundCurrent} current
+ */
+function persistedScene(current) {
+  const scene = sceneFromCurrent(current);
+  return scene.layers.length === 0 ? null : scene;
+}
+
+const UNSUPPORTED_SCENE = 'scène à plusieurs couches ou à couche réglée (déplacée, masquée, atténuée), non prise en charge par ce serveur';
+
+/**
+ * Forme persistée (version 4) d'un fichier d'état : chaque preset est une scène (son effet, puis son branding s'il
+ * l'affiche), l'état courant est la scène en antenne (`null` : ni fond ni branding). Le reste du serveur manipule la
+ * forme `current` / `presets`.
  * @param {BackgroundFile} file
  * @returns {Record<string, unknown>}
  */
@@ -188,17 +203,17 @@ export function encodePersistedFile(file) {
   return {
     ...rest,
     version: BACKGROUND_FILE_VERSION,
-    current: current.component === null ? null : sceneFromCurrent(current),
+    current: persistedScene(current),
     scenes: presets.map((preset) => sceneFromPreset(preset)),
-    ...(history === undefined ? {} : { history: history.map((entry) => ({ at: entry.at, scene: entry.current.component === null ? null : sceneFromCurrent(entry.current) })) }),
-    ...(drafts === undefined ? {} : { drafts: Object.fromEntries(Object.entries(drafts).map(([id, entry]) => [id, { at: entry.at, scene: entry.state.component === null ? null : sceneFromCurrent(entry.state) }])) }),
+    ...(history === undefined ? {} : { history: history.map((entry) => ({ at: entry.at, scene: persistedScene(entry.current) })) }),
+    ...(drafts === undefined ? {} : { drafts: Object.fromEntries(Object.entries(drafts).map(([id, entry]) => [id, { at: entry.at, scene: persistedScene(entry.state) }])) }),
   };
 }
 
 /**
- * Inverse de `encodePersistedFile`. Une scène qui n'est pas à une couche ne se lit pas encore : le serveur et le
- * Studio n'ont pas d'éditeur de couches, et la prendre pour un preset en perdrait.
- * @param {Record<string, unknown>} raw fichier de version 3
+ * Inverse de `encodePersistedFile`. Une scène qui n'est pas « un effet et son branding » ne se lit pas encore : le
+ * serveur et le Studio n'ont pas d'éditeur de couches, et la prendre pour un preset en perdrait.
+ * @param {Record<string, unknown>} raw fichier de version 4
  * @returns {{ ok: true, file: BackgroundFile } | { ok: false, errors: string[] }}
  */
 export function decodePersistedFile(raw) {
@@ -212,21 +227,23 @@ export function decodePersistedFile(raw) {
       return null;
     }
     const preset = presetFromScene(/** @type {*} */ (value));
-    if (preset === null) errors.push(`${where} : scène à plusieurs couches, non prise en charge par ce serveur`);
+    if (preset === null) errors.push(`${where} : ${UNSUPPORTED_SCENE}`);
     return preset;
   };
 
-  /** @param {unknown} value @param {string} where @returns {BackgroundCurrent} `null` : aucun fond */
+  /** @param {unknown} value @param {string} where @returns {BackgroundCurrent} `null` : ni fond ni branding */
   const readCurrent = (value, where) => {
-    /** @type {BackgroundCurrent} */
-    const current = { component: null, options: {} };
-    if (value === null) return current;
-    const scene = readScene(value, where);
-    if (scene === null) return current;
-    current.component = scene.component;
-    current.options = scene.options;
-    if (scene.transition !== undefined) current.transition = scene.transition;
-    if (scene.showBranding !== undefined) current.showBranding = scene.showBranding;
+    if (value === null) return { component: null, options: {}, showBranding: false };
+    const validation = validateSceneDoc(value);
+    if (!validation.ok) {
+      for (const error of validation.errors) errors.push(`${where} : ${error}`);
+      return { component: null, options: {} };
+    }
+    const current = currentFromScene(/** @type {*} */ (value));
+    if (current === null) {
+      errors.push(`${where} : ${UNSUPPORTED_SCENE}`);
+      return { component: null, options: {} };
+    }
     return current;
   };
 
@@ -263,18 +280,61 @@ export function decodePersistedFile(raw) {
   return { ok: true, file: /** @type {BackgroundFile} */ ({ ...rest, current, presets, ...(history === undefined ? {} : { history }), ...(drafts === undefined ? {} : { drafts }) }) };
 }
 
+/** @returns {Record<string, unknown>} la couche de branding d'une scène qui l'affichait (`showBranding` absent ou vrai) */
+function brandingLayerRaw() {
+  return { id: BRANDING_LAYER_ID, kind: 'branding', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {} };
+}
+
 /**
- * Lecture tolérante du fichier d'état, de n'importe quelle version : la version 3 se décode, les anciennes
- * se migrent. `migratedFrom` dit si le fichier doit être réécrit en version 3 (et d'où il vient).
+ * Une scène de version 3 en version 4 : l'indicateur `showBranding` devient une couche `branding` en dernier (au-dessus),
+ * ou rien s'il valait faux.
+ * @param {unknown} scene
+ */
+function upgradeScene(scene) {
+  if (!isPlainObject(scene)) return scene;
+  const { showBranding, ...rest } = scene;
+  const layers = Array.isArray(rest.layers) ? rest.layers : [];
+  const already = layers.some((layer) => isPlainObject(layer) && layer.kind === 'branding');
+  return { ...rest, layers: showBranding === false || already ? layers : [...layers, brandingLayerRaw()] };
+}
+
+/**
+ * Fichier persisté de version 3 en version 4. Un état « aucun fond » (`null`) affichait le branding : il devient une
+ * scène du seul branding, sans quoi le branding disparaîtrait de l'antenne.
+ * @param {Record<string, unknown>} raw
+ * @returns {Record<string, unknown>}
+ */
+export function upgradePersistedV3(raw) {
+  const noBackground = () => ({ version: SCENE_DOC_VERSION, ...CURRENT_SCENE, layers: [brandingLayerRaw()] });
+  const orNoBackground = (/** @type {unknown} */ scene) => (scene === null ? noBackground() : upgradeScene(scene));
+  return {
+    ...raw,
+    version: 4,
+    current: orNoBackground(raw.current),
+    ...(Array.isArray(raw.scenes) ? { scenes: raw.scenes.map(upgradeScene) } : {}),
+    ...(Array.isArray(raw.history)
+      ? { history: raw.history.map((entry) => (isPlainObject(entry) ? { ...entry, scene: orNoBackground(entry.scene ?? null) } : entry)) }
+      : {}),
+    ...(isPlainObject(raw.drafts)
+      ? { drafts: Object.fromEntries(Object.entries(raw.drafts).map(([id, entry]) => [id, isPlainObject(entry) ? { ...entry, scene: upgradeScene(entry.scene) } : entry])) }
+      : {}),
+  };
+}
+
+/**
+ * Lecture tolérante du fichier d'état, de n'importe quelle version : la version 4 se décode, la 3 se met à niveau
+ * puis se décode, les plus anciennes se migrent. `migratedFrom` dit si le fichier doit être réécrit en version 4 (et
+ * d'où il vient).
  * @param {unknown} raw
  * @returns {{ ok: true, file: BackgroundFile, migratedFrom: number | null } | { ok: false, errors: string[] }}
  */
 export function readBackgroundFile(raw) {
-  if (isPlainObject(raw) && raw.version === BACKGROUND_FILE_VERSION) {
-    const decoded = decodePersistedFile(raw);
+  if (isPlainObject(raw) && (raw.version === BACKGROUND_FILE_VERSION || raw.version === 3)) {
+    const upgraded = raw.version === 3;
+    const decoded = decodePersistedFile(upgraded ? upgradePersistedV3(raw) : raw);
     if (!decoded.ok) return decoded;
     const validation = validateBackgroundFile(decoded.file);
-    return validation.ok ? { ok: true, file: decoded.file, migratedFrom: null } : { ok: false, errors: validation.errors };
+    return validation.ok ? { ok: true, file: decoded.file, migratedFrom: upgraded ? 3 : null } : { ok: false, errors: validation.errors };
   }
   const migration = migrateBackgroundFile(raw);
   const validation = validateBackgroundFile(migration.file);

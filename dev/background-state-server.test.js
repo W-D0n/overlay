@@ -489,7 +489,7 @@ test('une page web étrangère ne peut ni lire ni modifier l’état, ni ouvrir 
   }
 });
 
-test('un fichier d’état version 1 est migré en version 3 et sauvegardé une seule fois avant toute écriture', async () => {
+test('un fichier d’état version 1 est migré en version 4 et sauvegardé une seule fois avant toute écriture', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'overlay-background-state-'));
   const stateFile = join(directory, 'state.json');
   const original = JSON.stringify({
@@ -509,11 +509,11 @@ test('un fichier d’état version 1 est migré en version 3 et sauvegardé une 
   try {
     await waitForServer(baseUrl);
     const state = await (await fetch(`${baseUrl}/state`)).json();
-    expect(state.version).toBe(3);
+    expect(state.version).toBe(4);
     expect(state.current.options.audioReactive).toBe(true);
     expect(state.presets[0].options.audioReactive).toBe(false);
 
-    const backup = `${stateFile}.pre-v3.bak`;
+    const backup = `${stateFile}.pre-v4.bak`;
     expect(existsSync(backup)).toBe(true);
     expect(readFileSync(backup, 'utf8')).toBe(original);
 
@@ -525,7 +525,7 @@ test('un fichier d’état version 1 est migré en version 3 et sauvegardé une 
     });
     expect(readFileSync(backup, 'utf8')).toBe(original);
     const rewritten = JSON.parse(readFileSync(stateFile, 'utf8'));
-    expect(rewritten.version).toBe(3);
+    expect(rewritten.version).toBe(4);
     expect(rewritten.scenes.map((scene) => scene.id)).toEqual(['calme']);
     expect(rewritten.presets).toBeUndefined();
   } finally {
@@ -551,7 +551,7 @@ test('un client qui envoie encore l’ancien nom d’effet ou « Oui » est stoc
     expect((await post('/state', { current: { component: 'RainBackground', options: { audioReactive: 'Oui' } } })).status).toBe(200);
     expect((await post('/save-preset', { name: 'Ancien', component: 'BubbleBackground', options: { audioReactive: 'Non' } })).status).toBe(200);
     const stored = JSON.parse(readFileSync(stateFile, 'utf8'));
-    expect(stored.current.layers).toEqual([expect.objectContaining({ kind: 'rain', options: { audioReactive: true } })]);
+    expect(stored.current.layers).toEqual([expect.objectContaining({ kind: 'rain', options: { audioReactive: true } }), expect.objectContaining({ kind: 'branding' })]);
     expect(stored.scenes[0].layers[0]).toMatchObject({ kind: 'bubble', options: { audioReactive: false } });
   } finally {
     child.kill();

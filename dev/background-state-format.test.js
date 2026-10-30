@@ -1,5 +1,5 @@
 // @ts-check
-import { test, expect } from 'bun:test';
+import { describe, test, expect } from 'bun:test';
 import {
   defaultBackgroundFile,
   validateBackgroundCurrent,
@@ -9,6 +9,7 @@ import {
   createPresetId,
   migrateBackgroundFile,
   encodePersistedFile,
+  upgradePersistedV3,
   decodePersistedFile,
   readBackgroundFile,
   canonicalBackgroundCurrent,
@@ -348,8 +349,8 @@ test('showBranding n’accepte qu’un booléen, sur le preset comme sur l’ét
 
 // ── version 2 : valeurs persistées neutres ───────────────────────────────
 
-test('defaultBackgroundFile porte la version courante (3)', () => {
-  expect(defaultBackgroundFile().version).toBe(3);
+test('defaultBackgroundFile porte la version courante (4)', () => {
+  expect(defaultBackgroundFile().version).toBe(4);
 });
 
 test('la migration depuis le format sans version convertit « Oui » / « Non » en booléens dans l’état courant et tous les presets', () => {
@@ -363,7 +364,7 @@ test('la migration depuis le format sans version convertit « Oui » / « Non »
   };
   const { file, migrated } = migrateBackgroundFile(legacy);
   expect(migrated).toBe(true);
-  expect(file.version).toBe(3);
+  expect(file.version).toBe(4);
   expect(file.current.options).toEqual({ audioReactive: true, speed: 1 });
   expect(file.presets.map((entry) => entry.options)).toEqual([
     { audioReactive: false },
@@ -374,10 +375,10 @@ test('la migration depuis le format sans version convertit « Oui » / « Non »
   expect(legacy.current.options.audioReactive).toBe('Oui');
 });
 
-test('un fichier en version 2 est migré en version 3 sans toucher à son contenu ; le résultat ne migre plus', () => {
+test('un fichier en version 2 est migré en version courante sans toucher à son contenu ; le résultat ne migre plus', () => {
   const current = { version: 2, current: { component: 'RainBackground', options: { audioReactive: true } }, presets: [] };
   const first = migrateBackgroundFile(current);
-  expect(first).toEqual({ file: { ...current, version: 3 }, migrated: true });
+  expect(first).toEqual({ file: { ...current, version: 4 }, migrated: true });
   expect(migrateBackgroundFile(first.file)).toEqual({ file: first.file, migrated: false });
 });
 
@@ -417,35 +418,41 @@ test('la forme persistée ramène aussi les nombres dans leurs bornes', () => {
   expect(canonicalBackgroundPreset(preset({ component: 'bubble', options: { count: 9999 } })).options).toEqual({ count: 200 });
 });
 
-// ── version 3 : scènes ───────────────────────────────────────────────────
+// ── version 4 : scènes, le branding est une couche ────────────────────────
 
 const WORKING = () => ({
-  version: 3,
+  version: 4,
   current: { component: 'rain', options: { audioReactive: true }, transition: { type: 'fade', durationMs: 400 }, showBranding: false },
   presets: [
     { id: 'calme', name: 'Calme', component: 'bubble', options: { audioReactive: false }, tags: ['brb'] },
-    { id: 'nuit', name: 'Nuit', component: 'rain', options: {}, transition: { type: 'fade', durationMs: 800 }, showBranding: true },
+    { id: 'nuit', name: 'Nuit', component: 'rain', options: {}, transition: { type: 'fade', durationMs: 800 } },
   ],
   sceneMap: { Jeu: 'calme' },
 });
 
-test('encodePersistedFile : chaque preset est une scène à une couche, current est la scène en antenne', () => {
+test('encodePersistedFile : chaque preset est une scène (son effet puis son branding), current est la scène en antenne', () => {
   const persisted = encodePersistedFile(WORKING());
-  expect(persisted.version).toBe(3);
+  expect(persisted.version).toBe(4);
   expect(persisted.presets).toBeUndefined();
   expect(persisted.scenes.map((scene) => scene.id)).toEqual(['calme', 'nuit']);
-  expect(persisted.scenes[0].layers).toHaveLength(1);
+  expect(persisted.scenes[0].layers.map((layer) => layer.kind)).toEqual(['bubble', 'branding']);
   expect(persisted.scenes[0].layers[0]).toMatchObject({ id: 'main', kind: 'bubble', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } });
+  expect(persisted.scenes[0].showBranding).toBeUndefined();
   expect(persisted.current.id).toBe('current');
+  expect(persisted.current.layers.map((layer) => layer.kind)).toEqual(['rain']);
   expect(persisted.sceneMap).toEqual({ Jeu: 'calme' });
 });
 
-test('un fond absent (current.component null) se persiste en null et revient à l’identique', () => {
-  const file = { ...WORKING(), current: { component: null, options: {} } };
-  const persisted = encodePersistedFile(file);
-  expect(persisted.current).toBeNull();
-  const decoded = decodePersistedFile(JSON.parse(JSON.stringify(persisted)));
-  expect(decoded.ok && decoded.file.current).toEqual({ component: null, options: {} });
+test('« aucun fond » : avec branding, une scène du seul branding ; sans branding, null — et chacun revient à l’identique', () => {
+  const shown = encodePersistedFile({ ...WORKING(), current: { component: null, options: {} } });
+  expect(shown.current.layers.map((layer) => layer.kind)).toEqual(['branding']);
+  const decodedShown = decodePersistedFile(JSON.parse(JSON.stringify(shown)));
+  expect(decodedShown.ok && decodedShown.file.current).toEqual({ component: null, options: {} });
+
+  const hidden = encodePersistedFile({ ...WORKING(), current: { component: null, options: {}, showBranding: false } });
+  expect(hidden.current).toBeNull();
+  const decodedHidden = decodePersistedFile(JSON.parse(JSON.stringify(hidden)));
+  expect(decodedHidden.ok && decodedHidden.file.current).toEqual({ component: null, options: {}, showBranding: false });
 });
 
 test('aller-retour : décoder ce qui a été encodé redonne exactement le fichier de travail', () => {
@@ -464,13 +471,16 @@ test('la branding survit à l’aller-retour', () => {
 const HISTORY = () => [
   { at: '2026-10-30T11:00:00.000Z', current: { component: 'rain', options: {}, transition: { type: 'fade', durationMs: 500 } } },
   { at: '2026-10-30T10:00:00.000Z', current: { component: null, options: {} } },
+  { at: '2026-10-30T09:00:00.000Z', current: { component: null, options: {}, showBranding: false } },
 ];
 
 test('l’historique se persiste en scènes et revient à l’identique, fond absent compris', () => {
   const file = { ...WORKING(), history: HISTORY() };
   const persisted = JSON.parse(JSON.stringify(encodePersistedFile(file)));
-  expect(persisted.history[0]).toMatchObject({ at: '2026-10-30T11:00:00.000Z', scene: { layers: [{ kind: 'rain' }] } });
-  expect(persisted.history[1].scene).toBeNull();
+  expect(persisted.history[0].at).toBe('2026-10-30T11:00:00.000Z');
+  expect(persisted.history[0].scene.layers.map((layer) => layer.kind)).toEqual(['rain', 'branding']);
+  expect(persisted.history[1].scene.layers.map((layer) => layer.kind)).toEqual(['branding']);
+  expect(persisted.history[2].scene).toBeNull();
   const decoded = decodePersistedFile(persisted);
   expect(decoded.ok).toBe(true);
   expect(decoded.file).toEqual(file);
@@ -542,10 +552,76 @@ test('une scène invalide est refusée avec son emplacement', () => {
   expect(decoded.errors.join(' ')).toContain('scenes[0]');
 });
 
-test('readBackgroundFile : version 3 lue sans migration', () => {
+test('readBackgroundFile : version 4 lue sans migration', () => {
   const read = readBackgroundFile(JSON.parse(JSON.stringify(encodePersistedFile(WORKING()))));
   expect(read.ok && read.migratedFrom).toBeNull();
   expect(read.ok && read.file).toEqual(WORKING());
+});
+
+// ── version 3 → 4 : showBranding devient une couche ───────────────────────
+
+const layerOf = (id, kind) => ({ id, kind, visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {} });
+const sceneV3 = (id, extra = {}) => ({ version: 1, id, name: id, layers: [layerOf('main', 'rain')], ...extra });
+const FILE_V3 = () => ({
+  version: 3,
+  current: sceneV3('current', { showBranding: false }),
+  scenes: [sceneV3('affiche'), sceneV3('explicite', { showBranding: true }), sceneV3('masque', { showBranding: false })],
+  history: [{ at: '2026-10-30T10:00:00.000Z', scene: null }, { at: '2026-10-30T09:00:00.000Z', scene: sceneV3('current', { showBranding: false }) }],
+  drafts: { affiche: { at: '2026-10-30T11:00:00.000Z', scene: sceneV3('current') } },
+  sceneMap: { Jeu: 'affiche' },
+});
+const kindsOf = (scene) => scene.layers.map((layer) => layer.kind);
+
+describe('mise à niveau d’un fichier version 3', () => {
+  test('une scène qui affichait le branding (absent ou vrai) reçoit une couche branding en tête ; masqué, rien', () => {
+    const up = upgradePersistedV3(FILE_V3());
+    expect(up.version).toBe(4);
+    expect(up.scenes.map(kindsOf)).toEqual([['rain', 'branding'], ['rain', 'branding'], ['rain']]);
+    expect(up.scenes.every((scene) => !('showBranding' in scene))).toBe(true);
+    expect(kindsOf(up.current)).toEqual(['rain']);
+    expect(kindsOf(up.drafts.affiche.scene)).toEqual(['rain', 'branding']);
+  });
+
+  test('« aucun fond » (null) affichait le branding : il devient une scène du seul branding, pour ne pas le perdre', () => {
+    const up = upgradePersistedV3({ ...FILE_V3(), current: null });
+    expect(kindsOf(up.current)).toEqual(['branding']);
+    expect(kindsOf(up.history[0].scene)).toEqual(['branding']);
+    expect(up.history[1].scene.layers.map((layer) => layer.kind)).toEqual(['rain']);
+  });
+
+  test('ne touche ni au contenu des scènes, ni à la table des scènes OBS, ni à ce qu’il ne connaît pas', () => {
+    const raw = { ...FILE_V3(), extra: { garde: true } };
+    const up = upgradePersistedV3(raw);
+    expect(up.sceneMap).toEqual({ Jeu: 'affiche' });
+    expect(up.extra).toEqual({ garde: true });
+    expect(up.scenes[0].layers[0]).toEqual(raw.scenes[0].layers[0]);
+  });
+
+  test('le fichier d’origine n’est pas modifié, et une scène qui a déjà son branding n’en gagne pas un second', () => {
+    const raw = FILE_V3();
+    const before = JSON.stringify(raw);
+    upgradePersistedV3(raw);
+    expect(JSON.stringify(raw)).toBe(before);
+    const twice = upgradePersistedV3({ ...raw, scenes: [{ ...sceneV3('a'), layers: [layerOf('main', 'rain'), layerOf('branding', 'branding')] }] });
+    expect(kindsOf(twice.scenes[0])).toEqual(['rain', 'branding']);
+  });
+
+  test('readBackgroundFile lit un fichier version 3, dit qu’il vient de 3, et rend la forme historique de chaque scène', () => {
+    const read = readBackgroundFile(FILE_V3());
+    expect(read.ok).toBe(true);
+    expect(read.migratedFrom).toBe(3);
+    expect(read.file.version).toBe(4);
+    expect(read.file.presets.map((preset) => [preset.id, preset.showBranding])).toEqual([['affiche', undefined], ['explicite', undefined], ['masque', false]]);
+    expect(read.file.current).toEqual({ component: 'rain', options: {}, showBranding: false });
+    expect(read.file.history[0].current).toEqual({ component: null, options: {} });
+  });
+
+  test('les fichiers mis à niveau puis relus ne migrent plus', () => {
+    const read = readBackgroundFile(FILE_V3());
+    const again = readBackgroundFile(JSON.parse(JSON.stringify(encodePersistedFile(read.file))));
+    expect(again.migratedFrom).toBeNull();
+    expect(again.file).toEqual(read.file);
+  });
 });
 
 test('readBackgroundFile : version 2 et format sans version sont migrés et disent d’où ils viennent', () => {
@@ -562,4 +638,13 @@ test('readBackgroundFile : version 2 et format sans version sont migrés et dise
 test('readBackgroundFile : un fichier invalide est refusé, jamais réparé', () => {
   expect(readBackgroundFile({ version: 2, current: { component: 'inconnu', options: {} }, presets: [] }).ok).toBe(false);
   expect(readBackgroundFile('pas un objet').ok).toBe(false);
+});
+
+test('canonicalBackgroundCurrent : « branding affiché » est l’état par défaut, seul « masqué » s’écrit ; une valeur invalide reste pour que la validation la refuse', () => {
+  expect(canonicalBackgroundCurrent({ component: 'rain', options: {}, showBranding: true })).toEqual({ component: 'rain', options: {} });
+  expect(canonicalBackgroundCurrent({ component: 'rain', options: {}, showBranding: false })).toEqual({ component: 'rain', options: {}, showBranding: false });
+  const invalid = canonicalBackgroundCurrent({ component: 'rain', options: {}, showBranding: 'non' });
+  expect(invalid.showBranding).toBe('non');
+  expect(validateBackgroundCurrent(invalid).ok).toBe(false);
+  expect(canonicalBackgroundPreset({ id: 'a', name: 'A', component: 'rain', options: {}, showBranding: true })).toEqual({ id: 'a', name: 'A', component: 'rain', options: {} });
 });

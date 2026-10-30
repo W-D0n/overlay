@@ -1,5 +1,5 @@
 // @ts-check
-import { clampOptions, neutralizeOptions, resolveKindId, validateOptions } from './layer-kinds.js';
+import { clampOptions, isIdentityKind, neutralizeOptions, resolveKindId, validateOptions } from './layer-kinds.js';
 
 /**
  * scene-doc.js — Document de scène : une pile ordonnée de couches (docs/specs/scene-doc-etape-4.md).
@@ -24,7 +24,6 @@ import { clampOptions, neutralizeOptions, resolveKindId, validateOptions } from 
  *   name: string,
  *   tags?: string[],
  *   transition?: import('./background-transition.js').BackgroundTransition,
- *   showBranding?: boolean,
  *   layers: Layer[],
  * }} SceneDoc
  * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[], transition?: import('./background-transition.js').BackgroundTransition, showBranding?: boolean }} PresetLike
@@ -38,6 +37,8 @@ export const CURRENT_SCENE = Object.freeze({ id: 'current', name: 'En antenne' }
 export const MAX_LAYERS = 8;
 /** Identifiant de la couche d'un preset devenu scène. */
 export const MAIN_LAYER_ID = 'main';
+/** Identifiant de la couche de branding d'une scène qui l'affiche. */
+export const BRANDING_LAYER_ID = 'branding';
 
 /** Les identifiants servent dans les chemins (`layers[<id>].…`) : ni point ni crochet. */
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
@@ -79,6 +80,24 @@ export function createLayer(input) {
 }
 
 /**
+ * Le branding d'une scène : une couche d'identité pleine page, au contenu global (`branding-content.js`).
+ * @returns {Layer}
+ */
+function brandingLayer() {
+  return createLayer({ id: BRANDING_LAYER_ID, kind: 'branding' });
+}
+
+/**
+ * Une couche « simple » : visible, opaque, pleine page. Seules les couches simples se projettent sur la forme
+ * historique `{ component, options }` ; une couche déplacée, masquée ou atténuée ne doit jamais s'y perdre en silence.
+ * @param {Layer} layer
+ */
+function isPlainLayer(layer) {
+  const { x, y, width, height } = layer.placement;
+  return layer.visible && layer.opacity === 1 && x === 0 && y === 0 && width === 1 && height === 1;
+}
+
+/**
  * @param {PresetLike} preset
  * @returns {SceneDoc}
  */
@@ -94,42 +113,64 @@ export function sceneFromPreset(preset) {
       options: preset.options,
     })],
   };
+  // Absent ou vrai : le branding est affiché, il est une couche de la scène. Faux : la scène n'en a pas.
+  if (preset.showBranding !== false) scene.layers.push(brandingLayer());
   if (preset.tags !== undefined) scene.tags = preset.tags;
   if (preset.transition !== undefined) scene.transition = preset.transition;
-  if (preset.showBranding !== undefined) scene.showBranding = preset.showBranding;
   return scene;
 }
 
 /**
  * L'état courant `{ component, options, transition?, showBranding? }` (ce que le serveur diffuse) comme scène en
- * antenne. `component: null` (aucun fond) donne une scène sans couche.
+ * antenne. `component: null` (aucun fond) donne une scène du seul branding, ou sans couche s'il est masqué.
  * @param {{ component: string | null, options: Record<string, unknown>, transition?: import('./background-transition.js').BackgroundTransition, showBranding?: boolean }} current
  * @returns {SceneDoc}
  */
 export function sceneFromCurrent(current) {
   if (current.component === null) {
     /** @type {SceneDoc} */
-    const empty = { version: SCENE_DOC_VERSION, ...CURRENT_SCENE, layers: [] };
-    if (current.showBranding !== undefined) empty.showBranding = current.showBranding;
+    const empty = { version: SCENE_DOC_VERSION, ...CURRENT_SCENE, layers: current.showBranding === false ? [] : [brandingLayer()] };
+    if (current.transition !== undefined) empty.transition = current.transition;
     return empty;
   }
   return sceneFromPreset({ ...CURRENT_SCENE, component: current.component, options: current.options, ...(current.transition === undefined ? {} : { transition: current.transition }), ...(current.showBranding === undefined ? {} : { showBranding: current.showBranding }) });
 }
 
 /**
- * Inverse de `sceneFromPreset`. Une scène à plusieurs couches n'est pas un preset : `null`, plutôt
- * qu'une couche choisie au hasard.
+ * Inverse de `sceneFromCurrent` : la forme historique d'une scène, ou `null` si elle n'y tient pas (plusieurs effets,
+ * plusieurs brandings, couche déplacée, masquée ou atténuée) — plutôt qu'une couche choisie au hasard ou une
+ * propriété perdue en silence. `showBranding` ne s'écrit que s'il est faux : absent signifie affiché.
+ * @param {SceneDoc} scene
+ * @returns {{ component: string | null, options: Record<string, unknown>, transition?: import('./background-transition.js').BackgroundTransition, showBranding?: false } | null}
+ */
+export function currentFromScene(scene) {
+  const effects = scene.layers.filter(({ kind }) => !isIdentityKind(kind));
+  const identities = scene.layers.filter(({ kind }) => isIdentityKind(kind));
+  if (effects.length > 1 || identities.length > 1) return null;
+  if (![...effects, ...identities].every(isPlainLayer)) return null;
+  if (identities.length === 1 && (identities[0].kind !== 'branding' || Object.keys(identities[0].options).length > 0)) return null;
+
+  const [effect] = effects;
+  /** @type {NonNullable<ReturnType<typeof currentFromScene>>} */
+  const current = { component: effect === undefined ? null : effect.kind, options: effect === undefined ? {} : effect.options };
+  if (scene.transition !== undefined) current.transition = scene.transition;
+  if (identities.length === 0) current.showBranding = false;
+  return current;
+}
+
+/**
+ * Inverse de `sceneFromPreset`. Une scène qui n'est pas « un effet et son branding » n'est pas un preset : `null`.
  * @param {SceneDoc} scene
  * @returns {PresetLike | null}
  */
 export function presetFromScene(scene) {
-  if (scene.layers.length !== 1) return null;
-  const [layer] = scene.layers;
+  const current = currentFromScene(scene);
+  if (current === null || current.component === null) return null;
   /** @type {PresetLike} */
-  const preset = { id: scene.id, name: scene.name, component: layer.kind, options: layer.options };
+  const preset = { id: scene.id, name: scene.name, component: current.component, options: current.options };
   if (scene.tags !== undefined) preset.tags = scene.tags;
-  if (scene.transition !== undefined) preset.transition = scene.transition;
-  if (scene.showBranding !== undefined) preset.showBranding = scene.showBranding;
+  if (current.transition !== undefined) preset.transition = current.transition;
+  if (current.showBranding === false) preset.showBranding = false;
   return preset;
 }
 
@@ -182,7 +223,6 @@ export function validateSceneDoc(raw) {
   if (raw.tags !== undefined && !(Array.isArray(raw.tags) && raw.tags.every((tag) => typeof tag === 'string'))) {
     errors.push('tags : liste de textes attendue');
   }
-  if (raw.showBranding !== undefined && typeof raw.showBranding !== 'boolean') errors.push('showBranding : booléen attendu');
 
   if (!Array.isArray(raw.layers)) {
     errors.push('layers : liste attendue');
@@ -238,14 +278,14 @@ const LAYER_SCALARS = new Set(['name', 'visible', 'opacity']);
 const PLACEMENT_KEYS = new Set(['x', 'y', 'width', 'height']);
 
 /**
- * Chemin vers une propriété modifiable : `name`, `showBranding`, `layers[<id>].visible`,
+ * Chemin vers une propriété modifiable : `name`, `layers[<id>].visible`,
  * `layers[<id>].opacity`, `layers[<id>].name`, `layers[<id>].placement.<x|y|width|height>` ou
  * `layers[<id>].options.<clé>`. L'identité (`id`, `kind`) et l'ordre sont structurels : pas de chemin.
  * @param {string} path
  * @returns {{ layerId: string | null, field: 'scene' | 'layer' | 'placement' | 'options', key: string } | null}
  */
 function parsePath(path) {
-  if (path === 'name' || path === 'showBranding') return { layerId: null, field: 'scene', key: path };
+  if (path === 'name') return { layerId: null, field: 'scene', key: path };
   const match = /^layers\[([^\].]+)\]\.(.+)$/.exec(path);
   if (match === null) return null;
   const [, layerId, rest] = match;

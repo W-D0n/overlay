@@ -21,7 +21,8 @@ function createSceneMount(container, options = {}) {
   });
   const applyScene = runtime.apply;
   return Object.assign(runtime, {
-    apply: (state) => applyScene(sceneFromCurrent(state)),
+    // Ces comportements sont ceux d'un effet seul : le branding (couche d'identité) est couvert par scene-runtime.test.js.
+    apply: (state) => applyScene(sceneFromCurrent({ ...state, showBranding: false })),
     layerCount: () => runtime.stageCount(),
   });
 }
