@@ -50,12 +50,41 @@ describe('validateStudioSettings', () => {
   });
 });
 
+describe('modèles de couches', () => {
+  const layer = (over = {}) => ({ id: 'rain', kind: 'rain', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {}, ...over });
+  const template = (over = {}) => ({ id: 'tpl.pluie', name: 'Pluie', layers: [layer()], ...over });
+
+  test('un modèle valide passe ; l’identifiant « tpl.… » est obligatoire et unique', () => {
+    expect(validateStudioSettings({ templates: [template()] }).ok).toBe(true);
+    expect(errorsOf({ templates: [template({ id: 'pluie' })] })[0]).toContain('tpl.');
+    expect(errorsOf({ templates: [template(), template()] })[0]).toContain('en double');
+  });
+
+  test('nom, nombre de couches, couches invalides et taille sont bornés', () => {
+    expect(errorsOf({ templates: [template({ name: ' ' })] })[0]).toContain('name');
+    expect(errorsOf({ templates: [template({ layers: [] })] })[0]).toContain('couches');
+    expect(errorsOf({ templates: [template({ layers: [layer({ kind: 'inconnu' })] })] }).length).toBeGreaterThan(0);
+    expect(errorsOf({ templates: [template({ layers: [layer({ opacity: 'x' })] })] }).length).toBeGreaterThan(0);
+    expect(errorsOf({ templates: [template({ layers: [layer({ options: { big: 'x'.repeat(SETTINGS_LIMITS.templateBytes) } })] })] })[0]).toContain('volumineux');
+    expect(errorsOf({ templates: 'non' })).toEqual(['templates : tableau attendu']);
+    const many = Array.from({ length: SETTINGS_LIMITS.templates + 1 }, (_, i) => template({ id: `tpl.m${i}` }));
+    expect(errorsOf({ templates: many })[0]).toContain('modèles au plus');
+  });
+
+  test('un patch remplace les modèles en bloc et laisse le reste', () => {
+    const current = { customCommands: [command()], preferences: { a: 1 }, templates: [template()] };
+    expect(applySettingsPatch(current, { templates: [] })).toEqual({ ...current, templates: [] });
+    expect(applySettingsPatch(current, { preferences: { b: 2 } }).templates).toEqual(current.templates);
+    expect(validateSettingsPatch({ templates: [template({ id: 'x' })] }).ok).toBe(false);
+  });
+});
+
 describe('normalisation et changements', () => {
   test('normalizeStudioSettings complète les absents et copie en profondeur', () => {
     expect(normalizeStudioSettings(undefined)).toEqual(emptyStudioSettings());
     const raw = { customCommands: [command()], preferences: { a: 1 } };
     const normalized = normalizeStudioSettings(raw);
-    expect(normalized).toEqual(raw);
+    expect(normalized).toEqual({ ...raw, templates: [] });
     normalized.customCommands[0].name = 'changé';
     expect(raw.customCommands[0].name).toBe('Ma macro');
   });

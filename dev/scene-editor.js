@@ -450,9 +450,10 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
      * Insère des couches venues d'ailleurs (un collage) : identifiants neufs, juste au-dessus de la sélection, sélectionnées
      * ensuite. Tout ou rien : si la limite de couches serait dépassée ou si le branding existe déjà, rien n'est inséré.
      * @param {Layer[]} incoming
+     * @param {string} [entryLabel] le nom de l'entrée d'historique (par défaut « Coller … »)
      * @returns {(Done & { ids: string[] }) | Refused}
      */
-    insertLayers(incoming) {
+    insertLayers(incoming, entryLabel) {
       if (incoming.length === 0) return refuse('empty', 'rien à coller');
       if (scene.layers.length + incoming.length > MAX_LAYERS) return refuse('limit', `${MAX_LAYERS} couches au plus`);
       if (incoming.some((layer) => isIdentityKind(layer.kind) && scene.layers.some((existing) => existing.kind === layer.kind))) {
@@ -474,7 +475,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       const accepted = accept({ ...working, layers });
       if (!accepted.ok) return accepted;
       const ids = added.map(({ id }) => id);
-      commit(added.length === 1 ? 'Coller une couche' : `Coller ${added.length} couches`, accepted.scene, ids);
+      commit(entryLabel ?? (added.length === 1 ? 'Coller une couche' : `Coller ${added.length} couches`), accepted.scene, ids);
       return { ok: true, ids };
     },
 

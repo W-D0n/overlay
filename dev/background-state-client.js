@@ -143,8 +143,8 @@ export function createBackgroundStateClient(options) {
       return request('studio-settings');
     },
     /**
-     * Commandes remplacées en bloc, préférences fusionnées (`null` retire une clé).
-     * @param {{ customCommands?: import('./studio-settings.js').StoredCommand[], preferences?: Record<string, string | number | boolean | null> }} patch
+     * Commandes et modèles remplacés en bloc, préférences fusionnées (`null` retire une clé).
+     * @param {{ customCommands?: import('./studio-settings.js').StoredCommand[], preferences?: Record<string, string | number | boolean | null>, templates?: import('./studio-settings.js').StoredTemplate[] }} patch
      */
     saveStudioSettings(patch) {
       return request('studio-settings', patch, {}, true);

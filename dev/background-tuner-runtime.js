@@ -19,6 +19,7 @@ import { createPublicationController } from './publication-controller.js';
 import { bindStudioShortcuts } from './studio-shortcuts.js';
 import { createCustomCommandStore, createMacroRecorder } from './custom-commands.js';
 import { createStudioSettingsSync } from './studio-settings-sync.js';
+import { createTemplatesController } from './templates-controller.js';
 import { installScrubFields } from './scrub-field.js';
 import { createEditHistoryController } from './edit-history-controller.js';
 import { createSettingsSyncIndicator } from './settings-sync-indicator.js';
@@ -261,6 +262,22 @@ export async function startBackgroundTuner(environment = {}) {
     report,
     documentRef,
   });
+  const templates = createTemplatesController({
+    elements: {
+      dialog: /** @type {HTMLDialogElement} */ (byId('templates-dialog')),
+      name: /** @type {HTMLInputElement} */ (byId('templates-name')),
+      save: /** @type {HTMLButtonElement} */ (byId('templates-save')),
+      error: byId('templates-error'),
+      list: byId('templates-list'),
+      empty: byId('templates-empty'),
+      close: /** @type {HTMLButtonElement} */ (byId('templates-close')),
+    },
+    settings,
+    editor: preview.editor,
+    labelOf: backgroundEffectLabel,
+    report,
+    documentRef,
+  });
   const scrub = installScrubFields({ documentRef });
   const addableKinds = [...BACKGROUND_COMPONENT_NAMES, 'branding'];
   /** @type {ReturnType<typeof createCommandPaletteController> | null} */
@@ -288,6 +305,7 @@ export async function startBackgroundTuner(environment = {}) {
       editHistory: () => editHistory.open(),
       diagnostic: () => byId('diagnostic-open').click(),
     },
+    templates: { open: () => templates.open(), save: () => templates.save() },
     customCommands: {
       open: () => customCommands?.open(),
       create: () => customCommands?.create(),
@@ -528,6 +546,7 @@ export async function startBackgroundTuner(environment = {}) {
   function destroy() {
     syncIndicator.destroy();
     scrub.destroy();
+    templates.destroy();
     editHistory.destroy();
     shortcuts.destroy();
     contextMenu?.destroy();

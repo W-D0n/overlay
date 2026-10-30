@@ -18,7 +18,7 @@ function fakeStorage(initial = {}) {
   return { getItem: (k) => data.get(k) ?? null, setItem: (k, v) => data.set(k, v), data };
 }
 
-function setup({ remote = { customCommands: [], preferences: {} }, storage = fakeStorage(), readFails = null, saveFails = false } = {}) {
+function setup({ remote = { customCommands: [], preferences: {}, templates: [] }, storage = fakeStorage(), readFails = null, saveFails = false } = {}) {
   const timers = manualTimers();
   const saved = [];
   const errors = [];
@@ -149,6 +149,41 @@ describe('enregistrement', () => {
     expect(await sync.load()).toBe('server');
     sync.setPreference('a', 1);
     expect(sync.getPreference('a', 0)).toBe(1);
+  });
+});
+
+describe('modèles', () => {
+  const TEMPLATE = { id: 'tpl.a', name: 'A', layers: [{ id: 'rain', kind: 'rain', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {} }] };
+
+  test('s’enregistrent avec les autres réglages, en un envoi', async () => {
+    const { sync, saved, timers } = setup();
+    await sync.load();
+    sync.setTemplates([TEMPLATE]);
+    sync.setPreference('view.grid', true);
+    await timers.fire();
+    expect(saved).toEqual([{ templates: [TEMPLATE], preferences: { 'view.grid': true } }]);
+    expect(sync.getTemplates()).toEqual([TEMPLATE]);
+  });
+
+  test('un envoi qui échoue les garde et les renvoie', async () => {
+    const { sync, saved, timers, setSaveFails } = setup();
+    await sync.load();
+    setSaveFails(true);
+    sync.setTemplates([TEMPLATE]);
+    await timers.fire();
+    expect(sync.hasPending()).toBe(true);
+    setSaveFails(false);
+    await timers.fire();
+    expect(saved).toEqual([{ templates: [TEMPLATE] }]);
+  });
+
+  test('un serveur qui en a est suivi ; ce qui n’est pas parti n’est pas écrasé', async () => {
+    const { sync } = setup({ remote: { customCommands: [], preferences: {}, templates: [TEMPLATE] } });
+    await sync.load();
+    expect(sync.getTemplates()).toEqual([TEMPLATE]);
+    sync.setTemplates([]);
+    sync.applyRemote({ customCommands: [], preferences: {}, templates: [TEMPLATE] });
+    expect(sync.getTemplates()).toEqual([]);
   });
 });
 

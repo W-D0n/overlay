@@ -629,6 +629,13 @@
     .diagnostic-check p.diagnostic-fix { color: var(--color-text-primary); }
     label[data-scrub] { cursor: ew-resize; user-select: none; touch-action: none; }
     label[data-scrubbing] { color: var(--color-text-primary); }
+    .tpl-save { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-lg); }
+    .tpl-save input { flex: 1 1 240px; }
+    .tpl-error { color: var(--color-danger); }
+    .tpl-card { display: flex; flex-direction: column; gap: 2px; padding: var(--space-sm); margin-bottom: 2px; background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
+    .tpl-head { display: flex; align-items: baseline; gap: var(--space-sm); }
+    .tpl-summary { color: var(--color-text-dim); }
+    .tpl-actions { display: flex; align-items: center; gap: var(--space-sm); }
     .edit-list { display: flex; flex-direction: column; gap: 2px; }
     .edit-row { display: flex; flex-direction: column; gap: 2px; padding: var(--space-sm); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
     .edit-row[data-state="current"] { border-color: var(--color-accent, var(--color-text-primary)); }
@@ -818,6 +825,22 @@
       </div>
     </div>
     <ol id="edits-list" class="diagnostic-list edit-list"></ol>
+  </dialog>
+
+  <dialog id="templates-dialog" class="diagnostic" aria-labelledby="templates-title">
+    <div class="diagnostic-bar">
+      <h2 id="templates-title">Modèles de couches</h2>
+      <div class="diagnostic-actions">
+        <button id="templates-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <div class="tpl-save">
+      <input id="templates-name" type="text" autocomplete="off" maxlength="40" placeholder="Nom du modèle (la sélection y sera enregistrée)" aria-label="Nom du nouveau modèle">
+      <button id="templates-save" type="button" disabled>Enregistrer la sélection</button>
+      <span id="templates-error" class="tpl-error" role="status" aria-live="polite"></span>
+    </div>
+    <p id="templates-empty" class="hint">Aucun modèle. Sélectionnez des couches, donnez un nom, puis enregistrez : le modèle s’insère ensuite dans n’importe quelle scène.</p>
+    <ul id="templates-list" class="diagnostic-list"></ul>
   </dialog>
 
   <div id="context-menu" class="context-menu" role="menu" aria-label="Actions sur la couche" hidden></div>

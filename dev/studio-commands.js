@@ -28,11 +28,12 @@ import { PLACEMENT_PRESETS, alignPlacements, distributePlacements } from './plac
  *     publish(): void, discard(): void, showChanges(): void, toggleCompare(): void, testTransition(): void,
  *   },
  *   dialogs: { palette(): void, shortcuts(): void, history(): void, editHistory(): void, diagnostic(): void },
+ *   templates: { open(): void, save(): void },
  *   customCommands: { open(): void, create(): void, startRecording(): void, isRecording(): boolean },
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  * }} deps
  */
-export function createStudioCommands({ studio, clipboard, labelOf, addableKinds, defaultOptions, view, publication, dialogs, customCommands, report }) {
+export function createStudioCommands({ studio, clipboard, labelOf, addableKinds, defaultOptions, view, publication, dialogs, templates, customCommands, report }) {
   const registry = createCommandRegistry();
   const { editor } = studio;
 
@@ -114,6 +115,8 @@ export function createStudioCommands({ studio, clipboard, labelOf, addableKinds,
       id: 'layer.solo', label: 'Isoler dans l’aperçu', group: 'Couches', keywords: ['solo'], enabled: hasSelection,
       run: () => { const primary = selection().at(-1); if (primary !== undefined) editor.setSolo(editor.state().solo === primary ? null : primary); },
     },
+    { id: 'template.save', label: 'Enregistrer la sélection comme modèle…', group: 'Couches', keywords: ['modèle', 'gabarit', 'template', 'réutiliser'], enabled: hasSelection, run: () => templates.save() },
+    { id: 'template.open', label: 'Modèles de couches…', group: 'Couches', keywords: ['modèle', 'gabarit', 'template', 'insérer'], run: () => templates.open() },
     { id: 'layer.up', label: 'Monter d’un cran', group: 'Couches', shortcut: 'Ctrl+]', keywords: ['ordre', 'devant'], enabled: hasSelection, run: () => { settle(editor.moveLayers([...selection()], 'up')); } },
     { id: 'layer.down', label: 'Descendre d’un cran', group: 'Couches', shortcut: 'Ctrl+[', keywords: ['ordre', 'derrière'], enabled: hasSelection, run: () => { settle(editor.moveLayers([...selection()], 'down')); } },
     { id: 'layer.top', label: 'Mettre au premier plan', group: 'Couches', shortcut: 'Ctrl+Maj+]', keywords: ['ordre', 'devant'], enabled: hasSelection, run: () => { settle(editor.moveLayers([...selection()], 'top')); } },

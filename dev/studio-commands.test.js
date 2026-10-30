@@ -21,6 +21,7 @@ function setup() {
     view: { zoomIn: record('zoomIn'), zoomOut: record('zoomOut'), fit: record('fit'), zoom100: record('zoom100'), toggle: (key) => calls.push(`toggle:${key}`) },
     publication: { publish: record('publish'), discard: record('discard'), showChanges: record('changes'), toggleCompare: record('compare'), testTransition: record('test') },
     dialogs: { palette: record('palette'), shortcuts: record('shortcuts'), history: record('history'), editHistory: record('editHistory'), diagnostic: record('diagnostic') },
+    templates: { open: record('template.open'), save: record('template.save') },
     customCommands: { open: record('custom.open'), create: record('custom.create'), startRecording: record('custom.record'), isRecording: () => false },
     report: { ok() {}, error: (message) => errors.push(message) },
   });

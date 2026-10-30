@@ -11,10 +11,15 @@
  * @typedef {string | { op: string, args: Record<string, unknown>, target?: string, kind?: string }} CommandStep
  * @typedef {{ id: string, name: string, steps: CommandStep[], shortcut?: string }} StoredCommand
  * @typedef {Record<string, string | number | boolean>} Preferences
- * @typedef {{ customCommands: StoredCommand[], preferences: Preferences }} StudioSettings
+ * @typedef {{ id: string, name: string, layers: import('../scene-doc.js').Layer[] }} StoredTemplate
+ * @typedef {{ customCommands: StoredCommand[], preferences: Preferences, templates: StoredTemplate[] }} StudioSettings
  */
 
+import { MAX_LAYERS, validateSceneDoc } from '../scene-doc.js';
+
 export const SETTINGS_LIMITS = Object.freeze({
+  templates: 50,
+  templateBytes: 60_000,
   commands: 200,
   steps: 30,
   nameLength: 40,
@@ -25,6 +30,7 @@ export const SETTINGS_LIMITS = Object.freeze({
   preferenceValueLength: 200,
 });
 
+const TEMPLATE_ID = /^tpl\.[a-z0-9][a-z0-9-]{0,60}$/;
 const COMMAND_ID = /^custom\.[a-z0-9][a-z0-9-]{0,60}$/;
 const PREFERENCE_KEY = /^[a-z0-9][a-z0-9._-]*$/i;
 
@@ -33,7 +39,7 @@ const isRecord = (value) => typeof value === 'object' && value !== null && !Arra
 
 /** @returns {StudioSettings} */
 export function emptyStudioSettings() {
-  return { customCommands: [], preferences: {} };
+  return { customCommands: [], preferences: {}, templates: [] };
 }
 
 /**
@@ -82,6 +88,40 @@ function commandsErrors(commands) {
 }
 
 /**
+ * Un modèle : des couches enregistrées sous un nom, à insérer dans n'importe quelle scène. Les couches sont validées comme
+ * celles d'une scène (types, options, placement) : un modèle corrompu n'est jamais gardé à moitié.
+ * @param {unknown} templates
+ * @returns {string[]}
+ */
+function templatesErrors(templates) {
+  if (!Array.isArray(templates)) return ['templates : tableau attendu'];
+  /** @type {string[]} */
+  const errors = [];
+  if (templates.length > SETTINGS_LIMITS.templates) errors.push(`templates : ${SETTINGS_LIMITS.templates} modèles au plus`);
+  const ids = new Set();
+  templates.forEach((template, index) => {
+    const where = `templates[${index}]`;
+    if (!isRecord(template)) {
+      errors.push(`${where} : objet attendu`);
+      return;
+    }
+    if (typeof template.id !== 'string' || !TEMPLATE_ID.test(template.id)) errors.push(`${where}.id : identifiant « tpl.… » attendu`);
+    else if (ids.has(template.id)) errors.push(`${where}.id : identifiant en double`);
+    else ids.add(template.id);
+    if (typeof template.name !== 'string' || template.name.trim() === '' || template.name.length > SETTINGS_LIMITS.nameLength) errors.push(`${where}.name : 1 à ${SETTINGS_LIMITS.nameLength} caractères attendus`);
+    if (!Array.isArray(template.layers) || template.layers.length === 0 || template.layers.length > MAX_LAYERS) {
+      errors.push(`${where}.layers : 1 à ${MAX_LAYERS} couches attendues`);
+    } else if (JSON.stringify(template.layers).length > SETTINGS_LIMITS.templateBytes) {
+      errors.push(`${where} : modèle trop volumineux`);
+    } else {
+      const validation = validateSceneDoc({ version: 1, id: 'modele', name: 'modele', layers: template.layers }, { allowEmpty: true });
+      if (!validation.ok) errors.push(...validation.errors.map((message) => `${where}.layers : ${message}`));
+    }
+  });
+  return errors;
+}
+
+/**
  * @param {unknown} preferences
  * @returns {string[]}
  */
@@ -111,6 +151,7 @@ export function validateStudioSettings(raw) {
   const errors = [];
   if (raw.customCommands !== undefined) errors.push(...commandsErrors(raw.customCommands));
   if (raw.preferences !== undefined) errors.push(...preferencesErrors(raw.preferences));
+  if (raw.templates !== undefined) errors.push(...templatesErrors(raw.templates));
   return errors.length === 0 ? { ok: true } : { ok: false, errors };
 }
 
@@ -124,6 +165,7 @@ export function normalizeStudioSettings(raw) {
   return {
     customCommands: Array.isArray(record.customCommands) ? /** @type {StoredCommand[]} */ (structuredClone(record.customCommands)) : [],
     preferences: isRecord(record.preferences) ? /** @type {Preferences} */ ({ ...record.preferences }) : {},
+    templates: Array.isArray(record.templates) ? /** @type {StoredTemplate[]} */ (structuredClone(record.templates)) : [],
   };
 }
 
@@ -131,7 +173,7 @@ export function normalizeStudioSettings(raw) {
  * Applique un changement partiel : les commandes sont remplacées en bloc, les préférences se fusionnent clé à clé, `null`
  * retirant une clé.
  * @param {StudioSettings} current
- * @param {{ customCommands?: StoredCommand[], preferences?: Record<string, string | number | boolean | null> }} patch
+ * @param {{ customCommands?: StoredCommand[], preferences?: Record<string, string | number | boolean | null>, templates?: StoredTemplate[] }} patch
  * @returns {StudioSettings}
  */
 export function applySettingsPatch(current, patch) {
@@ -141,7 +183,11 @@ export function applySettingsPatch(current, patch) {
     if (value === null) delete preferences[key];
     else preferences[key] = value;
   }
-  return { customCommands: patch.customCommands === undefined ? current.customCommands : structuredClone(patch.customCommands), preferences };
+  return {
+    customCommands: patch.customCommands === undefined ? current.customCommands : structuredClone(patch.customCommands),
+    preferences,
+    templates: patch.templates === undefined ? current.templates : structuredClone(patch.templates),
+  };
 }
 
 /**

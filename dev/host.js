@@ -22,8 +22,8 @@
  *   POST /branding      — `{ branding }`, contenu global de la couche d'identité.
  *   POST /event         — événement de réaction éphémère : validé puis diffusé, jamais persisté.
  *   POST /scene-map     — `{ sceneMap }`, table d'association scène OBS → preset.
- *   GET  /studio-settings — `{ customCommands, preferences }` : les réglages du Studio qui suivent l'utilisateur.
- *   POST /studio-settings — `{ customCommands?, preferences? }`, commandes remplacées en bloc, préférences fusionnées
+ *   GET  /studio-settings — `{ customCommands, preferences, templates }` : les réglages du Studio qui suivent l'utilisateur.
+ *   POST /studio-settings — `{ customCommands?, preferences?, templates? }`, commandes et modèles remplacés en bloc, préférences fusionnées
  *                          (`null` retire une clé) ; diffusé sur le canal `studio`.
  *   POST /control/restart | /control/stop — demande au lanceur de relancer ou d'arrêter les serveurs.
  *   GET  /obs-status, /live-status, /diagnostics — état d'OBS, pages de rendu, faits du diagnostic.
@@ -256,7 +256,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
   }
 
   /**
-   * POST /studio-settings — `{ customCommands?, preferences? }`.
+   * POST /studio-settings — `{ customCommands?, preferences?, templates? }`.
    * @param {Request} req
    * @returns {Promise<Response>}
    */

@@ -12,6 +12,8 @@
  *
  * @typedef {import('./studio-settings.js').StudioSettings} StudioSettings
  * @typedef {import('./studio-settings.js').StoredCommand} StoredCommand
+ * @typedef {import('./studio-settings.js').StoredTemplate} StoredTemplate
+ * @typedef {{ customCommands?: StoredCommand[], preferences?: Record<string, string | number | boolean | null>, templates?: StoredTemplate[] }} SettingsPatch
  * @typedef {'synced' | 'saving' | 'offline'} SyncStatus
  */
 import { emptyStudioSettings, normalizeStudioSettings, validateStudioSettings } from './studio-settings.js';
@@ -26,7 +28,7 @@ const LEGACY_UNIT_KEY = 'overlay.studio.placement-unit';
  * @param {{
  *   client: {
  *     readStudioSettings(): Promise<StudioSettings>,
- *     saveStudioSettings(patch: { customCommands?: StoredCommand[], preferences?: Record<string, string | number | boolean | null> }): Promise<unknown>,
+ *     saveStudioSettings(patch: SettingsPatch): Promise<unknown>,
  *   },
  *   storage?: Pick<Storage, 'getItem' | 'setItem'> | null,
  *   delayMs?: number,
@@ -45,7 +47,7 @@ export function createStudioSettingsSync(input) {
 
   /** @type {StudioSettings} */
   let settings = emptyStudioSettings();
-  /** Ce qui n'est pas encore parti vers le serveur. @type {{ customCommands?: StoredCommand[], preferences: Record<string, string | number | boolean | null> }} */
+  /** Ce qui n'est pas encore parti vers le serveur. @type {{ customCommands?: StoredCommand[], templates?: StoredTemplate[], preferences: Record<string, string | number | boolean | null> }} */
   let pending = { preferences: {} };
   /** @type {SyncStatus} */
   let status = 'synced';
@@ -80,7 +82,7 @@ export function createStudioSettingsSync(input) {
     notify();
   }
 
-  const hasPending = () => pending.customCommands !== undefined || Object.keys(pending.preferences).length > 0;
+  const hasPending = () => pending.customCommands !== undefined || pending.templates !== undefined || Object.keys(pending.preferences).length > 0;
 
   async function flush() {
     if (timer !== null) clearTimer(timer);
@@ -92,6 +94,7 @@ export function createStudioSettingsSync(input) {
     try {
       await input.client.saveStudioSettings({
         ...(sending.customCommands === undefined ? {} : { customCommands: sending.customCommands }),
+        ...(sending.templates === undefined ? {} : { templates: sending.templates }),
         ...(Object.keys(sending.preferences).length === 0 ? {} : { preferences: sending.preferences }),
       });
       setStatus(hasPending() ? 'saving' : 'synced');
@@ -99,6 +102,7 @@ export function createStudioSettingsSync(input) {
       // Rien n'est perdu : on remet ce qui n'est pas parti devant ce qui a été demandé depuis, et on retente plus tard.
       pending = {
         ...(sending.customCommands === undefined && pending.customCommands === undefined ? {} : { customCommands: pending.customCommands ?? sending.customCommands }),
+        ...(sending.templates === undefined && pending.templates === undefined ? {} : { templates: pending.templates ?? sending.templates }),
         preferences: { ...sending.preferences, ...pending.preferences },
       };
       setStatus('offline');
@@ -146,7 +150,7 @@ export function createStudioSettingsSync(input) {
     }
   }
 
-  const isEmpty = (/** @type {StudioSettings} */ value) => value.customCommands.length === 0 && Object.keys(value.preferences).length === 0;
+  const isEmpty = (/** @type {StudioSettings} */ value) => value.customCommands.length === 0 && value.templates.length === 0 && Object.keys(value.preferences).length === 0;
 
   return {
     /**
@@ -192,6 +196,16 @@ export function createStudioSettingsSync(input) {
       schedule();
     },
 
+    /** @returns {StoredTemplate[]} */
+    getTemplates: () => structuredClone(settings.templates),
+
+    /** @param {StoredTemplate[]} templates */
+    setTemplates(templates) {
+      settings = { ...settings, templates: structuredClone(templates) };
+      pending.templates = structuredClone(templates);
+      schedule();
+    },
+
     /**
      * @template {string | number | boolean} T
      * @param {string} key
@@ -221,6 +235,7 @@ export function createStudioSettingsSync(input) {
       const next = {
         customCommands: pending.customCommands ?? remote.customCommands,
         preferences: { ...remote.preferences, ...Object.fromEntries(Object.entries(pending.preferences).filter(([, value]) => value !== null)) },
+        templates: pending.templates ?? remote.templates,
       };
       if (JSON.stringify(next) === JSON.stringify(settings)) return;
       settings = /** @type {StudioSettings} */ (next);

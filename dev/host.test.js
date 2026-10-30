@@ -526,14 +526,14 @@ describe('réglages du Studio', () => {
 
   test('un fichier neuf rend des réglages vides', async () => {
     const { call } = setup();
-    expect(await settings(call)).toEqual({ customCommands: [], preferences: {} });
+    expect(await settings(call)).toEqual({ customCommands: [], preferences: {}, templates: [] });
   });
 
   test('POST range les commandes en bloc et fusionne les préférences ; null retire une clé ; le fichier les garde', async () => {
     const { post, call, path } = setup();
     expect((await post('/studio-settings', { customCommands: [COMMAND], preferences: { 'view.grid': true, 'placement.unit': 'pixel' } })).status).toBe(200);
     expect((await post('/studio-settings', { preferences: { 'view.grid': null, 'view.rulers': true } })).status).toBe(200);
-    expect(await settings(call)).toEqual({ customCommands: [COMMAND], preferences: { 'placement.unit': 'pixel', 'view.rulers': true } });
+    expect(await settings(call)).toEqual({ customCommands: [COMMAND], preferences: { 'placement.unit': 'pixel', 'view.rulers': true }, templates: [] });
     expect(JSON.parse(readFileSync(path, 'utf8')).studio.customCommands[0].name).toBe('Ma macro');
     await post('/studio-settings', { customCommands: [] });
     expect((await settings(call)).customCommands).toEqual([]);
@@ -556,7 +556,7 @@ describe('réglages du Studio', () => {
     const onStudio = subscribe('studio');
     const onState = subscribe('state');
     await post('/studio-settings', { customCommands: [COMMAND], preferences: { a: 1 } });
-    expect(JSON.parse(onStudio[0])).toEqual({ customCommands: [COMMAND], preferences: { a: 1 } });
+    expect(JSON.parse(onStudio[0])).toEqual({ customCommands: [COMMAND], preferences: { a: 1 }, templates: [] });
     expect(onState).toEqual([]);
   });
 
