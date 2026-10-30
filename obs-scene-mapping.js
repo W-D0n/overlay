@@ -17,8 +17,9 @@ function isPlainObject(value) {
  * Décide ce qu'une scène active déclenche. Ne lève jamais : une scène inconnue ou un preset
  * disparu sont des situations normales en live, pas des erreurs.
  *
- * @param {{ sceneName: unknown, sceneMap: SceneMap, presets: { id: string }[] }} input
- * @returns {{ preset: { id: string } | null, reason: null | 'unmapped' | 'missing-preset' }}
+ * @template {{ id: string }} P
+ * @param {{ sceneName: unknown, sceneMap: SceneMap, presets: P[] }} input
+ * @returns {{ preset: P | null, reason: null | 'unmapped' | 'missing-preset' }}
  */
 export function resolveSceneMapping({ sceneName, sceneMap, presets }) {
   if (typeof sceneName !== 'string' || sceneName.length === 0) {

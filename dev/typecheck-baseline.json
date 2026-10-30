@@ -12,7 +12,6 @@
   "dev/background-preset-transfer-controller.js": 9,
   "dev/background-preview-controller.js": 14,
   "dev/background-preview-session.js": 7,
-  "dev/background-state-server.js": 16,
   "dev/background-transition-controller.js": 2,
   "dev/numeric-field-control.js": 1,
   "dev/obs-scene-client.js": 4,

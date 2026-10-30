@@ -91,6 +91,10 @@ dev/
   background-preset-library.js
   background-preset-presenter.js
   background-state-server.js
+  host.js
+  preset-routes.js
+  state-store.js
+  channels.js
   background-state-format.js
   component-field-schemas.js
   numeric-field-control.js
