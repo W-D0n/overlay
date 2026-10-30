@@ -137,6 +137,19 @@ Le branding reste une surcouche globale (état séparé, `showBranding` par scè
   (0 à 8, N couches pleine taille aux réglages par défaut, `&types=dotgrid,rain,…` pour choisir, `&hud=0` pour masquer le
   compteur), à charger dans une Browser Source de test 1920×1080 à 60 fps ; relever dans le dock Statistiques d'OBS le CPU,
   le temps de rendu moyen, les images manquées et abandonnées, sur 2 minutes par configuration (0, 1, 3, puis 8 couches).
+  **Mesure de l'owner dans OBS (2026-10-30)**, Browser Source 60 fps, observation à l'œil sans médiane (valeurs approximatives) :
+
+  | Couches | FPS OBS | CPU (dock Statistiques) | Temps de rendu moyen | Images manquées |
+  |---|---|---|---|---|
+  | 0 | 60 | 0,2 à 0,5 % | 0,3 à 0,4 ms | 1 / 399 800 |
+  | 1 | 60 | 0,71 à 1 % | 0,7 ms | 0 / 16 000 |
+  | 3 | 60 | 0,7 % | 0,8 ms | 0 / 10 800 |
+  | 8 | 60 | 0,44 à 0,83 % | 0,8 ms | 0 / 6 800 |
+
+  Lecture : la première couche coûte (0,3 → 0,7 ms) ; les suivantes ne se distinguent pas du bruit (CPU de 8 couches dans
+  la fourchette de 1 couche, aucune image manquée). Aucun signe contraire à la borne de 8. Réserve : le dock Statistiques
+  mesure le processus OBS ; hypothèse, la page de la Browser Source tourne dans un sous-processus (`obs-browser-page.exe`)
+  que ce CPU peut ne pas inclure. Complément à relever : CPU et GPU de ce sous-processus au Gestionnaire des tâches pour 0, 3 et 8 couches.
 - Changement de scène à transition : aucun empilement, une seule scène à la fin (cas déjà au QA, case 5).
 - Une page OBS **non rafraîchie** après la bascule du fichier continue d'afficher le fond ou, au pire, garde
   son dernier état sans erreur ; rafraîchie, elle lit la version 3.
