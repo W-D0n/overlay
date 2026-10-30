@@ -43,7 +43,8 @@ function withScenes(raw) {
  */
 export function createBackgroundStateClient(options) {
   const baseUrl = options.baseUrl.replace(/\/$/, '');
-  const fetchImpl = options.fetchImpl ?? fetch;
+  /** Résolu à chaque appel : un `fetch` remplacé après la création (sonde, essai) est bien celui qui sert. */
+  const fetchImpl = options.fetchImpl ?? ((/** @type {Parameters<typeof fetch>} */ ...args) => fetch(...args));
   const WebSocketImpl = options.WebSocketImpl ?? WebSocket;
   const setTimeoutImpl = options.setTimeoutImpl ?? setTimeout;
   const clearTimeoutImpl = options.clearTimeoutImpl ?? clearTimeout;

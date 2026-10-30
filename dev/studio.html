@@ -663,6 +663,10 @@
 
     #server-status { color: var(--color-text-dim); font-size: var(--text-base); }
     #server-status.error { color: var(--color-danger); }
+    #settings-sync { color: var(--color-text-dim); font-size: var(--text-base); }
+    #settings-sync::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: var(--space-sm); border-radius: 50%; background: currentColor; vertical-align: baseline; }
+    #settings-sync[data-state="saving"]::before { opacity: 0.45; }
+    #settings-sync[data-state="offline"] { color: var(--color-danger); }
   </style>
 </head>
 <body>
@@ -682,6 +686,7 @@
     </div>
     <span class="studio-spacer"></span>
     <div id="server-status"></div>
+    <span id="settings-sync" role="status" aria-live="polite" data-state="synced"></span>
     <a class="studio-link" href="../background.html" target="_blank" rel="noopener">Ouvrir le rendu OBS</a>
   </header>
 

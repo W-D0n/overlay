@@ -19,6 +19,7 @@ import { createPublicationController } from './publication-controller.js';
 import { bindStudioShortcuts } from './studio-shortcuts.js';
 import { createCustomCommandStore, createMacroRecorder } from './custom-commands.js';
 import { createStudioSettingsSync } from './studio-settings-sync.js';
+import { createSettingsSyncIndicator } from './settings-sync-indicator.js';
 import { createCustomCommandsController } from './custom-commands-controller.js';
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 import { isIdentityKind } from '../layer-kinds.js';
@@ -94,6 +95,7 @@ export async function startBackgroundTuner(environment = {}) {
   }
   const settings = createStudioSettingsSync({ client, storage, onError: (message) => console.warn(`[background-tuner] ${message}`) });
   await settings.load();
+  const syncIndicator = createSettingsSyncIndicator({ element: byId('settings-sync'), source: settings });
   windowRef.addEventListener('pagehide', () => { settings.flush(); });
   /** @type {ReturnType<typeof createPresetDraftSync> | null} */
   let drafts = null;
@@ -504,6 +506,7 @@ export async function startBackgroundTuner(environment = {}) {
   });
 
   function destroy() {
+    syncIndicator.destroy();
     shortcuts.destroy();
     contextMenu?.destroy();
     publication.destroy();
