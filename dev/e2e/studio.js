@@ -73,3 +73,13 @@ export async function addLayer(page, kind) {
 
 /** @param {string} kind @param {Record<string, unknown>} [over] */
 export const layerOf = (kind, over = {}) => ({ id: kind, kind, visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {}, ...over });
+
+/**
+ * Attend que les réglages du Studio soient réellement partis vers le serveur (l'indicateur de l'en-tête), plutôt que de
+ * deviner un délai : un changement le met d'abord à « en cours », puis à « enregistré ».
+ * @param {*} page
+ */
+export async function settingsSaved(page) {
+  const done = await page.waitFor("document.getElementById('settings-sync')?.dataset.state === 'synced'", 10_000);
+  if (!done) throw new Error('les réglages du Studio ne sont pas partis vers le serveur');
+}

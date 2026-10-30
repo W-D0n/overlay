@@ -17,7 +17,7 @@ export async function run({ page, stack, check, errors }) {
   check('deux lignes : le branding en tête, l’effet dessous', rows.length === 2 && rows[0].id === 'branding' && rows[1].title === 'DotGrid');
   check('jauge 2 / 8, rien à annuler, en antenne', ui.gauge === '2 / 8' && ui.level === 'ok' && ui.undoDisabled === true && ui.bar === 'live');
   check('le panneau d’effet dit quelle couche il règle', ui.target.includes('DotGrid'));
-  await page.sleep(900);
+  await page.waitFor("[...document.querySelectorAll('#layers-list .layer-row')].map((r) => r.querySelector('.preset-thumb')?.dataset.state ?? (r.querySelector('.layer-thumb-identity') ? 'identity' : 'none')).join() === 'identity,ready'", 15_000);
   check('la vignette de l’effet est prête, celle du branding est une icône', (await layerRows(page)).map((/** @type {*} */ row) => row.thumb).join() === 'identity,ready');
 
   await page.click('#layers-add');

@@ -2,7 +2,7 @@
 /**
  * La barre de vue : zoom, aimantation, grille, règles, zones de sécurité.
  */
-import { addLayer, layerRow, openStudio } from '../studio.js';
+import { addLayer, layerRow, openStudio, settingsSaved } from '../studio.js';
 
 export const name = 'barre de vue';
 
@@ -74,7 +74,7 @@ export async function run({ page, stack, check, errors }) {
   check('aimantation coupée : le bord s’arrête là où le pointeur l’a mené (≈ 4 px), sans coller à 0', Math.abs(free - 4) <= 3);
 
   // Les préférences vivent sur le serveur : elles survivent même à la perte du stockage du navigateur.
-  await page.sleep(900);
+  await settingsSaved(page);
   await page.evaluate('localStorage.clear()');
   await page.goto(`http://localhost:${stack.staticPort}/dev/studio.html`);
   await page.waitFor("(document.getElementById('server-status')?.textContent ?? '').includes('connecté')", 15_000);

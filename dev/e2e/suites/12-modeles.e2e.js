@@ -3,7 +3,7 @@
  * Les modèles de couches : enregistrer la sélection sous un nom, la retrouver après vidage du navigateur (réglages
  * serveur), l'insérer en un seul geste annulable, renommer, supprimer.
  */
-import { layerRow, layerRows, openStudio } from '../studio.js';
+import { layerRow, layerRows, openStudio, settingsSaved } from '../studio.js';
 
 export const name = 'modèles de couches';
 
@@ -56,7 +56,7 @@ export async function run({ page, stack, check, errors }) {
   await page.click('#templates-close');
 
   // Le serveur le détient : il survit au vidage du navigateur.
-  await page.sleep(700);
+  await settingsSaved(page);
   const stored = await stack.api('/studio-settings');
   const count = stored.templates[0]?.layers.length ?? 0;
   check('le serveur détient le modèle, avec les couches sélectionnées et leurs réglages', stored.templates.length === 1 && count >= 2 && stored.templates[0].layers.some((l) => l.opacity === 0.55));
@@ -92,7 +92,7 @@ export async function run({ page, stack, check, errors }) {
   await page.click('#templates-list [data-action=remove-confirm]');
   check('« Oui » le supprime et la liste vide s’affiche', (await cards()).length === 0 && (await page.evaluate("!document.getElementById('templates-empty').hidden")));
   await page.click('#templates-close');
-  await page.sleep(700);
+  await settingsSaved(page);
   check('le serveur n’en garde plus', (await stack.api('/studio-settings')).templates.length === 0);
 
   check('aucune erreur dans la console', errors.length === 0 ? true : errors.slice());

@@ -3,7 +3,7 @@
  * Les commandes personnalisées : créer, capturer un raccourci, exécuter (un seul annuler), enregistrer une macro, exporter,
  * importer, dupliquer, supprimer, retrouver après rechargement.
  */
-import { layerRow, layerRows, openStudio, panelState } from '../studio.js';
+import { layerRow, layerRows, openStudio, panelState, settingsSaved } from '../studio.js';
 
 export const name = 'commandes personnalisées';
 
@@ -147,7 +147,7 @@ export async function run({ page, stack, check, errors }) {
 
   // Exécuter depuis le gestionnaire, puis persistance : sur le serveur, le stockage du navigateur ayant été vidé.
   await page.click('#cc-close');
-  await page.sleep(900);
+  await settingsSaved(page);
   await page.evaluate('localStorage.clear()');
   await page.goto(`http://localhost:${stack.staticPort}/dev/studio.html`);
   await page.waitFor("(document.getElementById('server-status')?.textContent ?? '').includes('connecté')", 15_000);

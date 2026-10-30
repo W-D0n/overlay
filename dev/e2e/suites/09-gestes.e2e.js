@@ -3,7 +3,7 @@
  * L'enregistrement des gestes directs : régler l'opacité et la position dans l'inspecteur devient des étapes de macro,
  * corrigeables dans l'éditeur, rejouées sur la sélection du moment en un seul geste annulable.
  */
-import { layerRow, openStudio } from '../studio.js';
+import { layerRow, openStudio, settingsSaved } from '../studio.js';
 
 export const name = 'gestes enregistrés';
 
@@ -50,7 +50,7 @@ export async function run({ page, stack, check, errors }) {
   await page.fill('#cc-name', 'Mise en place');
   await page.click('#cc-save');
   await page.click('#cc-close');
-  await page.sleep(700);
+  await settingsSaved(page);
   const stored = await stack.api('/studio-settings');
   check('le serveur détient une commande dont les étapes geste ne citent aucune couche', JSON.stringify(stored.customCommands[0].steps).includes('"op":"layer"') && !JSON.stringify(stored.customCommands[0].steps).includes('dotgrid-'));
 
