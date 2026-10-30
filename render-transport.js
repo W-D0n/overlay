@@ -35,6 +35,7 @@ const RECONNECT_MAX_MS = 30000;
  * @param {{
  *   baseUrl: string,
  *   presetRef?: string | null,
+ *   role?: 'render' | 'studio',
  *   fetchImpl?: typeof fetch,
  *   WebSocketImpl?: typeof WebSocket,
  *   setTimeoutImpl?: (callback: () => void, delay: number) => any,
@@ -46,6 +47,7 @@ export function createLocalTransport(options) {
   const baseUrl = options.baseUrl.replace(/\/$/, '');
   const socketBase = baseUrl.replace(/^http/, 'ws');
   const presetRef = options.presetRef ?? null;
+  const role = options.role ?? 'render';
   const fetchImpl = options.fetchImpl ?? fetch;
   const WebSocketImpl = options.WebSocketImpl ?? WebSocket;
   const setTimeoutImpl = options.setTimeoutImpl ?? setTimeout;
@@ -83,7 +85,7 @@ export function createLocalTransport(options) {
         let delay = RECONNECT_MIN_MS;
         function connect() {
           if (stopped) return;
-          const socket = new WebSocketImpl(`${socketBase}${path}?role=render`);
+          const socket = new WebSocketImpl(`${socketBase}${path}?role=${role}`);
           sockets.add(socket);
           socket.onopen = () => {
             delay = RECONNECT_MIN_MS;

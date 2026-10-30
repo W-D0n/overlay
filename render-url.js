@@ -3,12 +3,13 @@
  * render-url.js — Contrat d'URL de la page de rendu (`background.html`) : un seul module lit et construit.
  *
  * Paramètres : `preset` (id stable ou ancien nom) ou son synonyme `scene` (`preset` l'emporte s'il est renseigné), `branding` (`off` | `only`), `transparent=1`,
- * `quality=performance`. Une valeur inconnue retombe sur la valeur neutre : l'URL d'une Browser Source
+ * `quality=performance`, `role=studio` (la page est une fenêtre du Studio, pas une source OBS : le serveur ne la compte pas parmi
+ * les pages de rendu). Une valeur inconnue retombe sur la valeur neutre : l'URL d'une Browser Source
  * ancienne doit toujours s'afficher.
  *
  * @typedef {'on' | 'off' | 'only'} BrandingMode
  * @typedef {'auto' | 'performance'} RenderQuality
- * @typedef {{ presetRef: string | null, branding: BrandingMode, transparent: boolean, quality: RenderQuality }} RenderUrlParams
+ * @typedef {{ presetRef: string | null, branding: BrandingMode, transparent: boolean, quality: RenderQuality, role: 'render' | 'studio' }} RenderUrlParams
  */
 
 /**
@@ -27,18 +28,20 @@ export function parseRenderUrl(search = '') {
     // `only` pose la couche d'identité sur une autre source : fond transparent obligatoire.
     transparent: params.get('transparent') === '1' || branding === 'only',
     quality: params.get('quality') === 'performance' ? 'performance' : 'auto',
+    role: params.get('role') === 'studio' ? 'studio' : 'render',
   };
 }
 
 /**
- * @param {{ base: string, presetRef?: string | null, quality?: RenderQuality, branding?: BrandingMode }} input
+ * @param {{ base: string, presetRef?: string | null, quality?: RenderQuality, branding?: BrandingMode, role?: 'render' | 'studio' }} input
  * @returns {string}
  */
-export function buildRenderUrl({ base, presetRef = null, quality = 'auto', branding = 'on' }) {
+export function buildRenderUrl({ base, presetRef = null, quality = 'auto', branding = 'on', role = 'render' }) {
   const url = new URL(base);
   if (presetRef !== null) url.searchParams.set('preset', presetRef);
   url.searchParams.set('transparent', '1');
   if (quality === 'performance') url.searchParams.set('quality', 'performance');
   if (branding !== 'on') url.searchParams.set('branding', branding);
+  if (role === 'studio') url.searchParams.set('role', 'studio');
   return url.toString();
 }

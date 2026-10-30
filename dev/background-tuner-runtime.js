@@ -19,6 +19,7 @@ import { createPublicationController } from './publication-controller.js';
 import { bindStudioShortcuts } from './studio-shortcuts.js';
 import { createCustomCommandStore, createMacroRecorder } from './custom-commands.js';
 import { createStudioSettingsSync } from './studio-settings-sync.js';
+import { createObsViewController } from './obs-view-controller.js';
 import { createLayerCostController } from './layer-cost-controller.js';
 import { createTemplatesController } from './templates-controller.js';
 import { installScrubFields } from './scrub-field.js';
@@ -280,6 +281,19 @@ export async function startBackgroundTuner(environment = {}) {
     documentRef,
   });
   const layerCost = createLayerCostController({ list: byId('layers-list'), total: byId('layers-cost'), preview, editor: preview.editor, documentRef, windowRef });
+  const obsView = createObsViewController({
+    elements: {
+      button: /** @type {HTMLButtonElement} */ (byId('view-obs')),
+      pane: byId('obs-pane'),
+      frame: /** @type {HTMLIFrameElement} */ (byId('obs-frame')),
+      status: byId('obs-status'),
+      close: /** @type {HTMLButtonElement} */ (byId('obs-close')),
+    },
+    preferences: settings,
+    client,
+    pageUrl: new URL('../background.html', windowRef.location.href).href,
+    windowRef,
+  });
   const scrub = installScrubFields({ documentRef });
   const addableKinds = [...BACKGROUND_COMPONENT_NAMES, 'branding'];
   /** @type {ReturnType<typeof createCommandPaletteController> | null} */
@@ -298,6 +312,7 @@ export async function startBackgroundTuner(environment = {}) {
       fit: () => stage.fit(),
       zoom100: () => stage.setScale(1),
       toggle: (key) => viewAids.toggle(key),
+      obs: () => obsView.toggle(),
     },
     publication,
     dialogs: {
@@ -548,6 +563,7 @@ export async function startBackgroundTuner(environment = {}) {
   function destroy() {
     syncIndicator.destroy();
     scrub.destroy();
+    obsView.destroy();
     layerCost.destroy();
     templates.destroy();
     editHistory.destroy();

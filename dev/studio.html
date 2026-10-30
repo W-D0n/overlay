@@ -152,6 +152,11 @@
     .view-bar button:hover:not(:disabled) { color: var(--color-gold); border-color: var(--color-gold-dim); }
     .view-bar button[aria-pressed="true"] { color: var(--color-gold); }
     .view-bar button:disabled { opacity: .35; cursor: default; }
+    .obs-pane { position: absolute; top: var(--space-sm); right: var(--space-sm); z-index: 8; background: rgba(8, 8, 8, .92); border: 1px solid var(--color-rule-mid); }
+    .obs-pane-head { display: flex; align-items: center; gap: var(--space-sm); padding: 2px var(--space-sm); font-size: var(--text-xs); color: var(--color-text-mid); }
+    .obs-pane-head button { margin-left: auto; padding: 0 6px; }
+    .obs-pane-frame { position: relative; overflow: hidden; background: repeating-conic-gradient(#222 0% 25%, #2c2c2c 0% 50%) 50% / 16px 16px; }
+    .obs-pane-frame iframe { position: absolute; left: 0; top: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
     .view-bar-gap { width: var(--space-sm); }
     .va-grid { position: absolute; z-index: 3; pointer-events: none; background-image: linear-gradient(to right, rgba(200, 185, 122, .16) 1px, transparent 1px), linear-gradient(to bottom, rgba(200, 185, 122, .16) 1px, transparent 1px); }
     .va-safe { position: absolute; z-index: 3; box-sizing: border-box; pointer-events: none; border: 1px dashed rgba(200, 185, 122, .45); }
@@ -964,6 +969,16 @@
           <button id="view-grid" type="button" title="Grille de 120 px" aria-pressed="false">Grille</button>
           <button id="view-rulers" type="button" title="Règles en pixels de la source" aria-pressed="false">Règles</button>
           <button id="view-safe" type="button" title="Zones de sécurité (5 % et 2,5 %), aussi cibles d’aimantation" aria-pressed="false">Sécurité</button>
+          <span class="view-bar-gap"></span>
+          <button id="view-obs" type="button" title="Rendu OBS : ce que la vraie page de rendu affiche à l’antenne" aria-pressed="false">Rendu OBS</button>
+        </div>
+        <div id="obs-pane" class="obs-pane" role="group" aria-label="Rendu OBS de l’antenne" hidden>
+          <div class="obs-pane-head">
+            <strong>Rendu OBS</strong>
+            <span id="obs-status" role="status" aria-live="polite"></span>
+            <button id="obs-close" type="button" aria-label="Fermer le rendu OBS">✕</button>
+          </div>
+          <div class="obs-pane-frame"><iframe id="obs-frame" title="Rendu OBS de l’antenne" tabindex="-1"></iframe></div>
         </div>
       </div>
     </section>

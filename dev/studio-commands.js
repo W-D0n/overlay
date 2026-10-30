@@ -22,7 +22,7 @@ import { PLACEMENT_PRESETS, alignPlacements, distributePlacements } from './plac
  *   defaultOptions: (kind: string) => Record<string, unknown>,
  *   view: {
  *     zoomIn(): void, zoomOut(): void, fit(): void, zoom100(): void,
- *     toggle(key: 'snap' | 'grid' | 'rulers' | 'safe'): void,
+ *     toggle(key: 'snap' | 'grid' | 'rulers' | 'safe'): void, obs(): void,
  *   },
  *   publication: {
  *     publish(): void, discard(): void, showChanges(): void, toggleCompare(): void, testTransition(): void,
@@ -163,6 +163,7 @@ export function createStudioCommands({ studio, clipboard, labelOf, addableKinds,
     { id: 'view.grid', label: 'Basculer la grille', group: 'Vue', run: () => view.toggle('grid') },
     { id: 'view.rulers', label: 'Basculer les règles', group: 'Vue', run: () => view.toggle('rulers') },
     { id: 'view.safe', label: 'Basculer les zones de sécurité', group: 'Vue', run: () => view.toggle('safe') },
+    { id: 'view.obs', label: 'Basculer le rendu OBS', group: 'Vue', keywords: ['antenne', 'browser source', 'page de rendu'], run: () => view.obs() },
   ]);
 
   // ── Publication ─────────────────────────────────────────────────────────

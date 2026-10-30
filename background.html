@@ -40,7 +40,7 @@
     import { createLocalTransport } from './render-transport.js';
 
     // `only` : couche d'identité seule, à poser sur une cam ou un gameplay. `off` : fond seul.
-    const { presetRef, branding: brandingMode, transparent } = parseRenderUrl(location.search);
+    const { presetRef, branding: brandingMode, transparent, role } = parseRenderUrl(location.search);
 
     if (transparent) document.body.classList.add('transparent');
 
@@ -80,6 +80,7 @@
     const transport = createLocalTransport({
       baseUrl: `http://localhost:${BACKGROUND_STATE_PORT}`,
       presetRef,
+      role,
     });
 
     transport.subscribe({
