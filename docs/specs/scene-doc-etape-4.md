@@ -133,7 +133,10 @@ Le branding reste une surcouche globale (état séparé, `showBranding` par scè
 - Une scène de **trois couches** (par exemple DotGrid + Fireflies + une couche placée dans un coin) s'affiche
   dans l'aperçu et dans la page de rendu, à 1080p et à 1440p ; masquer une couche la retire sans recréer les autres.
 - Mesure de charge (FPS du compteur et CPU OBS, votre protocole habituel) avec 1 couche puis 3 couches :
-  **résultat publié avant d'ouvrir l'éditeur multi-couches** (étape 6).
+  **résultat publié avant d'ouvrir l'éditeur multi-couches** (étape 6). Page de mesure : `dev/charge.html?couches=N`
+  (0 à 8, N couches pleine taille aux réglages par défaut, `&types=dotgrid,rain,…` pour choisir, `&hud=0` pour masquer le
+  compteur), à charger dans une Browser Source de test 1920×1080 à 60 fps ; relever dans le dock Statistiques d'OBS le CPU,
+  le temps de rendu moyen, les images manquées et abandonnées, sur 2 minutes par configuration (0, 1, 3, puis 8 couches).
 - Changement de scène à transition : aucun empilement, une seule scène à la fin (cas déjà au QA, case 5).
 - Une page OBS **non rafraîchie** après la bascule du fichier continue d'afficher le fond ou, au pire, garde
   son dernier état sans erreur ; rafraîchie, elle lit la version 3.

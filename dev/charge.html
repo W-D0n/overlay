@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mesure de charge</title>
+  <!--
+    Mesure dans OBS (docs/specs/scene-doc-etape-4.md, « Mesure de charge ») : monte N couches pleine taille avec le
+    vrai moteur de scène, sans serveur d'état ni fichier d'état. À charger dans une Browser Source de test, jamais
+    dans la source du live.
+    Paramètres : ?couches=0..8 (défaut 1), ?types=dotgrid,rain,… (défaut : dotgrid, fireflies, rain, …),
+    ?hud=0 masque le compteur.
+  -->
+  <link rel="stylesheet" href="../tokens.css">
+  <style>
+    #layers { position: absolute; inset: 0; pointer-events: none; }
+    #hud {
+      position: absolute; top: 12px; left: 12px; z-index: 10; padding: 6px 12px;
+      font: 28px/1.4 'Courier New', monospace; color: #fff; background: rgb(0 0 0 / 0.7);
+    }
+  </style>
+</head>
+<body>
+  <div id="layers"></div>
+  <div id="hud">…</div>
+
+  <script type="module">
+    import { createSceneRuntime } from '../scene-runtime.js';
+    import { buildLoadScene, parseLoadUrl } from './charge-scene.js';
+
+    const { count, kinds, hud } = parseLoadUrl(location.search);
+    const scene = buildLoadScene(count, kinds);
+    const runtime = createSceneRuntime(document.getElementById('layers'), {
+      onLayerError: ({ layerId, error }) => console.error(`[charge] couche ${layerId} :`, error),
+    });
+    runtime.apply(scene);
+
+    const hudEl = document.getElementById('hud');
+    if (!hud) hudEl.remove();
+    const label = `${runtime.layers().length}/${count} couche(s) : ${scene.layers.map((layer) => layer.kind).join(', ') || 'aucune'}`;
+    let frames = 0;
+    let since = performance.now();
+    function tick(now) {
+      frames += 1;
+      if (now - since >= 1000) {
+        if (hud) hudEl.textContent = `${label} — ${Math.round((frames * 1000) / (now - since))} fps — ${innerWidth}×${innerHeight}`;
+        frames = 0;
+        since = now;
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
