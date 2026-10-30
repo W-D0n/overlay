@@ -7,10 +7,28 @@
     "frontendDist": "./ui"
   },
   "app": {
-    "windows": [],
+    "windows": [
+      {
+        "label": "main",
+        "title": "Overlay Studio",
+        "url": "index.html",
+        "width": 520,
+        "height": 440,
+        "resizable": true
+      },
+      {
+        "label": "studio",
+        "title": "Overlay Studio — Studio",
+        "url": "index.html",
+        "width": 1400,
+        "height": 900,
+        "create": false
+      }
+    ],
     "security": {
       "csp": null
-    }
+    },
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": false

@@ -5,7 +5,7 @@ updated: 2026-10-30
 
 # Spec — Démarrer, redémarrer, arrêter les serveurs depuis le produit
 
-Statut : **D1 tranchée le 2026-10-30 : une application (coquille Tauri) qui lance et arrête les serveurs ; C1, C2, C3, C4 (kill) et C5 livrés ; coquille Tauri livrée (phase « Bun présent »), prérequis, menu Serveurs natif et diagnostic OBS livrés ; reste à éprouver par un clic la bascule « démarrer avec Windows » et le menu natif.** Besoin (owner, 2026-10-30) : les scripts lancés à la
+Statut : **D1 tranchée le 2026-10-30 : une application (coquille Tauri) qui lance et arrête les serveurs ; C1, C2, C3, C4 (kill) et C5 livrés ; application Tauri livrée avec son panneau de contrôle (Démarrer, Redémarrer, Arrêter indépendants), prérequis et diagnostic OBS livrés ; reste à éprouver par un clic la bascule « démarrer avec Windows ».** Besoin (owner, 2026-10-30) : les scripts lancés à la
 main (`start-stream.bat`, `kill-servers.bat`) doivent devenir des fonctions du produit.
 
 ## Ce qui est possible, et la limite
@@ -67,17 +67,22 @@ depuis le lanceur ou la coquille (D1).
    et d'une autre origine) et preuve de bout en bout (les deux PID changent au redémarrage, zéro port à l'arrêt).
 2. **C4 — partiellement livré** : `kill-servers` demande l'arrêt au lanceur avant de tuer (`dev/stop-servers.js`) ; l'invite « remplacer l'instance ? » au lancement de `start-stream` reste à faire.
 3. **C5 + C3 — livré** : boutons Redémarrer et Arrêter du Studio, sans confirmation (2026-10-30) ; vérifié de bout en bout (les deux PID changent au redémarrage, zéro port après l'arrêt).
-4. **Coquille Tauri — livrée** (`src-tauri/`) : lance `bun dev/start-stream.js` à l'ouverture, ouvre le Studio, arrête le
-   lanceur et ses enfants à la fermeture, s'attache sans rien arrêter si les serveurs tournent déjà, instance unique.
-   Menu Application > « Lancer au démarrage de Windows », décoché par défaut (valeur `Run` absente du registre à
-   l'installation). Ports : `STATIC_PORT` / `BACKGROUND_STATE_PORT`, sinon `ports.config.js`. Redémarrer / Arrêter
-   sont les deux boutons de la barre du Studio. Non éprouvé : le clic sur la case de démarrage Windows, et un exécutable
-   sans Bun (phase 2 de `zero-install-local-first.md`).
-5. **Application enrichie — livrée** : prérequis vérifiés au lancement (Bun absent → message avec l'adresse
-   d'installation, puis sortie ; port tenu par un autre programme → message qui le dit, sans rien lancer) ; menu natif
-   « Serveurs » (Démarrer, Redémarrer, Arrêter forcé) qui agit sans passer par la page, donc même quand elle ne
-   répond plus, sans confirmation (2026-10-30) ; arrêt forcé = lanceur de l'application puis `kill-servers` (jamais un programme
-   étranger au projet). Non éprouvé par un clic : les entrées du menu natif (les gestes sous-jacents le sont).
+4. **Application (coquille Tauri) — livrée, refondue le 2026-10-30** (`src-tauri/`) : sa fenêtre principale est un **panneau de
+   contrôle embarqué** (`src-tauri/ui/`), disponible même quand les serveurs sont arrêtés. Trois **boutons indépendants**
+   (Démarrer, Redémarrer, Arrêter — pas de menu, pas de confirmation) et « Ouvrir le Studio » (seconde fenêtre, sur le serveur de
+   fichiers). Chaque bouton n'est actif que si son geste a un sens (`ui/panel-state.js`, pur et testé) et dit pourquoi sinon.
+   Rien ne se lance sans un clic. Démarrer lance `bun dev/start-stream.js`, attend les deux ports, puis ouvre le Studio ;
+   Redémarrer arrête puis relance et recharge le Studio ; Arrêter est forcé (lanceur de l'application, puis `kill-servers`,
+   jamais un programme étranger au projet). L'application s'attache à des serveurs déjà lancés et n'arrête, à sa fermeture, que ce
+   qu'elle a lancé ; fermer le panneau quitte l'application, fermer la fenêtre du Studio non. Prérequis : Bun absent ou ports tenus
+   par un autre programme sont dits dans le panneau. Case « Lancer l'application au démarrage de Windows » dans le panneau
+   (décochée par défaut). Ports : `STATIC_PORT` / `BACKGROUND_STATE_PORT`, sinon `ports.config.js`. Plus de menu natif ni de boîte
+   de dialogue. `tokens.css` est copié dans `ui/` par `build.rs` (copie générée, ignorée par git). Éprouvé sur l'application réelle
+   (ports d'essai, fenêtre pilotée par le protocole de débogage de WebView2) : démarrage, redémarrage (les deux PID changent), arrêt,
+   ouverture sans doublon du Studio, fermeture du Studio sans effet sur les serveurs, fermeture du panneau qui arrête ce qui a été lancé.
+   Non éprouvé : la case de démarrage avec Windows, et un exécutable sans Bun (phase 2 de `zero-install-local-first.md`).
+5. **Application enrichie — livrée** : prérequis dits dans le panneau (Bun absent : adresse d'installation ; port tenu par un autre
+   programme : message qui le dit, aucun geste proposé) ; les gestes agissent sans passer par la page, donc même quand elle ne répond plus.
 6. **Diagnostic — livré** : bouton « Diagnostic » du Studio ; contrôles serveurs, connexion OBS, source navigateur
    (présente, bon port), scène active (le fond y est-il visible ?), page de rendu, scènes associées (renommées ou
    supprimées dans OBS). Chaque défaut porte son geste de correction ; rapport copiable. Lecture seule d'OBS, URL

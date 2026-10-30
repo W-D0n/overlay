@@ -1,6 +1,91 @@
 <!doctype html>
 <html lang="fr">
-<meta charset="utf-8">
-<title>Overlay Studio</title>
-<body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#0B0B0D;color:#E6E6E8;font-family:system-ui,sans-serif">
-<p>Démarrage des serveurs…</p>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overlay Studio</title>
+  <!-- Panneau de contrôle de l'application : embarqué, donc disponible même quand les serveurs sont arrêtés.
+       tokens.css est copié depuis la racine du projet par build.rs (source unique des couleurs et espacements). -->
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      align-content: start;
+      gap: var(--space-lg);
+      padding: var(--space-xl);
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      font: var(--text-lg)/1.5 var(--font-mono);
+    }
+    h1 { margin: 0; font: 400 var(--text-xl)/1.2 var(--font-serif); letter-spacing: var(--tracking-label); text-transform: uppercase; }
+    .status {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: var(--space-xs) var(--space-md);
+      align-items: center;
+      padding: var(--space-md) var(--space-lg);
+      background: var(--color-bg-panel);
+      border: var(--border-rule-mid);
+      border-radius: var(--radius-md);
+    }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-text-ghost); }
+    .status[data-tone="ok"] .dot { background: var(--color-gold); }
+    .status[data-tone="bad"] .dot { background: var(--color-danger); }
+    #headline { font-size: var(--text-xl); }
+    #detail { grid-column: 2; margin: 0; color: var(--color-text-mid); font-size: var(--text-base); }
+    #detail:empty { display: none; }
+    .ports { display: grid; gap: var(--space-xs); margin: 0; padding: 0; list-style: none; color: var(--color-text-mid); font-size: var(--text-base); }
+    .ports li { display: flex; justify-content: space-between; }
+    .ports [data-up="true"] b { color: var(--color-gold); }
+    .ports [data-up="false"] b { color: var(--color-text-dim); }
+    .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-sm); }
+    button {
+      padding: var(--space-md) var(--space-sm);
+      font: inherit;
+      color: var(--color-gold);
+      background: transparent;
+      border: var(--border-gold);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    button:hover:not(:disabled) { background: rgba(200, 185, 122, 0.12); }
+    button:disabled { color: var(--color-text-ghost); border-color: var(--color-rule-mid); cursor: not-allowed; }
+    button:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 2px; }
+    #studio { padding: var(--space-lg); font-size: var(--text-xl); }
+    #message { min-height: 1.5em; margin: 0; color: var(--color-text-mid); font-size: var(--text-base); }
+    #message[data-tone="bad"] { color: var(--color-danger); }
+    label { display: flex; gap: var(--space-sm); align-items: center; color: var(--color-text-mid); font-size: var(--text-base); }
+  </style>
+</head>
+<body>
+  <h1>Overlay Studio</h1>
+
+  <section class="status" id="status" data-tone="off" aria-live="polite">
+    <span class="dot" aria-hidden="true"></span>
+    <strong id="headline">…</strong>
+    <p id="detail"></p>
+  </section>
+
+  <ul class="ports" aria-label="Serveurs">
+    <li id="port-static" data-up="false"><span>Fichiers (Studio, rendu)</span><b>—</b></li>
+    <li id="port-state" data-up="false"><span>État du fond</span><b>—</b></li>
+  </ul>
+
+  <div class="actions" role="group" aria-label="Serveurs">
+    <button id="start" type="button">Démarrer</button>
+    <button id="restart" type="button">Redémarrer</button>
+    <button id="stop" type="button">Arrêter</button>
+  </div>
+
+  <button id="studio" type="button">Ouvrir le Studio</button>
+
+  <p id="message" role="status" aria-live="polite"></p>
+
+  <label><input id="autostart" type="checkbox"> Lancer l’application au démarrage de Windows</label>
+
+  <script type="module" src="panel.js"></script>
+</body>
+</html>

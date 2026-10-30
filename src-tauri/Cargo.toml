@@ -3,7 +3,7 @@ name = "overlay-studio"
 version = "0.1.0"
 edition = "2021"
 
-# Coquille : lance et arrête `bun dev/start-stream.js`, ouvre dev/studio.html (docs/specs/controle-processus.md).
+# Coquille : panneau de contrôle (ui/) qui lance et arrête `bun dev/start-stream.js` et ouvre dev/studio.html (docs/specs/controle-processus.md).
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
@@ -12,7 +12,6 @@ tauri-build = { version = "2", features = [] }
 tauri = { version = "2", features = [] }
 tauri-plugin-single-instance = "2"
 tauri-plugin-autostart = "2"
-tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
