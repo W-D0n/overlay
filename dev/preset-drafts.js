@@ -5,8 +5,8 @@
  * Un brouillon est rangé sous l'identifiant du preset ; il n'est jamais diffusé à l'antenne. Logique pure : ni disque,
  * ni horloge (l'instant est fourni).
  *
- * @typedef {import('./background-state-format.js').BackgroundCurrent} BackgroundCurrent
- * @typedef {{ at: string, state: BackgroundCurrent }} DraftEntry
+ * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {{ at: string, scene: SceneDoc }} DraftEntry
  * @typedef {Record<string, DraftEntry>} Drafts
  */
 
@@ -18,12 +18,12 @@ function isPlainObject(value) {
 /**
  * @param {Drafts | undefined} drafts
  * @param {string} presetId
- * @param {BackgroundCurrent} state
+ * @param {SceneDoc} scene
  * @param {string} at
  * @returns {Drafts}
  */
-export function withDraft(drafts, presetId, state, at) {
-  return { ...drafts, [presetId]: { at, state } };
+export function withDraft(drafts, presetId, scene, at) {
+  return { ...drafts, [presetId]: { at, scene } };
 }
 
 /**
@@ -51,10 +51,10 @@ export function withDrafts(file, drafts) {
 
 /**
  * @param {unknown} raw
- * @param {{ presetIds: ReadonlySet<string>, validateState: (state: unknown) => string[] }} context
+ * @param {{ presetIds: ReadonlySet<string>, validateScene: (scene: unknown) => string[] }} context
  * @returns {string[]}
  */
-export function validateDrafts(raw, { presetIds, validateState }) {
+export function validateDrafts(raw, { presetIds, validateScene }) {
   if (raw === undefined) return [];
   if (!isPlainObject(raw)) return ['drafts : objet attendu'];
   /** @type {string[]} */
@@ -67,8 +67,7 @@ export function validateDrafts(raw, { presetIds, validateState }) {
       continue;
     }
     if (typeof entry.at !== 'string' || Number.isNaN(Date.parse(entry.at))) errors.push(`${where}.at : date ISO attendue`);
-    if (isPlainObject(entry.state) && entry.state.component === null) errors.push(`${where}.state : un effet est requis`);
-    for (const error of validateState(entry.state)) errors.push(`${where}.state : ${error}`);
+    for (const error of validateScene(entry.scene)) errors.push(`${where}.scene : ${error}`);
   }
   return errors;
 }

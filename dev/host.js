@@ -8,8 +8,8 @@
  * en appelant `fetch` directement.
  *
  * Routes (les routes de presets sont dans `dev/preset-routes.js`) :
- *   GET  /state         — renvoie `{ current, presets, … }` (500 + erreurs si le fichier est invalide — jamais de
- *                          reset silencieux).
+ *   GET  /state         — renvoie `{ current, presets, … }` en forme plate (`dev/state-wire.js`) ; 500 + erreurs si le
+ *                          fichier est invalide — jamais de reset silencieux.
  *   POST /state         — `{ current }`, valide, persiste, diffuse `current` sur le canal `state` et range l'état
  *                          remplacé dans l'historique.
  *   GET  /history       — `{ history }` : les états qui ont quitté l'antenne, le plus récent d'abord.
@@ -26,12 +26,9 @@
  *
  * Voir docs/specs/background-standalone.md.
  */
-import {
-  canonicalBackgroundCurrent,
-  validateBackgroundCurrent,
-  readSceneMap,
-  readBranding,
-} from './background-state-format.js';
+import { readSceneMap, readBranding } from './background-state-format.js';
+import { liveFromScene } from '../scene-doc.js';
+import { sceneFromWireCurrent, wireCurrent, wireDrafts, wireHistory, wireState } from './state-wire.js';
 import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
 import { rejectNonLocalRequest } from './local-access-policy.js';
 import { validateBackgroundEvent } from './background-event-format.js';
@@ -87,8 +84,8 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
     return result.value;
   }
 
-  /** @param {import('./background-state-format.js').BackgroundCurrent} current */
-  const broadcastCurrent = (current) => channels.broadcast('state', current);
+  /** Diffuse la scène en antenne aux pages de rendu, en forme plate. @param {import('../scene-doc.js').SceneDoc} scene */
+  const broadcastCurrent = (scene) => channels.broadcast('state', wireCurrent(scene));
 
   const presetRoutes = createPresetRoutes({
     update,
@@ -101,8 +98,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
     const read = await store.read();
     if (!read.ok) return jsonError(`fichier d'état invalide : ${read.errors.join(' ; ')}`, 500);
     // L'historique a sa route : les pages de rendu n'ont pas à le charger.
-    const { history: _history, drafts: _drafts, ...state } = read.file;
-    return new Response(JSON.stringify(state), {
+    return new Response(JSON.stringify(wireState(read.file)), {
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
     });
   }
@@ -111,7 +107,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
   async function handleGetDrafts() {
     const read = await store.read();
     if (!read.ok) return jsonError(`fichier d'état invalide : ${read.errors.join(' ; ')}`, 500);
-    return Response.json({ drafts: read.file.drafts ?? {} }, { headers: CORS_HEADERS });
+    return Response.json({ drafts: wireDrafts(read.file.drafts ?? {}) }, { headers: CORS_HEADERS });
   }
 
   /**
@@ -122,14 +118,13 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
   async function handlePostDraft(req) {
     const body = /** @type {*} */ (await req.json());
     if (typeof body?.presetId !== 'string' || body.presetId === '') return jsonError('id de preset manquant', 400);
-    const state = /** @type {import('./background-state-format.js').BackgroundCurrent} */ (canonicalBackgroundCurrent(body?.state));
-    const validation = validateBackgroundCurrent(state);
-    if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
-    if (state.component === null) return jsonError('un brouillon de preset a un effet', 400);
+    const draft = sceneFromWireCurrent(body?.state);
+    if (!draft.ok) return jsonError(draft.errors.join(' ; '), 400);
+    if (draft.current.component === null) return jsonError('un brouillon de preset a un effet', 400);
 
     return update((file) => {
-      if (!file.presets.some((preset) => preset.id === body.presetId)) return jsonError(`preset inconnu : ${body.presetId}`, 404);
-      return withDrafts(file, withDraft(file.drafts, body.presetId, state, now()));
+      if (!file.scenes.some((scene) => scene.id === body.presetId)) return jsonError(`preset inconnu : ${body.presetId}`, 404);
+      return withDrafts(file, withDraft(file.drafts, body.presetId, draft.scene, now()));
     });
   }
 
@@ -148,7 +143,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
   async function handleGetHistory() {
     const read = await store.read();
     if (!read.ok) return jsonError(`fichier d'état invalide : ${read.errors.join(' ; ')}`, 500);
-    return Response.json({ history: read.file.history ?? [] }, { headers: CORS_HEADERS });
+    return Response.json({ history: wireHistory(read.file.history ?? []) }, { headers: CORS_HEADERS });
   }
 
   /**
@@ -158,17 +153,15 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
    */
   async function handlePostState(req) {
     const body = /** @type {*} */ (await req.json());
-    // Un client plus ancien peut encore envoyer l'ancien nom d'effet ou « Oui » : on stocke la forme persistée.
-    const current = /** @type {import('./background-state-format.js').BackgroundCurrent} */ (canonicalBackgroundCurrent(body?.current));
-    const validation = validateBackgroundCurrent(current);
-    if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
+    const published = sceneFromWireCurrent(body?.current);
+    if (!published.ok) return jsonError(published.errors.join(' ; '), 400);
 
     const response = await update((file) => ({
       ...file,
-      current,
-      history: recordReplaced({ history: file.history ?? [], replaced: file.current, next: current, at: now() }),
+      current: published.scene,
+      history: recordReplaced({ history: file.history ?? [], replaced: file.current, next: published.scene, at: now() }),
     }));
-    if (response.ok) broadcastCurrent(current);
+    if (response.ok) broadcastCurrent(published.scene);
     return response;
   }
 
@@ -182,16 +175,16 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
     const body = /** @type {*} */ (await req.json());
     if (typeof body?.at !== 'string') return jsonError('instant manquant', 400);
 
-    /** @type {import('./background-state-format.js').BackgroundCurrent | null} */
+    /** @type {import('../scene-doc.js').SceneDoc | null} */
     let restored = null;
     const response = await update((file) => {
       const entry = findEntry(file.history ?? [], body.at);
       if (entry === null) return jsonError(`état inconnu dans l'historique : ${body.at}`, 404);
-      restored = entry.current;
+      restored = entry.scene;
       return {
         ...file,
-        current: entry.current,
-        history: recordReplaced({ history: file.history ?? [], replaced: file.current, next: entry.current, at: now() }),
+        current: entry.scene,
+        history: recordReplaced({ history: file.history ?? [], replaced: file.current, next: entry.scene, at: now() }),
       };
     });
     if (response.ok && restored !== null) broadcastCurrent(restored);
@@ -321,7 +314,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
       const { preset, reason } = resolveSceneMapping({
         sceneName,
         sceneMap: readSceneMap(file),
-        presets: file.presets,
+        presets: file.scenes,
       });
       if (preset === null) {
         if (reason === 'missing-preset') {
@@ -330,14 +323,9 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
         return { abort: null };
       }
 
-      // La transition du preset entrant voyage avec l'état : c'est elle qui dit à la page
+      // La transition du preset entrant voyage avec la scène : c'est elle qui dit à la page
       // d'animer plutôt que de remplacer sèchement (docs/specs/background-preset-transitions.md).
-      const current = {
-        component: preset.component,
-        options: preset.options,
-        ...(preset.transition === undefined ? {} : { transition: preset.transition }),
-        ...(preset.showBranding === undefined ? {} : { showBranding: preset.showBranding }),
-      };
+      const current = liveFromScene(preset);
       return {
         file: { ...file, current },
         afterWrite() {

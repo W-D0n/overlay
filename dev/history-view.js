@@ -3,7 +3,7 @@
  * dev/history-view.js — Présentation de l'historique des publications : de quoi remplir une ligne du panneau.
  * Pur : le libellé d'effet et l'horloge sont fournis.
  *
- * @typedef {import('./background-history.js').HistoryEntry} HistoryEntry
+ * @typedef {import('./state-wire.js').WireHistoryEntry} HistoryEntry
  * @typedef {{ at: string, title: string, when: string, detail: string }} HistoryRow
  */
 

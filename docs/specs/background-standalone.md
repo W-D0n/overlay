@@ -58,9 +58,15 @@ Décisions validées (AskUserQuestion, 2026-07-14) :
 
 ### État persisté — `dev/data/background-state.json`
 
-Le fichier est en **version 4** (`scenes` : documents de scène, `scene-doc.js`, où le branding est une couche). Le serveur le lit et l'écrit à sa
-frontière (`readBackgroundFile` / `encodePersistedFile`) ; tout le reste (API HTTP et WebSocket, Studio, page de
-rendu) manipule la forme ci-dessous, inchangée : `current` et `presets`.
+Le fichier est en **version 4** (`scenes` : documents de scène, `scene-doc.js`, où le branding est une couche). Le
+**modèle du serveur est ce document de scène** : `current` (la scène en antenne, éventuellement sans couche) et `scenes`
+(un preset = une scène nommée), `history` et `drafts` portant des scènes. `readBackgroundFile` / `encodePersistedFile`
+ne font que valider et écrire ce modèle (la scène vide de l'antenne s'écrit `null`).
+
+L'API HTTP et les canaux WebSocket gardent la **forme plate** décrite ci-dessous (`current` et `presets`, `component` /
+`options` / `transition` / `showBranding`) : `dev/state-wire.js` la convertit à la frontière, dans les deux sens, et
+lève sur une scène qui n'y tient pas plutôt que de l'envoyer tronquée. Le Studio, les pages de rendu et les lots
+d'import (versions 1 et 2) parlent donc cette forme, inchangée.
 
 ```json
 {

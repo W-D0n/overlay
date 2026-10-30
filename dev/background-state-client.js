@@ -97,7 +97,7 @@ export function createBackgroundStateClient(options) {
     readObsStatus() {
       return request('obs-status');
     },
-    /** États qui ont quitté l'antenne, le plus récent d'abord. @returns {Promise<import('./background-history.js').HistoryEntry[]>} */
+    /** États qui ont quitté l'antenne, le plus récent d'abord. @returns {Promise<import('./state-wire.js').WireHistoryEntry[]>} */
     async readHistory() {
       return (await request('history')).history;
     },

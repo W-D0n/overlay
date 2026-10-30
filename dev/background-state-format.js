@@ -1,9 +1,9 @@
 // @ts-check
-import { clampOptions, isKnownKindId, neutralizeOptions, resolveKindId, validateOptions } from '../layer-kinds.js';
+import { clampOptions, isIdentityKind, isKnownKindId, neutralizeOptions, resolveKindId, validateOptions } from '../layer-kinds.js';
 import { validateSceneMap } from '../obs-scene-mapping.js';
 import { validateTransition } from '../background-transition.js';
 import { normalizeBranding, validateBranding } from '../branding-format.js';
-import { BRANDING_LAYER_ID, CURRENT_SCENE, SCENE_DOC_VERSION, currentFromScene, presetFromScene, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
+import { BRANDING_LAYER_ID, CURRENT_SCENE, SCENE_DOC_VERSION, currentFromScene, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
 import { validateHistory } from './background-history.js';
 import { validateDrafts } from './preset-drafts.js';
 
@@ -14,13 +14,19 @@ import { validateDrafts } from './preset-drafts.js';
  * `background-state-server.js` (voir docs/specs/background-standalone.md). Aucune I/O ici —
  * testable sans serveur (même découpage AD-1 que `scene-data-format.js`).
  *
+ * Le modèle du serveur est un document de scène par preset et pour l'antenne (`BackgroundFile`). La forme plate
+ * `{ component, options, … }` (`BackgroundCurrent`, `BackgroundPreset`) reste celle des fichiers antérieurs à la
+ * version 3 et des lots d'import ; la frontière HTTP (`dev/state-wire.js`) la convertit.
+ *
  * @typedef {import('../background-transition.js').BackgroundTransition} BackgroundTransition
+ * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
  * @typedef {{ component: string | null, options: Record<string, unknown>, transition?: BackgroundTransition, showBranding?: boolean }} BackgroundCurrent
  * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[], transition?: BackgroundTransition, showBranding?: boolean }} BackgroundPreset
  * @typedef {import('../branding-format.js').Branding} Branding
  * @typedef {import('./background-history.js').HistoryEntry} HistoryEntry
  * @typedef {import('./preset-drafts.js').Drafts} Drafts
- * @typedef {{ version?: number, current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string>, branding?: Branding, history?: HistoryEntry[], drafts?: Drafts }} BackgroundFile
+ * @typedef {{ version?: number, current: SceneDoc, scenes: SceneDoc[], sceneMap?: Record<string, string>, branding?: Branding, history?: HistoryEntry[], drafts?: Drafts }} BackgroundFile
+ * @typedef {{ version?: number, current: BackgroundCurrent, presets: BackgroundPreset[], sceneMap?: Record<string, string>, branding?: Branding }} FlatBackgroundFile
  */
 
 /** Longueur maximale d'un nom de preset — borne UI (liste lisible), pas une contrainte technique. */
@@ -79,9 +85,17 @@ export function canonicalBackgroundState(file) {
   };
 }
 
+/**
+ * La scène en antenne sans aucune couche : ni fond ni branding.
+ * @returns {SceneDoc}
+ */
+export function emptyLiveScene() {
+  return { version: SCENE_DOC_VERSION, ...CURRENT_SCENE, layers: [] };
+}
+
 /** @returns {BackgroundFile} */
 export function defaultBackgroundFile() {
-  return { version: BACKGROUND_FILE_VERSION, current: { component: 'dotgrid', options: {} }, presets: [], sceneMap: {} };
+  return { version: BACKGROUND_FILE_VERSION, current: sceneFromCurrent({ component: 'dotgrid', options: {} }), scenes: [], sceneMap: {} };
 }
 
 /**
@@ -181,32 +195,34 @@ export function migrateBackgroundFile(raw) {
 }
 
 /**
- * Un état comme scène persistée : `null` quand il n'a aucune couche (ni fond, ni branding).
- * @param {BackgroundCurrent} current
+ * Un fichier plat (versions 1 et 2, déjà migré) comme fichier de scènes.
+ * @param {FlatBackgroundFile} flat
+ * @returns {BackgroundFile}
  */
-function persistedScene(current) {
-  const scene = sceneFromCurrent(current);
-  return scene.layers.length === 0 ? null : scene;
+function fileFromFlat(flat) {
+  const { current, presets, ...rest } = flat;
+  return { ...rest, current: sceneFromCurrent(current), scenes: presets.map((preset) => sceneFromPreset(preset)) };
 }
+
+/** @param {SceneDoc} scene @returns {SceneDoc | null} `null` : ni fond ni branding, la forme persistée de la scène vide */
+const persistedScene = (scene) => (scene.layers.length === 0 ? null : scene);
 
 const UNSUPPORTED_SCENE = 'scène à plusieurs couches ou à couche réglée (déplacée, masquée, atténuée), non prise en charge par ce serveur';
 
 /**
- * Forme persistée (version 4) d'un fichier d'état : chaque preset est une scène (son effet, puis son branding s'il
- * l'affiche), l'état courant est la scène en antenne (`null` : ni fond ni branding). Le reste du serveur manipule la
- * forme `current` / `presets`.
+ * Forme persistée (version 4) d'un fichier d'état : celle du modèle, hormis la scène vide (`null`) de l'antenne, de
+ * l'historique.
  * @param {BackgroundFile} file
  * @returns {Record<string, unknown>}
  */
 export function encodePersistedFile(file) {
-  const { current, presets, history, drafts, ...rest } = file;
+  const { current, history, drafts, ...rest } = file;
   return {
     ...rest,
     version: BACKGROUND_FILE_VERSION,
     current: persistedScene(current),
-    scenes: presets.map((preset) => sceneFromPreset(preset)),
-    ...(history === undefined ? {} : { history: history.map((entry) => ({ at: entry.at, scene: persistedScene(entry.current) })) }),
-    ...(drafts === undefined ? {} : { drafts: Object.fromEntries(Object.entries(drafts).map(([id, entry]) => [id, { at: entry.at, scene: persistedScene(entry.state) }])) }),
+    ...(history === undefined ? {} : { history: history.map((entry) => ({ at: entry.at, scene: persistedScene(entry.scene) })) }),
+    ...(drafts === undefined ? {} : { drafts }),
   };
 }
 
@@ -219,35 +235,19 @@ export function encodePersistedFile(file) {
 export function decodePersistedFile(raw) {
   /** @type {string[]} */
   const errors = [];
-  /** @param {unknown} value @param {string} where */
-  const readScene = (value, where) => {
+  /** @param {unknown} value @param {string} where @param {boolean} live la scène en antenne et celles de l'historique peuvent être vides (`null`) @returns {SceneDoc} */
+  const readScene = (value, where, live) => {
+    if (value === null && live) return emptyLiveScene();
     const validation = validateSceneDoc(value);
     if (!validation.ok) {
       for (const error of validation.errors) errors.push(`${where} : ${error}`);
-      return null;
-    }
-    const preset = presetFromScene(/** @type {*} */ (value));
-    if (preset === null) errors.push(`${where} : ${UNSUPPORTED_SCENE}`);
-    return preset;
-  };
-
-  /** @param {unknown} value @param {string} where @returns {BackgroundCurrent} `null` : ni fond ni branding */
-  const readCurrent = (value, where) => {
-    if (value === null) return { component: null, options: {}, showBranding: false };
-    const validation = validateSceneDoc(value);
-    if (!validation.ok) {
-      for (const error of validation.errors) errors.push(`${where} : ${error}`);
-      return { component: null, options: {} };
-    }
-    const current = currentFromScene(/** @type {*} */ (value));
-    if (current === null) {
+    } else if (currentFromScene(/** @type {SceneDoc} */ (value)) === null) {
       errors.push(`${where} : ${UNSUPPORTED_SCENE}`);
-      return { component: null, options: {} };
     }
-    return current;
+    return /** @type {SceneDoc} */ (value);
   };
 
-  const current = readCurrent(raw.current, 'current');
+  const current = readScene(raw.current, 'current', true);
   /** @type {HistoryEntry[] | undefined} */
   let history;
   if (raw.history !== undefined) {
@@ -255,14 +255,12 @@ export function decodePersistedFile(raw) {
     else {
       history = raw.history.map((entry, index) => ({
         at: isPlainObject(entry) ? /** @type {string} */ (entry.at) : '',
-        current: readCurrent(isPlainObject(entry) ? entry.scene ?? null : null, `history[${index}]`),
+        scene: readScene(isPlainObject(entry) ? entry.scene ?? null : null, `history[${index}]`, true),
       }));
     }
   }
   if (!Array.isArray(raw.scenes)) errors.push('scenes : tableau attendu');
-  const presets = Array.isArray(raw.scenes)
-    ? raw.scenes.map((scene, index) => readScene(scene, `scenes[${index}]`)).filter((preset) => preset !== null)
-    : [];
+  const scenes = Array.isArray(raw.scenes) ? raw.scenes.map((scene, index) => readScene(scene, `scenes[${index}]`, false)) : [];
   /** @type {Drafts | undefined} */
   let drafts;
   if (raw.drafts !== undefined) {
@@ -270,14 +268,14 @@ export function decodePersistedFile(raw) {
     else {
       drafts = Object.fromEntries(Object.entries(raw.drafts).map(([id, entry]) => [id, {
         at: isPlainObject(entry) ? /** @type {string} */ (entry.at) : '',
-        state: readCurrent(isPlainObject(entry) ? entry.scene ?? null : null, `drafts[${id}]`),
+        scene: readScene(isPlainObject(entry) ? entry.scene : undefined, `drafts[${id}]`, false),
       }]));
     }
   }
   if (errors.length > 0) return { ok: false, errors };
 
   const { current: _current, scenes: _scenes, history: _history, drafts: _drafts, ...rest } = raw;
-  return { ok: true, file: /** @type {BackgroundFile} */ ({ ...rest, current, presets, ...(history === undefined ? {} : { history }), ...(drafts === undefined ? {} : { drafts }) }) };
+  return { ok: true, file: /** @type {BackgroundFile} */ ({ ...rest, current, scenes, ...(history === undefined ? {} : { history }), ...(drafts === undefined ? {} : { drafts }) }) };
 }
 
 /** @returns {Record<string, unknown>} la couche de branding d'une scène qui l'affichait (`showBranding` absent ou vrai) */
@@ -323,8 +321,8 @@ export function upgradePersistedV3(raw) {
 
 /**
  * Lecture tolérante du fichier d'état, de n'importe quelle version : la version 4 se décode, la 3 se met à niveau
- * puis se décode, les plus anciennes se migrent. `migratedFrom` dit si le fichier doit être réécrit en version 4 (et
- * d'où il vient).
+ * puis se décode, les plus anciennes se migrent puis se convertissent en scènes. `migratedFrom` dit si le fichier doit
+ * être réécrit en version 4 (et d'où il vient).
  * @param {unknown} raw
  * @returns {{ ok: true, file: BackgroundFile, migratedFrom: number | null } | { ok: false, errors: string[] }}
  */
@@ -333,14 +331,14 @@ export function readBackgroundFile(raw) {
     const upgraded = raw.version === 3;
     const decoded = decodePersistedFile(upgraded ? upgradePersistedV3(raw) : raw);
     if (!decoded.ok) return decoded;
-    const validation = validateBackgroundFile(decoded.file);
+    const validation = validateSceneFile(decoded.file);
     return validation.ok ? { ok: true, file: decoded.file, migratedFrom: upgraded ? 3 : null } : { ok: false, errors: validation.errors };
   }
   const migration = migrateBackgroundFile(raw);
   const validation = validateBackgroundFile(migration.file);
   if (!validation.ok) return { ok: false, errors: validation.errors };
   const from = isPlainObject(raw) && typeof raw.version === 'number' ? raw.version : 1;
-  return { ok: true, file: migration.file, migratedFrom: migration.migrated ? from : null };
+  return { ok: true, file: fileFromFlat(migration.file), migratedFrom: from };
 }
 
 /**
@@ -417,9 +415,79 @@ export function validateBackgroundPreset(preset) {
   return { ok: errors.length === 0, errors };
 }
 
+/** @param {unknown[]} values @returns {string[]} les valeurs textuelles qui reviennent */
+function duplicated(values) {
+  return [...new Set(values.filter((value, index) => typeof value === 'string' && values.indexOf(value) !== index))].map(String);
+}
+
+/** @param {unknown} scene @returns {boolean} la scène porte au moins une couche d'effet (le branding seul n'est pas un fond) */
+function hasEffectLayer(scene) {
+  return isPlainObject(scene) && Array.isArray(scene.layers)
+    && scene.layers.some((layer) => isPlainObject(layer) && !isIdentityKind(/** @type {string} */ (layer.kind)));
+}
+
 /**
- * Valide la forme complète du fichier persisté. Un fichier invalide est une erreur à faire
- * remonter, jamais à réparer silencieusement (voir spec §État persisté).
+ * Valide une scène nommée (un preset) : le document de scène, puis ce que la bibliothèque exige en plus — nom lisible,
+ * identifiant d'URL, étiquettes, au moins un effet.
+ * @param {unknown} scene
+ * @returns {string[]}
+ */
+function namedSceneErrors(scene) {
+  const validation = validateSceneDoc(scene);
+  if (!validation.ok) return validation.errors;
+  const named = /** @type {SceneDoc} */ (scene);
+  const errors = [...validatePresetName(named.name).errors];
+  if (!PRESET_ID_PATTERN.test(named.id) || named.id.length > PRESET_ID_MAX_LENGTH) {
+    errors.push('id de preset : identifiant URL attendu (minuscules, chiffres et tirets)');
+  }
+  if (named.tags !== undefined && named.tags.some((tag) => tag.length === 0 || tag !== tag.trim())) {
+    errors.push('tags : tableau de chaînes non vides attendu');
+  }
+  if (!hasEffectLayer(named)) errors.push('un effet est requis');
+  return errors;
+}
+
+/**
+ * Valide le modèle complet du fichier d'état. Un fichier invalide est une erreur à faire remonter, jamais à réparer
+ * silencieusement (voir spec §État persisté).
+ * @param {unknown} raw
+ * @returns {import('../types.js').ValidationResult}
+ */
+export function validateSceneFile(raw) {
+  if (!isPlainObject(raw)) return { ok: false, errors: ['fichier d\'état : objet attendu'] };
+
+  /** @param {unknown} scene @returns {string[]} */
+  const liveErrors = (scene) => {
+    const validation = validateSceneDoc(scene, { allowEmpty: true });
+    return validation.ok ? [] : validation.errors;
+  };
+  /** @type {string[]} */
+  const errors = liveErrors(raw.current).map((error) => `current : ${error}`);
+  errors.push(...validateBranding(raw.branding).errors);
+  errors.push(...validateHistory(raw.history, liveErrors));
+  const scenes = Array.isArray(raw.scenes) ? raw.scenes : null;
+  errors.push(...validateDrafts(raw.drafts, {
+    presetIds: new Set((scenes ?? []).map((scene) => (isPlainObject(scene) ? scene.id : undefined)).filter((id) => typeof id === 'string')),
+    validateScene: (scene) => (hasEffectLayer(scene) ? liveErrors(scene) : ['un effet est requis']),
+  }));
+  if (raw.sceneMap !== undefined) {
+    for (const err of validateSceneMap(raw.sceneMap).errors) errors.push(`sceneMap : ${err}`);
+  }
+  if (scenes === null) errors.push('scenes : tableau attendu');
+  else {
+    scenes.forEach((scene, index) => {
+      for (const err of namedSceneErrors(scene)) errors.push(`scenes[${index}] : ${err}`);
+    });
+    const names = scenes.map((scene) => (isPlainObject(scene) ? scene.name : undefined));
+    for (const name of duplicated(names)) errors.push(`preset en double : ${name}`);
+    const ids = scenes.map((scene) => (isPlainObject(scene) ? scene.id : undefined));
+    for (const id of duplicated(ids)) errors.push(`id de preset en double : ${id}`);
+  }
+  return { ok: errors.length === 0, errors };
+}
+
+/**
+ * Valide un fichier plat — les versions antérieures à 3 et les lots d'import de presets.
  * @param {unknown} raw
  * @returns {import('../types.js').ValidationResult}
  */
@@ -429,11 +497,6 @@ export function validateBackgroundFile(raw) {
   /** @type {string[]} */
   const errors = [...validateBackgroundCurrent(raw.current).errors];
   for (const err of validateBranding(raw.branding).errors) errors.push(err);
-  errors.push(...validateHistory(raw.history, (current) => validateBackgroundCurrent(current).errors));
-  errors.push(...validateDrafts(raw.drafts, {
-    presetIds: new Set(Array.isArray(raw.presets) ? raw.presets.map((preset) => (isPlainObject(preset) ? preset.id : undefined)).filter((id) => typeof id === 'string') : []),
-    validateState: (state) => validateBackgroundCurrent(state).errors,
-  }));
   if (raw.sceneMap !== undefined) {
     for (const err of validateSceneMap(raw.sceneMap).errors) errors.push(`sceneMap : ${err}`);
   }
@@ -454,56 +517,50 @@ export function validateBackgroundFile(raw) {
 }
 
 /**
- * Ajoute un preset, ou remplace celui du même identifiant stable.
+ * Ajoute une scène, ou remplace celle du même identifiant stable.
  * Retourne un nouveau tableau, sans muter l'entrée.
- * @param {BackgroundPreset[]} presets
- * @param {BackgroundPreset} preset
- * @returns {BackgroundPreset[]}
+ * @param {SceneDoc[]} scenes
+ * @param {SceneDoc} scene
+ * @returns {SceneDoc[]}
  */
-export function upsertPreset(presets, preset) {
-  const existingIndex = presets.findIndex((p) => p.id === preset.id);
-  if (existingIndex === -1) return [...presets, preset];
-  return presets.map((p, index) => (index === existingIndex ? preset : p));
+export function upsertScene(scenes, scene) {
+  const existingIndex = scenes.findIndex((candidate) => candidate.id === scene.id);
+  if (existingIndex === -1) return [...scenes, scene];
+  return scenes.map((candidate, index) => (index === existingIndex ? scene : candidate));
 }
 
-/** @param {BackgroundPreset[]} presets @param {string} id @param {string} name */
-export function renamePreset(presets, id, name) {
-  return presets.map((preset) => preset.id === id ? { ...preset, name } : preset);
+/** @param {SceneDoc[]} scenes @param {string} id @param {string} name */
+export function renameScene(scenes, id, name) {
+  return scenes.map((scene) => (scene.id === id ? { ...scene, name } : scene));
 }
 
 /**
- * Prépare une copie autonome d'un preset, ou `null` si l'identifiant n'existe pas.
- * @param {BackgroundPreset[]} presets
+ * Prépare une copie autonome d'une scène, ou `null` si l'identifiant n'existe pas.
+ * @param {SceneDoc[]} scenes
  * @param {string} id
- * @returns {BackgroundPreset | null}
+ * @returns {SceneDoc | null}
  */
-export function duplicatePreset(presets, id) {
-  const source = presets.find((preset) => preset.id === id);
+export function duplicateScene(scenes, id) {
+  const source = scenes.find((scene) => scene.id === id);
   if (source === undefined) return null;
 
-  const usedNames = new Set(presets.map(({ name }) => name));
+  const usedNames = new Set(scenes.map(({ name }) => name));
   const copyName = (suffix = '') => {
     const ending = ` — copie${suffix}`;
     return `${source.name.slice(0, PRESET_NAME_MAX_LENGTH - ending.length).trimEnd()}${ending}`;
   };
   let name = copyName();
   for (let suffix = 2; usedNames.has(name); suffix += 1) name = copyName(` ${suffix}`);
-  return {
-    ...source,
-    id: createPresetId(name, presets),
-    name,
-    options: { ...source.options },
-    ...(source.tags === undefined ? {} : { tags: [...source.tags] }),
-  };
+  return { ...structuredClone(source), id: createPresetId(name, scenes), name };
 }
 
 /**
- * Retire le preset portant cet identifiant. Retourne un nouveau tableau (l'existence est vérifiée par
+ * Retire la scène portant cet identifiant. Retourne un nouveau tableau (l'existence est vérifiée par
  * l'appelant, qui en fait un 404 — même découpage que `removeSceneFromManifest`).
- * @param {BackgroundPreset[]} presets
+ * @param {SceneDoc[]} scenes
  * @param {string} id
- * @returns {BackgroundPreset[]}
+ * @returns {SceneDoc[]}
  */
-export function removePreset(presets, id) {
-  return presets.filter((p) => p.id !== id);
+export function removeScene(scenes, id) {
+  return scenes.filter((scene) => scene.id !== id);
 }

@@ -59,7 +59,7 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
   (réconciliation, transitions, routage audio et réactions ; les couches d'identité restent au-dessus des transitions) : consommés par
   `background.html`, l'aperçu du Studio et les vignettes
 - `dev/component-field-schemas.js` — vue « formulaire » de `layer-kinds.js` pour le tuner
-- Le **format d'état du fond** — spécifié dans `docs/specs/background-standalone.md`
+- Le **format d'état du fond** — spécifié dans `docs/specs/background-standalone.md` : le serveur manipule des scènes (`dev/background-state-format.js`), l'API et les canaux restent plats (`dev/state-wire.js`)
 - Le **cycle de vie des serveurs** — `dev/start-stream.js`, `dev/supervisor.js`, `dev/stop-servers.js`, `dev/kill-servers.js`,
   routes `/control/*` du serveur d'état : tout changement passe `dev/lifecycle.test.js` (vrais processus, ports d'essai
   attribués par le système, jamais 5931/5932). Une doublure ne prouve pas qu'un port est libéré.

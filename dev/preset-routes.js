@@ -3,7 +3,8 @@
  * dev/preset-routes.js — Routes des presets : enregistrer, renommer, dupliquer, supprimer, prévisualiser et importer.
  *
  * Chaque route lit le fichier d'état par `inspect`, le modifie par `update` (l'un et l'autre sérialisés par le magasin)
- * et signale la mutation réussie par `announce`. Aucun accès au disque ni au réseau ici.
+ * et signale la mutation réussie par `announce`. Aucun accès au disque ni au réseau ici. Le fichier est un ensemble de
+ * scènes ; les corps de requête sont en forme plate (`dev/state-wire.js`), comme les lots d'import.
  *
  * Routes :
  *   POST /save-preset      — `{ id?, name, component, options, tags?, transition?, showBranding? }`, crée ou met à jour
@@ -16,13 +17,11 @@
  */
 import {
   createPresetId,
-  canonicalBackgroundPreset,
-  validateBackgroundPreset,
   validatePresetName,
-  upsertPreset,
-  renamePreset,
-  duplicatePreset,
-  removePreset,
+  upsertScene,
+  renameScene,
+  duplicateScene,
+  removeScene,
 } from './background-state-format.js';
 import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
 import { withDrafts, withoutDraft } from './preset-drafts.js';
@@ -31,6 +30,8 @@ import {
   mergeBackgroundPresetImport,
   parseBackgroundPresetBundle,
 } from './background-preset-library.js';
+import { sceneFromPreset } from '../scene-doc.js';
+import { sceneFromWirePreset, wirePreset } from './state-wire.js';
 
 /**
  * @typedef {import('./background-state-format.js').BackgroundFile} BackgroundFile
@@ -54,15 +55,16 @@ export function createPresetRoutes({ update, inspect, announce }) {
    */
   async function handleSavePreset(req) {
     const body = /** @type {*} */ (await req.json());
-    /** @type {import('./background-state-format.js').BackgroundPreset | null} */
-    let savedPreset = null;
+    /** @type {import('../scene-doc.js').SceneDoc | null} */
+    let saved = null;
     const response = await update((file) => {
       const requestedId = typeof body?.id === 'string' ? body.id : null;
-      const existing = requestedId === null ? undefined : file.presets.find(({ id }) => id === requestedId);
-      if (requestedId !== null && existing === undefined) return jsonError(`preset inconnu : ${requestedId}`, 404);
+      const existingScene = requestedId === null ? undefined : file.scenes.find(({ id }) => id === requestedId);
+      if (requestedId !== null && existingScene === undefined) return jsonError(`preset inconnu : ${requestedId}`, 404);
+      const existing = existingScene === undefined ? undefined : wirePreset(existingScene);
 
-      const id = existing?.id ?? createPresetId(String(body?.name ?? ''), file.presets);
-      const candidate = canonicalBackgroundPreset({
+      const id = existing?.id ?? createPresetId(String(body?.name ?? ''), file.scenes);
+      const candidate = sceneFromWirePreset({
         id,
         name: body?.name,
         component: body?.component,
@@ -78,15 +80,14 @@ export function createPresetRoutes({ update, inspect, announce }) {
           ? (existing?.showBranding === undefined ? {} : { showBranding: existing.showBranding })
           : { showBranding: body.showBranding }),
       });
-      const validation = validateBackgroundPreset(candidate);
-      if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
-      if (file.presets.some((preset) => preset.name === candidate.name && preset.id !== id)) {
-        return jsonError(`preset en double : ${candidate.name}`, 409);
+      if (!candidate.ok) return jsonError(candidate.errors.join(' ; '), 400);
+      if (file.scenes.some((scene) => scene.name === candidate.scene.name && scene.id !== id)) {
+        return jsonError(`preset en double : ${candidate.scene.name}`, 409);
       }
-      savedPreset = /** @type {import('./background-state-format.js').BackgroundPreset} */ (candidate);
-      return withDrafts({ ...file, presets: upsertPreset(file.presets, savedPreset) }, withoutDraft(file.drafts, id));
+      saved = candidate.scene;
+      return withDrafts({ ...file, scenes: upsertScene(file.scenes, candidate.scene) }, withoutDraft(file.drafts, id));
     });
-    if (response.ok && savedPreset !== null) announce(savedPreset, 'saved');
+    if (response.ok && saved !== null) announce(saved, 'saved');
     return response;
   }
 
@@ -102,14 +103,14 @@ export function createPresetRoutes({ update, inspect, announce }) {
     const validation = validatePresetName(name);
     if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
 
-    /** @type {import('./background-state-format.js').BackgroundPreset | null} */
+    /** @type {{ id: string, name: string } | null} */
     let renamed = null;
     const response = await update((file) => {
-      const preset = file.presets.find((candidate) => candidate.id === id);
-      if (preset === undefined) return jsonError(`preset inconnu : ${id}`, 404);
-      if (file.presets.some((candidate) => candidate.name === name && candidate.id !== id)) return jsonError(`preset en double : ${name}`, 409);
-      renamed = { ...preset, name };
-      return { ...file, presets: renamePreset(file.presets, id, name) };
+      const scene = file.scenes.find((candidate) => candidate.id === id);
+      if (scene === undefined) return jsonError(`preset inconnu : ${id}`, 404);
+      if (file.scenes.some((candidate) => candidate.name === name && candidate.id !== id)) return jsonError(`preset en double : ${name}`, 409);
+      renamed = { id, name };
+      return { ...file, scenes: renameScene(file.scenes, id, name) };
     });
     if (response.ok && renamed !== null) announce(renamed, 'renamed');
     return response;
@@ -121,12 +122,12 @@ export function createPresetRoutes({ update, inspect, announce }) {
     const id = body?.id;
     if (typeof id !== 'string' || id.length === 0) return jsonError('id manquant', 400);
 
-    /** @type {import('./background-state-format.js').BackgroundPreset | null} */
+    /** @type {import('../scene-doc.js').SceneDoc | null} */
     let copy = null;
     const response = await update((file) => {
-      copy = duplicatePreset(file.presets, id);
+      copy = duplicateScene(file.scenes, id);
       if (copy === null) return jsonError(`preset inconnu : ${id}`, 404);
-      return { ...file, presets: [...file.presets, copy] };
+      return { ...file, scenes: [...file.scenes, copy] };
     });
     if (response.ok && copy !== null) announce(copy, 'duplicated');
     return response;
@@ -139,9 +140,10 @@ export function createPresetRoutes({ update, inspect, announce }) {
     if (!parsed.ok) return jsonError(parsed.errors.join(' ; '), 400);
 
     return inspect((file) => {
-      const plan = mergeBackgroundPresetImport(file.presets, parsed.presets);
+      const presets = file.scenes.map(wirePreset);
+      const plan = mergeBackgroundPresetImport(presets, parsed.presets);
       return new Response(JSON.stringify({
-        revision: backgroundPresetRevision(file.presets),
+        revision: backgroundPresetRevision(presets),
         created: plan.created,
         updated: plan.updated,
         renamed: plan.renamed,
@@ -161,13 +163,14 @@ export function createPresetRoutes({ update, inspect, announce }) {
     /** @type {import('./background-state-format.js').BackgroundPreset[]} */
     let importedPresets = [];
     const response = await update((file) => {
-      if (backgroundPresetRevision(file.presets) !== body.expectedRevision) {
+      const presets = file.scenes.map(wirePreset);
+      if (backgroundPresetRevision(presets) !== body.expectedRevision) {
         return jsonError('bibliothèque modifiée depuis l’aperçu — recalcul nécessaire', 409);
       }
-      const merged = mergeBackgroundPresetImport(file.presets, parsed.presets);
+      const merged = mergeBackgroundPresetImport(presets, parsed.presets);
       const importedIds = new Set(parsed.presets.map(({ id }) => id));
       importedPresets = merged.presets.filter(({ id }) => importedIds.has(id));
-      return { ...file, presets: merged.presets };
+      return { ...file, scenes: merged.presets.map((preset) => sceneFromPreset(preset)) };
     });
     if (response.ok) importedPresets.forEach((preset) => announce(preset, 'imported'));
     return response;
@@ -179,12 +182,12 @@ export function createPresetRoutes({ update, inspect, announce }) {
     const id = body?.id;
     if (typeof id !== 'string' || id.length === 0) return jsonError('id manquant', 400);
 
-    /** @type {import('./background-state-format.js').BackgroundPreset | null} */
+    /** @type {import('../scene-doc.js').SceneDoc | null} */
     let deleted = null;
     const response = await update((file) => {
-      deleted = file.presets.find((preset) => preset.id === id) ?? null;
+      deleted = file.scenes.find((scene) => scene.id === id) ?? null;
       if (deleted === null) return jsonError(`preset inconnu : ${id}`, 404);
-      return withDrafts({ ...file, presets: removePreset(file.presets, id) }, withoutDraft(file.drafts, id));
+      return withDrafts({ ...file, scenes: removeScene(file.scenes, id) }, withoutDraft(file.drafts, id));
     });
     if (response.ok && deleted !== null) announce(deleted, 'deleted');
     return response;

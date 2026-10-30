@@ -14,22 +14,25 @@ import {
   readBackgroundFile,
   canonicalBackgroundCurrent,
   canonicalBackgroundPreset,
-  upsertPreset,
-  renamePreset,
-  duplicatePreset,
-  removePreset,
+  upsertScene,
+  renameScene,
+  duplicateScene,
+  removeScene,
+  emptyLiveScene,
+  validateSceneFile,
   readSceneMap,
   readBranding,
   PRESET_NAME_MAX_LENGTH,
 } from './background-state-format.js';
+import { sceneFromCurrent, sceneFromPreset } from '../scene-doc.js';
 
 /** @type {(over?: object) => { id: string, name: string, component: string, options: Record<string, unknown> }} */
 const preset = (over = {}) => ({ id: 'pluie-douce', name: 'pluie douce', component: 'rain', options: { intensity: 0.3 }, ...over });
 
 // ── defaultBackgroundFile ────────────────────────────────────────────────
 
-test('defaultBackgroundFile is valid against validateBackgroundFile', () => {
-  expect(validateBackgroundFile(defaultBackgroundFile())).toEqual({ ok: true, errors: [] });
+test('defaultBackgroundFile is valid against validateSceneFile', () => {
+  expect(validateSceneFile(defaultBackgroundFile())).toEqual({ ok: true, errors: [] });
 });
 
 test('defaultBackgroundFile returns a new object on each call', () => {
@@ -187,56 +190,64 @@ test('createPresetId generates a unique slug while preserving existing stable id
   expect(createPresetId('Émission spéciale', [preset({ id: 'emission-speciale' })])).toBe('emission-speciale-2');
 });
 
-// ── upsertPreset ─────────────────────────────────────────────────────────
+// ── opérations sur les scènes ────────────────────────────────────────────
 
-test('upsertPreset appends a preset with a new id', () => {
-  const added = preset({ id: 'orage', name: 'orage' });
-  expect(upsertPreset([preset()], added)).toEqual([preset(), added]);
+const scene = (over = {}) => sceneFromPreset(preset(over));
+
+test('upsertScene appends a scene with a new id', () => {
+  const added = scene({ id: 'orage', name: 'orage' });
+  expect(upsertScene([scene()], added)).toEqual([scene(), added]);
 });
 
-test('upsertPreset replaces the preset with the same id in place, including after a rename', () => {
-  const replaced = preset({ name: 'pluie fine', options: { intensity: 0.9 } });
-  const other = preset({ id: 'orage', name: 'orage' });
-  expect(upsertPreset([preset(), other], replaced)).toEqual([replaced, other]);
+test('upsertScene replaces the scene with the same id in place, including after a rename', () => {
+  const replaced = scene({ name: 'pluie fine', options: { intensity: 0.9 } });
+  const other = scene({ id: 'orage', name: 'orage' });
+  expect(upsertScene([scene(), other], replaced)).toEqual([replaced, other]);
 });
 
-test('upsertPreset does not mutate the input array and returns a new reference', () => {
-  const before = [preset()];
-  const result = upsertPreset(before, preset({ id: 'orage', name: 'orage' }));
-  expect(before).toEqual([preset()]);
+test('upsertScene does not mutate the input array and returns a new reference', () => {
+  const before = [scene()];
+  const result = upsertScene(before, scene({ id: 'orage', name: 'orage' }));
+  expect(before).toEqual([scene()]);
   expect(result).not.toBe(before);
 });
 
-test('renamePreset changes only the display name', () => {
-  expect(renamePreset([preset()], 'pluie-douce', 'Pluie légère')).toEqual([preset({ name: 'Pluie légère' })]);
+test('renameScene changes only the display name', () => {
+  expect(renameScene([scene()], 'pluie-douce', 'Pluie légère')).toEqual([scene({ name: 'Pluie légère' })]);
 });
 
-test('duplicatePreset creates a unique id and name while preserving the visual options', () => {
-  const copy = duplicatePreset([preset()], 'pluie-douce');
-  expect(copy).toEqual(preset({ id: 'pluie-douce-copie', name: 'pluie douce — copie' }));
-  expect(copy?.options).not.toBe(preset().options);
+test('duplicateScene creates a unique id and name and copies every layer, not a reference to them', () => {
+  const source = scene();
+  const copy = duplicateScene([source], 'pluie-douce');
+  expect(copy).toEqual(scene({ id: 'pluie-douce-copie', name: 'pluie douce — copie' }));
+  expect(copy?.layers[0]).not.toBe(source.layers[0]);
+  expect(copy?.layers[0].options).not.toBe(source.layers[0].options);
 });
 
-test('duplicatePreset keeps the generated display name within the public name limit', () => {
-  const source = preset({ name: 'a'.repeat(PRESET_NAME_MAX_LENGTH) });
-  expect(duplicatePreset([source], source.id)?.name.length).toBeLessThanOrEqual(PRESET_NAME_MAX_LENGTH);
+test('duplicateScene keeps the generated display name within the public name limit', () => {
+  const source = scene({ name: 'a'.repeat(PRESET_NAME_MAX_LENGTH) });
+  expect(duplicateScene([source], source.id)?.name.length).toBeLessThanOrEqual(PRESET_NAME_MAX_LENGTH);
 });
 
-// ── removePreset ─────────────────────────────────────────────────────────
-
-test('removePreset removes the preset by stable id', () => {
-  const other = preset({ id: 'orage', name: 'orage' });
-  expect(removePreset([preset(), other], 'pluie-douce')).toEqual([other]);
+test('duplicateScene answers null for an unknown id', () => {
+  expect(duplicateScene([scene()], 'inconnu')).toBeNull();
 });
 
-test('removePreset is a no-op on an absent name', () => {
-  expect(removePreset([preset()], 'inconnu')).toEqual([preset()]);
+// ── removeScene ──────────────────────────────────────────────────────────
+
+test('removeScene removes the scene by stable id', () => {
+  const other = scene({ id: 'orage', name: 'orage' });
+  expect(removeScene([scene(), other], 'pluie-douce')).toEqual([other]);
 });
 
-test('removePreset does not mutate the input array and returns a new reference', () => {
-  const before = [preset()];
-  const result = removePreset(before, 'pluie-douce');
-  expect(before).toEqual([preset()]);
+test('removeScene is a no-op on an absent id', () => {
+  expect(removeScene([scene()], 'inconnu')).toEqual([scene()]);
+});
+
+test('removeScene does not mutate the input array and returns a new reference', () => {
+  const before = [scene()];
+  const result = removeScene(before, 'pluie-douce');
+  expect(before).toEqual([scene()]);
   expect(result).not.toBe(before);
 });
 
@@ -418,16 +429,21 @@ test('la forme persistée ramène aussi les nombres dans leurs bornes', () => {
   expect(canonicalBackgroundPreset(preset({ component: 'bubble', options: { count: 9999 } })).options).toEqual({ count: 200 });
 });
 
-// ── version 4 : scènes, le branding est une couche ────────────────────────
+// ── version 4 : le modèle est un document de scène par preset ─────────────
 
 const WORKING = () => ({
   version: 4,
-  current: { component: 'rain', options: { audioReactive: true }, transition: { type: 'fade', durationMs: 400 }, showBranding: false },
-  presets: [
-    { id: 'calme', name: 'Calme', component: 'bubble', options: { audioReactive: false }, tags: ['brb'] },
-    { id: 'nuit', name: 'Nuit', component: 'rain', options: {}, transition: { type: 'fade', durationMs: 800 } },
+  current: sceneFromCurrent({ component: 'rain', options: { audioReactive: true }, transition: { type: 'fade', durationMs: 400 }, showBranding: false }),
+  scenes: [
+    sceneFromPreset({ id: 'calme', name: 'Calme', component: 'bubble', options: { audioReactive: false }, tags: ['brb'] }),
+    sceneFromPreset({ id: 'nuit', name: 'Nuit', component: 'rain', options: {}, transition: { type: 'fade', durationMs: 800 } }),
   ],
   sceneMap: { Jeu: 'calme' },
+});
+const kindsOf = (scene) => scene.layers.map((layer) => layer.kind);
+
+test('le fichier de travail des tests est valide', () => {
+  expect(validateSceneFile(WORKING())).toEqual({ ok: true, errors: [] });
 });
 
 test('encodePersistedFile : chaque preset est une scène (son effet puis son branding), current est la scène en antenne', () => {
@@ -435,24 +451,25 @@ test('encodePersistedFile : chaque preset est une scène (son effet puis son bra
   expect(persisted.version).toBe(4);
   expect(persisted.presets).toBeUndefined();
   expect(persisted.scenes.map((scene) => scene.id)).toEqual(['calme', 'nuit']);
-  expect(persisted.scenes[0].layers.map((layer) => layer.kind)).toEqual(['bubble', 'branding']);
+  expect(kindsOf(persisted.scenes[0])).toEqual(['bubble', 'branding']);
   expect(persisted.scenes[0].layers[0]).toMatchObject({ id: 'main', kind: 'bubble', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } });
   expect(persisted.scenes[0].showBranding).toBeUndefined();
   expect(persisted.current.id).toBe('current');
-  expect(persisted.current.layers.map((layer) => layer.kind)).toEqual(['rain']);
+  expect(kindsOf(persisted.current)).toEqual(['rain']);
   expect(persisted.sceneMap).toEqual({ Jeu: 'calme' });
 });
 
-test('« aucun fond » : avec branding, une scène du seul branding ; sans branding, null — et chacun revient à l’identique', () => {
-  const shown = encodePersistedFile({ ...WORKING(), current: { component: null, options: {} } });
-  expect(shown.current.layers.map((layer) => layer.kind)).toEqual(['branding']);
-  const decodedShown = decodePersistedFile(JSON.parse(JSON.stringify(shown)));
-  expect(decodedShown.ok && decodedShown.file.current).toEqual({ component: null, options: {} });
-
-  const hidden = encodePersistedFile({ ...WORKING(), current: { component: null, options: {}, showBranding: false } });
+test('la scène en antenne sans couche se persiste en null et revient vide ; avec le seul branding, elle reste une scène', () => {
+  const hidden = encodePersistedFile({ ...WORKING(), current: emptyLiveScene() });
   expect(hidden.current).toBeNull();
   const decodedHidden = decodePersistedFile(JSON.parse(JSON.stringify(hidden)));
-  expect(decodedHidden.ok && decodedHidden.file.current).toEqual({ component: null, options: {}, showBranding: false });
+  expect(decodedHidden.ok && decodedHidden.file.current).toEqual(emptyLiveScene());
+
+  const brandingOnly = sceneFromCurrent({ component: null, options: {} });
+  const shown = encodePersistedFile({ ...WORKING(), current: brandingOnly });
+  expect(kindsOf(shown.current)).toEqual(['branding']);
+  const decodedShown = decodePersistedFile(JSON.parse(JSON.stringify(shown)));
+  expect(decodedShown.ok && decodedShown.file.current).toEqual(brandingOnly);
 });
 
 test('aller-retour : décoder ce qui a été encodé redonne exactement le fichier de travail', () => {
@@ -469,17 +486,17 @@ test('la branding survit à l’aller-retour', () => {
 });
 
 const HISTORY = () => [
-  { at: '2026-10-30T11:00:00.000Z', current: { component: 'rain', options: {}, transition: { type: 'fade', durationMs: 500 } } },
-  { at: '2026-10-30T10:00:00.000Z', current: { component: null, options: {} } },
-  { at: '2026-10-30T09:00:00.000Z', current: { component: null, options: {}, showBranding: false } },
+  { at: '2026-10-30T11:00:00.000Z', scene: sceneFromCurrent({ component: 'rain', options: {}, transition: { type: 'fade', durationMs: 500 } }) },
+  { at: '2026-10-30T10:00:00.000Z', scene: sceneFromCurrent({ component: null, options: {} }) },
+  { at: '2026-10-30T09:00:00.000Z', scene: emptyLiveScene() },
 ];
 
-test('l’historique se persiste en scènes et revient à l’identique, fond absent compris', () => {
+test('l’historique se persiste en scènes et revient à l’identique, scène vide comprise', () => {
   const file = { ...WORKING(), history: HISTORY() };
   const persisted = JSON.parse(JSON.stringify(encodePersistedFile(file)));
   expect(persisted.history[0].at).toBe('2026-10-30T11:00:00.000Z');
-  expect(persisted.history[0].scene.layers.map((layer) => layer.kind)).toEqual(['rain', 'branding']);
-  expect(persisted.history[1].scene.layers.map((layer) => layer.kind)).toEqual(['branding']);
+  expect(kindsOf(persisted.history[0].scene)).toEqual(['rain', 'branding']);
+  expect(kindsOf(persisted.history[1].scene)).toEqual(['branding']);
   expect(persisted.history[2].scene).toBeNull();
   const decoded = decodePersistedFile(persisted);
   expect(decoded.ok).toBe(true);
@@ -498,7 +515,7 @@ test('un historique invalide fait refuser le fichier, avec son emplacement', () 
   expect(read.errors.join(' ')).toContain('history[0].at');
 });
 
-const DRAFTS = () => ({ calme: { at: '2026-10-30T12:00:00.000Z', state: { component: 'rain', options: {}, transition: { type: 'fade', durationMs: 500 }, showBranding: false } } });
+const DRAFTS = () => ({ calme: { at: '2026-10-30T12:00:00.000Z', scene: sceneFromCurrent({ component: 'rain', options: {}, transition: { type: 'fade', durationMs: 500 }, showBranding: false }) } });
 
 test('les brouillons se persistent en scènes sous l’identifiant du preset et reviennent à l’identique', () => {
   const file = { ...WORKING(), drafts: DRAFTS() };
@@ -520,7 +537,7 @@ test('le brouillon d’un preset inconnu fait refuser le fichier, avec son empla
 
 test('un brouillon sans effet ou à scène multi-couches est refusé', () => {
   const noEffect = JSON.parse(JSON.stringify(encodePersistedFile({ ...WORKING(), drafts: DRAFTS() })));
-  noEffect.drafts.calme.scene = null;
+  noEffect.drafts.calme.scene = sceneFromCurrent({ component: null, options: {} });
   expect(readBackgroundFile(noEffect).errors.join(' ')).toContain('un effet est requis');
   const multi = JSON.parse(JSON.stringify(encodePersistedFile({ ...WORKING(), drafts: DRAFTS() })));
   multi.drafts.calme.scene.layers.push({ ...multi.drafts.calme.scene.layers[0], id: 'second' });
@@ -570,8 +587,6 @@ const FILE_V3 = () => ({
   drafts: { affiche: { at: '2026-10-30T11:00:00.000Z', scene: sceneV3('current') } },
   sceneMap: { Jeu: 'affiche' },
 });
-const kindsOf = (scene) => scene.layers.map((layer) => layer.kind);
-
 describe('mise à niveau d’un fichier version 3', () => {
   test('une scène qui affichait le branding (absent ou vrai) reçoit une couche branding en tête ; masqué, rien', () => {
     const up = upgradePersistedV3(FILE_V3());
@@ -606,14 +621,14 @@ describe('mise à niveau d’un fichier version 3', () => {
     expect(kindsOf(twice.scenes[0])).toEqual(['rain', 'branding']);
   });
 
-  test('readBackgroundFile lit un fichier version 3, dit qu’il vient de 3, et rend la forme historique de chaque scène', () => {
+  test('readBackgroundFile lit un fichier version 3 et dit qu’il vient de 3 ; chaque scène a sa couche de branding ou non', () => {
     const read = readBackgroundFile(FILE_V3());
     expect(read.ok).toBe(true);
     expect(read.migratedFrom).toBe(3);
     expect(read.file.version).toBe(4);
-    expect(read.file.presets.map((preset) => [preset.id, preset.showBranding])).toEqual([['affiche', undefined], ['explicite', undefined], ['masque', false]]);
-    expect(read.file.current).toEqual({ component: 'rain', options: {}, showBranding: false });
-    expect(read.file.history[0].current).toEqual({ component: null, options: {} });
+    expect(read.file.scenes.map(kindsOf)).toEqual([['rain', 'branding'], ['rain', 'branding'], ['rain']]);
+    expect(kindsOf(read.file.current)).toEqual(['rain']);
+    expect(kindsOf(read.file.history[0].scene)).toEqual(['branding']);
   });
 
   test('les fichiers mis à niveau puis relus ne migrent plus', () => {
@@ -628,11 +643,12 @@ test('readBackgroundFile : version 2 et format sans version sont migrés et dise
   const v2 = { version: 2, current: { component: 'rain', options: {} }, presets: [{ id: 'a', name: 'A', component: 'bubble', options: {} }] };
   const read2 = readBackgroundFile(v2);
   expect(read2.ok && read2.migratedFrom).toBe(2);
-  expect(read2.ok && read2.file.presets.map((preset) => preset.id)).toEqual(['a']);
+  expect(read2.ok && read2.file.scenes.map((scene) => scene.id)).toEqual(['a']);
   const v1 = { current: { component: 'RainBackground', options: { audioReactive: 'Oui' } }, presets: [] };
   const read1 = readBackgroundFile(v1);
   expect(read1.ok && read1.migratedFrom).toBe(1);
-  expect(read1.ok && read1.file.current.options.audioReactive).toBe(true);
+  expect(read1.ok && read1.file.current.layers[0].options.audioReactive).toBe(true);
+  expect(read1.ok && kindsOf(read1.file.current)).toEqual(['rain', 'branding']);
 });
 
 test('readBackgroundFile : un fichier invalide est refusé, jamais réparé', () => {
@@ -647,4 +663,33 @@ test('canonicalBackgroundCurrent : « branding affiché » est l’état par dé
   expect(invalid.showBranding).toBe('non');
   expect(validateBackgroundCurrent(invalid).ok).toBe(false);
   expect(canonicalBackgroundPreset({ id: 'a', name: 'A', component: 'rain', options: {}, showBranding: true })).toEqual({ id: 'a', name: 'A', component: 'rain', options: {} });
+});
+
+describe('validateSceneFile', () => {
+  const errorsOf = (file) => validateSceneFile(file).errors.join(' | ');
+
+  test('une scène nommée sans couche d’effet est refusée : le branding seul n’est pas un fond à rappeler', () => {
+    const brandingOnly = { ...sceneFromCurrent({ component: null, options: {} }), id: 'seul', name: 'Seul' };
+    expect(errorsOf({ ...WORKING(), scenes: [brandingOnly] })).toContain('scenes[0] : un effet est requis');
+  });
+
+  test('nom, identifiant d’URL, étiquettes, doublons : refusés avec leur emplacement', () => {
+    const [calme] = WORKING().scenes;
+    expect(errorsOf({ ...WORKING(), scenes: [{ ...calme, name: ' Calme' }] })).toContain('scenes[0] : nom de preset');
+    expect(errorsOf({ ...WORKING(), scenes: [{ ...calme, id: 'Calme_1' }] })).toContain('scenes[0] : id de preset');
+    expect(errorsOf({ ...WORKING(), scenes: [{ ...calme, tags: [''] }] })).toContain('scenes[0] : tags');
+    expect(errorsOf({ ...WORKING(), scenes: [calme, { ...calme, id: 'autre' }] })).toContain('preset en double : Calme');
+    expect(errorsOf({ ...WORKING(), scenes: [calme, { ...calme, name: 'Autre' }] })).toContain('id de preset en double : calme');
+  });
+
+  test('une transition invalide sur la scène en antenne ou sur un preset est refusée', () => {
+    const [calme] = WORKING().scenes;
+    expect(errorsOf({ ...WORKING(), current: { ...WORKING().current, transition: { type: 'morph' } } })).toContain('current : transition.type');
+    expect(errorsOf({ ...WORKING(), scenes: [{ ...calme, transition: { type: 'morph' } }] })).toContain('scenes[0] : transition.type');
+  });
+
+  test('la scène en antenne peut être vide ; un preset ne peut pas', () => {
+    expect(validateSceneFile({ ...WORKING(), current: emptyLiveScene() }).ok).toBe(true);
+    expect(errorsOf({ ...WORKING(), scenes: [{ ...WORKING().scenes[0], layers: [] }] })).toContain('au moins une couche');
+  });
 });
