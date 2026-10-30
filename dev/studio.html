@@ -627,6 +627,8 @@
     .diagnostic-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-xs) var(--space-md); }
     .diagnostic-short { color: var(--color-text-dim); }
     .diagnostic-check p.diagnostic-fix { color: var(--color-text-primary); }
+    label[data-scrub] { cursor: ew-resize; user-select: none; touch-action: none; }
+    label[data-scrubbing] { color: var(--color-text-primary); }
     .edit-list { display: flex; flex-direction: column; gap: 2px; }
     .edit-row { display: flex; flex-direction: column; gap: 2px; padding: var(--space-sm); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
     .edit-row[data-state="current"] { border-color: var(--color-accent, var(--color-text-primary)); }
