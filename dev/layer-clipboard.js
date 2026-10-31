@@ -8,9 +8,9 @@
  * survivre à un rechargement et se partager entre onglets de même origine.
  *
  * @typedef {import('../scene-doc.js').Layer} Layer
- * @typedef {{ kind: string, opacity: number, options: Record<string, unknown> }} LayerStyle
+ * @typedef {{ kind: string, opacity: number, options: Record<string, unknown>, look?: Partial<Pick<Layer, 'blend' | 'rotation' | 'crop' | 'blur'>> }} LayerStyle
  */
-import { validateSceneDoc } from '../scene-doc.js';
+import { LOOK_KEYS, validateSceneDoc } from '../scene-doc.js';
 
 export const CLIPBOARD_FORMAT = 'overlay-layers';
 const STORAGE_KEY = 'overlay.studio.clipboard';
@@ -32,7 +32,8 @@ export function layersPayload(layers) {
  * @returns {LayerStyle}
  */
 export function styleOf(layer) {
-  return { kind: layer.kind, opacity: layer.opacity, options: structuredClone(layer.options) };
+  const look = Object.fromEntries(LOOK_KEYS.filter((key) => layer[key] !== undefined).map((key) => [key, structuredClone(layer[key])]));
+  return { kind: layer.kind, opacity: layer.opacity, options: structuredClone(layer.options), look };
 }
 
 /**
@@ -55,7 +56,7 @@ export function parsePayload(raw) {
   const validation = validateSceneDoc({ version: 1, id: 'presse-papiers', name: 'presse-papiers', layers }, { allowEmpty: true });
   if (!validation.ok) return { ok: false, error: `couches invalides : ${validation.errors.join(' ; ')}` };
   const style = isRecord(value.style) && typeof value.style.kind === 'string' && typeof value.style.opacity === 'number' && isRecord(value.style.options)
-    ? /** @type {LayerStyle} */ ({ kind: value.style.kind, opacity: value.style.opacity, options: value.style.options })
+    ? /** @type {LayerStyle} */ ({ kind: value.style.kind, opacity: value.style.opacity, options: value.style.options, look: isRecord(value.style.look) ? value.style.look : {} })
     : null;
   return { ok: true, layers: /** @type {Layer[]} */ (layers), style };
 }

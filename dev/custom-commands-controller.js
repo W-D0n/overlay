@@ -240,9 +240,17 @@ export function createCustomCommandsController(input) {
       wrap.className = 'cc-field';
       const caption = documentRef.createElement('span');
       caption.textContent = field.type === 'percent' ? `${field.label} (%)` : field.label;
-      const control = documentRef.createElement('input');
+      const control = /** @type {HTMLInputElement} */ (documentRef.createElement(field.type === 'choice' ? 'select' : 'input'));
       control.dataset.key = field.key;
-      if (field.type === 'boolean') {
+      if (field.type === 'choice') {
+        for (const choice of field.choices ?? []) {
+          const option = documentRef.createElement('option');
+          option.value = choice.id;
+          option.textContent = choice.label;
+          control.appendChild(option);
+        }
+        control.value = String(field.value);
+      } else if (field.type === 'boolean') {
         control.type = 'checkbox';
         control.checked = field.value === true;
       } else if (field.type === 'text') {
@@ -257,7 +265,7 @@ export function createCustomCommandsController(input) {
         /** @type {number | boolean | string} */
         let value;
         if (field.type === 'boolean') value = control.checked;
-        else if (field.type === 'text') value = control.value;
+        else if (field.type === 'text' || field.type === 'choice') value = control.value;
         else {
           const typed = Number(control.value);
           if (control.value.trim() === '' || !Number.isFinite(typed)) return;

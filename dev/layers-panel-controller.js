@@ -16,6 +16,7 @@
  * @typedef {import('../scene-doc.js').Layer} Layer
  */
 import { isIdentityKind } from '../layer-kinds.js';
+import { withoutLook } from '../scene-doc.js';
 import { createPresetThumbnail } from './preset-thumbnail.js';
 import { icon, setIcon } from './icons.js';
 import { dropPosition, layerRows, loadGauge } from './layers-panel-view.js';
@@ -94,13 +95,13 @@ export function createLayersPanelController(input) {
     return selection.includes(id) ? [...selection] : [id];
   }
 
-  /** @param {Layer} layer @returns {SceneDoc} la couche seule, pleine toile et visible : ce que la vignette montre */
+  /** @param {Layer} layer @returns {SceneDoc} la couche seule, pleine toile, visible et sans rendu étendu : l'effet lui-même, ce que la vignette montre */
   function aloneScene(layer) {
     return {
       version: 1,
       id: 'vignette',
       name: layer.name ?? layer.kind,
-      layers: [{ ...layer, visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } }],
+      layers: [{ ...withoutLook(layer), visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } }],
     };
   }
 

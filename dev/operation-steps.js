@@ -16,13 +16,16 @@
  *
  * @typedef {{ op: string, args: Record<string, unknown>, target?: 'selection', kind?: string }} OperationStep
  * @typedef {{ op: string, ids: string[], args: Record<string, unknown>, before?: Record<string, Record<string, number>> }} EditorOperation
- * @typedef {{ key: string, label: string, type: 'percent' | 'number' | 'boolean' | 'text', value: number | boolean | string }} StepField
+ * @typedef {{ key: string, label: string, type: 'percent' | 'number' | 'boolean' | 'text' | 'choice', value: number | boolean | string, choices?: readonly { id: string, label: string }[] }} StepField
  */
+
+import { BLEND_MODES, CROP_LABELS, CROP_SIDES, LOOK_LIMITS } from '../scene-doc.js';
 
 export const OPERATIONS = Object.freeze(['layer', 'placement', 'translate', 'options', 'addLayer', 'removeLayers', 'duplicateLayers', 'moveLayers', 'resetLayers', 'layerKind', 'sceneProps']);
 
 const PLACEMENT_KEYS = ['x', 'y', 'width', 'height'];
-const LAYER_KEYS = ['name', 'visible', 'locked', 'opacity'];
+const LAYER_KEYS = ['name', 'visible', 'locked', 'opacity', 'blend', 'rotation', 'crop', 'blur'];
+const LAYER_LABELS = /** @type {Record<string, string>} */ ({ blend: 'Fusion', rotation: 'Rotation (°)', blur: 'Flou (px)' });
 const MOVES = ['up', 'down', 'top', 'bottom'];
 const PLACEMENT_LABELS = /** @type {Record<string, string>} */ ({ x: 'x', y: 'y', width: 'largeur', height: 'hauteur' });
 const MAX_OPTION_KEYS = 40;
@@ -105,7 +108,11 @@ export function mergeSteps(previous, next) {
     return { ...previous, args: { dx: Number(previous.args.dx) + Number(next.args.dx), dy: Number(previous.args.dy) + Number(next.args.dy) } };
   }
   if (['layer', 'placement', 'options', 'sceneProps'].includes(previous.op)) {
-    return { ...previous, args: { patch: { .../** @type {Record<string, unknown>} */ (previous.args.patch), .../** @type {Record<string, unknown>} */ (next.args.patch) } } };
+    const before = /** @type {Record<string, any>} */ (previous.args.patch);
+    const after = /** @type {Record<string, any>} */ (next.args.patch);
+    // Le rognage se règle côté par côté : deux réglages de côtés différents se complètent.
+    const crop = previous.op === 'layer' && before.crop !== undefined && after.crop !== undefined ? { crop: { ...before.crop, ...after.crop } } : {};
+    return { ...previous, args: { patch: { ...before, ...after, ...crop } } };
   }
   return null;
 }
@@ -183,6 +190,10 @@ export function describeStep(step, kindLabel = (kind) => kind) {
       if (key === 'opacity') return `opacité ${percent(value)}`;
       if (key === 'visible') return value ? 'afficher' : 'masquer';
       if (key === 'locked') return value ? 'verrouiller' : 'déverrouiller';
+      if (key === 'blend') return `fusion ${BLEND_MODES.find(({ id }) => id === value)?.label ?? value}`;
+      if (key === 'rotation') return `rotation ${value}°`;
+      if (key === 'blur') return `flou ${value} px`;
+      if (key === 'crop') return `rognage ${CROP_SIDES.filter((side) => value[side]).map((side) => `${CROP_LABELS[side]} ${percent(value[side])}`).join(', ') || 'aucun'}`;
       return `nom « ${value} »`;
     })}`;
     case 'placement': return `Placer la sélection : ${parts(patch, (key, value) => `${PLACEMENT_LABELS[key] ?? key} ${percent(value)}`)}`;
@@ -192,7 +203,7 @@ export function describeStep(step, kindLabel = (kind) => kind) {
     case 'removeLayers': return 'Supprimer la sélection';
     case 'duplicateLayers': return 'Dupliquer la sélection';
     case 'moveLayers': return `Déplacer la sélection : ${{ up: 'd’un cran vers l’avant', down: 'd’un cran vers l’arrière', top: 'tout devant', bottom: 'tout derrière' }[/** @type {'up'} */ (step.args.where)] ?? String(step.args.where)}`;
-    case 'resetLayers': return 'Réinitialiser la sélection (plein cadre, opaque)';
+    case 'resetLayers': return 'Réinitialiser la sélection (plein cadre, opaque, sans rendu étendu)';
     case 'layerKind': return `Changer l’effet de la sélection en « ${kindLabel(String(step.args.kind))} »`;
     case 'sceneProps': return `Régler la scène : ${parts(patch, (key, value) => `${key} = ${value === null ? 'retiré' : JSON.stringify(value)}`)}`;
     default: return step.op;
@@ -215,8 +226,10 @@ export function stepFields(step) {
   for (const [key, value] of Object.entries(patch)) {
     if (step.op === 'placement' && isNumber(value)) fields.push({ key, label: PLACEMENT_LABELS[key] ?? key, type: 'percent', value });
     else if (step.op === 'layer' && key === 'opacity' && isNumber(value)) fields.push({ key, label: 'Opacité', type: 'percent', value });
+    else if (step.op === 'layer' && key === 'blend' && typeof value === 'string') fields.push({ key, label: LAYER_LABELS.blend, type: 'choice', value, choices: BLEND_MODES });
+    else if (step.op === 'layer' && key === 'crop' && isRecord(value)) for (const side of CROP_SIDES) fields.push({ key: `crop.${side}`, label: `Rognage ${CROP_LABELS[side]}`, type: 'percent', value: isNumber(value[side]) ? value[side] : 0 });
     else if (typeof value === 'boolean') fields.push({ key, label: key === 'visible' ? 'Visible' : key === 'locked' ? 'Verrouillée' : key, type: 'boolean', value });
-    else if (isNumber(value)) fields.push({ key, label: key, type: 'number', value });
+    else if (isNumber(value)) fields.push({ key, label: LAYER_LABELS[key] ?? key, type: 'number', value });
     else if (typeof value === 'string') fields.push({ key, label: key === 'name' ? 'Nom' : key, type: 'text', value });
   }
   return fields;
@@ -231,6 +244,10 @@ export function stepFields(step) {
  */
 export function withStepValue(step, key, value) {
   if (step.op === 'translate') return { ...step, args: { ...step.args, [key]: value } };
+  if (key.startsWith('crop.')) {
+    const patch = /** @type {Record<string, any>} */ (step.args.patch ?? {});
+    return { ...step, args: { ...step.args, patch: { ...patch, crop: { ...patch.crop, [key.slice(5)]: value } } } };
+  }
   return { ...step, args: { ...step.args, patch: { .../** @type {Record<string, unknown>} */ (step.args.patch ?? {}), [key]: value } } };
 }
 
@@ -268,6 +285,10 @@ export function stepErrors(step) {
       if (!LAYER_KEYS.includes(key)) return `propriété de couche inconnue : ${key}`;
       if (key === 'opacity') return isNumber(value) && value >= 0 && value <= 1 ? null : 'opacité : nombre entre 0 et 1 attendu';
       if (key === 'name') return typeof value === 'string' && value.length <= 80 ? null : 'nom : texte attendu';
+      if (key === 'blend') return BLEND_MODES.some(({ id }) => id === value) ? null : 'fusion : mode connu attendu';
+      if (key === 'rotation') return isNumber(value) && value >= LOOK_LIMITS.rotation.min && value <= LOOK_LIMITS.rotation.max ? null : 'rotation : angle entre -180 et 180 attendu';
+      if (key === 'blur') return isNumber(value) && value >= LOOK_LIMITS.blur.min && value <= LOOK_LIMITS.blur.max ? null : `flou : nombre entre 0 et ${LOOK_LIMITS.blur.max} attendu`;
+      if (key === 'crop') return isRecord(value) && Object.entries(value).every(([side, amount]) => CROP_SIDES.includes(/** @type {*} */ (side)) && isNumber(amount) && amount >= LOOK_LIMITS.crop.min && amount <= LOOK_LIMITS.crop.max) ? null : 'rognage : parts entre 0 et 0,9 attendues';
       return typeof value === 'boolean' ? null : `${key} : booléen attendu`;
     });
     case 'placement': return patch === null ? ['placement : réglages attendus'] : patchErrors(patch, (key, value) => {

@@ -26,13 +26,13 @@
  * @typedef {import('./operation-steps.js').EditorOperation} EditorOperation
  * @typedef {ReturnType<typeof createSceneEditor>} SceneEditor
  */
-import { MAX_LAYERS, canonicalSceneDoc, createLayer, validateSceneDoc } from '../scene-doc.js';
+import { MAX_LAYERS, canonicalSceneDoc, createLayer, validateSceneDoc, withoutLook } from '../scene-doc.js';
 import { isIdentityKind, resolveKindId } from '../layer-kinds.js';
 
 const DEFAULT_HISTORY_LIMIT = 200;
 const DEFAULT_COALESCE_MS = 800;
 const PLACEMENT_KEYS = ['x', 'y', 'width', 'height'];
-const LAYER_PATCH_KEYS = ['name', 'visible', 'locked', 'opacity'];
+const LAYER_PATCH_KEYS = ['name', 'visible', 'locked', 'opacity', 'blend', 'rotation', 'crop', 'blur'];
 
 /** @param {string} message @param {Refused['reason']} reason @returns {Refused} */
 const refuse = (reason, message) => ({ ok: false, reason, message });
@@ -394,9 +394,9 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     },
 
     /**
-     * Règle `name`, `visible`, `locked` ou `opacity` sur des couches.
+     * Règle `name`, `visible`, `locked`, `opacity` ou le rendu étendu (`blend`, `rotation`, `crop`, `blur`) sur des couches.
      * @param {string[]} ids
-     * @param {{ name?: string, visible?: boolean, locked?: boolean, opacity?: number }} patch
+     * @param {{ name?: string, visible?: boolean, locked?: boolean, opacity?: number, blend?: import('../scene-doc.js').BlendMode, rotation?: number, crop?: Partial<import('../scene-doc.js').Crop>, blur?: number }} patch
      * @param {CoalesceOptions} [options]
      * @returns {Done | Refused}
      */
@@ -407,10 +407,11 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       if (keys.length === 0 || keys.some((key) => !LAYER_PATCH_KEYS.includes(key))) return refuse('invalid', 'propriété de couche inconnue');
       const layers = scene.layers.map((layer) => {
         if (!targets.includes(layer.id)) return layer;
-        const next = { ...layer, ...patch };
+        const next = /** @type {Layer} */ ({ ...layer, ...patch });
         if (patch.name !== undefined && patch.name.trim() === '') delete next.name;
         else if (patch.name !== undefined) next.name = patch.name.trim();
         if (patch.locked === false) delete next.locked;
+        if (patch.crop !== undefined) next.crop = /** @type {import('../scene-doc.js').Crop} */ ({ top: 0, right: 0, bottom: 0, left: 0, ...layer.crop, ...patch.crop });
         return next;
       });
       return announce(finish(layers, describePatch(keys, targets.length), coalesceKey), 'setLayers', targets, { patch });
@@ -480,10 +481,10 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     },
 
     /**
-     * Applique un style à des couches : l'opacité à toutes, les réglages d'effet à celles du même type que le style. Une
+     * Applique un style à des couches : l'opacité et le rendu étendu à toutes, les réglages d'effet à celles du même type que le style. Une
      * seule entrée d'historique.
      * @param {string[]} ids
-     * @param {{ kind: string, opacity: number, options: Record<string, unknown> }} style
+     * @param {{ kind: string, opacity: number, options: Record<string, unknown>, look?: Partial<Pick<Layer, 'blend' | 'rotation' | 'crop' | 'blur'>> }} style
      * @returns {Done | Refused}
      */
     applyStyle(ids, style) {
@@ -491,20 +492,23 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       if (targets.length === 0) return refuse('unknown', 'aucune couche');
       const layers = scene.layers.map((layer) => {
         if (!targets.includes(layer.id)) return layer;
-        return { ...layer, opacity: style.opacity, ...(layer.kind === style.kind ? { options: structuredClone(style.options) } : {}) };
+        return { ...withoutLook(layer), ...structuredClone(style.look ?? {}), opacity: style.opacity, ...(layer.kind === style.kind ? { options: structuredClone(style.options) } : {}) };
       });
       return finish(layers, targets.length === 1 ? 'Coller le style' : `Coller le style sur ${targets.length} couches`, undefined);
     },
 
     /**
-     * Remet des couches plein cadre et opaques (visibilité, verrou, nom et réglages d'effet restent), en une entrée.
+     * Remet des couches plein cadre, opaques et sans rendu étendu (visibilité, verrou, nom et réglages d'effet restent), en une entrée.
      * @param {string[]} ids
      * @returns {Done | Refused}
      */
     resetLayers(ids) {
       const targets = known(ids);
       if (targets.length === 0) return refuse('unknown', 'aucune couche');
-      const layers = scene.layers.map((layer) => (targets.includes(layer.id) ? { ...layer, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } } : layer));
+      const layers = scene.layers.map((layer) => {
+        if (!targets.includes(layer.id)) return layer;
+        return { ...withoutLook(layer), opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } };
+      });
       return announce(finish(layers, targets.length === 1 ? 'Réinitialiser la couche' : `Réinitialiser ${targets.length} couches`, undefined), 'resetLayers', targets, {});
     },
 
@@ -679,6 +683,10 @@ function describePatch(keys, count) {
   if (keys.length === 1 && keys[0] === 'visible') return `Afficher ou masquer ${subject}`;
   if (keys.length === 1 && keys[0] === 'locked') return `Verrouiller ou déverrouiller ${subject}`;
   if (keys.length === 1 && keys[0] === 'opacity') return `Opacité de ${subject}`;
+  if (keys.length === 1 && keys[0] === 'blend') return `Fusion de ${subject}`;
+  if (keys.length === 1 && keys[0] === 'rotation') return `Rotation de ${subject}`;
+  if (keys.length === 1 && keys[0] === 'crop') return `Rognage de ${subject}`;
+  if (keys.length === 1 && keys[0] === 'blur') return `Flou de ${subject}`;
   if (keys.length === 1 && keys[0] === 'name') return 'Renommer une couche';
   return `Régler ${subject}`;
 }

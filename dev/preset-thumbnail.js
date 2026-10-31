@@ -72,20 +72,75 @@ export function paintStage(stage, target) {
   const frame = stage.getBoundingClientRect();
   if (frame.width === 0) return 0;
   const factor = target.width / frame.width;
+  // La scène est réduite par transformation CSS : les tailles de mise en page (`offset*`) restent celles de la source.
+  const shrink = stage.offsetWidth > 0 ? frame.width / stage.offsetWidth : 1;
   let painted = 0;
   for (const canvas of stage.querySelectorAll('canvas')) {
     const rect = canvas.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) continue;
-    let alpha = 1;
+    /** @type {CSSStyleDeclaration[]} */
+    const chain = [];
     for (let node = /** @type {Element | null} */ (canvas); node !== null && node !== stage; node = node.parentElement) {
-      alpha *= Number.parseFloat(view.getComputedStyle(node).opacity || '1');
+      chain.push(view.getComputedStyle(node));
     }
-    context.globalAlpha = alpha;
-    context.drawImage(canvas, (rect.left - frame.left) * factor, (rect.top - frame.top) * factor, rect.width * factor, rect.height * factor);
+    const look = lookOfStyles(chain);
+    context.globalAlpha = look.alpha;
+    if (!look.extended) {
+      context.drawImage(canvas, (rect.left - frame.left) * factor, (rect.top - frame.top) * factor, rect.width * factor, rect.height * factor);
+    } else {
+      // Une rotation autour du centre garde le centre du cadre englobant : on repart de lui et de la taille de mise en page.
+      const width = canvas.offsetWidth * shrink * factor;
+      const height = canvas.offsetHeight * shrink * factor;
+      context.save();
+      context.globalCompositeOperation = look.composite;
+      context.filter = look.blurPx === 0 ? 'none' : `blur(${look.blurPx * shrink * factor}px)`;
+      context.translate((rect.left - frame.left + rect.width / 2) * factor, (rect.top - frame.top + rect.height / 2) * factor);
+      context.rotate(look.angle);
+      if (look.inset !== null) {
+        context.beginPath();
+        context.rect(-width / 2 + look.inset.left * width, -height / 2 + look.inset.top * height, width * (1 - look.inset.left - look.inset.right), height * (1 - look.inset.top - look.inset.bottom));
+        context.clip();
+      }
+      context.drawImage(canvas, -width / 2, -height / 2, width, height);
+      context.restore();
+    }
     painted += 1;
   }
   context.globalAlpha = 1;
   return painted;
+}
+
+/**
+ * Ce que le CSS fait à un canvas depuis ses ancêtres (du canvas vers la scène), traduit pour le peindre à la main : opacité
+ * cumulée, mode de fusion, angle, flou en pixels de mise en page et rognage en fractions de sa taille. Logique pure.
+ * @param {readonly { opacity: string, mixBlendMode: string, transform: string, clipPath: string, filter: string }[]} styles
+ * @returns {{ alpha: number, composite: GlobalCompositeOperation, angle: number, blurPx: number, inset: { top: number, right: number, bottom: number, left: number } | null, extended: boolean }}
+ */
+export function lookOfStyles(styles) {
+  let alpha = 1;
+  let angle = 0;
+  let blurPx = 0;
+  /** @type {GlobalCompositeOperation} */
+  let composite = 'source-over';
+  /** @type {{ top: number, right: number, bottom: number, left: number } | null} */
+  let inset = null;
+  for (const style of styles) {
+    alpha *= Number.parseFloat(style.opacity || '1');
+    const matrix = /^matrix\(([^)]+)\)$/.exec(style.transform ?? '');
+    if (matrix !== null) {
+      const [a, b] = matrix[1].split(',').map(Number);
+      angle += Math.atan2(b, a);
+    }
+    if (style.mixBlendMode === 'multiply' || style.mixBlendMode === 'screen' || style.mixBlendMode === 'overlay') composite = style.mixBlendMode;
+    const blur = /blur\(([\d.]+)px\)/.exec(style.filter ?? '');
+    if (blur !== null) blurPx += Number(blur[1]);
+    const clip = /^inset\(([^)]+)\)$/.exec(style.clipPath ?? '');
+    if (clip !== null) {
+      const [top, right = top, bottom = top, left = right] = clip[1].split(/\s+/).map((part) => Number.parseFloat(part) / 100);
+      inset = { top, right, bottom, left };
+    }
+  }
+  return { alpha, composite, angle, blurPx, inset, extended: composite !== 'source-over' || angle !== 0 || blurPx !== 0 || inset !== null };
 }
 
 /**

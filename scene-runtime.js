@@ -2,6 +2,8 @@
 import { COMPONENT_REGISTRY } from './component-registry.js';
 import { cssEasing, normalizeTransition, transitionStyles } from './background-transition.js';
 import { isAudioOn, isIdentityKind, kindCapabilities } from './layer-kinds.js';
+import { referenceScale } from './render-reference.js';
+import { CROP_SIDES } from './scene-doc.js';
 
 /**
  * scene-runtime.js — Monte une scène (une pile de couches, `scene-doc.js`) dans un conteneur.
@@ -11,7 +13,8 @@ import { isAudioOn, isIdentityKind, kindCapabilities } from './layer-kinds.js';
  *   - même `id`, `kind` différent → l'effet est remplacé sur place, les autres couches ne bougent pas ;
  *   - `id` nouveau → montage ; `id` disparu → démontage ;
  *   - ordre → `z-index`, sans déplacer aucun nœud (déplacer un nœud redémarrerait ses animations CSS) ;
- *   - `opacity`, `placement` → appliqués sur le calque de la couche, sans toucher à l'effet ;
+ *   - `opacity`, `placement`, et le rendu étendu (`blend`, `rotation`, `crop`, `blur`) → appliqués sur le calque de la couche,
+ *     sans toucher à l'effet ;
  *   - `visible: false` → la couche n'est **pas montée** (son effet ne dessine rien, ne coûte ni CPU ni GPU) ; la remontrer remonte
  *     son effet, qui repart de zéro.
  *
@@ -79,6 +82,12 @@ export function createSceneRuntime(container, deps = {}) {
   /** @type {SceneDoc | null} */
   let latestScene = null;
   let paused = false;
+
+  // La hauteur de la source change l'échelle des tailles en pixels de référence (le flou d'une couche).
+  const sizeObserver = typeof globalThis.ResizeObserver === 'function' && typeof container.style?.setProperty === 'function'
+    ? new globalThis.ResizeObserver(() => { container.style.setProperty('--reference-scale', String(referenceScale(container.clientHeight))); })
+    : null;
+  sizeObserver?.observe(container);
 
   /** @param {Stage} stage */
   function disposeStage(stage) {
@@ -166,6 +175,7 @@ export function createSceneRuntime(container, deps = {}) {
       opacity: String(layer.opacity),
       display: layer.visible ? '' : 'none',
       zIndex: String(index),
+      ...lookStyles(layer),
     });
   }
 
@@ -355,10 +365,28 @@ export function createSceneRuntime(container, deps = {}) {
     },
 
     destroy() {
+      sizeObserver?.disconnect();
       latestScene = null;
       unmountAll();
       onMountChange();
     },
+  };
+}
+
+/**
+ * Le rendu étendu d'une couche en styles du calque. Une valeur absente donne la chaîne vide : le style inline disparaît,
+ * la couche se rend comme avant. Le flou se compte en pixels de la source de référence : `--reference-scale` (posée sur
+ * le conteneur) l'adapte à la hauteur réelle de la source.
+ * @param {Layer} layer
+ * @returns {{ mixBlendMode: string, transform: string, clipPath: string, filter: string }}
+ */
+function lookStyles(layer) {
+  const { blend, rotation, crop, blur } = layer;
+  return {
+    mixBlendMode: blend === undefined || blend === 'normal' ? '' : blend,
+    transform: rotation === undefined || rotation === 0 ? '' : `rotate(${rotation}deg)`,
+    clipPath: crop === undefined ? '' : `inset(${CROP_SIDES.map((side) => percent(crop[side] ?? 0)).join(' ')})`,
+    filter: blur === undefined || blur === 0 ? '' : `blur(calc(var(--reference-scale, 1) * ${blur}px))`,
   };
 }
 

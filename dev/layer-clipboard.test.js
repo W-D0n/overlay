@@ -16,7 +16,7 @@ describe('contenu', () => {
     layer.options.speed = 99;
     expect(payload.layers[0].options.speed).toBe(2);
     expect(payload.format).toBe(CLIPBOARD_FORMAT);
-    expect(styleOf(L('b', 'bubble', { opacity: 0.7, options: { count: 5 } }))).toEqual({ kind: 'bubble', opacity: 0.7, options: { count: 5 } });
+    expect(styleOf(L('b', 'bubble', { opacity: 0.7, options: { count: 5 } }))).toEqual({ kind: 'bubble', opacity: 0.7, options: { count: 5 }, look: {} });
   });
 
   test('parsePayload accepte un contenu valide, texte ou objet', () => {
@@ -72,7 +72,7 @@ describe('presse-papiers', () => {
     clipboard.copyStyle(L('z', 'bubble', { opacity: 0.2, options: { count: 9 } }));
     const parsed = clipboard.read();
     expect(parsed.ok && parsed.layers.map((l) => l.id)).toEqual(['a']);
-    expect(parsed.ok && parsed.style).toEqual({ kind: 'bubble', opacity: 0.2, options: { count: 9 } });
+    expect(parsed.ok && parsed.style).toEqual({ kind: 'bubble', opacity: 0.2, options: { count: 9 }, look: {} });
   });
 
   test('copyStyle sans couches copiées : un style, aucune couche à coller', () => {

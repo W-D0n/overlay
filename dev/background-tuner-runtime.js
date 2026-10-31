@@ -173,6 +173,17 @@ export async function startBackgroundTuner(environment = {}) {
       body: byId('inspector-body'),
       opacityRange: /** @type {HTMLInputElement} */ (byId('inspector-opacity-range')),
       opacityNumber: /** @type {HTMLInputElement} */ (byId('inspector-opacity')),
+      blend: /** @type {HTMLSelectElement} */ (byId('inspector-blend')),
+      rotationRange: /** @type {HTMLInputElement} */ (byId('inspector-rotation-range')),
+      rotationNumber: /** @type {HTMLInputElement} */ (byId('inspector-rotation')),
+      blurRange: /** @type {HTMLInputElement} */ (byId('inspector-blur-range')),
+      blurNumber: /** @type {HTMLInputElement} */ (byId('inspector-blur')),
+      crop: {
+        top: /** @type {HTMLInputElement} */ (byId('inspector-crop-top')),
+        right: /** @type {HTMLInputElement} */ (byId('inspector-crop-right')),
+        bottom: /** @type {HTMLInputElement} */ (byId('inspector-crop-bottom')),
+        left: /** @type {HTMLInputElement} */ (byId('inspector-crop-left')),
+      },
       fields: {
         x: /** @type {HTMLInputElement} */ (byId('inspector-x')),
         y: /** @type {HTMLInputElement} */ (byId('inspector-y')),

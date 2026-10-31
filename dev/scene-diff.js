@@ -11,6 +11,7 @@
  * @typedef {import('../scene-doc.js').Layer} Layer
  * @typedef {{ layerId: string | null, kind: 'added' | 'removed' | 'changed' | 'order', title: string, details: string[] }} Change
  */
+import { BLEND_MODES, CROP_LABELS, CROP_SIDES } from '../scene-doc.js';
 import { toDisplay } from './placement-math.js';
 
 /** @param {unknown} value @returns {string} */
@@ -50,6 +51,15 @@ function layerDetails(before, after, labelOf, optionLabel) {
   if (before.visible !== after.visible) details.push(after.visible ? 'affichée' : 'masquée');
   if ((before.locked === true) !== (after.locked === true)) details.push(after.locked === true ? 'verrouillée' : 'déverrouillée');
   if (before.opacity !== after.opacity) details.push(`opacité : ${Math.round(before.opacity * 100)} % → ${Math.round(after.opacity * 100)} %`);
+  const blendLabel = (/** @type {Layer} */ layer) => BLEND_MODES.find(({ id }) => id === (layer.blend ?? 'normal'))?.label ?? layer.blend;
+  if (before.blend !== after.blend) details.push(`fusion : ${blendLabel(before)} → ${blendLabel(after)}`);
+  if ((before.rotation ?? 0) !== (after.rotation ?? 0)) details.push(`rotation : ${before.rotation ?? 0}° → ${after.rotation ?? 0}°`);
+  if ((before.blur ?? 0) !== (after.blur ?? 0)) details.push(`flou : ${before.blur ?? 0} px → ${after.blur ?? 0} px`);
+  for (const side of CROP_SIDES) {
+    const a = Math.round((before.crop?.[side] ?? 0) * 1000) / 10;
+    const b = Math.round((after.crop?.[side] ?? 0) * 1000) / 10;
+    if (a !== b) details.push(`rognage ${CROP_LABELS[side]} : ${a} % → ${b} %`);
+  }
   const labels = { x: 'X', y: 'Y', width: 'largeur', height: 'hauteur' };
   for (const key of /** @type {const} */ (['x', 'y', 'width', 'height'])) {
     const a = toDisplay(key, before.placement[key], 'percent');

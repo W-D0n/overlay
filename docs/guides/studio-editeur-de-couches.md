@@ -1,6 +1,6 @@
 ---
 created: 2026-10-30
-updated: 2026-10-30
+updated: 2026-10-31
 ---
 
 # Studio — l'éditeur de couches
@@ -28,11 +28,16 @@ couche d'**identité** (le branding, unique). Le panneau « Couches » liste la 
 
 ## 2. Régler une couche
 
-Sélectionnez une couche : le panneau de droite montre son **opacité**, sa **position et sa taille** et les
+Sélectionnez une couche : le panneau de droite montre son **opacité**, son **rendu**, sa **position et sa taille** et les
 **réglages de son effet**.
 
 - Position et taille se lisent en **%** de la toile ou en **px** de la source OBS (boutons `%` / `px`).
   Le cadenas lie les proportions.
+- **Rendu** : **Fusion** (Normal, Produit, Superposition claire, Incrustation), **Rotation** (−180° à 180°, autour du
+  centre de la couche), **Flou** (0 à 12 px de la source) et **Rognage** (jusqu'à 90 % par côté). Ces réglages
+  ont été mesurés dans OBS : ils ne font pas descendre la scène sous 60 images par seconde. « Réinitialiser » les retire.
+  Le mode de fusion ne mélange que les couches de la scène entre elles : la page ne voit pas les sources OBS
+  situées dessous (à vérifier dans OBS).
 - **Valeurs au glisser** : glissez sur l'étiquette d'un champ numérique (« X », « Opacité »…) pour régler la
   valeur. `Maj` va dix fois plus vite, `Alt` dix fois plus fin, `Échap` rend la valeur d'avant. Dans un champ,
   `Maj+↑↓` et `Alt+↑↓` font de même. Un glisser entier est **un seul** pas d'historique.

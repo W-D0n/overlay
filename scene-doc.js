@@ -10,6 +10,9 @@ import { clampOptions, isIdentityKind, neutralizeOptions, resolveKindId, validat
  * sorte qu'un document reste valable quelle que soit la résolution de la source OBS.
  *
  * @typedef {{ x: number, y: number, width: number, height: number }} Placement
+ * @typedef {{ top: number, right: number, bottom: number, left: number }} Crop
+ * @typedef {keyof Crop} CropSide
+ * @typedef {'normal' | 'multiply' | 'screen' | 'overlay'} BlendMode
  * @typedef {{
  *   id: string,
  *   kind: import('./layer-kinds.js').LayerKindId,
@@ -18,6 +21,10 @@ import { clampOptions, isIdentityKind, neutralizeOptions, resolveKindId, validat
  *   locked?: boolean,
  *   opacity: number,
  *   placement: Placement,
+ *   blend?: BlendMode,
+ *   rotation?: number,
+ *   crop?: Crop,
+ *   blur?: number,
  *   options: Record<string, unknown>,
  * }} Layer
  * @typedef {{
@@ -46,6 +53,38 @@ export const BRANDING_LAYER_ID = 'branding';
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 const ID_MAX_LENGTH = 80;
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/**
+ * Le rendu étendu d'une couche (étape 6d). Absent = neutre : un document sans ces champs reste valide et se rend comme avant.
+ * Seules les valeurs mesurées dans OBS (`dev/obs-bench.html`) sont proposées : fusion produit / superposition claire /
+ * incrustation, rotation, rognage, flou. Le flou se compte en pixels de la source de référence (`render-reference.js`).
+ */
+export const BLEND_MODES = Object.freeze([
+  Object.freeze({ id: 'normal', label: 'Normal' }),
+  Object.freeze({ id: 'multiply', label: 'Produit' }),
+  Object.freeze({ id: 'screen', label: 'Superposition claire' }),
+  Object.freeze({ id: 'overlay', label: 'Incrustation' }),
+]);
+export const LOOK_LIMITS = Object.freeze({
+  rotation: Object.freeze({ min: -180, max: 180 }),
+  blur: Object.freeze({ min: 0, max: 12 }),
+  /** Part de la toile rognée par côté ; deux côtés opposés ne dépassent jamais `cropPair` ensemble (la couche ne disparaît pas). */
+  crop: Object.freeze({ min: 0, max: 0.9 }),
+  cropPair: 0.95,
+});
+export const CROP_SIDES = /** @type {const} */ (['top', 'right', 'bottom', 'left']);
+export const CROP_LABELS = Object.freeze({ top: 'haut', right: 'droite', bottom: 'bas', left: 'gauche' });
+/** Les champs de rendu étendu d'une couche. */
+export const LOOK_KEYS = /** @type {const} */ (['blend', 'rotation', 'crop', 'blur']);
+
+/** La couche sans son rendu étendu.
+ * @param {Layer} layer
+ * @returns {Layer}
+ */
+export function withoutLook(layer) {
+  const { blend: _blend, rotation: _rotation, crop: _crop, blur: _blur, ...plain } = layer;
+  return plain;
+}
 
 /** @type {Readonly<Placement>} */
 export const FULL_PLACEMENT = Object.freeze({ x: 0, y: 0, width: 1, height: 1 });
@@ -96,7 +135,7 @@ function brandingLayer() {
  */
 function isPlainLayer(layer) {
   const { x, y, width, height } = layer.placement;
-  return layer.visible && layer.opacity === 1 && x === 0 && y === 0 && width === 1 && height === 1;
+  return layer.visible && layer.opacity === 1 && x === 0 && y === 0 && width === 1 && height === 1 && LOOK_KEYS.every((key) => layer[key] === undefined);
 }
 
 /**
@@ -216,9 +255,49 @@ export function canonicalSceneDoc(scene) {
       const options = isPlainObject(layer.options) ? clampOptions(kind, neutralizeOptions(layer.options)) : layer.options;
       const placement = isPlainObject(layer.placement) ? canonicalPlacement(layer.placement) : layer.placement;
       const opacity = isFraction(layer.opacity) ? clamp(layer.opacity, 0, 1) : layer.opacity;
-      return { ...layer, kind, options, placement, opacity };
+      return canonicalLook(/** @type {Layer} */ ({ ...layer, kind, options, placement, opacity }));
     })),
   };
+}
+
+/**
+ * Le rendu étendu ramené dans ses bornes ; une valeur neutre est retirée (absent = neutre), de sorte que deux scènes qui
+ * se rendent pareil s'écrivent pareil. Une valeur d'un mauvais type reste telle quelle : c'est `validateSceneDoc` qui la refuse.
+ * @param {Layer} layer
+ * @returns {Layer}
+ */
+function canonicalLook(layer) {
+  const { blend, rotation, crop, blur, ...rest } = layer;
+  /** @type {Record<string, unknown>} */
+  const look = {};
+  if (blend !== 'normal' && blend !== undefined) look.blend = blend;
+  if (rotation !== undefined) {
+    const bounded = isFraction(rotation) ? clamp(rotation, LOOK_LIMITS.rotation.min, LOOK_LIMITS.rotation.max) : rotation;
+    if (bounded !== 0) look.rotation = bounded;
+  }
+  if (blur !== undefined) {
+    const bounded = isFraction(blur) ? clamp(blur, LOOK_LIMITS.blur.min, LOOK_LIMITS.blur.max) : blur;
+    if (bounded !== 0) look.blur = bounded;
+  }
+  if (crop !== undefined) {
+    const bounded = canonicalCrop(crop);
+    if (bounded !== null) look.crop = bounded;
+  }
+  return /** @type {Layer} */ ({ ...rest, ...look });
+}
+
+/** @param {unknown} crop @returns {unknown} `null` quand aucun côté n'est rogné */
+function canonicalCrop(crop) {
+  if (!isPlainObject(crop) || CROP_SIDES.some((side) => crop[side] !== undefined && !isFraction(crop[side]))) return crop;
+  const sides = Object.fromEntries(CROP_SIDES.map((side) => [side, clamp(/** @type {number} */ (crop[side] ?? 0), LOOK_LIMITS.crop.min, LOOK_LIMITS.crop.max)]));
+  for (const [first, second] of [['top', 'bottom'], ['left', 'right']]) {
+    const sum = sides[first] + sides[second];
+    if (sum > LOOK_LIMITS.cropPair) {
+      sides[first] *= LOOK_LIMITS.cropPair / sum;
+      sides[second] *= LOOK_LIMITS.cropPair / sum;
+    }
+  }
+  return CROP_SIDES.every((side) => sides[side] === 0) ? null : sides;
 }
 
 /** @param {Record<string, unknown>} placement */
@@ -277,6 +356,7 @@ export function validateSceneDoc(raw, { allowEmpty = false } = {}) {
     if (layer.locked !== undefined && typeof layer.locked !== 'boolean') errors.push(`${where}.locked : booléen attendu`);
     if (!isFraction(layer.opacity)) errors.push(`${where}.opacity : nombre attendu`);
     errors.push(...placementErrors(where, layer.placement));
+    errors.push(...lookErrors(where, layer));
     if (!isPlainObject(layer.options)) errors.push(`${where}.options : objet attendu`);
     else errors.push(...validateOptions(layer.kind, layer.options).map((message) => `${where}.options.${message}`));
   });
@@ -300,17 +380,37 @@ function placementErrors(where, placement) {
   return errors;
 }
 
+/** @param {string} where @param {Record<string, unknown>} layer @returns {string[]} */
+function lookErrors(where, layer) {
+  /** @type {string[]} */
+  const errors = [];
+  if (layer.blend !== undefined && !BLEND_MODES.some(({ id }) => id === layer.blend)) errors.push(`${where}.blend : mode de fusion inconnu`);
+  if (layer.rotation !== undefined && !isFraction(layer.rotation)) errors.push(`${where}.rotation : nombre attendu`);
+  if (layer.blur !== undefined && !isFraction(layer.blur)) errors.push(`${where}.blur : nombre attendu`);
+  if (layer.crop === undefined) return errors;
+  const { crop } = layer;
+  if (!isPlainObject(crop)) return [...errors, `${where}.crop : objet attendu`];
+  for (const side of CROP_SIDES) {
+    if (crop[side] !== undefined && !isFraction(crop[side])) errors.push(`${where}.crop.${side} : nombre attendu`);
+  }
+  if (errors.length === 0) {
+    const side = (/** @type {string} */ key) => /** @type {number} */ (crop[key] ?? 0);
+    if (side('top') + side('bottom') >= 1 || side('left') + side('right') >= 1) errors.push(`${where}.crop : deux côtés opposés ne peuvent pas tout rogner`);
+  }
+  return errors;
+}
+
 // ── Chemins adressables ──────────────────────────────────────────────────────
 
-const LAYER_SCALARS = new Set(['name', 'visible', 'locked', 'opacity']);
+const LAYER_SCALARS = new Set(['name', 'visible', 'locked', 'opacity', 'blend', 'rotation', 'blur']);
 const PLACEMENT_KEYS = new Set(['x', 'y', 'width', 'height']);
 
 /**
  * Chemin vers une propriété modifiable : `name`, `layers[<id>].visible`,
- * `layers[<id>].opacity`, `layers[<id>].name`, `layers[<id>].placement.<x|y|width|height>` ou
- * `layers[<id>].options.<clé>`. L'identité (`id`, `kind`) et l'ordre sont structurels : pas de chemin.
+ * `layers[<id>].opacity`, `layers[<id>].name`, `layers[<id>].blend|rotation|blur`, `layers[<id>].crop.<top|right|bottom|left>`,
+ * `layers[<id>].placement.<x|y|width|height>` ou `layers[<id>].options.<clé>`. L'identité (`id`, `kind`) et l'ordre sont structurels : pas de chemin.
  * @param {string} path
- * @returns {{ layerId: string | null, field: 'scene' | 'layer' | 'placement' | 'options', key: string } | null}
+ * @returns {{ layerId: string | null, field: 'scene' | 'layer' | 'placement' | 'crop' | 'options', key: string } | null}
  */
 function parsePath(path) {
   if (path === 'name') return { layerId: null, field: 'scene', key: path };
@@ -321,6 +421,9 @@ function parsePath(path) {
   if (parts.length === 1 && LAYER_SCALARS.has(parts[0])) return { layerId, field: 'layer', key: parts[0] };
   if (parts.length === 2 && parts[0] === 'placement' && PLACEMENT_KEYS.has(parts[1])) {
     return { layerId, field: 'placement', key: parts[1] };
+  }
+  if (parts.length === 2 && parts[0] === 'crop' && /** @type {readonly string[]} */ (CROP_SIDES).includes(parts[1])) {
+    return { layerId, field: 'crop', key: parts[1] };
   }
   if (parts.length === 2 && parts[0] === 'options' && parts[1] !== '' && !FORBIDDEN_KEYS.has(parts[1])) {
     return { layerId, field: 'options', key: parts[1] };
@@ -339,8 +442,8 @@ export function readPath(scene, path) {
   if (target.layerId === null) return { ok: true, value: /** @type {Record<string, unknown>} */ (scene)[target.key] };
   const layer = scene.layers.find(({ id }) => id === target.layerId);
   if (layer === undefined) return { ok: false, error: `couche introuvable : ${target.layerId}` };
-  const holder = target.field === 'layer' ? layer : layer[/** @type {'placement' | 'options'} */ (target.field)];
-  return { ok: true, value: /** @type {Record<string, unknown>} */ (holder)[target.key] };
+  const holder = target.field === 'layer' ? layer : layer[/** @type {'placement' | 'crop' | 'options'} */ (target.field)];
+  return { ok: true, value: /** @type {Record<string, unknown> | undefined} */ (holder)?.[target.key] };
 }
 
 /**
@@ -364,7 +467,7 @@ export function writePath(scene, path, value) {
       layers: scene.layers.map((layer) => {
         if (layer.id !== layerId) return layer;
         if (target.field === 'layer') return { ...layer, [target.key]: value };
-        const field = /** @type {'placement' | 'options'} */ (target.field);
+        const field = /** @type {'placement' | 'crop' | 'options'} */ (target.field);
         return { ...layer, [field]: { ...layer[field], [target.key]: value } };
       }),
     },
