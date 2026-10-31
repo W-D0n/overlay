@@ -44,6 +44,7 @@ export function createAudioSession(deps) {
   let acquiring = false;
   let frameScheduled = false;
 
+  /** @param {string} nextStatus @param {string | null} [nextReason] */
   function publish(nextStatus, nextReason = null) {
     if (status === nextStatus && reason === nextReason) return;
     status = nextStatus;

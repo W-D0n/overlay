@@ -20,12 +20,9 @@ const READABLE_BUNDLE_VERSIONS = [1, 2, 3];
  */
 
 /** @typedef {'created'|'updated'|'unchanged'} BackgroundPresetImportOperation */
-/**
- * @typedef {
- *   {field:'name'|'component'|'tags'|'transition'|'showBranding',before?:unknown,after?:unknown}
- *   | {field:'option',key:string,before?:unknown,after?:unknown}
- * } BackgroundPresetImportDifference
- */
+/** @typedef {{field:'name'|'component'|'tags'|'transition'|'showBranding',before?:unknown,after?:unknown}} BackgroundPresetFieldDifference */
+/** @typedef {{field:'option',key:string,before?:unknown,after?:unknown}} BackgroundPresetOptionDifference */
+/** @typedef {BackgroundPresetFieldDifference|BackgroundPresetOptionDifference} BackgroundPresetImportDifference */
 /** @typedef {{id:string,name:string}} BackgroundPresetImportConflict */
 /**
  * @typedef {object} BackgroundPresetImportChange
@@ -80,20 +77,16 @@ function clonePreset(preset) {
  * @returns {BackgroundPresetImportDifference[]}
  */
 function describeCreatedPreset(preset) {
-  return [
-    { field: 'component', after: preset.component },
-    ...(preset.tags === undefined ? [] : [{ field: 'tags', after: [...preset.tags] }]),
-    ...(preset.transition === undefined ? [] : [{ field: 'transition', after: structuredClone(preset.transition) }]),
-    ...(preset.showBranding === undefined ? [] : [{ field: 'showBranding', after: preset.showBranding }]),
-    ...Object.entries(preset.options).map(([key, after]) => ({
-      field: 'option',
-      key,
-      after: structuredClone(after),
-    })),
-  ];
+  /** @type {BackgroundPresetImportDifference[]} */
+  const differences = [{ field: 'component', after: preset.component }];
+  if (preset.tags !== undefined) differences.push({ field: 'tags', after: [...preset.tags] });
+  if (preset.transition !== undefined) differences.push({ field: 'transition', after: structuredClone(preset.transition) });
+  if (preset.showBranding !== undefined) differences.push({ field: 'showBranding', after: preset.showBranding });
+  for (const [key, after] of Object.entries(preset.options)) differences.push({ field: 'option', key, after: structuredClone(after) });
+  return differences;
 }
 
-/** @param {unknown} left @param {unknown} right */
+/** @param {unknown} left @param {unknown} right @returns {boolean} */
 function samePresetValue(left, right) {
   if (Object.is(left, right)) return true;
   if (Array.isArray(left) || Array.isArray(right)) {
@@ -256,7 +249,7 @@ export function findImportedActivePreset(merged, imported, activeId) {
 function uniqueImportedName(requested, presets, importingId) {
   const conflict = presets.find((preset) => preset.id !== importingId && preset.name === requested);
   if (conflict === undefined) return { name: requested, conflict: null };
-  const isAvailable = (name) => !presets.some((preset) => preset.id !== importingId && preset.name === name);
+  const isAvailable = (/** @type {string} */ name) => !presets.some((preset) => preset.id !== importingId && preset.name === name);
   for (let suffix = 1; ; suffix += 1) {
     const ending = ` — import${suffix === 1 ? '' : ` ${suffix}`}`;
     const candidate = `${requested.slice(0, PRESET_NAME_MAX_LENGTH - ending.length).trimEnd()}${ending}`;
@@ -321,7 +314,7 @@ export function mergeBackgroundPresetImport(existing, imported, reserved = []) {
         [
           ...(name === source.name
             ? []
-            : [{ field: 'name', before: source.name, after: name }]),
+            : /** @type {BackgroundPresetImportDifference[]} */ ([{ field: 'name', before: source.name, after: name }])),
           ...describeCreatedPreset(preset),
         ],
       ));

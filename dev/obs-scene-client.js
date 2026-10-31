@@ -68,6 +68,7 @@ export function createObsSceneClient(deps) {
     }
   }
 
+  /** @param {boolean} connected @param {string | null} [reason] */
   function publish(connected, reason = null) {
     deps.onStatus?.({ connected, reason });
   }

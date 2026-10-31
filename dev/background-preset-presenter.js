@@ -37,8 +37,8 @@ function importOptionLabel(component, key) {
  */
 function formatImportDifference(change, difference) {
   const componentDifference = change.differences.find(({ field }) => field === 'component');
-  const beforeComponent = componentDifference?.before ?? change.component;
-  const afterComponent = componentDifference?.after ?? change.component;
+  const beforeComponent = String(componentDifference?.before ?? change.component);
+  const afterComponent = String(componentDifference?.after ?? change.component);
   const hasBefore = Object.hasOwn(difference, 'before');
   const hasAfter = Object.hasOwn(difference, 'after');
   const label = difference.field === 'name'
@@ -51,7 +51,7 @@ function formatImportDifference(change, difference) {
           ? 'Transition'
           : difference.field === 'showBranding'
             ? 'Branding affiché'
-            : importOptionLabel(hasAfter ? afterComponent : beforeComponent, difference.key);
+            : importOptionLabel(hasAfter ? afterComponent : beforeComponent, difference.field === 'option' ? difference.key : '');
   const before = hasBefore ? formatImportValue(difference.before, difference.field) : null;
   const after = hasAfter ? formatImportValue(difference.after, difference.field) : null;
   if (!hasBefore) return `${label} : ${after}`;
