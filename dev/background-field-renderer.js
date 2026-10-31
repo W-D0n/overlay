@@ -8,6 +8,7 @@ import { buildNumericFieldControl } from './numeric-field-control.js';
 const DEFAULT_ADDED_COLOR = 'var(--color-gold)';
 
 /**
+ * @typedef {{ assets: () => import('./asset-client.js').LibraryAsset[], subscribe: (listener: (assets: import('./asset-client.js').LibraryAsset[]) => void) => () => void, open: (choose: (asset: import('./asset-client.js').LibraryAsset) => void) => void }} AssetLibraryAccess
  * @typedef {import('./color-palette-format.js').NamedColor} PaletteColor
  * @typedef {import('./color-palette-format.js').NamedGradient} PaletteGradient
  */
@@ -38,6 +39,7 @@ export function backgroundFieldValues(component, options) {
  * @param {{
  *   container: HTMLElement,
  *   onChange: (key: string, value: unknown) => void,
+ *   assetLibrary?: AssetLibraryAccess,
  *   documentRef?: Document,
  * }} input
  */
@@ -45,6 +47,8 @@ export function createBackgroundFieldRenderer(input) {
   const documentRef = input.documentRef ?? document;
   /** @type {{ colors: PaletteColor[], gradients: PaletteGradient[] }} */
   let palette = { colors: [], gradients: [] };
+  /** Les abonnements aux listes d'images du formulaire affiché ; relâchés à chaque nouveau formulaire. @type {(() => void)[]} */
+  const assetCleanups = [];
 
   /** @param {string} label @param {string} value @param {boolean} [selected] */
   function createOption(label, value, selected = false) {
@@ -113,6 +117,39 @@ export function createBackgroundFieldRenderer(input) {
 
     reflect(value);
     wrapper.append(picker, text, paletteSelect);
+    return wrapper;
+  }
+
+  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value */
+  function buildAssetField(field, value) {
+    const wrapper = documentRef.createElement('div');
+    wrapper.className = 'asset-field';
+    const select = documentRef.createElement('select');
+    select.setAttribute('aria-label', field.label);
+    let current = typeof value === 'string' ? value : '';
+    /** @param {import('./asset-client.js').LibraryAsset[]} assets */
+    function fill(assets) {
+      select.replaceChildren(createOption('(aucune image)', '', current === ''));
+      for (const asset of assets) select.appendChild(createOption(asset.name, asset.id, asset.id === current));
+      // Une image qui n'est plus dans la médiathèque reste visible comme telle : la choisir à nouveau est possible, la taire ne l'est pas.
+      if (current !== '' && !assets.some((asset) => asset.id === current)) select.appendChild(createOption('(image manquante)', current, true));
+    }
+    fill(input.assetLibrary?.assets() ?? []);
+    select.onchange = () => {
+      current = select.value;
+      input.onChange(field.key, current);
+    };
+    const library = documentRef.createElement('button');
+    library.type = 'button';
+    library.textContent = 'Médiathèque…';
+    library.onclick = () => input.assetLibrary?.open((asset) => {
+      current = asset.id;
+      input.onChange(field.key, current);
+      fill(input.assetLibrary?.assets() ?? []);
+    });
+    const unsubscribe = input.assetLibrary?.subscribe(fill);
+    if (unsubscribe !== undefined) assetCleanups.push(unsubscribe);
+    wrapper.append(select, library);
     return wrapper;
   }
 
@@ -224,6 +261,7 @@ export function createBackgroundFieldRenderer(input) {
       return buildColorControl(value, (next) => input.onChange(field.key, next), field.label);
     }
     if (field.type === 'colors') return buildColorsField(field, value);
+    if (field.type === 'asset') return buildAssetField(field, value);
     if (field.type === 'select') {
       const select = documentRef.createElement('select');
       select.setAttribute('aria-label', field.label);
@@ -277,6 +315,7 @@ export function createBackgroundFieldRenderer(input) {
     },
     /** @param {string | null} component @param {Record<string, unknown>} options */
     render(component, options) {
+      for (const cleanup of assetCleanups.splice(0)) cleanup();
       input.container.replaceChildren();
       for (const { field, value } of backgroundFieldValues(component, options)) {
         const label = documentRef.createElement('label');

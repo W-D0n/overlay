@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { createChannels } from './channels.js';
 import { createHost } from './host.js';
 import { createStateStore } from './state-store.js';
+import { createAssetStore } from './asset-store.js';
 
 /** @type {string[]} */
 const directories = [];
@@ -19,6 +20,7 @@ function setup(overrides = {}) {
   const exits = [];
   const host = createHost({
     store: createStateStore({ path, log: silent }),
+    assets: createAssetStore({ dir: `${path}.assets` }),
     channels,
     obs: { status: () => ({ connected: false, reason: 'not-configured', scenes: [], activeScene: null }), configured: false, inspect: null },
     control: { supervised: true, exit: (code) => exits.push(code) },
@@ -303,6 +305,7 @@ describe('brouillons de presets', () => {
     await context.post('/draft', { presetId: id, state: DRAFT });
     const again = createHost({
       store: createStateStore({ path: context.path, log: silent }),
+      assets: createAssetStore({ dir: `${context.path}.assets` }),
       channels: createChannels(),
       obs: { status: () => ({ connected: false, reason: null, scenes: [], activeScene: null }), configured: false, inspect: null },
       control: { supervised: false, exit() {} },
@@ -470,6 +473,7 @@ describe('scènes à plusieurs couches', () => {
     await first.post('/draft', { presetId: 'pile', scene: STACK() });
     const again = createHost({
       store: createStateStore({ path: first.path, log: silent }),
+      assets: createAssetStore({ dir: `${first.path}.assets` }),
       channels: createChannels(),
       obs: { status: () => ({ connected: false, reason: 'not-configured', scenes: [], activeScene: null }), configured: false, inspect: null },
       control: { supervised: false, exit() {} },

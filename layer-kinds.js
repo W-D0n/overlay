@@ -10,7 +10,8 @@
  *
  * `type` d'un champ : `text` (input texte), `number` (input numérique), `select` (liste, `choices`), `boolean` (case à cocher),
  * `textarea` (une ligne par élément d'un tableau de chaînes), `token` (liste des tokens `tokens.css`
- * d'une catégorie), `color` (picker + couleurs nommées + saisie CSS libre), `colors` (liste dynamique).
+ * d'une catégorie), `color` (picker + couleurs nommées + saisie CSS libre), `colors` (liste dynamique), `asset` (une image de la
+ * médiathèque : son identifiant, ou vide).
  * Aucune logique ici (pattern « configuration hors composant », CLAUDE.md).
  *
  * @typedef {{ audio: boolean, reactions: 'native' | 'overlay' }} LayerCapabilities
@@ -23,7 +24,7 @@
  * @property {string} key - Clé dans `ComponentMount.options`
  * @property {string} label - Libellé affiché
  * @property {string} [description] - Aide courte affichée sous le champ
- * @property {'text'|'number'|'select'|'boolean'|'textarea'|'token'|'color'|'colors'} type
+ * @property {'text'|'number'|'select'|'boolean'|'textarea'|'token'|'color'|'colors'|'asset'} type
  * @property {string[]} [choices] - Valeurs possibles si `type === 'select'`
  * @property {'color'|'border'|'radius'} [tokenCategory] - Catégorie si `type === 'token'`
  * @property {number} [min] - Borne basse si `type === 'number'`
@@ -45,6 +46,9 @@
  * @property {boolean} [content] - Couche de contenu (texte, forme, image) : posée dans la pile avec les effets, elle arrive et part
  *   avec sa scène ; ce n'est pas un effet de fond (absente des listes d'effets, de la charge de test et du banc OBS)
  */
+
+/** Les identifiants d'asset : 32 caractères hexadécimaux (début de l'empreinte SHA-256 du contenu de l'image). */
+export const ASSET_ID_PATTERN = /^[0-9a-f]{32}$/;
 
 /** Familles de police du type `text` : les piles de `tokens.css` et des polices système sûres sous Windows. */
 export const TEXT_FONTS = /** @type {const} */ (['serif', 'sans', 'mono', 'display']);
@@ -433,6 +437,30 @@ const KIND_DEFINITIONS = {
       { key: 'shadowColor', label: 'Couleur de l’ombre', type: 'color', default: '#000000' },
     ],
   },
+  image: {
+    legacyIds: [],
+    label: 'Image',
+    content: true,
+    capabilities: { audio: false, reactions: 'overlay' },
+    fields: [
+      { key: 'asset', label: 'Image', description: 'Une image de la médiathèque ; importez-en une depuis la médiathèque ou en la déposant sur l’aperçu.', type: 'asset', default: '' },
+      {
+        key: 'fit',
+        label: 'Cadrage',
+        description: 'Contenir : toute l’image est visible ; Couvrir : la zone est remplie, l’image est rognée ; Étirer : l’image épouse la zone, déformée.',
+        type: 'select',
+        choices: ['contain', 'cover', 'fill'],
+        default: 'contain',
+      },
+      { key: 'cornerRadius', label: 'Rayon des coins (px)', type: 'number', default: 0 },
+      { key: 'strokeWidth', label: 'Contour (px)', type: 'number', default: 0 },
+      { key: 'strokeColor', label: 'Couleur du contour', type: 'color', default: '#F2F0EC' },
+      { key: 'shadowBlur', label: 'Ombre : flou (px)', type: 'number', default: 0 },
+      { key: 'shadowOffsetX', label: 'Ombre : décalage X (px)', type: 'number', default: 0 },
+      { key: 'shadowOffsetY', label: 'Ombre : décalage Y (px)', type: 'number', default: 6 },
+      { key: 'shadowColor', label: 'Couleur de l’ombre', type: 'color', default: '#000000' },
+    ],
+  },
   'water-ripple': {
     legacyIds: ['WaterRippleBackground'],
     label: 'WaterRipple',
@@ -599,6 +627,8 @@ function fieldTypeError(field, value) {
       return isTextList(value) ? null : 'liste de textes attendue';
     case 'textarea':
       return isTextList(value) ? null : 'liste de lignes attendue';
+    case 'asset':
+      return value === '' || (typeof value === 'string' && ASSET_ID_PATTERN.test(value)) ? null : 'identifiant d’image attendu';
     default:
       return typeof value === 'string' ? null : 'texte attendu';
   }

@@ -50,6 +50,7 @@ const THUMBNAIL_DEBOUNCE_MS = 450;
  *   studio: ReturnType<typeof import('./studio-document.js').createStudioDocument>,
  *   labelOf: (kind: string) => string,
  *   addableKinds: readonly string[],
+ *   pickImage?: () => void,
  *   defaultOptions: (kind: string) => Record<string, unknown>,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   onContextMenu?: (x: number, y: number) => void,
@@ -520,6 +521,12 @@ export function createLayersPanelController(input) {
     label.textContent = labelOf(kind);
     card.append(preview, label);
     card.addEventListener('click', () => {
+      // Une image se choisit dans la médiathèque : la galerie se referme sur elle.
+      if (kind === 'image' && input.pickImage !== undefined) {
+        elements.gallery.close();
+        input.pickImage();
+        return;
+      }
       const result = editor.addLayer({ kind, ...(isIdentityKind(kind) ? {} : { options: input.defaultOptions(kind) }) });
       if (result.ok) {
         elements.galleryStatus.textContent = '';

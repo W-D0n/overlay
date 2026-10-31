@@ -48,6 +48,7 @@ export function createDiagnosticController(input) {
         renderPages: facts.renderPages,
         staticPort: facts.staticPort,
         sceneMap: facts.sceneMap,
+        ...(facts.assetUse === undefined ? {} : { assetUse: facts.assetUse }),
       });
     }
     const alive = await input.client.readObsStatus().then(() => true, () => false);

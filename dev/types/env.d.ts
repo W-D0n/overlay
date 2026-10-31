@@ -20,6 +20,7 @@ declare const Bun: {
 declare const process: {
   env: Record<string, string | undefined>;
   platform: string;
+  pid: number;
   argv: string[];
   exit(code?: number): never;
   on(event: string, listener: (...args: any[]) => void): void;
@@ -29,4 +30,21 @@ declare const process: {
 interface ImportMeta {
   dir: string;
   main: boolean;
+}
+
+declare module 'node:crypto' {
+  export function createHash(algorithm: string): { update(data: Uint8Array | string): { digest(encoding: 'hex'): string } };
+}
+
+declare module 'node:fs/promises' {
+  export function mkdir(path: string, options?: { recursive?: boolean }): Promise<string | undefined>;
+  export function readFile(path: string): Promise<Uint8Array>;
+  export function readFile(path: string, encoding: 'utf8'): Promise<string>;
+  export function rename(from: string, to: string): Promise<void>;
+  export function rm(path: string, options?: { force?: boolean; recursive?: boolean }): Promise<void>;
+  export function writeFile(path: string, data: string | Uint8Array): Promise<void>;
+}
+
+declare module 'node:path' {
+  export function join(...parts: string[]): string;
 }

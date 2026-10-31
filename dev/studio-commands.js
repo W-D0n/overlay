@@ -27,13 +27,14 @@ import { PLACEMENT_PRESETS, alignPlacements, distributePlacements } from './plac
  *   publication: {
  *     publish(): void, discard(): void, showChanges(): void, toggleCompare(): void, testTransition(): void,
  *   },
- *   dialogs: { palette(): void, shortcuts(): void, history(): void, editHistory(): void, diagnostic(): void },
+ *   dialogs: { palette(): void, shortcuts(): void, history(): void, editHistory(): void, diagnostic(): void, library(): void },
+ *   pickImage: () => void,
  *   templates: { open(): void, save(): void },
  *   customCommands: { open(): void, create(): void, startRecording(): void, isRecording(): boolean },
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  * }} deps
  */
-export function createStudioCommands({ studio, clipboard, labelOf, addableKinds, defaultOptions, view, publication, dialogs, templates, customCommands, report }) {
+export function createStudioCommands({ studio, clipboard, labelOf, addableKinds, defaultOptions, view, publication, dialogs, pickImage, templates, customCommands, report }) {
   const registry = createCommandRegistry();
   const { editor } = studio;
 
@@ -99,9 +100,16 @@ export function createStudioCommands({ studio, clipboard, labelOf, addableKinds,
       group: 'Couches',
       keywords: ['nouvelle', 'effet', 'couche'],
       enabled: () => !(isIdentityKind(kind) && layers().some((layer) => layer.kind === kind)),
-      run: () => { settle(editor.addLayer({ kind, ...(isIdentityKind(kind) ? {} : { options: defaultOptions(kind) }) })); },
+      // Une image se choisit dans la médiathèque : la couche naît déjà garnie, à la bonne proportion.
+      run: () => {
+        if (kind === 'image') pickImage();
+        else settle(editor.addLayer({ kind, ...(isIdentityKind(kind) ? {} : { options: defaultOptions(kind) }) }));
+      },
     }]);
   }
+  add([
+    { id: 'assets.library', label: 'Ouvrir la médiathèque…', group: 'Couches', keywords: ['images', 'importer', 'logo', 'affiche', 'assets'], run: () => dialogs.library() },
+  ]);
   add([
     {
       id: 'layer.toggleVisible', label: 'Afficher ou masquer', group: 'Couches', shortcut: 'Ctrl+Maj+H', keywords: ['œil', 'visibilité'], enabled: hasSelection,

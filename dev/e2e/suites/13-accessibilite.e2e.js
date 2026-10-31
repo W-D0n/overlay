@@ -100,6 +100,13 @@ export async function run({ page, stack, check, errors }) {
       await page.press('Escape');
       continue;
     }
+    // « Ajouter : Image » ouvre la médiathèque (le choix de l'image) : on l'audite elle aussi, puis on la ferme ; aucune couche n'a été ajoutée.
+    if (await page.evaluate("document.getElementById('asset-library').open")) {
+      const libraryReport = await page.evaluate(AUDIT);
+      for (const [key, list] of Object.entries(libraryReport)) for (const item of /** @type {string[]} */ (list)) offenders.push(`médiathèque / ${key} : ${item}`);
+      await page.press('Escape');
+      continue;
+    }
     const report = await page.evaluate(AUDIT);
     for (const [key, list] of Object.entries(report)) for (const item of /** @type {string[]} */ (list)) offenders.push(`${label} / ${key} : ${item}`);
     await page.press('Control+z');

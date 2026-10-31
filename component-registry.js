@@ -23,6 +23,7 @@ import { WaterRippleBackground } from './components/WaterRippleBackground.js';
 import { BrandingSceneLayer } from './components/BrandingSceneLayer.js';
 import { TextLayer } from './components/TextLayer.js';
 import { ShapeLayer } from './components/ShapeLayer.js';
+import { ImageLayer } from './components/ImageLayer.js';
 
 /**
  * Les factories ont des signatures hétérogènes ; le registry expose la vue unifiée
@@ -45,5 +46,6 @@ export const COMPONENT_REGISTRY = ({
   branding: BrandingSceneLayer,
   text: TextLayer,
   shape: ShapeLayer,
+  image: ImageLayer,
 });
 

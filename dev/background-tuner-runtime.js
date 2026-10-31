@@ -30,6 +30,12 @@ import { createCustomCommandsController } from './custom-commands-controller.js'
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 import { isIdentityKind } from '../layer-kinds.js';
 import { ADDABLE_KIND_IDS, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
+import { createAssetClient } from './asset-client.js';
+import { collectAssetUsage } from './asset-format.js';
+import { createAssetLibraryController } from './asset-library-controller.js';
+import { assetUrl } from '../components/asset-image.js';
+import { placementForImage } from '../components/image-fit.js';
+import { RENDER_REFERENCE } from '../render-reference.js';
 import { createPresetDraftSync } from './preset-draft-sync.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
@@ -104,9 +110,28 @@ export async function startBackgroundTuner(environment = {}) {
   await settings.load();
   const syncIndicator = createSettingsSyncIndicator({ element: byId('settings-sync'), source: settings });
   windowRef.addEventListener('pagehide', () => { settings.flush(); });
+  const library = createAssetLibraryController({
+    elements: {
+      dialog: /** @type {HTMLDialogElement} */ (byId('asset-library')),
+      grid: byId('asset-grid'),
+      status: byId('asset-status'),
+      importButton: /** @type {HTMLButtonElement} */ (byId('asset-import')),
+      fileInput: /** @type {HTMLInputElement} */ (byId('asset-file')),
+      close: /** @type {HTMLButtonElement} */ (byId('asset-library-close')),
+      hint: byId('asset-library-hint'),
+    },
+    client: createAssetClient({ baseUrl: STATE_SERVER }),
+    urlOf: assetUrl,
+    // Les images des couches de la scène en cours d'édition : le serveur ne les connaît qu'une fois publiées.
+    usedHere: () => collectAssetUsage(preview.document.state().scene),
+    report,
+    documentRef,
+  });
+  void library.refresh();
   /** @type {ReturnType<typeof createPresetDraftSync> | null} */
   let drafts = null;
   const preview = createBackgroundPreviewController({
+    assetLibrary: { assets: library.assets, subscribe: library.subscribe, open: (choose) => { void library.open({ choose }); } },
     layer: byId('bg-layer'),
     effectSelect: byId('effect-select'),
     fields: byId('fields'),
@@ -135,6 +160,30 @@ export async function startBackgroundTuner(environment = {}) {
     onError: report.error,
   });
 
+  /** Pose une image de la médiathèque dans la scène : à sa proportion, centrée, dans 80 % de la toile au plus. @param {import('./asset-format.js').AssetMeta} asset */
+  function addImageLayer(asset) {
+    const result = preview.editor.addLayer({ kind: 'image', options: { ...defaultBackgroundOptions('image'), asset: asset.id }, placement: placementForImage(asset, RENDER_REFERENCE) });
+    if (!result.ok) report.error(result.message);
+  }
+  const pickImage = () => { void library.open({ choose: addImageLayer }); };
+
+  // Déposer des images sur l'aperçu les importe et en fait des couches.
+  const dropZone = byId('stage-area');
+  /** @param {DragEvent} event */
+  const carriesFiles = (event) => [...(event.dataTransfer?.types ?? [])].includes('Files');
+  dropZone.addEventListener('dragover', (event) => {
+    if (!carriesFiles(event)) return;
+    event.preventDefault();
+    dropZone.classList.add('is-dropping');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('is-dropping'));
+  dropZone.addEventListener('drop', (event) => {
+    if (!carriesFiles(event)) return;
+    event.preventDefault();
+    dropZone.classList.remove('is-dropping');
+    void library.importFiles([...(event.dataTransfer?.files ?? [])]).then((assets) => { for (const asset of assets) addImageLayer(asset); });
+  });
+
   /** @type {ReturnType<typeof createContextMenuController> | null} */
   let contextMenu = null;
   const layersPanel = createLayersPanelController({
@@ -160,6 +209,7 @@ export async function startBackgroundTuner(environment = {}) {
     studio: preview.document,
     labelOf: backgroundEffectLabel,
     addableKinds: ADDABLE_KIND_IDS,
+    pickImage,
     defaultOptions: defaultBackgroundOptions,
     report,
     onContextMenu: (x, y) => contextMenu?.open(x, y),
@@ -335,7 +385,9 @@ export async function startBackgroundTuner(environment = {}) {
       history: () => byId('history-open').click(),
       editHistory: () => editHistory.open(),
       diagnostic: () => byId('diagnostic-open').click(),
+      library: () => { void library.open(); },
     },
+    pickImage,
     templates: { open: () => templates.open(), save: () => templates.save() },
     customCommands: {
       open: () => customCommands?.open(),

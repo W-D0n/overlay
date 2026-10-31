@@ -42,6 +42,7 @@ export function targetLayer(scene, selection) {
  *   presetSave: HTMLButtonElement,
  *   runtimeStatus: HTMLElement,
  *   effectTarget?: HTMLElement,
+ *   assetLibrary?: import('./background-field-renderer.js').AssetLibraryAccess,
  *   onDraftChange?: (isDraft: boolean) => void,
  *   onEdited?: () => void,
  *   onAudioStateChange?: (state: *) => void,
@@ -103,6 +104,7 @@ export function createBackgroundPreviewController(input) {
   const fieldRenderer = createBackgroundFieldRenderer({
     container: input.fields,
     documentRef,
+    ...(input.assetLibrary === undefined ? {} : { assetLibrary: input.assetLibrary }),
     onChange(key, value) {
       const target = targetLayer(editor.state().scene, editor.state().selection);
       if (target === null) return;

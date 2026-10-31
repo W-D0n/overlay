@@ -79,7 +79,7 @@
     .layers-add { padding: 0 var(--space-sm); border-color: var(--color-gold-dim); color: var(--color-gold); }
     .layer-button:hover:not(:disabled), .layers-add:hover:not(:disabled) { border-color: var(--color-gold); color: var(--color-gold); }
     .layer-button:disabled, .layers-add:disabled { opacity: .35; cursor: default; }
-    .layer-button:focus-visible, .layers-add:focus-visible, .layers-list:focus-visible, .gallery-card:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
+    .layer-button:focus-visible, .layers-add:focus-visible, .layers-list:focus-visible, .gallery-card:focus-visible, #asset-library button:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
     .layer-button[aria-pressed="true"] { color: var(--color-gold); }
     .layer-button.is-on { color: var(--color-gold); border-color: var(--color-gold-dim); }
     .layers-meter { height: 3px; background: var(--color-rule); margin: var(--space-xs) 0 var(--space-sm); }
@@ -235,6 +235,21 @@
     .macro-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-danger); animation: macro-pulse 1.2s infinite; }
     .macro-steps { color: var(--color-text-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40vw; }
     @keyframes macro-pulse { 50% { opacity: .35; } }
+    #asset-library { max-width: min(860px, 94vw); }
+    .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-sm); padding: var(--space-md); overflow-y: auto; }
+    .asset-card { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
+    .asset-thumb { width: 100%; height: 100px; object-fit: contain; background: repeating-conic-gradient(var(--color-bg) 0% 25%, var(--color-bg-panel) 0% 50%) 0 0 / 16px 16px; }
+    .asset-name { font-size: var(--text-xs); color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .asset-info { font-size: var(--text-xs); color: var(--color-text-dim); }
+    .asset-actions { display: flex; gap: var(--space-xs); }
+    .asset-actions button { flex: 1; padding: 2px var(--space-sm); }
+    .asset-use { color: var(--color-gold); border-color: var(--color-gold); }
+    #asset-library .hint { padding: var(--space-md); margin: 0; }
+    #asset-status { min-height: 1em; }
+    #asset-status[data-level="info"] { color: var(--color-text-mid); }
+    #asset-library.is-dropping, #stage-area.is-dropping { outline: 2px dashed var(--color-gold); outline-offset: -4px; }
+    .asset-field { display: flex; gap: var(--space-xs); align-items: center; }
+    .asset-field select { flex: 1; min-width: 0; }
     #layer-gallery { max-width: min(720px, 92vw); }
     .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: var(--space-sm); padding: var(--space-md); }
     .gallery-card { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); color: var(--color-text-primary); cursor: pointer; text-align: left; }
@@ -868,6 +883,20 @@
     </div>
     <div id="gallery-grid" class="gallery-grid"></div>
     <p id="gallery-status" class="gallery-status" role="status" aria-live="polite"></p>
+  </dialog>
+
+  <dialog id="asset-library" class="diagnostic" aria-labelledby="asset-library-title">
+    <div class="diagnostic-bar">
+      <h2 id="asset-library-title">Médiathèque</h2>
+      <div class="diagnostic-actions">
+        <button id="asset-import" type="button">Importer des images…</button>
+        <button id="asset-library-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <input id="asset-file" aria-label="Choisir des images à importer" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
+    <p id="asset-library-hint" class="hint">Aucune image pour l’instant. Importez des images (PNG, JPEG, GIF, WebP) ou glissez-les ici ; elles restent sur cet ordinateur.</p>
+    <div id="asset-grid" class="asset-grid"></div>
+    <p id="asset-status" class="gallery-status" role="status" aria-live="polite"></p>
   </dialog>
 
   <main class="studio-zones">

@@ -24,7 +24,7 @@ export async function run({ page, stack, check, errors }) {
 
   let [corner, center] = await pixels([[0.02, 0.02], [0.5, 0.5]]);
   check('un rectangle plein remplit la zone, coins compris, de la couleur réglée (or)', corner[3] > 200 && center[3] > 200 && Math.abs(center[0] - 200) < 6 && Math.abs(center[1] - 185) < 6 && Math.abs(center[2] - 122) < 6);
-  check('le sélecteur de type d’une forme ne propose que des contenus', (await page.evaluate("[...document.querySelectorAll('#effect-select option')].map((o) => o.value).join()")) === '__none__,text,shape');
+  check('le sélecteur de type d’une forme ne propose que des contenus', (await page.evaluate("[...document.querySelectorAll('#effect-select option')].map((o) => o.value).join()")) === '__none__,text,shape,image');
 
   const selects = await page.evaluate("[...document.querySelectorAll('#fields select')].map((s) => [...s.options].map((o) => o.value).join('|'))");
   check('le formulaire propose les formes et les remplissages', selects.some((/** @type {string} */ s) => s === 'rectangle|ellipse|triangle|diamond|line') && selects.some((/** @type {string} */ s) => s === 'solid|gradient|none'));

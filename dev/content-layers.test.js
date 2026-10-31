@@ -91,3 +91,31 @@ describe('la forme comme contenu', () => {
     expect(editor.setOptions(id, { cornerRadius: 'rond' }).ok).toBe(false);
   });
 });
+
+describe('l’image comme contenu', () => {
+  const ID = 'd'.repeat(32);
+
+  test('l’image est proposée avec les contenus, avant le branding', () => {
+    const kinds = [...ADDABLE_KIND_IDS];
+    expect(kinds.indexOf('image')).toBeGreaterThan(kinds.indexOf('water-ripple'));
+    expect(kinds.indexOf('image')).toBeLessThan(kinds.indexOf('branding'));
+  });
+
+  test('une couche image garde son asset, ses réglages, son placement ; un identifiant d’image doit être vide ou valide', () => {
+    const editor = createSceneEditor({ scene: scene([]) });
+    expect(editor.addLayer({ kind: 'image', options: { ...defaultBackgroundOptions('image'), asset: ID }, placement: { x: 0.25, y: 0.25, width: 0.5, height: 0.5 } }).ok).toBe(true);
+    const id = editor.state().scene.layers[0].id;
+    expect(editor.state().scene.layers[0].options.asset).toBe(ID);
+    expect(editor.setOptions(id, { asset: '' }).ok).toBe(true);
+    expect(editor.setOptions(id, { asset: '../../etc/passwd' }).ok).toBe(false);
+    expect(editor.setOptions(id, { asset: 'D'.repeat(32) }).ok).toBe(false);
+    expect(editor.setOptions(id, { asset: 42 }).ok).toBe(false);
+    expect(editor.setOptions(id, { fit: 'cover', cornerRadius: 24 }).ok).toBe(true);
+  });
+
+  test('une image devient un texte ou une forme (même famille), jamais un effet', () => {
+    const editor = createSceneEditor({ scene: scene([createLayer({ id: 'i', kind: 'image', options: defaultBackgroundOptions('image') })]) });
+    expect(editor.setLayerKind('i', 'rain', {})).toMatchObject({ ok: false });
+    expect(editor.setLayerKind('i', 'shape', defaultBackgroundOptions('shape')).ok).toBe(true);
+  });
+});

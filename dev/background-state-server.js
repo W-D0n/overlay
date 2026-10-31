@@ -14,6 +14,7 @@
  * Lancement : `bun dev/background-state-server.js`
  */
 import { createStateStore } from './state-store.js';
+import { createAssetStore } from './asset-store.js';
 import { createChannels } from './channels.js';
 import { createHost } from './host.js';
 import { LOOPBACK_HOST } from './local-access-policy.js';
@@ -26,6 +27,8 @@ const PORT = Number(process.env.BACKGROUND_STATE_PORT ?? BACKGROUND_STATE_PORT);
 const OBS_WS_URL = process.env.OBS_WS_URL ?? 'ws://127.0.0.1:4455';
 const OBS_WS_PASSWORD = process.env.OBS_WS_PASSWORD ?? '';
 const STATE_FILE = process.env.BACKGROUND_STATE_FILE ?? `${import.meta.dir}/data/background-state.json`;
+/** Les images importées vivent à côté du fichier d'état : un état de test (`BACKGROUND_STATE_FILE`) a ses propres images. */
+const ASSETS_DIR = process.env.BACKGROUND_ASSETS_DIR ?? `${STATE_FILE}.assets`;
 
 /** @type {import('./host.js').ObsStatus} */
 const obsStatus = { connected: false, reason: null, scenes: [], activeScene: null };
@@ -35,6 +38,7 @@ let obsClient = null;
 
 const host = createHost({
   store: createStateStore({ path: STATE_FILE }),
+  assets: createAssetStore({ dir: ASSETS_DIR }),
   channels: createChannels(),
   obs: {
     status: () => obsStatus,

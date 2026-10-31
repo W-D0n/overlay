@@ -144,3 +144,23 @@ describe('diagnosticSummary', () => {
     expect(outdatedServerChecks()[0].fix).toContain('Redémarre');
   });
 });
+
+describe('images des scènes', () => {
+  test('sans image utilisée, ou d’un serveur qui ne sait pas le dire, aucune ligne', () => {
+    expect(check(diagnose({ ...HEALTHY }), 'images')).toBeUndefined();
+    expect(check(diagnose({ ...HEALTHY, assetUse: { referenced: 0, missing: 0 } }), 'images')).toBeUndefined();
+  });
+
+  test('des images toutes présentes : ok, avec leur nombre', () => {
+    const images = check(diagnose({ ...HEALTHY, assetUse: { referenced: 3, missing: 0 } }), 'images');
+    expect(images).toMatchObject({ tone: 'ok', short: '3' });
+  });
+
+  test('une image manquante est une erreur, avec la marche à suivre', () => {
+    const images = check(diagnose({ ...HEALTHY, assetUse: { referenced: 3, missing: 1 } }), 'images');
+    expect(images.tone).toBe('bad');
+    expect(images.short).toBe('1 manquante');
+    expect(images.fix).toContain('Importez');
+    expect(check(diagnose({ ...HEALTHY, assetUse: { referenced: 3, missing: 2 } }), 'images').short).toBe('2 manquantes');
+  });
+});

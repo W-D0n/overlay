@@ -38,7 +38,7 @@ export async function run({ page, stack, check, errors }) {
   check('le titre par défaut tient dans la toile, centré', text.left > 0 && text.right < text.width && Math.abs((text.left + text.right) / 2 - text.width / 2) < text.width * 0.03);
 
   const typeOptions = await page.evaluate("[...document.querySelectorAll('#effect-select option')].map((o) => o.value)");
-  check('le sélecteur de type d’une couche texte ne propose que des contenus', typeOptions.join() === '__none__,text,shape');
+  check('le sélecteur de type d’une couche texte ne propose que des contenus', typeOptions.join() === '__none__,text,shape,image');
   check('les réglages du texte sont un formulaire généré', (await page.evaluate("document.querySelectorAll('#fields textarea').length")) >= 1);
 
   await page.fill('#fields textarea', 'Bonsoir tout le monde');

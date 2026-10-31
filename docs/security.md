@@ -1,6 +1,6 @@
 ---
 created: 2026-07-03
-updated: 2026-10-29
+updated: 2026-10-31
 ---
 
 # Sécurité — Overlay Stream
@@ -16,9 +16,10 @@ lecture seule). Le relais et son authentification par jeton sont archivés avec 
 | Fichiers servis | Liste blanche : `components/`, `dev/` (hors `dev/data/`) et fichiers racine `html/js/css/json/png/svg/ico/woff2`. Dotfiles, `docs/`, `src-tauri/`, état persisté : 404. |
 | Pages web tierces | Toute requête (HTTP ou WebSocket) dont l'`Origin` n'est pas locale reçoit 403 ; un `Host` non local aussi (anti DNS rebinding). |
 | API d'état | Pas d'authentification : l'accès est réservé à la machine. Les entrées sont validées (`background-state-format.js`) avant écriture. |
+| Images importées | `POST /assets` : le type est reconnu à l'en-tête du fichier (PNG, JPEG, GIF, WebP), jamais au nom ni au `Content-Type` du client ; **SVG refusé** (scripts et références externes) ; 15 Mo et 25 millions de pixels au plus, dimensions lues sans décoder ; identifiant = empreinte du contenu (aucun chemin n'est jamais construit depuis une entrée) ; servies avec `X-Content-Type-Options: nosniff`. Elles vivent à côté du fichier d'état, dans `dev/data/`, que le serveur statique ne sert pas. |
 | OBS WebSocket | Client en lecture seule (scène active, liste des scènes). Le mot de passe vient de `.env` (ignoré par git), jamais servi ni journalisé. |
 
-Tests : `dev/local-access-policy.test.js`, `dev/background-state-server.test.js` (Origin étrangère refusée).
+Tests : `dev/local-access-policy.test.js`, `dev/background-state-server.test.js` (Origin étrangère refusée), `dev/asset-format.test.js`, `dev/asset-routes.test.js` (faux fichier, fichier trop lourd, identifiant en forme de chemin, origine étrangère).
 
 ## Règles d'exploitation
 

@@ -46,6 +46,7 @@ function quoted(names) {
  *   renderPages: number | null,
  *   staticPort: number,
  *   sceneMap: Record<string, string>,
+ *   assetUse?: { referenced: number, missing: number },
  * }} input
  * @returns {Check[]}
  */
@@ -73,6 +74,8 @@ export function diagnose(input) {
   }
   checks.push(renderCheck(input, inspection));
   checks.push(mappingCheck(input));
+  const images = imagesCheck(input);
+  if (images !== null) checks.push(images);
   return checks;
 }
 
@@ -151,6 +154,21 @@ function renderCheck({ renderPages, obs, staticPort }, inspection) {
     return { id: 'render', label, tone: 'off', short: 'aucune', detail: 'Aucune page connectée, ce qui est normal : la scène active n’affiche pas le fond.', fix: null };
   }
   return { id: 'render', label, tone: 'warn', short: 'aucune', detail: 'Aucune page de rendu n’est connectée.', fix: 'Dans OBS, propriétés de la source navigateur > « Actualiser le cache de la page actuelle ».' };
+}
+
+/**
+ * Les images que les scènes utilisent : l'une manque dans la médiathèque (supprimée à la main, dossier copié sans elle) et la
+ * couche concernée n'afficherait rien à l'antenne. Sans image utilisée, ou d'un serveur qui ne sait pas le dire, aucune ligne.
+ * @param {{ assetUse?: { referenced: number, missing: number } }} input
+ * @returns {Check | null}
+ */
+function imagesCheck({ assetUse }) {
+  const label = 'Images des scènes';
+  if (assetUse === undefined || assetUse.referenced === 0) return null;
+  if (assetUse.missing > 0) {
+    return { id: 'images', label, tone: 'bad', short: `${assetUse.missing} manquante${assetUse.missing > 1 ? 's' : ''}`, detail: `${assetUse.missing} image${assetUse.missing > 1 ? 's' : ''} utilisée${assetUse.missing > 1 ? 's' : ''} par les scènes ne sont plus dans la médiathèque : les couches concernées n’affichent rien.`, fix: 'Importez à nouveau ces images dans la médiathèque, puis choisissez-les dans les couches « (image manquante) ».' };
+  }
+  return { id: 'images', label, tone: 'ok', short: String(assetUse.referenced), detail: `${assetUse.referenced} image${assetUse.referenced > 1 ? 's' : ''} utilisée${assetUse.referenced > 1 ? 's' : ''} par les scènes, toutes présentes dans la médiathèque.`, fix: null };
 }
 
 /** @param {{ obs: ObsState | null, sceneMap: Record<string, string> }} input @returns {Check} */

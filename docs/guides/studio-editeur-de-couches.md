@@ -37,6 +37,20 @@ texte **rétrécit pour tenir dans la zone de sa couche** (réglage « Ajustemen
 redimensionnez la couche comme n'importe quelle autre. Un contenu arrive et part avec sa scène, contrairement au branding qui
 reste en place d'une scène à l'autre.
 
+### La médiathèque et les images
+
+Le contenu **Image** pose un logo, une affiche, une photo. Ses images sont rangées dans la **médiathèque** (fenêtre ouverte par
+« Image » dans le bouton Ajouter, par la palette `Ctrl+K` → « Ouvrir la médiathèque », ou par le bouton « Médiathèque… » du réglage
+d'une couche image). Importez des PNG, JPEG, GIF ou WebP avec « Importer des images… » ou en les **glissant sur l'aperçu** : chaque
+image devient une couche, à sa proportion, centrée. Une même image importée deux fois n'est gardée qu'une fois. Les images restent
+sur votre ordinateur, à côté du fichier d'état.
+
+- Limites : 15 Mo et 25 millions de pixels par image ; le SVG n'est pas accepté. Un fichier qui n'est pas vraiment une image est refusé,
+  quel que soit son nom.
+- Le réglage **Cadrage** choisit entre contenir (toute l'image), couvrir (la zone est remplie, l'image est rognée) et étirer.
+- Une image **utilisée** par une scène ne se supprime pas : retirez-la d'abord des couches. Si une image manque (dossier copié sans
+  elle), le diagnostic le signale et la couche affiche « (image manquante) » : importez-la à nouveau et choisissez-la.
+
 ## 2. Régler une couche
 
 Sélectionnez une couche : le panneau de droite montre son **opacité**, son **rendu**, sa **position et sa taille** et les

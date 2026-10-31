@@ -23,3 +23,6 @@ export const STATIC_PORT = 5931;
 
 /** Port du serveur d'état du fond (`dev/background-state-server.js`). */
 export const BACKGROUND_STATE_PORT = 5932;
+
+/** Adresse du serveur d'état vue d'une page du navigateur (aperçu, rendu OBS) : état, médiathèque d'images. */
+export const STATE_SERVER_URL = `http://localhost:${BACKGROUND_STATE_PORT}`;

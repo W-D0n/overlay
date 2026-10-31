@@ -25,6 +25,7 @@
  *   GET  /studio-settings — `{ customCommands, preferences, templates }` : les réglages du Studio qui suivent l'utilisateur.
  *   POST /studio-settings — `{ customCommands?, preferences?, templates? }`, commandes et modèles remplacés en bloc, préférences fusionnées
  *                          (`null` retire une clé) ; diffusé sur le canal `studio`.
+ *   GET|POST /assets, GET|DELETE /assets/<id> — la médiathèque d'images (voir `dev/asset-routes.js`).
  *   POST /control/restart | /control/stop — demande au lanceur de relancer ou d'arrêter les serveurs.
  *   GET  /obs-status, /live-status, /diagnostics — état d'OBS, pages de rendu, faits du diagnostic.
  *   WS   /state-ws, /presets-ws, /event-ws, /branding-ws, /studio-ws — voir `dev/channels.js`.
@@ -47,12 +48,15 @@ import { validateBranding } from '../branding-format.js';
 import { validateBenchReport } from './obs-bench.js';
 import { applySettingsPatch, normalizeStudioSettings, validateSettingsPatch } from './studio-settings.js';
 import { errorMessage } from './error-message.js';
+import { createAssetRoutes } from './asset-routes.js';
+import { collectAssetUsage } from './asset-format.js';
 
 /**
  * @typedef {import('./background-state-format.js').BackgroundFile} BackgroundFile
  * @typedef {{ connected: boolean, reason: string | null, scenes: string[], activeScene: string | null }} ObsStatus
  * @typedef {{
  *   store: ReturnType<typeof import('./state-store.js').createStateStore>,
+ *   assets: ReturnType<typeof import('./asset-store.js').createAssetStore>,
  *   channels: ReturnType<typeof import('./channels.js').createChannels>,
  *   obs: { status: () => ObsStatus, configured: boolean, inspect: (() => Promise<import('./obs-inspector.js').ObsInspection>) | null },
  *   control: { supervised: boolean, exit: (code: number) => void },
@@ -65,7 +69,7 @@ import { errorMessage } from './error-message.js';
 /**
  * @param {HostDeps} deps
  */
-export function createHost({ store, channels, obs, control, staticPort, now = () => new Date().toISOString(), log = console }) {
+export function createHost({ store, assets, channels, obs, control, staticPort, now = () => new Date().toISOString(), log = console }) {
   /**
    * Lecture + transformation + écriture. `decide` rend soit une Response d'erreur, soit le fichier à persister.
    * @param {(file: BackgroundFile) => Response | BackgroundFile} decide
@@ -310,6 +314,20 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
   }
 
   /**
+   * Les images que les scènes utilisent (l'historique n'affiche rien à l'antenne : il ne compte pas) et combien manquent dans la
+   * médiathèque.
+   * @param {Awaited<ReturnType<typeof store.read>>} read
+   * @returns {Promise<{ referenced: number, missing: number }>}
+   */
+  async function readAssetUse(read) {
+    if (!read.ok) return { referenced: 0, missing: 0 };
+    const { history: _history, ...live } = /** @type {Record<string, unknown>} */ (read.file);
+    const referenced = [...collectAssetUsage(live).keys()];
+    const present = new Set((await assets.list().catch(() => [])).map((asset) => asset.id));
+    return { referenced: referenced.length, missing: referenced.filter((id) => !present.has(id)).length };
+  }
+
+  /**
    * GET /diagnostics — les faits dont le Studio tire son diagnostic (`dev/diagnostics.js`) : état d'OBS, photographie
    * de ses sources navigateur et scènes (lecture seule), pages de rendu, table scène → preset. À la demande, jamais en
    * boucle : l'inspection fait plusieurs requêtes à OBS.
@@ -334,6 +352,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
       renderPages: channels.count('state', 'render'),
       sceneMap: read.ok ? readSceneMap(read.file) : {},
       staticPort,
+      assetUse: await readAssetUse(read),
     }, { headers: CORS_HEADERS });
   }
 
@@ -406,6 +425,8 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
     });
   }
 
+  const assetRoutes = createAssetRoutes({ assets, store, log });
+
   return {
     applySceneMapping,
 
@@ -421,6 +442,8 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
       const url = new URL(req.url);
 
       if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
+
+      if (assetRoutes.handles(url.pathname)) return assetRoutes.handle(req, url);
 
       const channel = channelForPath(url.pathname);
       if (channel !== null) {

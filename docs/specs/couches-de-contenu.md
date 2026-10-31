@@ -5,7 +5,7 @@ updated: 2026-10-31
 
 # Spec — Couches de contenu (texte, forme, image)
 
-Statut : **en cours** (texte et forme livrés, image et assets à suivre). Fait suite à l'audit produit du 2026-10-31 : le Studio n'avait que
+Statut : **livré pour le texte, la forme et l'image** ; reste l'export avec images et les polices importées (§6). Fait suite à l'audit produit du 2026-10-31 : le Studio n'avait que
 11 effets de fond et le branding, aucun moyen de poser un titre, un cadre, un logo ou une affiche. Cadrage d'origine :
 `studio-cadrage.md` (gestion d'assets, sources de données). Étape 6 de `scene-doc-etape-6.md` : le modèle de couche (placement,
 opacité, rendu étendu 6d, historique, gestes, modèles) est réutilisé tel quel.
@@ -51,11 +51,44 @@ dépasse jamais la moitié du plus petit côté ; un contour plus épais que la 
 le dégradé couvre exactement la zone, du coin au coin opposé, quel que soit l'angle ; une ligne prend la couleur et l'épaisseur du contour.
 Les options valides partagent `components/kind-options.js` avec le texte (défauts, types et bornes lus du schéma : aucune table à tenir).
 
-## 4. Image et assets (à venir)
+## 4. Image et médiathèque (livrées)
 
-Magasin d'assets adressé par contenu (empreinte), servi par le serveur d'état, avec import, médiathèque dans le Studio, limites de
-type et de taille, nettoyage des assets non référencés ; type `image` (ajustement contenir / couvrir / étirer, état de chargement
-qui ne perturbe pas l'image à l'antenne) ; polices importées pour le texte.
+**Magasin** (`dev/asset-store.js`, format et limites dans `dev/asset-format.js`, routes dans `dev/asset-routes.js`) : les images sont des
+fichiers adressés par le début de l'empreinte SHA-256 de leur contenu, dans `<fichier d'état>.assets/`, avec un index lisible.
+Importer deux fois la même image donne le même asset ; le contenu d'un identifiant ne change jamais, donc il est servi avec un
+cache sans limite. Écritures par fichier temporaire renommé, sérialisées ; un index illisible n'est jamais écrasé en silence.
+
+| Route | Rôle |
+|---|---|
+| `GET /assets` | la liste, avec le nombre d'usages de chaque image dans le fichier d'état |
+| `POST /assets?name=` | importe (corps = le fichier) : 201, 400 si ce n'est pas une image acceptée, 413 si trop lourde |
+| `GET /assets/<id>` | sert le fichier (type reconnu, `immutable`, accès entre origines pour que le canvas reste lisible) |
+| `DELETE /assets/<id>` | refusé (409) tant qu'une scène, un brouillon ou l'historique de publication la référence |
+
+**Limites devenues fonctions :**
+- Un fichier renommé ou mal déclaré n'est pas une image : le type vient de l'en-tête (PNG, JPEG, GIF, WebP) ; le SVG est refusé.
+- Une image démesurée est refusée **avant** d'être décodée (dimensions lues dans l'en-tête ; 25 millions de pixels au plus) : une image de
+  100 000 × 100 000 px ne peut pas figer OBS.
+- Une image supprimée alors qu'une scène la montre : impossible (serveur : usages dans le fichier ; Studio : usages dans la scène en
+  cours d'édition, que le serveur ne connaît pas encore). Si elle manque quand même (dossier copié sans elle), le **diagnostic**
+  (`Images des scènes`) le dit et le formulaire de la couche affiche « (image manquante) ».
+- Une image qui ne se charge pas n'affiche rien (jamais l'ancienne), avec un avertissement ; pendant le chargement d'une autre image,
+  l'ancienne reste affichée : pas de trou à l'antenne.
+- Une image déposée arrive **à sa proportion**, à sa taille naturelle, ramenée à 80 % de la toile au plus, centrée (`placementForImage`).
+
+**Studio :** médiathèque (`dev/asset-library-controller.js`, fenêtre `#asset-library`) : import par bouton, plusieurs fichiers à la fois,
+ou glisser-déposer ; cartes avec miniature, nom, dimensions, poids, usages ; suppression en deux pressions. « Image » dans la
+galerie d'ajout (ou la palette) ouvre la médiathèque en mode choix. Déposer des fichiers sur l'aperçu les importe et en fait des
+couches. Le formulaire d'une couche image liste les images (« Médiathèque… » pour en importer).
+
+**Type `image` :** cadrage contenir / couvrir (rogné, centré) / étirer (`components/image-fit.js`), coins arrondis (l'image est
+découpée), contour (dans la zone), ombre (celle de l'image, ou de sa forme si les coins sont arrondis). Chargement partagé et mis en
+cache par identifiant (`components/asset-image.js`), `crossOrigin` anonyme.
+
+Vérifié : `dev/asset-format.test.js`, `dev/asset-store.test.js`, `dev/asset-routes.test.js`, `dev/asset-client.test.js`,
+`components/ImageLayer.test.js`, `components/image-fit.test.js`, `dev/diagnostics.test.js` ; essai `23-mediatheque-image.e2e.js`
+(import, doublon, faux fichier, couleurs lues dans les pixels, cadrages, dépôt sur l'aperçu, suppression refusée, publication,
+rechargement). 27 mutations vues rouges (dont celle de la garde d'usage du Studio dans l'essai).
 
 ## 5. Vérification
 
@@ -66,3 +99,9 @@ mise en page de l'essai ont été vues rouges.
 Forme : `components/shape-geometry.test.js`, `components/ShapeLayer.test.js`, `dev/content-layers.test.js` ; essai
 `dev/e2e/suites/22-couche-forme.e2e.js` (couleurs lues dans les pixels : coins transparents d'une ellipse et d'un losange, dégradé,
 zone 30 % × 10 %). 10 mutations unitaires et 1 de l'essai vues rouges.
+
+## 6. Reste
+
+- **Export / import de scènes avec leurs images** : un lot v3 n'embarque pas les images ; importé ailleurs, il donnerait des
+  « images manquantes » (signalées par le diagnostic). À faire : lot v4 qui emporte les images (§ suivant).
+- **Polices importées** pour le texte (même magasin, type `font`).
