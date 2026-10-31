@@ -205,3 +205,148 @@ describe('liaisons dans le moteur : des liaisons modifiées repartent de zéro',
     expect(calques[0].style.transform).toBe('');
   });
 });
+
+describe('timeline dans le moteur', () => {
+  const fade = { target: 'opacity', keys: [{ t: 0, v: 0, ease: 'linear' }, { t: 1000, v: 1, ease: 'linear' }] };
+  const sceneWith = (extra, ...layers) => ({ version: 1, id: 's', name: 'S', layers, ...extra });
+
+  test('l’horloge ne tourne que si une couche a des images clés', () => {
+    const { runtime, listeners } = setup();
+    runtime.apply(scene(text()));
+    expect(listeners.size).toBe(0);
+    runtime.apply(scene(text({ timeline: [{ target: 'opacity', keys: [] }] })));
+    expect(listeners.size).toBe(0);
+    runtime.apply(scene(text({ timeline: [fade] })));
+    expect(listeners.size).toBe(1);
+    runtime.apply(scene(text()));
+    expect(listeners.size).toBe(0);
+  });
+
+  test('la valeur suit les images clés dans le temps, à partir de l’arrivée de la scène', () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(text({ timeline: [fade] })));
+    expect(calques[0].style.opacity).toBe('0');
+    frame(0.5);
+    expect(Number(calques[0].style.opacity)).toBeCloseTo(0.5, 2);
+    frame(1);
+    expect(calques[0].style.opacity).toBe('1');
+    frame(3);
+    expect(calques[0].style.opacity).toBe('1');
+    expect(runtime.timeline.state()).toMatchObject({ timeMs: 3000, durationMs: 4000, loop: 'once', playing: true });
+  });
+
+  test('en boucle, la scène recommence ; la durée de la scène est celle qu’elle déclare', () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(sceneWith({ timeline: { durationMs: 2000, loop: 'loop' } }, text({ timeline: [fade] })));
+    frame(1);
+    expect(calques[0].style.opacity).toBe('1');
+    frame(2.5);
+    expect(Number(calques[0].style.opacity)).toBeCloseTo(0.5, 2);
+    expect(runtime.timeline.state().durationMs).toBe(2000);
+  });
+
+  test('une liaison l’emporte sur la timeline pour la même valeur ; l’autre valeur reste celle de la timeline', () => {
+    const { runtime, calques, frame } = setup();
+    const rotate = { target: 'rotation', keys: [{ t: 0, v: 0, ease: 'linear' }, { t: 1000, v: 90, ease: 'linear' }] };
+    runtime.apply(scene(text({ timeline: [fade, rotate], bindings: [{ source: 'event:raid', target: 'opacity', from: 0.2, to: 0.9, durationMs: 1000 }] })));
+    frame(0.5);
+    expect(calques[0].style.opacity).toBe('0.2');
+    expect(calques[0].style.transform).toBe('rotate(45deg)');
+  });
+
+  test('pause, position, lecture, recommencer', () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(text({ timeline: [fade] })));
+    frame(0.2);
+    runtime.timeline.pause();
+    frame(0.9);
+    expect(runtime.timeline.state()).toMatchObject({ playing: false });
+    expect(Number(calques[0].style.opacity)).toBeCloseTo(0.2, 2);
+    runtime.timeline.seek(750);
+    expect(Number(calques[0].style.opacity)).toBeCloseTo(0.75, 2);
+    expect(runtime.timeline.state()).toMatchObject({ timeMs: 750, playing: false });
+    frame(1.5);
+    expect(Number(calques[0].style.opacity)).toBeCloseTo(0.75, 2);
+    runtime.timeline.play();
+    frame(1.6);
+    expect(Number(calques[0].style.opacity)).toBeCloseTo(0.85, 2);
+    runtime.timeline.restart();
+    frame(1.7);
+    expect(Number(calques[0].style.opacity)).toBeCloseTo(0.1, 2);
+  });
+
+  test('se placer au-delà de la fin ou avant le début est borné', () => {
+    const { runtime } = setup();
+    runtime.apply(scene(text({ timeline: [fade] })));
+    runtime.timeline.seek(999_999);
+    expect(runtime.timeline.state().timeMs).toBe(4000);
+    runtime.timeline.seek(-50);
+    expect(runtime.timeline.state().timeMs).toBe(0);
+  });
+
+  test('les abonnés reçoivent l’état à chaque image, jusqu’à ce qu’ils se désabonnent', () => {
+    const { runtime, frame } = setup();
+    runtime.apply(scene(text({ timeline: [fade] })));
+    const seen = [];
+    const stop = runtime.timeline.subscribe((state) => seen.push(Math.round(state.timeMs)));
+    frame(0.1);
+    frame(0.2);
+    stop();
+    frame(0.3);
+    expect(seen).toEqual([100, 200]);
+  });
+
+  test('une nouvelle scène (arrivée) repart du début ; un réglage de la scène en place ne recommence rien', () => {
+    const { runtime, frame } = setup();
+    runtime.apply(scene(text({ timeline: [fade] })));
+    frame(1);
+    runtime.apply(scene(text({ timeline: [fade], opacity: 0.9 })));
+    expect(runtime.timeline.state().timeMs).toBe(1000);
+    runtime.apply(sceneWith({ transition: { type: 'fade', durationMs: 300 } }, text({ timeline: [fade] })));
+    expect(runtime.timeline.state().timeMs).toBe(0);
+  });
+
+  test('retirer les images clés rend à la couche son opacité', () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(text({ opacity: 0.8, timeline: [fade] })));
+    frame(0.2);
+    runtime.apply(scene(text({ opacity: 0.8 })));
+    expect(calques[0].style.opacity).toBe('0.8');
+  });
+});
+
+describe('timeline dans le moteur : cas limites', () => {
+  const fade = { target: 'opacity', keys: [{ t: 0, v: 0, ease: 'linear' }, { t: 1000, v: 1, ease: 'linear' }] };
+
+  test('une scène démontée puis remontée repart du début de sa timeline', () => {
+    const { runtime, frame } = setup();
+    runtime.apply(scene(text({ timeline: [fade] })));
+    frame(2);
+    expect(runtime.timeline.state().timeMs).toBe(2000);
+    runtime.apply(scene());
+    runtime.apply(scene(text({ timeline: [fade] })));
+    expect(runtime.timeline.state().timeMs).toBe(0);
+  });
+
+  test('se placer met en pause même quand la lecture tournait', () => {
+    const { runtime, frame } = setup();
+    runtime.apply(scene(text({ timeline: [fade] })));
+    frame(0.1);
+    expect(runtime.timeline.state().playing).toBe(true);
+    runtime.timeline.seek(400);
+    expect(runtime.timeline.state().playing).toBe(false);
+    frame(0.5);
+    expect(runtime.timeline.state().timeMs).toBe(400);
+  });
+
+  test('en boucle, une position au-delà de la fin est ramenée à la durée, pas enroulée', () => {
+    const { runtime } = setup();
+    runtime.apply({ version: 1, id: 's', name: 'S', timeline: { durationMs: 2000, loop: 'loop' }, layers: [text({ timeline: [fade] })] });
+    runtime.timeline.seek(999_999);
+    expect(runtime.timeline.state().timeMs).toBe(0);
+    runtime.timeline.seek(2000);
+    expect(runtime.timeline.state().timeMs).toBe(0);
+    runtime.timeline.seek(1999);
+    expect(runtime.timeline.state().timeMs).toBe(1999);
+  });
+});

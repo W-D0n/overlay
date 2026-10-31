@@ -8,7 +8,7 @@
  * survivre à un rechargement et se partager entre onglets de même origine.
  *
  * @typedef {import('../scene-doc.js').Layer} Layer
- * @typedef {{ kind: string, opacity: number, options: Record<string, unknown>, look?: Partial<Pick<Layer, 'blend' | 'rotation' | 'crop' | 'blur' | 'bindings'>> }} LayerStyle
+ * @typedef {{ kind: string, opacity: number, options: Record<string, unknown>, look?: Partial<Pick<Layer, 'blend' | 'rotation' | 'crop' | 'blur' | 'bindings' | 'timeline'>> }} LayerStyle
  */
 import { LOOK_KEYS, validateSceneDoc } from '../scene-doc.js';
 

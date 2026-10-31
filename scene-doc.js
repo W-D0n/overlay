@@ -1,6 +1,7 @@
 // @ts-check
 import { validateTransition } from './background-transition.js';
 import { bindingErrors, canonicalBindings } from './layer-bindings.js';
+import { canonicalSceneTimeline, canonicalTracks, sceneTimelineErrors, trackErrors } from './layer-timeline.js';
 import { clampOptions, isIdentityKind, neutralizeOptions, resolveKindId, validateOptions } from './layer-kinds.js';
 
 /**
@@ -27,6 +28,7 @@ import { clampOptions, isIdentityKind, neutralizeOptions, resolveKindId, validat
  *   crop?: Crop,
  *   blur?: number,
  *   bindings?: import('./layer-bindings.js').Binding[],
+ *   timeline?: import('./layer-timeline.js').Track[],
  *   options: Record<string, unknown>,
  * }} Layer
  * @typedef {{
@@ -35,6 +37,7 @@ import { clampOptions, isIdentityKind, neutralizeOptions, resolveKindId, validat
  *   name: string,
  *   tags?: string[],
  *   transition?: import('./background-transition.js').BackgroundTransition,
+ *   timeline?: import('./layer-timeline.js').SceneTimeline,
  *   layers: Layer[],
  * }} SceneDoc
  * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[], transition?: import('./background-transition.js').BackgroundTransition, showBranding?: boolean }} PresetLike
@@ -77,14 +80,14 @@ export const LOOK_LIMITS = Object.freeze({
 export const CROP_SIDES = /** @type {const} */ (['top', 'right', 'bottom', 'left']);
 export const CROP_LABELS = Object.freeze({ top: 'haut', right: 'droite', bottom: 'bas', left: 'gauche' });
 /** Les champs de rendu étendu d'une couche. */
-export const LOOK_KEYS = /** @type {const} */ (['blend', 'rotation', 'crop', 'blur', 'bindings']);
+export const LOOK_KEYS = /** @type {const} */ (['blend', 'rotation', 'crop', 'blur', 'bindings', 'timeline']);
 
 /** La couche sans son rendu étendu.
  * @param {Layer} layer
  * @returns {Layer}
  */
 export function withoutLook(layer) {
-  const { blend: _blend, rotation: _rotation, crop: _crop, blur: _blur, bindings: _bindings, ...plain } = layer;
+  const { blend: _blend, rotation: _rotation, crop: _crop, blur: _blur, bindings: _bindings, timeline: _timeline, ...plain } = layer;
   return plain;
 }
 
@@ -212,6 +215,8 @@ export function sceneForBrandingMode(scene, mode) {
 export function currentFromScene(scene) {
   const effects = scene.layers.filter(({ kind }) => !isIdentityKind(kind));
   const identities = scene.layers.filter(({ kind }) => isIdentityKind(kind));
+  // Une timeline de scène n'a pas de forme historique : la perdre en silence changerait l'animation à l'antenne.
+  if (scene.timeline !== undefined) return null;
   if (effects.length > 1 || identities.length > 1) return null;
   if (![...effects, ...identities].every(isPlainLayer)) return null;
   if (identities.length === 1 && (identities[0].kind !== 'branding' || Object.keys(identities[0].options).length > 0)) return null;
@@ -251,6 +256,7 @@ export function canonicalSceneDoc(scene) {
   if (!isPlainObject(scene) || !Array.isArray(scene.layers)) return scene;
   return {
     ...scene,
+    ...(scene.timeline === undefined ? {} : { timeline: /** @type {*} */ (canonicalSceneTimeline(scene.timeline)) }),
     layers: /** @type {Layer[]} */ (scene.layers.map((layer) => {
       if (!isPlainObject(layer)) return layer;
       const kind = resolveKindId(layer.kind) ?? layer.kind;
@@ -269,7 +275,7 @@ export function canonicalSceneDoc(scene) {
  * @returns {Layer}
  */
 function canonicalLook(layer) {
-  const { blend, rotation, crop, blur, bindings, ...rest } = layer;
+  const { blend, rotation, crop, blur, bindings, timeline, ...rest } = layer;
   /** @type {Record<string, unknown>} */
   const look = {};
   if (blend !== 'normal' && blend !== undefined) look.blend = blend;
@@ -287,6 +293,8 @@ function canonicalLook(layer) {
   }
   const canonical = canonicalBindings(bindings);
   if (canonical !== undefined) look.bindings = canonical;
+  const tracks = canonicalTracks(timeline);
+  if (tracks !== undefined) look.timeline = tracks;
   return /** @type {Layer} */ ({ ...rest, ...look });
 }
 
@@ -333,6 +341,7 @@ export function validateSceneDoc(raw, { allowEmpty = false } = {}) {
     errors.push('tags : liste de textes attendue');
   }
   errors.push(...validateTransition(raw.transition).errors);
+  errors.push(...sceneTimelineErrors('timeline', raw.timeline));
 
   if (!Array.isArray(raw.layers)) {
     errors.push('layers : liste attendue');
@@ -392,6 +401,7 @@ function lookErrors(where, layer) {
   if (layer.rotation !== undefined && !isFraction(layer.rotation)) errors.push(`${where}.rotation : nombre attendu`);
   if (layer.blur !== undefined && !isFraction(layer.blur)) errors.push(`${where}.blur : nombre attendu`);
   errors.push(...bindingErrors(`${where}.bindings`, layer.bindings));
+  errors.push(...trackErrors(`${where}.timeline`, layer.timeline));
   if (layer.crop === undefined) return errors;
   const { crop } = layer;
   if (!isPlainObject(crop)) return [...errors, `${where}.crop : objet attendu`];

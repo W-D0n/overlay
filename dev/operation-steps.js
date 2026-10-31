@@ -21,11 +21,12 @@
 
 import { BLEND_MODES, CROP_LABELS, CROP_SIDES, LOOK_LIMITS } from '../scene-doc.js';
 import { BINDING_SOURCES, BINDING_TARGETS, bindingErrors } from '../layer-bindings.js';
+import { trackErrors } from '../layer-timeline.js';
 
 export const OPERATIONS = Object.freeze(['layer', 'placement', 'translate', 'options', 'addLayer', 'removeLayers', 'duplicateLayers', 'moveLayers', 'resetLayers', 'layerKind', 'sceneProps']);
 
 const PLACEMENT_KEYS = ['x', 'y', 'width', 'height'];
-const LAYER_KEYS = ['name', 'visible', 'locked', 'opacity', 'blend', 'rotation', 'crop', 'blur', 'bindings'];
+const LAYER_KEYS = ['name', 'visible', 'locked', 'opacity', 'blend', 'rotation', 'crop', 'blur', 'bindings', 'timeline'];
 const LAYER_LABELS = /** @type {Record<string, string>} */ ({ blend: 'Fusion', rotation: 'Rotation (°)', blur: 'Flou (px)' });
 const MOVES = ['up', 'down', 'top', 'bottom'];
 const PLACEMENT_LABELS = /** @type {Record<string, string>} */ ({ x: 'x', y: 'y', width: 'largeur', height: 'hauteur' });
@@ -195,6 +196,7 @@ export function describeStep(step, kindLabel = (kind) => kind) {
       if (key === 'blend') return `fusion ${BLEND_MODES.find(({ id }) => id === value)?.label ?? value}`;
       if (key === 'rotation') return `rotation ${value}°`;
       if (key === 'blur') return `flou ${value} px`;
+      if (key === 'timeline') return `animation : ${value.length} piste${value.length > 1 ? 's' : ''} (${value.map((/** @type {{ target: string, keys: unknown[] }} */ track) => `${BINDING_TARGETS[/** @type {'opacity'} */ (track.target)]?.label ?? track.target} : ${track.keys.length} clé${track.keys.length > 1 ? 's' : ''}`).join(', ')})`;
       if (key === 'bindings') return value.length === 0 ? 'aucune liaison' : `liaisons : ${value.map((/** @type {import('../layer-bindings.js').Binding} */ binding) => `${BINDING_SOURCES.find(({ id }) => id === binding.source)?.label ?? binding.source} → ${BINDING_TARGETS[binding.target]?.label ?? binding.target}`).join(', ')}`;
       if (key === 'crop') return `rognage ${CROP_SIDES.filter((side) => value[side]).map((side) => `${CROP_LABELS[side]} ${percent(value[side])}`).join(', ') || 'aucun'}`;
       return `nom « ${value} »`;
@@ -291,6 +293,7 @@ export function stepErrors(step) {
       if (key === 'blend') return BLEND_MODES.some(({ id }) => id === value) ? null : 'fusion : mode connu attendu';
       if (key === 'rotation') return isNumber(value) && value >= LOOK_LIMITS.rotation.min && value <= LOOK_LIMITS.rotation.max ? null : 'rotation : angle entre -180 et 180 attendu';
       if (key === 'blur') return isNumber(value) && value >= LOOK_LIMITS.blur.min && value <= LOOK_LIMITS.blur.max ? null : `flou : nombre entre 0 et ${LOOK_LIMITS.blur.max} attendu`;
+      if (key === 'timeline') { const problems = trackErrors('animation', value); return problems.length === 0 ? null : problems[0]; }
       if (key === 'bindings') { const problems = bindingErrors('liaisons', value); return problems.length === 0 ? null : problems[0]; }
       if (key === 'crop') return isRecord(value) && Object.entries(value).every(([side, amount]) => CROP_SIDES.includes(/** @type {*} */ (side)) && isNumber(amount) && amount >= LOOK_LIMITS.crop.min && amount <= LOOK_LIMITS.crop.max) ? null : 'rognage : parts entre 0 et 0,9 attendues';
       return typeof value === 'boolean' ? null : `${key} : booléen attendu`;

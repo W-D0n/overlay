@@ -4,6 +4,7 @@ import { cssEasing, normalizeTransition, transitionStyles } from './background-t
 import { isAudioOn, isIdentityKind, kindCapabilities } from './layer-kinds.js';
 import { referenceScale } from './render-reference.js';
 import { evaluateBindings, recordPulse, usesAudio } from './layer-bindings.js';
+import { effectiveTimeline, evaluateTimeline, hasKeys, playbackTime } from './layer-timeline.js';
 import { getRenderClock } from './render-clock.js';
 import { CROP_SIDES } from './scene-doc.js';
 
@@ -86,6 +87,10 @@ export function createSceneRuntime(container, deps = {}) {
   let clockTime = 0;
   /** @type {Map<string, number>} */
   const pulses = new Map();
+  /** La lecture de la timeline de la scène (`layer-timeline.js`) : le temps écoulé depuis l'arrivée de la scène, en millisecondes. */
+  const playback = { elapsedMs: 0, playing: true };
+  /** @type {Set<(state: ReturnType<typeof timelineState>) => void>} */
+  const timelineListeners = new Set();
 
   /** @type {Stage | null} */
   let current = null;
@@ -202,23 +207,36 @@ export function createSceneRuntime(container, deps = {}) {
     return [...(current === null ? [] : current.layers.values()), ...(identity === null ? [] : identity.layers.values())];
   }
 
+  /** La timeline de la scène affichée : la sienne, ou celle par défaut. */
+  function sceneTimeline() {
+    return effectiveTimeline(latestScene?.timeline, latestScene?.layers ?? []);
+  }
+
+  /** @returns {{ playing: boolean, timeMs: number, durationMs: number, loop: 'once' | 'loop' }} */
+  function timelineState() {
+    const timeline = sceneTimeline();
+    return { playing: playback.playing, timeMs: playbackTime(playback.elapsedMs, timeline), durationMs: timeline.durationMs, loop: timeline.loop };
+  }
+
   /**
-   * Les valeurs liées d'une couche à un instant.
+   * Les valeurs animées d'une couche à un instant : sa timeline, puis ses liaisons (qui l'emportent sur la même valeur).
    * @param {MountedLayer} entry @param {number} time @param {number} dt
    */
   function bindingValues(entry, time, dt) {
-    const bindings = entry.layer.bindings;
-    if (bindings === undefined || bindings.length === 0) return {};
+    const { bindings, timeline } = entry.layer;
+    const scripted = timeline === undefined ? {} : evaluateTimeline(timeline, playbackTime(playback.elapsedMs, sceneTimeline()));
+    if (bindings === undefined || bindings.length === 0) return scripted;
     // Un son qui n'arrive plus (micro coupé) vaut le silence, pas son dernier niveau.
     const live = time - levelsAt < 0.5 ? levels : null;
-    return evaluateBindings(bindings, { levels: live, pulses, time, dt, memory: entry.memory });
+    return { ...scripted, ...evaluateBindings(bindings, { levels: live, pulses, time, dt, memory: entry.memory }) };
   }
 
   /** @param {import('./render-clock.js').RenderFrame} frame */
   function tickBindings(frame) {
     clockTime = frame.time;
+    if (playback.playing) playback.elapsedMs += frame.dt * 1000;
     for (const entry of mountedEntries()) {
-      if (!entry.visible || entry.layer.bindings === undefined) continue;
+      if (!entry.visible || !isAnimated(entry.layer)) continue;
       const values = bindingValues(entry, frame.time, frame.dt);
       // On n'écrit que ce qui a changé : une liaison au repos ne coûte aucune écriture de style.
       const key = JSON.stringify(values);
@@ -226,11 +244,17 @@ export function createSceneRuntime(container, deps = {}) {
       entry.appliedKey = key;
       Object.assign(entry.calque.style, lookStyles(entry.layer, values));
     }
+    if (timelineListeners.size > 0) for (const listener of timelineListeners) listener(timelineState());
   }
 
-  /** L'horloge tourne tant qu'une couche montée a des liaisons, et pas plus. */
+  /** Vrai si une couche a quelque chose à évaluer à chaque image : des liaisons ou des images clés. @param {Layer} layer */
+  function isAnimated(layer) {
+    return layer.bindings !== undefined || hasKeys(layer.timeline);
+  }
+
+  /** L'horloge tourne tant qu'une couche montée a des liaisons ou des images clés, et pas plus. */
   function syncClock() {
-    const needed = mountedEntries().some((entry) => entry.visible && entry.layer.bindings !== undefined);
+    const needed = mountedEntries().some((entry) => entry.visible && isAnimated(entry.layer));
     if (needed && stopClock === null) stopClock = clock.subscribe(tickBindings);
     else if (!needed && stopClock !== null) { stopClock(); stopClock = null; }
   }
@@ -289,6 +313,7 @@ export function createSceneRuntime(container, deps = {}) {
 
     const previous = current;
     current = next;
+    playback.elapsedMs = 0;
     if (previous !== null) {
       Object.assign(previous.calque.style, outgoingStyles.from);
       outgoing.push(previous);
@@ -349,6 +374,7 @@ export function createSceneRuntime(container, deps = {}) {
     if (transition === null || transition.durationMs === 0 || current === null) {
       const previous = current;
       current = stage;
+      playback.elapsedMs = 0;
       flushOutgoing();
       if (previous !== null) disposeStage(previous);
       return;
@@ -386,6 +412,34 @@ export function createSceneRuntime(container, deps = {}) {
       for (const entry of native) entry.instance.trigger?.(event);
       if (typeof event?.type === 'string') recordPulse(pulses, event.type, clockTime);
       return native.length > 0;
+    },
+
+    /**
+     * La lecture de la timeline : l'éditeur du Studio la pilote (lecture, pause, position) ; la page de rendu d'OBS la laisse tourner depuis
+     * l'arrivée de la scène. Aucune de ces commandes ne modifie la scène.
+     */
+    timeline: {
+      state: timelineState,
+      play() { playback.playing = true; },
+      pause() { playback.playing = false; },
+      /** Reprend au début de la scène, comme à son arrivée. */
+      restart() { playback.elapsedMs = 0; playback.playing = true; },
+      /** @param {number} ms se place à cet instant (borné à la durée) et met la scène en pause : on regarde cette image */
+      seek(ms) {
+        playback.playing = false;
+        playback.elapsedMs = Math.min(Math.max(0, ms), sceneTimeline().durationMs);
+        for (const entry of mountedEntries()) {
+          if (!entry.visible || !isAnimated(entry.layer)) continue;
+          entry.appliedKey = '';
+          Object.assign(entry.calque.style, lookStyles(entry.layer, bindingValues(entry, clockTime, 0)));
+        }
+        for (const listener of timelineListeners) listener(timelineState());
+      },
+      /** @param {(state: ReturnType<typeof timelineState>) => void} listener @returns {() => void} */
+      subscribe(listener) {
+        timelineListeners.add(listener);
+        return () => timelineListeners.delete(listener);
+      },
     },
 
     isAudioReactive() {
