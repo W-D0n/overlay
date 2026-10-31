@@ -122,6 +122,14 @@ total de la scène. Vert/neutre : léger ; or : à surveiller ; rouge : une seul
 d'une image à 60 i/s. Une couche masquée est signalée « aucun coût ». C'est une mesure **relative prise dans le
 Studio** : elle dit quelle couche pèse, pas ce que fera OBS — vérifiez dans OBS avant de charger une scène.
 
+### Les versions d'une scène
+
+Quand une scène vous plaît, donnez-lui un **nom** : bouton « Versions de la scène » (marque-page, en haut de la pile de couches) ou palette `Ctrl+K`
+→ « Enregistrer une version de la scène… ». La version garde la scène **telle qu'elle est dans le brouillon**. Plus tard, « Restaurer » remet ses
+couches dans le brouillon, **sans rien publier** : un seul `Ctrl+Z` revient à ce qu'il y avait avant. Chaque version dit ce que sa restauration
+changerait (« retire 1 couche », « identique à la scène en cours »). Trente versions par scène ; on les renomme et on les supprime (deux
+pressions) depuis la même fenêtre. Ce n'est pas l'historique de publication : celui-ci se remplit tout seul, une version est un point que vous posez.
+
 ## 5. L'historique d'édition
 
 Le bouton horloge de la pile (ou « Historique d'édition… » dans la palette) liste **toutes les étapes de

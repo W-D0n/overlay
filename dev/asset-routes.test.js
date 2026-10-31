@@ -6,6 +6,7 @@ import { createChannels } from './channels.js';
 import { createHost } from './host.js';
 import { createStateStore } from './state-store.js';
 import { createAssetStore } from './asset-store.js';
+import { createVersionStore } from './version-store.js';
 import { MAX_ASSET_BYTES } from './asset-format.js';
 import { gifBytes, jpegBytes, pngBytes } from './test-images.js';
 
@@ -20,6 +21,7 @@ function setup() {
   const host = createHost({
     store: createStateStore({ path, log: silent }),
     assets: createAssetStore({ dir: `${path}.assets` }),
+    versions: createVersionStore({ path: `${path}.versions.json` }),
     channels: createChannels(),
     obs: { status: () => ({ connected: false, reason: null, scenes: [], activeScene: null }), configured: false, inspect: null },
     control: { supervised: true, exit() {} },

@@ -27,7 +27,7 @@ import { PLACEMENT_PRESETS, alignPlacements, distributePlacements } from './plac
  *   publication: {
  *     publish(): void, discard(): void, showChanges(): void, toggleCompare(): void, testTransition(): void,
  *   },
- *   dialogs: { palette(): void, shortcuts(): void, history(): void, editHistory(): void, diagnostic(): void, library(): void },
+ *   dialogs: { palette(): void, shortcuts(): void, history(): void, editHistory(): void, diagnostic(): void, library(): void, versions(): void, saveVersion(): void },
  *   pickImage: () => void,
  *   templates: { open(): void, save(): void },
  *   customCommands: { open(): void, create(): void, startRecording(): void, isRecording(): boolean },
@@ -56,6 +56,8 @@ export function createStudioCommands({ studio, clipboard, labelOf, addableKinds,
 
   // ── Édition ─────────────────────────────────────────────────────────────
   add([
+    { id: 'edit.versions', label: 'Versions de la scène…', group: 'Édition', keywords: ['restaurer', 'point de restauration', 'sauvegarde', 'revenir'], run: () => dialogs.versions() },
+    { id: 'edit.saveVersion', label: 'Enregistrer une version de la scène…', group: 'Édition', keywords: ['sauvegarder', 'nommer', 'point de restauration', 'instantané'], run: () => dialogs.saveVersion() },
     { id: 'edit.history', label: 'Historique d’édition…', group: 'Édition', keywords: ['journal', 'revenir', 'étapes', 'annulations'], run: () => dialogs.editHistory() },
     { id: 'edit.undo', label: 'Annuler', group: 'Édition', shortcut: 'Ctrl+Z', bind: false, keywords: ['défaire'], enabled: () => editor.state().canUndo, run: () => { settle(editor.undo()); } },
     { id: 'edit.redo', label: 'Rétablir', group: 'Édition', shortcut: 'Ctrl+Maj+Z', bind: false, keywords: ['refaire'], enabled: () => editor.state().canRedo, run: () => { settle(editor.redo()); } },

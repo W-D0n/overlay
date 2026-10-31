@@ -79,7 +79,7 @@
     .layers-add { padding: 0 var(--space-sm); border-color: var(--color-gold-dim); color: var(--color-gold); }
     .layer-button:hover:not(:disabled), .layers-add:hover:not(:disabled) { border-color: var(--color-gold); color: var(--color-gold); }
     .layer-button:disabled, .layers-add:disabled { opacity: .35; cursor: default; }
-    .layer-button:focus-visible, .layers-add:focus-visible, .layers-list:focus-visible, .gallery-card:focus-visible, #asset-library button:focus-visible, .binding-remove:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
+    .layer-button:focus-visible, .layers-add:focus-visible, .layers-list:focus-visible, .gallery-card:focus-visible, #asset-library button:focus-visible, #versions-dialog button:focus-visible, .binding-remove:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
     .layer-button[aria-pressed="true"] { color: var(--color-gold); }
     .layer-button.is-on { color: var(--color-gold); border-color: var(--color-gold-dim); }
     .layers-meter { height: 3px; background: var(--color-rule); margin: var(--space-xs) 0 var(--space-sm); }
@@ -256,6 +256,18 @@
     #asset-library.is-dropping, #stage-area.is-dropping { outline: 2px dashed var(--color-gold); outline-offset: -4px; }
     .asset-field { display: flex; gap: var(--space-xs); align-items: center; }
     .asset-field select { flex: 1; min-width: 0; }
+    #versions-dialog { max-width: min(640px, 94vw); }
+    .versions-save { display: flex; gap: var(--space-xs); padding: var(--space-md) var(--space-md) 0; }
+    .versions-save input { flex: 1; min-width: 0; }
+    .versions-list { list-style: none; margin: 0; padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-sm); overflow-y: auto; }
+    .version-item { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-sm); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
+    .version-head { display: flex; gap: var(--space-md); align-items: baseline; }
+    .version-head input { flex: 1; }
+    .version-date, .version-summary { color: var(--color-text-dim); font-size: var(--text-xs); }
+    .version-actions { display: flex; gap: var(--space-xs); }
+    .version-empty { color: var(--color-text-dim); }
+    #versions-status { min-height: 1em; }
+    #versions-status[data-level="info"] { color: var(--color-text-mid); }
     #layer-gallery { max-width: min(720px, 92vw); }
     .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: var(--space-sm); padding: var(--space-md); }
     .gallery-card { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); color: var(--color-text-primary); cursor: pointer; text-align: left; }
@@ -905,6 +917,21 @@
     <p id="asset-status" class="gallery-status" role="status" aria-live="polite"></p>
   </dialog>
 
+  <dialog id="versions-dialog" class="diagnostic" aria-labelledby="versions-title">
+    <div class="diagnostic-bar">
+      <h2 id="versions-title">Versions de la scène</h2>
+      <div class="diagnostic-actions">
+        <button id="versions-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <div class="versions-save">
+      <input id="versions-name" type="text" maxlength="60" placeholder="nom de la version (ex. avant le gros changement)" aria-label="Nom de la version à enregistrer">
+      <button id="versions-save" type="button">Enregistrer l’état actuel</button>
+    </div>
+    <ul id="versions-list" class="versions-list" aria-label="Versions enregistrées de cette scène"></ul>
+    <p id="versions-status" class="gallery-status" role="status" aria-live="polite"></p>
+  </dialog>
+
   <main class="studio-zones">
     <aside id="rail" class="rail" aria-label="Bibliothèque, scènes et branding">
 
@@ -1029,6 +1056,7 @@
         <span id="layers-gauge" class="layers-gauge" data-level="ok" title="Couches de la scène sur la limite"></span>
         <span id="layers-cost" class="layers-cost" data-level="none"></span>
         <span class="layers-tools">
+          <button id="layers-versions" type="button" class="layer-button" aria-haspopup="dialog" aria-label="Versions de la scène" title="Versions de la scène"></button>
           <button id="layers-history" type="button" class="layer-button" aria-label="Historique d’édition" title="Historique d’édition"></button>
           <button id="layers-undo" type="button" class="layer-button" disabled aria-label="Annuler"></button>
           <button id="layers-redo" type="button" class="layer-button" disabled aria-label="Rétablir"></button>

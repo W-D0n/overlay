@@ -47,4 +47,5 @@ declare module 'node:fs/promises' {
 
 declare module 'node:path' {
   export function join(...parts: string[]): string;
+  export function dirname(path: string): string;
 }

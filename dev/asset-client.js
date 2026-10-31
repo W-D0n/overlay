@@ -1,36 +1,18 @@
 // @ts-check
-import { errorMessage } from './error-message.js';
+import { createServiceRequest } from './service-request.js';
 
 /**
  * dev/asset-client.js — Le client HTTP de la médiathèque d'images (`dev/asset-routes.js`) : lister, importer, supprimer. Toute
  * erreur sort en `Error` avec le message du serveur (« image trop grande… », « utilisée 2 fois… »), prêt à être montré.
  *
  * @typedef {import('./asset-format.js').AssetMeta & { uses: number }} LibraryAsset
- * @typedef {Error & { status: number, uses?: number }} AssetClientError
  */
 
 /**
  * @param {{ baseUrl: string, fetchImpl?: typeof fetch }} options
  */
-export function createAssetClient({ baseUrl, fetchImpl = (...args) => fetch(...args) }) {
-  const root = baseUrl.replace(/\/$/, '');
-
-  /** @param {string} path @param {RequestInit} [init] */
-  async function request(path, init) {
-    let response;
-    try {
-      response = await fetchImpl(`${root}${path}`, init);
-    } catch (error) {
-      throw Object.assign(new Error(`serveur d’état injoignable : ${errorMessage(error)}`), { status: 0 });
-    }
-    if (response.ok) return response;
-    /** @type {{ error?: string, uses?: number }} */
-    let body = {};
-    try {
-      body = await response.json();
-    } catch { /* corps absent ou illisible : le statut suffit */ }
-    throw Object.assign(new Error(body.error ?? `HTTP ${response.status}`), { status: response.status, ...(body.uses === undefined ? {} : { uses: body.uses }) });
-  }
+export function createAssetClient({ baseUrl, fetchImpl }) {
+  const request = createServiceRequest(fetchImpl === undefined ? { baseUrl } : { baseUrl, fetchImpl });
 
   return {
     /** @returns {Promise<LibraryAsset[]>} */

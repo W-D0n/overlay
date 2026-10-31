@@ -32,6 +32,9 @@ import { isIdentityKind } from '../layer-kinds.js';
 import { ADDABLE_KIND_IDS, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
 import { createAssetClient } from './asset-client.js';
 import { createBindingsController } from './bindings-controller.js';
+import { createVersionClient } from './version-client.js';
+import { setIcon } from './icons.js';
+import { createVersionsController } from './versions-controller.js';
 import { collectAssetUsage } from './asset-format.js';
 import { createAssetLibraryController } from './asset-library-controller.js';
 import { assetUrl } from '../components/asset-image.js';
@@ -219,6 +222,26 @@ export async function startBackgroundTuner(environment = {}) {
     windowRef,
   });
 
+  const versions = createVersionsController({
+    elements: {
+      dialog: /** @type {HTMLDialogElement} */ (byId('versions-dialog')),
+      title: byId('versions-title'),
+      name: /** @type {HTMLInputElement} */ (byId('versions-name')),
+      save: /** @type {HTMLButtonElement} */ (byId('versions-save')),
+      list: byId('versions-list'),
+      status: byId('versions-status'),
+      close: /** @type {HTMLButtonElement} */ (byId('versions-close')),
+    },
+    studio: preview.document,
+    client: createVersionClient({ baseUrl: STATE_SERVER }),
+    labelOf: backgroundEffectLabel,
+    report,
+    documentRef,
+  });
+  const versionsButton = byId('layers-versions');
+  setIcon(versionsButton, 'bookmark');
+  versionsButton.addEventListener('click', () => { void versions.open(); });
+
   const bindings = createBindingsController({
     elements: { list: byId('bindings-list'), add: /** @type {HTMLButtonElement} */ (byId('bindings-add')), hint: byId('bindings-hint') },
     studio: preview.document,
@@ -395,6 +418,8 @@ export async function startBackgroundTuner(environment = {}) {
       editHistory: () => editHistory.open(),
       diagnostic: () => byId('diagnostic-open').click(),
       library: () => { void library.open(); },
+      versions: () => { void versions.open(); },
+      saveVersion: () => { void versions.save(); },
     },
     pickImage,
     templates: { open: () => templates.open(), save: () => templates.save() },

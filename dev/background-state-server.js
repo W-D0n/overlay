@@ -15,6 +15,7 @@
  */
 import { createStateStore } from './state-store.js';
 import { createAssetStore } from './asset-store.js';
+import { createVersionStore } from './version-store.js';
 import { createChannels } from './channels.js';
 import { createHost } from './host.js';
 import { LOOPBACK_HOST } from './local-access-policy.js';
@@ -39,6 +40,7 @@ let obsClient = null;
 const host = createHost({
   store: createStateStore({ path: STATE_FILE }),
   assets: createAssetStore({ dir: ASSETS_DIR }),
+  versions: createVersionStore({ path: `${STATE_FILE}.versions.json` }),
   channels: createChannels(),
   obs: {
     status: () => obsStatus,

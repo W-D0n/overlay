@@ -6,6 +6,7 @@ import { createChannels } from './channels.js';
 import { createHost } from './host.js';
 import { createStateStore } from './state-store.js';
 import { createAssetStore } from './asset-store.js';
+import { createVersionStore } from './version-store.js';
 
 /** @type {string[]} */
 const directories = [];
@@ -21,6 +22,7 @@ function setup(overrides = {}) {
   const host = createHost({
     store: createStateStore({ path, log: silent }),
     assets: createAssetStore({ dir: `${path}.assets` }),
+    versions: createVersionStore({ path: `${path}.versions.json` }),
     channels,
     obs: { status: () => ({ connected: false, reason: 'not-configured', scenes: [], activeScene: null }), configured: false, inspect: null },
     control: { supervised: true, exit: (code) => exits.push(code) },
@@ -306,6 +308,7 @@ describe('brouillons de presets', () => {
     const again = createHost({
       store: createStateStore({ path: context.path, log: silent }),
       assets: createAssetStore({ dir: `${context.path}.assets` }),
+      versions: createVersionStore({ path: `${context.path}.versions.json` }),
       channels: createChannels(),
       obs: { status: () => ({ connected: false, reason: null, scenes: [], activeScene: null }), configured: false, inspect: null },
       control: { supervised: false, exit() {} },
@@ -474,6 +477,7 @@ describe('scènes à plusieurs couches', () => {
     const again = createHost({
       store: createStateStore({ path: first.path, log: silent }),
       assets: createAssetStore({ dir: `${first.path}.assets` }),
+      versions: createVersionStore({ path: `${first.path}.versions.json` }),
       channels: createChannels(),
       obs: { status: () => ({ connected: false, reason: 'not-configured', scenes: [], activeScene: null }), configured: false, inspect: null },
       control: { supervised: false, exit() {} },

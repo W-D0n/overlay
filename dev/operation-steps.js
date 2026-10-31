@@ -67,6 +67,7 @@ export function operationToStep(operation, { kindOf }) {
       ? { step: { op: 'moveLayers', args: { where: args.where }, target: 'selection' } }
       : { skipped: 'déplacement à une position précise : il ne se rejoue pas d’une scène à l’autre' };
     case 'resetLayers': return { step: { op: 'resetLayers', args: {}, target: 'selection' } };
+    case 'restoreVersion': return { skipped: 'restauration d’une version : elle ne se rejoue pas d’une scène à l’autre' };
     case 'setLayerKind': return { step: { op: 'layerKind', args: structuredClone(args), target: 'selection' } };
     case 'setSceneProps': return { step: { op: 'sceneProps', args: { patch: Object.fromEntries(Object.entries(/** @type {Record<string, unknown>} */ (args.patch)).map(([key, value]) => [key, value === undefined ? null : structuredClone(value)])) } } };
     default: return { skipped: `opération inconnue : ${op}` };

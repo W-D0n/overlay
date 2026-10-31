@@ -498,6 +498,24 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     },
 
     /**
+     * Remplace les couches et la transition d'arrivée par celles d'une version gardée (`dev/version-store.js`), en une seule entrée
+     * d'historique annulable. L'identité, le nom et les étiquettes de la scène restent les siens ; la sélection est vidée (les
+     * identifiants des couches restaurées ne sont pas ceux d'avant).
+     * @param {SceneDoc} version la scène gardée
+     * @param {string} [entryLabel]
+     * @returns {Done | Refused}
+     */
+    restoreVersion(version, entryLabel) {
+      const { layers, transition } = structuredClone(version);
+      const { transition: _previous, ...rest } = scene;
+      const accepted = accept({ ...rest, layers, ...(transition === undefined ? {} : { transition }) });
+      if (!accepted.ok) return accepted;
+      if (stableStringify(accepted.scene) === stableStringify(scene)) return { ok: true };
+      commit(entryLabel ?? 'Restaurer une version', accepted.scene, []);
+      return announce({ ok: true }, 'restoreVersion', [], {});
+    },
+
+    /**
      * Remet des couches plein cadre, opaques et sans rendu étendu (visibilité, verrou, nom et réglages d'effet restent), en une entrée.
      * @param {string[]} ids
      * @returns {Done | Refused}
