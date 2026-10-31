@@ -7,7 +7,8 @@ const MARKS = { ok: '●', warn: '!', bad: '×', off: '○' };
 
 /**
  * Bandeau « Antenne » du Studio : état permanent de la chaîne jusqu'à OBS, relu toutes les
- * 5 secondes tant que la page est visible. Les décisions d'affichage sont dans `antenna-status.js`.
+ * 5 secondes, **page cachée comprise** : OBS est souvent devant, et un incident qui arrive pendant qu'on ne regarde pas le Studio doit quand
+ * même être vu (`onItems` alimente `incident-watch.js`). Deux lectures locales toutes les 5 secondes ne coûtent rien. Les décisions d'affichage sont dans `antenna-status.js`.
  *
  * @param {{
  *   root: HTMLElement,
@@ -19,6 +20,7 @@ const MARKS = { ok: '●', warn: '!', bad: '×', off: '○' };
  *     readLiveStatus(): Promise<{ renderPages: number }>,
  *   },
  *   getActivePresetId: () => string | null,
+ *   onItems?: (items: import('./antenna-status.js').AntennaItem[]) => void,
  *   getAudio: () => { status: 'idle' | 'active' | 'unavailable', reason: string | null } | null,
  *   backgroundPageUrl: string,
  *   documentRef?: Document,
@@ -42,6 +44,7 @@ export function createAntennaController(input) {
 
     const items = antennaItems({ serverReachable, obs, renderPages, audio: input.getAudio() });
     const summary = antennaSummary(items);
+    input.onItems?.(items);
     input.root.dataset.tone = summary.tone;
     input.summary.textContent = summary.text;
     input.items.replaceChildren(...items.map((item) => {
@@ -70,9 +73,7 @@ export function createAntennaController(input) {
     windowRef.setTimeout(() => { input.copyButton.textContent = 'Copier l’URL OBS'; }, 1200);
   };
 
-  const timer = windowRef.setInterval(() => {
-    if (!documentRef.hidden) refresh();
-  }, input.intervalMs ?? POLL_INTERVAL_MS);
+  const timer = windowRef.setInterval(refresh, input.intervalMs ?? POLL_INTERVAL_MS);
   refresh();
 
   return {

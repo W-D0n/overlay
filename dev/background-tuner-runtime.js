@@ -4,6 +4,8 @@ import { createBackgroundPresetController } from './background-preset-controller
 import { isAudioOn, kindCapabilities } from '../layer-kinds.js';
 import { createBackgroundPreviewController } from './background-preview-controller.js';
 import { createAntennaController } from './antenna-controller.js';
+import { createIncidentWatcher } from './incident-watch.js';
+import { createIncidentNotifier } from './incident-notifier.js';
 import { createServerControlController } from './server-control-controller.js';
 import { createDiagnosticController } from './diagnostic-controller.js';
 import { createHistoryController } from './history-controller.js';
@@ -558,7 +560,23 @@ export async function startBackgroundTuner(environment = {}) {
     windowRef,
   });
 
+  const incidentWatcher = createIncidentWatcher();
+  const alertsOn = () => settings.getPreference('alerts.system', /** @type {string} */ ('off')) === 'on';
+  const alertsButton = /** @type {HTMLButtonElement} */ (byId('antenna-alerts'));
+  const incidents = createIncidentNotifier({
+    report,
+    isEnabled: alertsOn,
+    setEnabled(enabled) {
+      settings.setPreference('alerts.system', enabled ? 'on' : 'off');
+      alertsButton.setAttribute('aria-pressed', String(enabled));
+    },
+    documentRef,
+  });
+  alertsButton.setAttribute('aria-pressed', String(alertsOn()));
+  alertsButton.addEventListener('click', () => { void incidents.toggle(); });
+
   const antenna = createAntennaController({
+    onItems: (items) => incidents.deliver(incidentWatcher.observe(items)),
     root: byId('antenna'),
     summary: byId('antenna-summary'),
     items: byId('antenna-items'),

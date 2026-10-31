@@ -173,6 +173,13 @@ d'identité déjà présente dans la scène est ignorée à l'insertion (et l'in
 - Une commande s'exécute en **un seul pas d'historique**. Sans sélection, elle explique ce qui manque.
 - **Importer / exporter** en JSON ; un import ne remplace jamais une commande existante en silence.
 
+## 7 bis. Être prévenu d'un incident
+
+Pendant un live, OBS est devant vous, pas le Studio. Si le **serveur d'état**, **OBS** ou la **page de rendu** est perdu (deux relevés de suite, 10 s), le Studio
+le dit : la ligne d'état passe en erreur, le titre de l'onglet porte « ⚠ », et le retour à la normale est dit aussi. Le bouton **Alertes système** du bandeau
+« Antenne » ajoute une **notification du système** (le navigateur vous demande l'autorisation une fois) quand le Studio n'est pas visible. Rien ne change
+dans le rendu d'OBS : le fond continue de se figer plutôt que d'afficher une erreur ; c'est le Studio qui vous prévient.
+
 ## 8. Vos réglages vous suivent
 
 Commandes personnalisées, modèles, unité de position, aides de vue : tout est rangé **sur le serveur d'état**

@@ -633,7 +633,8 @@
     .antenna-item[data-tone="ok"] .antenna-mark { color: var(--color-gold); }
     .antenna-item[data-tone="bad"] .antenna-mark { color: var(--color-danger); }
     .antenna-item[data-tone="warn"] .antenna-mark { color: var(--color-text-primary); }
-    #antenna-copy, #diagnostic-open, #history-open { padding: 3px 10px; }
+    #antenna-copy, #antenna-alerts, #diagnostic-open, #history-open { padding: 3px 10px; }
+    #antenna-alerts[aria-pressed="true"] { color: var(--color-gold); border-color: var(--color-gold); }
     .diagnostic {
       margin: auto;
       width: min(40rem, calc(100vw - 2 * var(--space-lg)));
@@ -746,6 +747,7 @@
       <strong id="antenna-summary">…</strong>
       <div id="antenna-items"></div>
       <button id="antenna-copy" type="button">Copier l’URL OBS</button>
+      <button id="antenna-alerts" type="button" aria-pressed="false" title="Une notification du système quand OBS, le serveur ou la page de rendu est perdu, même si le Studio est derrière une autre fenêtre">Alertes système</button>
       <button id="diagnostic-open" type="button">Diagnostic</button>
       <button id="history-open" type="button">Historique</button>
     </div>
