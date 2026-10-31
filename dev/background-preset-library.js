@@ -2,21 +2,24 @@
 import { canonicalSceneDoc, validateSceneDoc } from '../scene-doc.js';
 import { PRESET_NAME_MAX_LENGTH, canonicalBackgroundPreset, validateBackgroundFile } from './background-state-format.js';
 import { backgroundEffectLabel } from './component-field-schemas.js';
+import { unpackAssets } from './bundle-assets.js';
 
 export const BACKGROUND_PRESET_BUNDLE_FORMAT = 'overlay-background-presets';
-export const BACKGROUND_PRESET_BUNDLE_VERSION = 3;
+export const BACKGROUND_PRESET_BUNDLE_VERSION = 4;
 /**
  * Versions de lot lues à l'import : la 1 porte encore `audioReactive` « Oui » / « Non » ; la 3 ajoute `scenes`, les scènes à
- * plusieurs couches (placement, opacité, ordre) que la forme plate des presets ne sait pas représenter.
+ * plusieurs couches (placement, opacité, ordre) que la forme plate des presets ne sait pas représenter ; la 4 ajoute `assets`, les
+ * images que les scènes utilisent (`dev/bundle-assets.js`), pour qu'un lot se réimporte ailleurs sans « image manquante ».
  */
-const READABLE_BUNDLE_VERSIONS = [1, 2, 3];
+const READABLE_BUNDLE_VERSIONS = [1, 2, 3, 4];
 
 /**
  * @typedef {object} BackgroundPresetBundle
  * @property {'overlay-background-presets'} format
- * @property {3} version
+ * @property {4} version
  * @property {import('./background-state-format.js').BackgroundPreset[]} presets
  * @property {import('../scene-doc.js').SceneDoc[]} scenes
+ * @property {import('./bundle-assets.js').PackedAsset[]} assets
  */
 
 /** @typedef {'created'|'updated'|'unchanged'} BackgroundPresetImportOperation */
@@ -170,20 +173,22 @@ export function backgroundPresetRevision(presets) {
 /**
  * @param {import('./background-state-format.js').BackgroundPreset[]} presets
  * @param {import('../scene-doc.js').SceneDoc[]} [scenes] les scènes à plusieurs couches, exportées en entier
+ * @param {import('./bundle-assets.js').PackedAsset[]} [assets] les images que ces presets et ces scènes utilisent, en base64
  * @returns {BackgroundPresetBundle}
  */
-export function createBackgroundPresetBundle(presets, scenes = []) {
+export function createBackgroundPresetBundle(presets, scenes = [], assets = []) {
   return {
     format: BACKGROUND_PRESET_BUNDLE_FORMAT,
     version: BACKGROUND_PRESET_BUNDLE_VERSION,
     presets: presets.map(clonePreset),
     scenes: structuredClone(scenes),
+    assets: structuredClone(assets),
   };
 }
 
 /**
  * @param {unknown} input
- * @returns {{ok:true,presets:import('./background-state-format.js').BackgroundPreset[],scenes:import('../scene-doc.js').SceneDoc[]}|{ok:false,errors:string[]}}
+ * @returns {{ok:true,presets:import('./background-state-format.js').BackgroundPreset[],scenes:import('../scene-doc.js').SceneDoc[],assets:import('./bundle-assets.js').BundleAsset[]}|{ok:false,errors:string[]}}
  */
 export function parseBackgroundPresetBundle(input) {
   /** @type {unknown} */
@@ -219,8 +224,12 @@ export function parseBackgroundPresetBundle(input) {
     if (!checked.ok) sceneErrors.push(...checked.errors.map((message) => `scenes[${index}] : ${message}`));
   });
   if (sceneErrors.length > 0) return { ok: false, errors: sceneErrors };
+  // `assets` (version 4) : un lot plus ancien n'en a pas, et ce qu'il en dirait serait ignoré.
+  const unpacked = unpackAssets(bundle.version >= 4 ? bundle.assets : undefined);
+  if (!unpacked.ok) return unpacked;
   return {
     ok: true,
+    assets: unpacked.assets,
     scenes: /** @type {import('../scene-doc.js').SceneDoc[]} */ (rawScenes).map((scene) => canonicalSceneDoc(structuredClone(scene))),
     presets: /** @type {import('./background-state-format.js').BackgroundPreset[]} */ (bundle.presets)
       .map(clonePreset)

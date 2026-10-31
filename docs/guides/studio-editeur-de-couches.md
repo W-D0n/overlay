@@ -48,6 +48,9 @@ sur votre ordinateur, à côté du fichier d'état.
 - Limites : 15 Mo et 25 millions de pixels par image ; le SVG n'est pas accepté. Un fichier qui n'est pas vraiment une image est refusé,
   quel que soit son nom.
 - Le réglage **Cadrage** choisit entre contenir (toute l'image), couvrir (la zone est remplie, l'image est rognée) et étirer.
+- **Exporter** emporte les images que vos scènes utilisent ; **Importer** les range dans la médiathèque avant les scènes. Une
+  scène avec ses images se transporte donc d'un ordinateur à l'autre en un seul fichier (si une image manque à l'export, le Studio
+  le dit).
 - Une image **utilisée** par une scène ne se supprime pas : retirez-la d'abord des couches. Si une image manque (dossier copié sans
   elle), le diagnostic le signale et la couche affiche « (image manquante) » : importez-la à nouveau et choisissez-la.
 

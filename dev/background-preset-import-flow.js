@@ -3,7 +3,7 @@
 /**
  * @typedef {object} BackgroundPresetImportPending
  * @property {string} content
- * @property {{presets:{id:string}[]}} parsed
+ * @property {{presets:{id:string}[],assets?:import('./bundle-assets.js').BundleAsset[]}} parsed
  * @property {string} revision
  * @property {import('./background-preset-library.js').BackgroundPresetImportPreview} plan
  */

@@ -5,7 +5,7 @@ updated: 2026-10-31
 
 # Spec — Couches de contenu (texte, forme, image)
 
-Statut : **livré pour le texte, la forme et l'image** ; reste l'export avec images et les polices importées (§6). Fait suite à l'audit produit du 2026-10-31 : le Studio n'avait que
+Statut : **livré pour le texte, la forme, l'image et l'export avec images** ; restent les polices importées (§6). Fait suite à l'audit produit du 2026-10-31 : le Studio n'avait que
 11 effets de fond et le branding, aucun moyen de poser un titre, un cadre, un logo ou une affiche. Cadrage d'origine :
 `studio-cadrage.md` (gestion d'assets, sources de données). Étape 6 de `scene-doc-etape-6.md` : le modèle de couche (placement,
 opacité, rendu étendu 6d, historique, gestes, modèles) est réutilisé tel quel.
@@ -105,8 +105,26 @@ Forme : `components/shape-geometry.test.js`, `components/ShapeLayer.test.js`, `d
 `dev/e2e/suites/22-couche-forme.e2e.js` (couleurs lues dans les pixels : coins transparents d'une ellipse et d'un losange, dégradé,
 zone 30 % × 10 %). 10 mutations unitaires et 1 de l'essai vues rouges.
 
-## 6. Reste
+## 6. Export et import avec les images (livré)
 
-- **Export / import de scènes avec leurs images** : un lot v3 n'embarque pas les images ; importé ailleurs, il donnerait des
-  « images manquantes » (signalées par le diagnostic). À faire : lot v4 qui emporte les images (§ suivant).
+Un lot d'export passe en **version 4** : `assets: [{ id, name, type, data }]` (`data` = le fichier en base64), à côté de `presets` et
+`scenes` (`dev/bundle-assets.js`, `dev/background-preset-library.js`). Les versions 1 à 3 se lisent toujours, sans image.
+
+- **Export :** les images que les presets et les scènes utilisent (`referencedAssetIds`) sont lues dans la médiathèque et emportées. Une
+  image utilisée mais absente de la médiathèque ne peut pas voyager : l'export est fait quand même et **signalé incomplet** (« 1 image
+  manquante, non exportée »), jamais en silence.
+- **Aperçu de l'import :** le serveur ne reçoit que les presets et les scènes (jamais les images) ; l'aperçu annonce « N images à ajouter à
+  la médiathèque ».
+- **Confirmation :** les images sont rangées dans la médiathèque **avant** les scènes. Le serveur calcule l'empreinte du contenu : si elle
+  ne correspond pas à l'identifiant du lot, le lot est altéré ou corrompu et l'import est refusé, aucune scène n'est importée.
+- **Contrôles à la lecture :** forme (tableau, 64 images au plus, identifiant valide, sans doublon), base64 lisible, 128 Mo au plus,
+  type reconnu à l'en-tête des octets décodés (une image « png » qui est du SVG est refusée), nom assaini.
+- Un lot qui porte des images sans médiathèque disponible est refusé à la confirmation.
+
+Vérifié : `dev/bundle-assets.test.js`, `dev/background-preset-library.test.js`, `dev/background-preset-transfer-controller.test.js` ;
+essai `24-export-images.e2e.js` (export réel du navigateur, suppression de la scène et de l'image, import du fichier, image revenue
+avec le même identifiant, scène peinte, diagnostic sans image manquante). 8 mutations vues rouges.
+
+## 7. Reste
+
 - **Polices importées** pour le texte (même magasin, type `font`).

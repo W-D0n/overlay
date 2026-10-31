@@ -50,6 +50,11 @@ export function createAssetClient({ baseUrl, fetchImpl = (...args) => fetch(...a
       })).json();
     },
 
+    /** Le contenu d'un asset (pour l'exporter). @param {string} id @returns {Promise<Uint8Array>} */
+    async download(id) {
+      return new Uint8Array(await (await request(`/assets/${id}`)).arrayBuffer());
+    },
+
     /** @param {string} id */
     async remove(id) {
       await request(`/assets/${id}`, { method: 'DELETE' });

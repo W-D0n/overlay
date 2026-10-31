@@ -14,9 +14,14 @@ import {
 } from './background-preset-presenter.js';
 import { errorMessage } from './error-message.js';
 import { BackgroundStateClientError } from './background-state-client.js';
+import { packAssets, referencedAssetIds } from './bundle-assets.js';
 
 /**
  * Parcours autonome d’export et d’import confirmé de la bibliothèque de presets.
+ *
+ * Les images que les scènes utilisent voyagent dans le lot (version 4) : à l'export elles sont lues dans la médiathèque (`assets`),
+ * à l'import elles y sont rangées avant que les scènes ne le soient, et seules les scènes (jamais les images) partent au serveur
+ * pour l'aperçu et l'import. Une image dont le contenu ne correspond pas à son identifiant fait refuser l'import.
  *
  * @param {{
  *   elements: {
@@ -35,6 +40,11 @@ import { BackgroundStateClientError } from './background-state-client.js';
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   getPresets: () => import('./background-state-format.js').BackgroundPreset[],
  *   getScenes?: () => import('../scene-doc.js').SceneDoc[],
+ *   assets?: {
+ *     catalog: () => import('./asset-client.js').LibraryAsset[],
+ *     download: (id: string) => Promise<Uint8Array>,
+ *     upload: (file: Blob & { name: string }) => Promise<{ asset: { id: string }, created: boolean }>,
+ *   },
  *   refreshPresets: () => Promise<import("../scene-doc.js").SceneDoc[] | null>,
  *   documentRef?: Document,
  *   windowRef?: Window,
@@ -112,7 +122,7 @@ export function createBackgroundPresetTransferController(input) {
     elements.importInput.value = '';
   }
 
-  /** @param {string} content @param {{ presets: { id: string }[] }} parsed */
+  /** @param {string} content @param {{ presets: { id: string }[], assets?: import('./bundle-assets.js').BundleAsset[] }} parsed */
   async function requestPreview(content, parsed) {
     try {
       const preview = await input.client.previewPresetImport(content);
@@ -134,11 +144,50 @@ export function createBackgroundPresetTransferController(input) {
     }
   }
 
+  /**
+   * Range les images du lot dans la médiathèque. Le serveur calcule l'empreinte du contenu : un identifiant qui ne correspond pas
+   * est un lot altéré ou corrompu, il est refusé avant que la moindre scène ne soit importée.
+   * @param {import('./bundle-assets.js').BundleAsset[]} bundleAssets
+   */
+  async function storeBundleAssets(bundleAssets) {
+    if (bundleAssets.length === 0) return;
+    if (input.assets === undefined) throw new Error('ce lot contient des images, mais la médiathèque est indisponible');
+    for (const entry of bundleAssets) {
+      const file = Object.assign(new BlobImpl([entry.bytes]), { name: entry.name });
+      const stored = await input.assets.upload(file);
+      if (stored.asset.id !== entry.id) throw new Error(`l’image « ${entry.name} » ne correspond pas à son identifiant : lot altéré ou corrompu`);
+    }
+  }
+
+  /**
+   * Les images que ces presets et ces scènes utilisent, lues dans la médiathèque et mises en base64.
+   * @param {unknown[]} presets @param {unknown[]} scenes
+   */
+  async function collectBundleAssets(presets, scenes) {
+    const ids = referencedAssetIds(presets, scenes);
+    if (ids.length === 0 || input.assets === undefined) return { packed: [], missing: ids.length === 0 ? 0 : ids.length };
+    const catalog = input.assets.catalog();
+    /** @type {{ meta: { id: string, name: string, type: string }, bytes: Uint8Array }[]} */
+    const entries = [];
+    let missing = 0;
+    for (const id of ids) {
+      const meta = catalog.find((asset) => asset.id === id);
+      if (meta === undefined) { missing += 1; continue; }
+      try {
+        entries.push({ meta, bytes: await input.assets.download(id) });
+      } catch {
+        missing += 1;
+      }
+    }
+    return { packed: packAssets(entries), missing };
+  }
+
   async function confirmImport() {
     const command = transition({ type: 'confirmed' });
     if (command === null) return;
     const { pending } = command;
     try {
+      await storeBundleAssets(pending.parsed.assets ?? []);
       await input.client.importPresets(pending.content, pending.revision);
       const summary = formatBackgroundPresetImportSummary(pending.plan);
       transition({ type: 'completed' });
@@ -178,10 +227,11 @@ export function createBackgroundPresetTransferController(input) {
   }
 
   function initialize() {
-    elements.exportButton.onclick = () => {
+    elements.exportButton.onclick = async () => {
       const presets = input.getPresets();
       const scenes = input.getScenes?.() ?? [];
-      const content = `${JSON.stringify(createBackgroundPresetBundle(presets, scenes), null, 2)}\n`;
+      const { packed, missing } = await collectBundleAssets(presets, scenes);
+      const content = `${JSON.stringify(createBackgroundPresetBundle(presets, scenes, packed), null, 2)}\n`;
       const url = urlApi.createObjectURL(new BlobImpl([content], { type: 'application/json' }));
       const link = documentRef.createElement('a');
       link.href = url;
@@ -189,7 +239,11 @@ export function createBackgroundPresetTransferController(input) {
       link.click();
       windowRef.setTimeout(() => urlApi.revokeObjectURL(url), 0);
       const total = presets.length + scenes.length;
-      input.report.ok(`${total} scène(s) exportée(s)${scenes.length === 0 ? '' : ` (dont ${scenes.length} à plusieurs couches)`}`);
+      const images = packed.length === 0 ? '' : ` · ${packed.length === 1 ? '1 image incluse' : `${packed.length} images incluses`}`;
+      const message = `${total} scène(s) exportée(s)${scenes.length === 0 ? '' : ` (dont ${scenes.length} à plusieurs couches)`}${images}`;
+      // Une image que les scènes utilisent mais que la médiathèque n'a plus ne peut pas voyager : l'export est incomplet, on le dit.
+      if (missing > 0) input.report.error(`${message} · ${missing === 1 ? '1 image manquante, non exportée' : `${missing} images manquantes, non exportées`}`);
+      else input.report.ok(message);
     };
 
     elements.importTrigger.onclick = () => elements.importInput.click();
@@ -204,10 +258,13 @@ export function createBackgroundPresetTransferController(input) {
           input.report.error(`import impossible : ${parsed.errors.join(' ; ')}`);
           return;
         }
-        const pending = await requestPreview(content, parsed);
+        // Le serveur ne reçoit que les scènes : les images restent ici jusqu'à la confirmation.
+        const serverContent = JSON.stringify(createBackgroundPresetBundle(parsed.presets, parsed.scenes));
+        const pending = await requestPreview(serverContent, parsed);
         if (pending === null) return;
         transition({ type: 'selected', pending });
-        input.report.ok('import prêt — confirmer ou annuler');
+        const images = parsed.assets.length;
+        input.report.ok(`import prêt${images === 0 ? '' : ` (${images === 1 ? '1 image' : `${images} images`} à ajouter à la médiathèque)`} — confirmer ou annuler`);
       } catch (error) {
         input.report.error(`import impossible : ${errorMessage(error)}`);
       } finally {

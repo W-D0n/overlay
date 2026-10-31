@@ -60,6 +60,7 @@ export async function startStack() {
     reset() {
       rmSync(join(directory, 'state.json'), { force: true });
       rmSync(join(directory, 'state.json.pre-v4.bak'), { force: true });
+      rmSync(join(directory, 'state.json.assets'), { recursive: true, force: true });
     },
     async stop() {
       for (const child of processes) child.kill();

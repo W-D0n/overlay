@@ -32,6 +32,7 @@ import { errorMessage } from './error-message.js';
  *   client: ReturnType<typeof import('./background-state-client.js').createBackgroundStateClient>,
  *   preview: ReturnType<typeof import('./background-preview-controller.js').createBackgroundPreviewController>,
  *   drafts?: ReturnType<typeof import('./preset-draft-sync.js').createPresetDraftSync>,
+ *   assets?: NonNullable<Parameters<typeof import('./background-preset-transfer-controller.js').createBackgroundPresetTransferController>[0]['assets']>,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   backgroundPageUrl: string,
  *   documentRef?: Document,
@@ -339,6 +340,7 @@ export function createBackgroundPresetController(input) {
     // Les scènes à un effet s'exportent à plat (lisibles par les versions précédentes) ; les autres, en entier.
     getPresets: () => cachedPresets.flatMap((scene) => presetFromScene(scene) ?? []),
     getScenes: () => cachedPresets.filter((scene) => presetFromScene(scene) === null),
+    ...(input.assets === undefined ? {} : { assets: input.assets }),
     refreshPresets: refresh,
     documentRef,
     windowRef,

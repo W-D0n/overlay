@@ -25,15 +25,16 @@ test('un export de presets se relit avec son format versionné sans partager les
   const bundle = createBackgroundPresetBundle(presets);
   expect(bundle).toEqual({
     format: 'overlay-background-presets',
-    version: 3,
+    version: 4,
     presets,
     scenes: [],
+    assets: [],
   });
   bundle.presets[0].options.changed = true;
   expect(presets[0].options).toEqual({});
 
   const parsed = parseBackgroundPresetBundle(JSON.stringify(createBackgroundPresetBundle(presets)));
-  expect(parsed).toEqual({ ok: true, presets, scenes: [] });
+  expect(parsed).toEqual({ ok: true, presets, scenes: [], assets: [] });
 });
 
 test('un import rejette entièrement un bundle invalide', () => {
@@ -256,9 +257,9 @@ test('un import qui ne change que la transition ou showBranding est une mise à 
   expect(plan.changes[0].differences.map(({ field }) => field).sort()).toEqual(['showBranding', 'transition']);
 });
 
-test('un export est en version 3 ; un lot version 1 s’importe en convertissant « Oui » en booléen', () => {
+test('un export est en version 4 ; un lot version 1 s’importe en convertissant « Oui » en booléen', () => {
   const exported = createBackgroundPresetBundle([{ id: 'a', name: 'A', component: 'rain', options: { audioReactive: true } }]);
-  expect(exported.version).toBe(3);
+  expect(exported.version).toBe(4);
 
   const legacyBundle = JSON.stringify({
     format: 'overlay-background-presets',
@@ -311,7 +312,7 @@ describe('scènes à plusieurs couches (version 3)', () => {
 
   test('un lot sans « scenes » (versions 1 et 2) se lit avec une liste vide', () => {
     const parsed = parseBackgroundPresetBundle({ format: 'overlay-background-presets', version: 2, presets: [] });
-    expect(parsed).toEqual({ ok: true, presets: [], scenes: [] });
+    expect(parsed).toEqual({ ok: true, presets: [], scenes: [], assets: [] });
   });
 
   test('planSceneImport : nouvelle scène créée, identique ignorée, jamais d’écrasement', () => {

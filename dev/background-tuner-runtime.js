@@ -110,6 +110,7 @@ export async function startBackgroundTuner(environment = {}) {
   await settings.load();
   const syncIndicator = createSettingsSyncIndicator({ element: byId('settings-sync'), source: settings });
   windowRef.addEventListener('pagehide', () => { settings.flush(); });
+  const assetClient = createAssetClient({ baseUrl: STATE_SERVER });
   const library = createAssetLibraryController({
     elements: {
       dialog: /** @type {HTMLDialogElement} */ (byId('asset-library')),
@@ -120,7 +121,7 @@ export async function startBackgroundTuner(environment = {}) {
       close: /** @type {HTMLButtonElement} */ (byId('asset-library-close')),
       hint: byId('asset-library-hint'),
     },
-    client: createAssetClient({ baseUrl: STATE_SERVER }),
+    client: assetClient,
     urlOf: assetUrl,
     // Les images des couches de la scène en cours d'édition : le serveur ne les connaît qu'une fois publiées.
     usedHere: () => collectAssetUsage(preview.document.state().scene),
@@ -457,6 +458,7 @@ export async function startBackgroundTuner(environment = {}) {
   byId('publish-discard').addEventListener('click', () => preview.discard());
 
   const presets = createBackgroundPresetController({
+    assets: { catalog: library.assets, download: assetClient.download, upload: assetClient.upload },
     elements: {
       list: byId('preset-list'),
       builtinList: byId('builtin-list'),
