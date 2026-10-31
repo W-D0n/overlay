@@ -34,7 +34,7 @@ Ce que seul l'owner peut faire (OBS, regard humain, décision). **Claude rappell
   palette typée `never[]` (24 erreurs), `error.message` sur un `catch` non typé (désormais `dev/error-message.js`, gardé par
   `dev/error-message.test.js`), un test qui fabriquait une fausse erreur 409 au lieu de la vraie, annotations manquantes.
   La baseline `dev/typecheck-baseline.json` est vide : toute nouvelle erreur de typage fait échouer `bun dev/typecheck.js`.
-- **Parcours clavier de bout en bout** des panneaux (accessibilité, reste de 6f).
+- ~~**Parcours clavier de bout en bout** des panneaux~~ — fait le 2026-10-31 (`dev/e2e/suites/20-parcours-clavier.e2e.js`).
 - **Audit produit avant toute proposition d'amélioration** (cible premium) : état réel de l'éditeur, écarts avec les
   éditeurs de référence, puis propositions chiffrées.
 
