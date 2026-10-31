@@ -31,6 +31,7 @@ import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 import { isIdentityKind } from '../layer-kinds.js';
 import { ADDABLE_KIND_IDS, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
 import { createAssetClient } from './asset-client.js';
+import { createBindingsController } from './bindings-controller.js';
 import { collectAssetUsage } from './asset-format.js';
 import { createAssetLibraryController } from './asset-library-controller.js';
 import { assetUrl } from '../components/asset-image.js';
@@ -216,6 +217,13 @@ export async function startBackgroundTuner(environment = {}) {
     onContextMenu: (x, y) => contextMenu?.open(x, y),
     documentRef,
     windowRef,
+  });
+
+  const bindings = createBindingsController({
+    elements: { list: byId('bindings-list'), add: /** @type {HTMLButtonElement} */ (byId('bindings-add')), hint: byId('bindings-hint') },
+    studio: preview.document,
+    report,
+    documentRef,
   });
 
   const layerInspector = createLayerInspectorController({

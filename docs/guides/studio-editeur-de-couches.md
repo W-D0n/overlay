@@ -54,6 +54,19 @@ sur votre ordinateur, à côté du fichier d'état.
 - Une image **utilisée** par une scène ne se supprime pas : retirez-la d'abord des couches. Si une image manque (dossier copié sans
   elle), le diagnostic le signale et la couche affiche « (image manquante) » : importez-la à nouveau et choisissez-la.
 
+### Faire réagir une couche (liaisons)
+
+La section **Animation** de l'inspecteur lie une couche au **son** ou aux **alertes** (follow, sub, raid, bits, ou toute alerte). Une liaison
+dit : quelle source, quelle valeur de la couche elle pilote (échelle, opacité, rotation, flou, position), la valeur **au repos** (« De ») et celle
+quand la source est **au maximum** (« À »). Exemples :
+
+- *Un titre qui paraît à chaque raid* : source « Alerte raid », valeur « Opacité », de 0 à 1, retombée 1 500 ms. Au repos le titre est invisible ;
+  au raid il apparaît, puis s'efface en ralentissant.
+- *Un logo qui pulse au rythme du son* : source « Niveau sonore » (ou « Graves »), valeur « Échelle », de 1 à 1,2, lissage 80 ms.
+
+Quatre liaisons au plus par couche, une par valeur. Le bouton « Tester une réaction » (Follow, Sub, Raid, Bits) permet de les essayer sans
+attendre une vraie alerte. Une liaison au son demande le micro, comme les effets réactifs.
+
 ## 2. Régler une couche
 
 Sélectionnez une couche : le panneau de droite montre son **opacité**, son **rendu**, sa **position et sa taille** et les

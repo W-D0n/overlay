@@ -1,5 +1,6 @@
 // @ts-check
 import { validateTransition } from './background-transition.js';
+import { bindingErrors, canonicalBindings } from './layer-bindings.js';
 import { clampOptions, isIdentityKind, neutralizeOptions, resolveKindId, validateOptions } from './layer-kinds.js';
 
 /**
@@ -25,6 +26,7 @@ import { clampOptions, isIdentityKind, neutralizeOptions, resolveKindId, validat
  *   rotation?: number,
  *   crop?: Crop,
  *   blur?: number,
+ *   bindings?: import('./layer-bindings.js').Binding[],
  *   options: Record<string, unknown>,
  * }} Layer
  * @typedef {{
@@ -55,7 +57,7 @@ const ID_MAX_LENGTH = 80;
 const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 /**
- * Le rendu étendu d'une couche (étape 6d). Absent = neutre : un document sans ces champs reste valide et se rend comme avant.
+ * Le rendu étendu d'une couche (étape 6d), et ses liaisons (`layer-bindings.js`). Absent = neutre : un document sans ces champs reste valide et se rend comme avant.
  * Seules les valeurs mesurées dans OBS (`dev/obs-bench.html`) sont proposées : fusion produit / superposition claire /
  * incrustation, rotation, rognage, flou. Le flou se compte en pixels de la source de référence (`render-reference.js`).
  */
@@ -75,14 +77,14 @@ export const LOOK_LIMITS = Object.freeze({
 export const CROP_SIDES = /** @type {const} */ (['top', 'right', 'bottom', 'left']);
 export const CROP_LABELS = Object.freeze({ top: 'haut', right: 'droite', bottom: 'bas', left: 'gauche' });
 /** Les champs de rendu étendu d'une couche. */
-export const LOOK_KEYS = /** @type {const} */ (['blend', 'rotation', 'crop', 'blur']);
+export const LOOK_KEYS = /** @type {const} */ (['blend', 'rotation', 'crop', 'blur', 'bindings']);
 
 /** La couche sans son rendu étendu.
  * @param {Layer} layer
  * @returns {Layer}
  */
 export function withoutLook(layer) {
-  const { blend: _blend, rotation: _rotation, crop: _crop, blur: _blur, ...plain } = layer;
+  const { blend: _blend, rotation: _rotation, crop: _crop, blur: _blur, bindings: _bindings, ...plain } = layer;
   return plain;
 }
 
@@ -267,7 +269,7 @@ export function canonicalSceneDoc(scene) {
  * @returns {Layer}
  */
 function canonicalLook(layer) {
-  const { blend, rotation, crop, blur, ...rest } = layer;
+  const { blend, rotation, crop, blur, bindings, ...rest } = layer;
   /** @type {Record<string, unknown>} */
   const look = {};
   if (blend !== 'normal' && blend !== undefined) look.blend = blend;
@@ -283,6 +285,8 @@ function canonicalLook(layer) {
     const bounded = canonicalCrop(crop);
     if (bounded !== null) look.crop = bounded;
   }
+  const canonical = canonicalBindings(bindings);
+  if (canonical !== undefined) look.bindings = canonical;
   return /** @type {Layer} */ ({ ...rest, ...look });
 }
 
@@ -387,6 +391,7 @@ function lookErrors(where, layer) {
   if (layer.blend !== undefined && !BLEND_MODES.some(({ id }) => id === layer.blend)) errors.push(`${where}.blend : mode de fusion inconnu`);
   if (layer.rotation !== undefined && !isFraction(layer.rotation)) errors.push(`${where}.rotation : nombre attendu`);
   if (layer.blur !== undefined && !isFraction(layer.blur)) errors.push(`${where}.blur : nombre attendu`);
+  errors.push(...bindingErrors(`${where}.bindings`, layer.bindings));
   if (layer.crop === undefined) return errors;
   const { crop } = layer;
   if (!isPlainObject(crop)) return [...errors, `${where}.crop : objet attendu`];

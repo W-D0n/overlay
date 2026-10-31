@@ -79,7 +79,7 @@
     .layers-add { padding: 0 var(--space-sm); border-color: var(--color-gold-dim); color: var(--color-gold); }
     .layer-button:hover:not(:disabled), .layers-add:hover:not(:disabled) { border-color: var(--color-gold); color: var(--color-gold); }
     .layer-button:disabled, .layers-add:disabled { opacity: .35; cursor: default; }
-    .layer-button:focus-visible, .layers-add:focus-visible, .layers-list:focus-visible, .gallery-card:focus-visible, #asset-library button:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
+    .layer-button:focus-visible, .layers-add:focus-visible, .layers-list:focus-visible, .gallery-card:focus-visible, #asset-library button:focus-visible, .binding-remove:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
     .layer-button[aria-pressed="true"] { color: var(--color-gold); }
     .layer-button.is-on { color: var(--color-gold); border-color: var(--color-gold-dim); }
     .layers-meter { height: 3px; background: var(--color-rule); margin: var(--space-xs) 0 var(--space-sm); }
@@ -125,6 +125,12 @@
     .inspector-segment button[aria-pressed="true"] { color: var(--color-gold); border-color: var(--color-gold); background: rgba(200, 185, 122, .08); }
     .inspector-units .layer-button { margin-left: auto; }
     .inspector-subtitle { margin: var(--space-md) 0 0; font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-mid); }
+    .bindings-list { display: flex; flex-direction: column; gap: var(--space-sm); margin: var(--space-sm) 0; }
+    .binding-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
+    .binding-row select, .binding-row input { width: 100%; box-sizing: border-box; min-width: 0; }
+    .binding-number { display: flex; flex-direction: column; gap: 2px; color: var(--color-text-mid); font-size: var(--text-xs); }
+    .binding-remove { justify-self: end; align-self: end; padding: 2px var(--space-sm); }
+    #bindings-add { margin-right: var(--space-xs); }
     .inspector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); margin: var(--space-sm) 0; }
     .inspector-grid label { display: flex; flex-direction: column; gap: 2px; color: var(--color-text-mid); font-size: var(--text-xs); }
     .inspector-grid input { width: 100%; box-sizing: border-box; }
@@ -1105,6 +1111,10 @@
           <label>Rogner bas (%) <input id="inspector-crop-bottom" type="number" min="0" max="90" step="0.5"></label>
           <label>Rogner gauche (%) <input id="inspector-crop-left" type="number" min="0" max="90" step="0.5"></label>
         </div>
+        <h3 class="inspector-subtitle">Animation</h3>
+        <p id="bindings-hint" class="hint"></p>
+        <div id="bindings-list" class="bindings-list"></div>
+        <button id="bindings-add" type="button" class="layers-add">+ Ajouter une liaison</button>
         <button id="inspector-reset" type="button" class="layers-add">Réinitialiser</button>
       </div>
     </section>

@@ -21,6 +21,7 @@ Ce que seul l'owner peut faire (OBS, regard humain, décision). **Claude rappell
 - [ ] **Usage réel de l'éditeur (6b à 6g)** pendant quelque temps, puis décider de **6h (groupes de couches)** : utile ou non,
   et quels gestes manquent.
 - [ ] **Couches de contenu dans OBS** (texte, forme, image, 2026-10-31) : charger les points de départ « Début de live », « Je reviens » et « Fin de live » dans la Browser Source d'OBS, puis importer une vraie image (logo, affiche) et la poser dans une scène. À vérifier : le texte est net à la résolution de la source, une police installée (ex. Bebas Neue) est bien trouvée par OBS, l'image se charge (elle vient du serveur d'état, port 5932, avec `crossOrigin`), et le coût reste à 60 i/s (relancer le banc avec une scène de 8 couches mêlant contenus et effets).
+- [ ] **Liaisons au son et aux alertes dans OBS** (2026-10-31) : poser un titre avec une liaison « alerte raid → opacité » et une liaison « niveau sonore → échelle » sur un logo, puis déclencher un vrai raid / parler dans le micro. À vérifier : l'animation est fluide à 60 i/s, le micro est bien demandé, la retombée correspond à la durée réglée.
 - [ ] **Relancer le banc** `dev/obs-bench.html` dans OBS après tout changement de rendu, et vérifier que le rapport se lit
   par `GET /bench-result`.
 - [ ] **Tauri** : cocher la case « démarrage avec Windows » du panneau et vérifier qu'elle tient après redémarrage.

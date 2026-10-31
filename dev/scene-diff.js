@@ -55,6 +55,10 @@ function layerDetails(before, after, labelOf, optionLabel) {
   if (before.blend !== after.blend) details.push(`fusion : ${blendLabel(before)} → ${blendLabel(after)}`);
   if ((before.rotation ?? 0) !== (after.rotation ?? 0)) details.push(`rotation : ${before.rotation ?? 0}° → ${after.rotation ?? 0}°`);
   if ((before.blur ?? 0) !== (after.blur ?? 0)) details.push(`flou : ${before.blur ?? 0} px → ${after.blur ?? 0} px`);
+  if (stable(before.bindings) !== stable(after.bindings)) {
+    const count = (/** @type {Layer} */ layer) => layer.bindings?.length ?? 0;
+    details.push(`liaisons : ${count(before)} → ${count(after)}`);
+  }
   for (const side of CROP_SIDES) {
     const a = Math.round((before.crop?.[side] ?? 0) * 1000) / 10;
     const b = Math.round((after.crop?.[side] ?? 0) * 1000) / 10;
