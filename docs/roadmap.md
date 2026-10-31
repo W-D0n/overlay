@@ -1,34 +1,39 @@
 ---
 created: 2026-07-26
-updated: 2026-07-26
+updated: 2026-10-31
 ---
 
 # Roadmap — Overlay Stream D0n / Mozaïk
 
 État d'avancement vivant. L'historique détaillé des lots vit dans [`MAP.md`](MAP.md), les décisions
-sorties du backlog dans [`backlog-history.md`](backlog-history.md).
+sorties du backlog dans [`backlog-history.md`](backlog-history.md). Ce qui reste à faire, et qui le
+fait, est dans [`inbox.md`](inbox.md).
 
 ---
 
-## Phase active — Consolidation avant live
+## Phase active — Du fond animé au Studio d'overlays
 
-L'audit produit du 2026-07-24 est **entièrement livré** (①→⑦). Aucune nouvelle fonctionnalité n'est
-engagée : la phase en cours consiste à valider en conditions réelles ce qui a été empilé, puis à
-corriger ce que l'audit remonte.
+Cap posé le 2026-10-29 (`specs/studio-cadrage.md`) : une scène est un **document de couches** que le Studio édite
+et que la page de rendu d'OBS joue. Le moteur et l'éditeur sont livrés ; ce qui manque, c'est le passage en
+conditions réelles dans OBS (liste « À faire par l'owner » de l'inbox).
 
-## En cours
+## Livré — Studio d'overlays (2026-10-29 → 2026-10-31)
 
-- **QA OBS 1080p** — protocole prêt dans [`inbox.md`](inbox.md) §Protocole de QA OBS 1080p. Attend
-  le passage de l'owner ; ses constats vont dans §Résultats de l'audit.
-- **Validation visuelle ShapeMorph** — qualité des cinq contours et de leurs interpolations.
-- **Validation visuelle ColorDrops** — rendu, rythme et lisibilité.
-- **Amplitude des réactions audio** — Rain, FloatingSymbols, ColorDrops et OrbitingShapes : la mesure
-  automatique sature, seul un regard peut trancher.
+| Lot | Contenu | Spec |
+|---|---|---|
+| Socle | Référence 1080p unique, contrat d'URL, transport, horloge de rendu unique | `specs/socle-rendu-etapes-1-2.md` |
+| Modèle | Type de couche défini une fois, document de scène (couches, placement en fractions), moteur | `specs/layer-kind-etape-3.md`, `specs/scene-doc-etape-4.md` |
+| Éditeur | Couches, historique annulable, brouillon / publication / antenne, aperçu et rendu OBS côte à côte, modèles, commandes, macros, rendu étendu (mode de fusion, rotation, rognage, flou) | `specs/scene-doc-etape-6.md`, `specs/studio-trois-zones.md` |
+| Contenus | Texte, forme, image ; médiathèque (images, polices importées) ; export avec les images ; points de départ | `specs/couches-de-contenu.md` |
+| Liaisons | Le son et les alertes pilotent une couche | `specs/liaisons-de-couche.md` |
+| Timeline | Images clés par couche, durée et boucle de scène, lecture dans OBS | `specs/timeline.md` |
+| Versions | Points de restauration nommés d'une scène | `specs/versions-de-scene.md` |
+| Incidents | Alerte quand le serveur, OBS ou la page de rendu est perdu | `specs/incidents-d-antenne.md` |
 
-Ces quatre points **bloquent sur un jugement humain**, pas sur du code. Rien à implémenter tant
-qu'ils ne sont pas rendus.
+Le guide d'usage est [`guides/studio-editeur-de-couches.md`](guides/studio-editeur-de-couches.md). Garde-fous : tests unitaires,
+typage strict à 0 erreur, essais de bout en bout dans un vrai Chrome (`bun dev/e2e/run.js`).
 
-## Livré (audit produit 2026-07-24)
+## Livré avant (audit produit 2026-07-24)
 
 | # | Ouverture | Spec |
 |---|---|---|
@@ -40,13 +45,21 @@ qu'ils ne sont pas rendus.
 | ⑥ | Vignettes de presets | `specs/background-preset-thumbnails.md` |
 | ⑦ | Archivage du moteur de scènes | tag git `scene-engine-v1` |
 
-Hors audit, même période : canvas de référence passé en **2560×1440**, et refonte UX du tuner (trois
-espaces de travail, hiérarchie typographique — 5,4 → 1,7 écrans de défilement).
+## En attente d'un regard ou d'OBS
 
-## Ensuite, si l'audit ne remonte rien
+Bloque sur un jugement humain, pas sur du code : QA OBS 1080p, validations visuelles (ShapeMorph, ColorDrops, amplitude
+audio), et les contrôles propres au Studio (mode de fusion, contenus, liaisons, alertes système, timeline). Détail et cases
+à cocher dans [`inbox.md`](inbox.md).
 
-Aucun engagement pris. Pistes ouvertes, par ordre d'intérêt décroissant :
+## Ensuite
 
-- réglage fin des gains audio effet par effet, à partir du retour d'audit ;
-- capture du **son du bureau** plutôt que du micro (périphérique de bouclage Windows, aucun code) ;
-- intégration Twitch EventSub réelle vers `POST /event`, dont le point d'entrée existe déjà.
+Aucun engagement pris ; l'ordre ci-dessous est celui que recommande l'audit du 2026-10-31. Chaque piste a sa fiche dans
+[`inbox.md`](inbox.md) § « Pistes d'amélioration ».
+
+1. **Alertes réelles** : brancher Twitch (EventSub) sur `POST /event`. Sans cela, les liaisons « alerte → valeur » ne reçoivent que les
+   alertes de test du Studio. À reprendre avec `security.md` (nouvelle surface réseau, jeton).
+2. **Rejouer une timeline sur une alerte** : un raid relance l'animation d'un titre.
+3. **Sources de données** : viewers, dernier follower, minuteur, comme texte et comme source de liaison.
+4. **Son du bureau** plutôt que le micro (périphérique de bouclage Windows).
+5. **Groupes de couches** (6h), si l'usage réel le demande.
+6. **Chute de FPS comme incident**, une fois mesurée dans OBS.

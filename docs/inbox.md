@@ -39,8 +39,29 @@ Ce que seul l'owner peut faire (OBS, regard humain, décision). **Claude rappell
   `dev/error-message.test.js`), un test qui fabriquait une fausse erreur 409 au lieu de la vraie, annotations manquantes.
   La baseline `dev/typecheck-baseline.json` est vide : toute nouvelle erreur de typage fait échouer `bun dev/typecheck.js`.
 - ~~**Parcours clavier de bout en bout** des panneaux~~ — fait le 2026-10-31 (`dev/e2e/suites/20-parcours-clavier.e2e.js`).
-- **Audit produit avant toute proposition d'amélioration** (cible premium) : état réel de l'éditeur, écarts avec les
-  éditeurs de référence, puis propositions chiffrées.
+- ~~**Audit produit avant toute proposition d'amélioration**~~ — fait le 2026-10-31 ; ses propositions sont livrées (contenus,
+  médiathèque, liaisons, versions, incidents, timeline) ou reprises ci-dessous.
+
+## Pistes d'amélioration (Claude) — à arbitrer par l'owner
+
+Aucune n'est engagée. Ordre = recommandation de l'audit du 2026-10-31, du plus utile en live au plus spéculatif. Vérifié le même jour :
+aucun code Twitch dans le dépôt (les alertes viennent du bouton de test du Studio ou d'un `POST /event`), la sélection multiple existe
+(`selection: string[]`), il n'y a ni groupe de couches ni capture du son du bureau, et la page de rendu ne remonte pas son FPS.
+
+1. **Alertes réelles (Twitch EventSub → `POST /event`)** — sans elles, les liaisons « alerte → valeur » et les réactions du fond
+   ne servent qu'en test. Demande une authentification (jeton Twitch) et une revue de `docs/security.md` (point 4 : toute source réseau
+   nouvelle). Décision owner : brancher EventSub, ou retirer les réactions (`revue-fonctions.md` §5).
+2. **Rejouer une timeline sur une alerte** (`specs/timeline.md` §5) — un raid relance l'entrée d'un titre. Complète la piste 1.
+3. **Sources de données** (`specs/liaisons-de-couche.md` §5) — nombre de viewers, dernier follower, minuteur : comme texte (« Dernier
+   follow : … ») et comme source de liaison. Dépend de la piste 1 pour les données Twitch ; le minuteur n'en dépend pas.
+4. **Son du bureau** plutôt que le micro (périphérique de bouclage Windows), pour réagir à la musique du live.
+5. **Groupes de couches** (6h) — à décider après un usage réel de l'éditeur (liste de l'owner ci-dessus).
+6. **Chute de FPS comme incident** (`specs/incidents-d-antenne.md` §4) — la page de rendu devrait remonter son rythme par le canal d'état ;
+   à mesurer d'abord dans OBS (relancer le banc).
+7. **Finitions de l'éditeur** (specs « Reste ») : copier-coller des images clés, courbes de Bézier, plusieurs couches vues ensemble
+   dans la timeline, valeurs animables supplémentaires (couleur, rognage, taille du texte), graisses et variantes réelles d'une
+   police importée, comparaison visuelle et vignettes de versions, versions emportées par un export.
+8. **Alerte sonore ou notification native** des incidents (repli sur l'application de bureau Tauri) — selon l'usage réel.
 
 ---
 

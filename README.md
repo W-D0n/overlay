@@ -3,13 +3,18 @@
 Habillage de stream pour OBS Browser Source, en HTML/CSS/JS natif, sans build ni dépendance.
 Direction artistique **Atelier** : noir profond, or patiné, typographie serif + monospace.
 
-## Focus actuel : les fonds autonomes
+## Focus actuel : le Studio d'overlays
 
-Le flux principal ne rend qu'une animation de fond :
+Une **scène** est une pile de couches (effets de fond, texte, formes, images, branding) que le Studio édite et que la page de rendu joue dans OBS :
 
 - `background.html` — URL à utiliser dans OBS ;
-- `dev/studio.html` — entrée unique de création : rail (antenne, bibliothèque, scènes OBS, branding), aperçu 1920×1080 et réglages du preset ;
-- `dev/background-state-server.js` — persistance JSON et synchronisation WebSocket.
+- `dev/studio.html` — entrée unique de création : rail (antenne, bibliothèque, scènes OBS, branding), aperçu 1920×1080 et réglages de la scène ;
+- `dev/background-state-server.js` — persistance JSON, médiathèque, versions et synchronisation WebSocket.
+
+Ce que fait le Studio : couches ordonnées, historique annulable, brouillon puis publication, **texte, formes et images**
+(médiathèque d'images et de polices importées), **liaisons** au son et aux alertes, **timeline à images clés**, **versions nommées**,
+export / import d'une scène avec ses images, et alerte quand le serveur, OBS ou la page de rendu est perdu.
+Mode d'emploi : [`docs/guides/studio-editeur-de-couches.md`](docs/guides/studio-editeur-de-couches.md).
 
 Le moteur de scènes a été retiré du dépôt le 2026-07-25. Son code reste restaurable via le tag
 git `scene-engine-v1`, et ses specs vivent dans `docs/specs/archive/`.
@@ -22,10 +27,10 @@ Double-cliquer sur `start-dev.bat`. Le script lance l'environnement de création
 
 `http://localhost:5931/dev/studio.html`
 
-L'onglet **Fonds & presets** permet de choisir parmi les **11 effets**, de les régler avec des
-curseurs bornés, d'essayer les points de départ et de gérer ses presets. La recherche couvre
+Le Studio permet de composer une scène : **11 effets** de fond réglés par des curseurs bornés, des contenus
+(texte, forme, image), des points de départ prêts à l'emploi, et la gestion de ses presets. La recherche couvre
 le nom, l'effet et les tags ; **Exporter** et **Importer** rendent la bibliothèque personnelle
-portable entre deux installations.
+portable entre deux installations (les images voyagent avec la scène).
 
 ### Utiliser le fond dans OBS
 
