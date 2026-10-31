@@ -1,5 +1,5 @@
 // @ts-check
-import { EFFECT_KIND_IDS, LAYER_KINDS, LAYER_KIND_IDS, NUMBER_FIELD_GUIDANCE } from '../layer-kinds.js';
+import { CONTENT_KIND_IDS, EFFECT_KIND_IDS, LAYER_KINDS, LAYER_KIND_IDS, NUMBER_FIELD_GUIDANCE } from '../layer-kinds.js';
 
 /**
  * dev/component-field-schemas.js — Vue « formulaire » des types de couche pour le tuner.
@@ -31,6 +31,12 @@ export function defaultBackgroundOptions(kind) {
 
 /** Noms d'effets proposés par le sélecteur du tuner (`(aucun)` géré à part). */
 export const BACKGROUND_COMPONENT_NAMES = EFFECT_KIND_IDS;
+
+/** Noms des types de contenu (texte, forme, image) proposés pour une couche de contenu. */
+export const CONTENT_COMPONENT_NAMES = CONTENT_KIND_IDS;
+
+/** Les types de couche qu'une galerie d'ajout propose : les effets, les contenus, puis le branding. */
+export const ADDABLE_KIND_IDS = [...EFFECT_KIND_IDS, ...CONTENT_KIND_IDS, 'branding'];
 
 /**
  * Libellé affiché d'un effet de fond.

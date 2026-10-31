@@ -29,7 +29,7 @@ import { createSettingsSyncIndicator } from './settings-sync-indicator.js';
 import { createCustomCommandsController } from './custom-commands-controller.js';
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 import { isIdentityKind } from '../layer-kinds.js';
-import { BACKGROUND_COMPONENT_NAMES, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
+import { ADDABLE_KIND_IDS, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
 import { createPresetDraftSync } from './preset-draft-sync.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
@@ -159,7 +159,7 @@ export async function startBackgroundTuner(environment = {}) {
     },
     studio: preview.document,
     labelOf: backgroundEffectLabel,
-    addableKinds: [...BACKGROUND_COMPONENT_NAMES, 'branding'],
+    addableKinds: ADDABLE_KIND_IDS,
     defaultOptions: defaultBackgroundOptions,
     report,
     onContextMenu: (x, y) => contextMenu?.open(x, y),
@@ -309,7 +309,7 @@ export async function startBackgroundTuner(environment = {}) {
   });
   const announcer = createAnnouncer({ element: byId('studio-announcer'), editor: preview.editor, labelOf: backgroundEffectLabel });
   const scrub = installScrubFields({ documentRef });
-  const addableKinds = [...BACKGROUND_COMPONENT_NAMES, 'branding'];
+  const addableKinds = ADDABLE_KIND_IDS;
   /** @type {ReturnType<typeof createCommandPaletteController> | null} */
   let palette = null;
   /** @type {ReturnType<typeof createCustomCommandsController> | null} */

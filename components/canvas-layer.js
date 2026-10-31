@@ -16,9 +16,14 @@ import { smooth } from '../layer-cost.js';
  * `destroy` libère ce que la couche détient hors du canvas (minuteurs) ; `extend` ajoute des
  * méthodes propres à l'effet sur l'instance (ex. `morphTo`).
  *
+ * Une couche **statique** (`animated: false` : texte, forme, image) ne dessine que lorsqu'elle est invalidée — à la création, à
+ * chaque changement de taille ou de ratio, et quand elle appelle `host.invalidate()` après une mise à jour : huit couches de
+ * contenu ne coûtent alors aucun dessin par image.
+ *
  * @typedef {{ width: number, height: number }} LayerSize
  * @typedef {import('../render-clock.js').RenderFrame} RenderFrame
  * @typedef {{
+ *   animated?: boolean,
  *   resize: (size: LayerSize, pixelRatio: number) => void,
  *   draw: (ctx: CanvasRenderingContext2D, frame: RenderFrame, size: LayerSize) => void,
  *   update?: (options: unknown) => void,
@@ -37,7 +42,7 @@ import { smooth } from '../layer-cost.js';
 
 /**
  * @template {Record<string, any>} [Options=Record<string, any>]
- * @param {(options: Options, host: { documentRef: Document }) => CanvasLayer} create
+ * @param {(options: Options, host: { documentRef: Document, invalidate: () => void }) => CanvasLayer} create
  * @returns {(options?: Options, environment?: CanvasLayerEnvironment) => import('../types.js').ComponentInstance}
  */
 export function defineCanvasLayer(create) {
@@ -46,7 +51,9 @@ export function defineCanvasLayer(create) {
     const documentRef = environment.documentRef ?? document;
     const ResizeObserverImpl = environment.ResizeObserverImpl ?? ResizeObserver;
 
-    const layer = create(options, { documentRef });
+    /** Vrai tant que le canvas n'a pas été redessiné depuis un changement ; sert aux couches statiques. */
+    let dirty = true;
+    const layer = create(options, { documentRef, invalidate: () => { dirty = true; } });
     const canvas = documentRef.createElement('canvas');
     canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;';
     const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d'));
@@ -77,6 +84,7 @@ export function defineCanvasLayer(create) {
       canvas.width = width * pixelRatio;
       canvas.height = height * pixelRatio;
       ctx.scale(pixelRatio * scale, pixelRatio * scale);
+      dirty = true;
       layer.resize(size, pixelRatio);
       return true;
     }
@@ -86,6 +94,8 @@ export function defineCanvasLayer(create) {
 
     const stop = clock.subscribe((frame) => {
       if (!fit(frame.pixelRatio)) return;
+      if (layer.animated === false && !dirty) return;
+      dirty = false;
       const current = firstFrame ? { ...frame, dt: 0 } : frame;
       firstFrame = false;
       ctx.clearRect(0, 0, size.width, size.height);

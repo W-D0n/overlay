@@ -208,3 +208,56 @@ describe('coût de dessin', () => {
     expect(instance.cost()).toBeLessThan(10);
   });
 });
+
+describe('couche statique', () => {
+  const make = (harness, events, extra = {}) => defineCanvasLayer((_options, host) => {
+    events.push('create');
+    return {
+      animated: false,
+      resize: () => events.push('resize'),
+      draw: () => events.push('draw'),
+      update: () => { host.invalidate(); },
+      ...extra,
+    };
+  })({}, harness.environment);
+
+  test('elle dessine une fois, puis plus du tout tant que rien ne change', () => {
+    const harness = createHarness();
+    const events = [];
+    make(harness, events);
+    for (let time = 16; time <= 160; time += 16) harness.tick(time);
+    expect(events.filter((event) => event === 'draw').length).toBe(1);
+  });
+
+  test('une mise à jour qui invalide provoque un seul nouveau dessin', () => {
+    const harness = createHarness();
+    const events = [];
+    const instance = make(harness, events);
+    harness.tick(16);
+    instance.update({});
+    harness.tick(32);
+    harness.tick(48);
+    expect(events.filter((event) => event === 'draw').length).toBe(2);
+  });
+
+  test('un changement de taille redessine (le canvas a été effacé par le redimensionnement)', () => {
+    const harness = createHarness();
+    const events = [];
+    make(harness, events);
+    harness.tick(16);
+    harness.canvas.offsetWidth = 400;
+    harness.tick(32);
+    expect(events.filter((event) => event === 'draw').length).toBe(2);
+    expect(events.filter((event) => event === 'resize').length).toBe(2);
+  });
+
+  test('une couche animée par défaut dessine à chaque image', () => {
+    const harness = createHarness();
+    const events = [];
+    defineCanvasLayer(() => ({ resize() {}, draw: () => events.push('draw') }))({}, harness.environment);
+    harness.tick(16);
+    harness.tick(32);
+    harness.tick(48);
+    expect(events.length).toBe(3);
+  });
+});

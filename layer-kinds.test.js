@@ -1,6 +1,6 @@
 // @ts-check
 import { describe, expect, test } from 'bun:test';
-import { EFFECT_KIND_IDS, GRID_MODES, LAYER_KINDS, LAYER_KIND_IDS, isAudioOn, isIdentityKind, isLayerKindId, isKnownKindId, resolveKindId, validateOptions, clampOptions } from './layer-kinds.js';
+import { CONTENT_KIND_IDS, EFFECT_KIND_IDS, GRID_MODES, LAYER_KINDS, LAYER_KIND_IDS, isAudioOn, isIdentityKind, isLayerKindId, isKnownKindId, resolveKindId, validateOptions, clampOptions } from './layer-kinds.js';
 import { MODE_PARAMS } from './components/DotGridAnimated.js';
 
 describe('valeur persistée de la réactivité audio', () => {
@@ -42,7 +42,7 @@ describe('couche d’identité : le branding', () => {
     expect(isLayerKindId('branding')).toBe(true);
     expect(LAYER_KIND_IDS).toContain('branding');
     expect(EFFECT_KIND_IDS).not.toContain('branding');
-    expect(EFFECT_KIND_IDS.length).toBe(LAYER_KIND_IDS.length - 1);
+    expect(EFFECT_KIND_IDS.length).toBe(LAYER_KIND_IDS.length - 1 - CONTENT_KIND_IDS.length);
   });
 
   test('seul le branding est une couche d’identité ; un type inconnu n’en est pas une', () => {
@@ -129,5 +129,29 @@ describe('validation des valeurs d’options', () => {
   test('un type de couche inconnu n’est ni validé ni modifié', () => {
     expect(validateOptions('fantome', { x: 1 })).toEqual([]);
     expect(clampOptions('fantome', { x: 1 })).toEqual({ x: 1 });
+  });
+});
+
+describe('familles de types : effet, contenu, identité', () => {
+  test('chaque type est dans exactement une famille ; le texte est un contenu, ni un effet ni une identité', async () => {
+    const { kindFamily, isContentKind } = await import('./layer-kinds.js');
+    for (const id of LAYER_KIND_IDS) expect(['effect', 'content', 'identity']).toContain(kindFamily(id));
+    expect(kindFamily('text')).toBe('content');
+    expect(isContentKind('text')).toBe(true);
+    expect(EFFECT_KIND_IDS).not.toContain('text');
+    expect(CONTENT_KIND_IDS).toContain('text');
+    expect(isIdentityKind('text')).toBe(false);
+    expect(kindFamily('branding')).toBe('identity');
+    expect(kindFamily('rain')).toBe('effect');
+  });
+
+  test('un type inconnu n’est ni un contenu ni une identité', async () => {
+    const { kindFamily, isContentKind } = await import('./layer-kinds.js');
+    expect(isContentKind('inconnu')).toBe(false);
+    expect(kindFamily('inconnu')).toBe('effect');
+  });
+
+  test('les trois familles ensemble couvrent tous les types', () => {
+    expect(EFFECT_KIND_IDS.length + CONTENT_KIND_IDS.length + 1).toBe(LAYER_KIND_IDS.length);
   });
 });

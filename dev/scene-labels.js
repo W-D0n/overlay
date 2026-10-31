@@ -5,7 +5,7 @@
  *
  * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
  */
-import { isIdentityKind } from '../layer-kinds.js';
+import { isIdentityKind, kindFamily } from '../layer-kinds.js';
 
 /**
  * « Pluie », « Pluie + Bulles » : les effets de la scène, du dessous au dessus ; « Aucun fond » quand elle n'en a pas
@@ -20,11 +20,11 @@ export function sceneEffectsLabel(scene, labelOf) {
 }
 
 /**
- * Les couches d'effet d'une scène, du dessous au dessus (hors couches d'identité).
+ * Les couches d'effet d'une scène, du dessous au dessus (hors contenus et couches d'identité).
  * @param {SceneDoc} scene
  */
 export function effectLayers(scene) {
-  return scene.layers.filter((layer) => !isIdentityKind(layer.kind));
+  return scene.layers.filter((layer) => kindFamily(layer.kind) === 'effect');
 }
 
 /**
@@ -35,8 +35,10 @@ export function effectLayers(scene) {
 export function sceneDetails(scene) {
   /** @type {string[]} */
   const details = [];
-  const effects = scene.layers.filter((layer) => !isIdentityKind(layer.kind));
-  if (effects.length > 1) details.push(`${effects.length} effets`);
+  const effects = effectLayers(scene).length;
+  if (effects > 1) details.push(`${effects} effets`);
+  const contents = scene.layers.filter((layer) => kindFamily(layer.kind) === 'content').length;
+  if (contents > 0) details.push(contents === 1 ? '1 contenu' : `${contents} contenus`);
   if (scene.transition !== undefined) details.push(`transition ${scene.transition.type}`);
   if (!scene.layers.some((layer) => layer.kind === 'branding')) details.push('sans branding');
   return details;

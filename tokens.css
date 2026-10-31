@@ -33,6 +33,8 @@
   /* ─── Typographie ──────────────────────────────────────────── */
   --font-serif:   'Times New Roman', Georgia, 'Palatino Linotype', serif;
   --font-mono:    'Courier New', 'Lucida Console', monospace;
+  --font-sans:    'Segoe UI', Arial, Helvetica, sans-serif;
+  --font-display: Impact, 'Arial Black', 'Segoe UI', sans-serif;
 
   /* Tailles */
   --text-xs:   13px;

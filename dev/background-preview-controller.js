@@ -1,6 +1,6 @@
 // @ts-check
 import { createSceneRuntime } from '../scene-runtime.js';
-import { isIdentityKind } from '../layer-kinds.js';
+import { isIdentityKind, kindFamily } from '../layer-kinds.js';
 import { ReactionOverlay } from '../components/ReactionOverlay.js';
 import { createReactionCoordinator } from '../background-reactions.js';
 import { createBrowserAudioSession } from '../background-audio.js';
@@ -8,6 +8,7 @@ import { normalizeTransition } from '../background-transition.js';
 import { liveSceneOf } from '../background-selection.js';
 import {
   BACKGROUND_COMPONENT_NAMES,
+  CONTENT_COMPONENT_NAMES,
   backgroundEffectLabel,
   defaultBackgroundOptions,
 } from './component-field-schemas.js';
@@ -133,6 +134,7 @@ export function createBackgroundPreviewController(input) {
       renderedSolo = solo;
     }
     const target = targetLayer(scene, editor.state().selection);
+    fillEffectSelect(target !== null && kindFamily(target.kind) === 'content' ? 'content' : 'effect');
     input.effectSelect.value = target?.kind ?? NONE_VALUE;
     if (input.effectTarget !== undefined) {
       input.effectTarget.textContent = target === null ? 'Aucune couche d’effet : choisissez un effet ci-dessous ou ajoutez une couche.' : `Couche réglée : ${target.name ?? backgroundEffectLabel(target.kind)}`;
@@ -210,10 +212,21 @@ export function createBackgroundPreviewController(input) {
     return doc.state();
   }
 
-  input.effectSelect.appendChild(createOption('(aucun)', NONE_VALUE));
-  for (const name of BACKGROUND_COMPONENT_NAMES) {
-    input.effectSelect.appendChild(createOption(backgroundEffectLabel(name), name));
+  /**
+   * Le sélecteur propose les types de la famille de la couche réglée : un effet ne devient pas un texte, et inversement.
+   * @type {'effect' | 'content' | null}
+   */
+  let selectFamily = null;
+  /** @param {'effect' | 'content'} family */
+  function fillEffectSelect(family) {
+    if (selectFamily === family) return;
+    selectFamily = family;
+    input.effectSelect.replaceChildren(createOption('(aucun)', NONE_VALUE));
+    for (const name of family === 'content' ? CONTENT_COMPONENT_NAMES : BACKGROUND_COMPONENT_NAMES) {
+      input.effectSelect.appendChild(createOption(backgroundEffectLabel(name), name));
+    }
   }
+  fillEffectSelect('effect');
   input.effectSelect.onchange = () => {
     const kind = input.effectSelect.value === NONE_VALUE ? null : input.effectSelect.value;
     const target = targetLayer(editor.state().scene, editor.state().selection);

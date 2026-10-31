@@ -42,7 +42,12 @@
  * @property {FieldSchema[]} fields
  * @property {boolean} [identity] - Couche d'identité (branding), pas un effet de fond : absente du sélecteur d'effets,
  *   et dessinée au-dessus des transitions entre scènes (elle ne s'estompe pas d'une scène à l'autre)
+ * @property {boolean} [content] - Couche de contenu (texte, forme, image) : posée dans la pile avec les effets, elle arrive et part
+ *   avec sa scène ; ce n'est pas un effet de fond (absente des listes d'effets, de la charge de test et du banc OBS)
  */
+
+/** Familles de police du type `text` : les piles de `tokens.css` et des polices système sûres sous Windows. */
+export const TEXT_FONTS = /** @type {const} */ (['serif', 'sans', 'mono', 'display']);
 
 /** Modes de mouvement prédéfinis de DotGrid (hérités des scènes historiques). */
 export const GRID_MODES = /** @type {const} */ ([
@@ -89,6 +94,13 @@ export const NUMBER_FIELD_GUIDANCE = {
   morphDuration: { min: 100, max: 5000, step: 50, unit: 'ms' },
   frequency: { min: 0, max: 5, step: 0.05, unit: '/s' },
   amplitude: { min: 0, max: 1, step: 0.01 },
+  fontSize: { min: 8, max: 400, step: 1, unit: 'px' },
+  lineHeight: { min: 0.8, max: 2.5, step: 0.05 },
+  letterSpacing: { min: -5, max: 40, step: 0.5, unit: 'px' },
+  outlineWidth: { min: 0, max: 24, step: 0.5, unit: 'px' },
+  shadowBlur: { min: 0, max: 60, step: 1, unit: 'px' },
+  shadowOffsetX: { min: -60, max: 60, step: 1, unit: 'px' },
+  shadowOffsetY: { min: -60, max: 60, step: 1, unit: 'px' },
 };
 
 /**
@@ -354,6 +366,40 @@ const KIND_DEFINITIONS = {
     // la couche n'a pas de réglage propre, son placement, son opacité et sa visibilité sont ceux de la couche.
     fields: [],
   },
+  text: {
+    legacyIds: [],
+    label: 'Texte',
+    content: true,
+    capabilities: { audio: false, reactions: 'overlay' },
+    fields: [
+      { key: 'text', label: 'Texte (une ligne par ligne)', type: 'textarea', default: ['Titre'] },
+      { key: 'font', label: 'Police', type: 'select', choices: [...TEXT_FONTS], default: 'serif' },
+      { key: 'fontSize', label: 'Taille (px)', type: 'number', default: 96 },
+      { key: 'bold', label: 'Gras', type: 'boolean', default: true },
+      { key: 'italic', label: 'Italique', type: 'boolean', default: false },
+      { key: 'uppercase', label: 'Majuscules', type: 'boolean', default: false },
+      { key: 'color', label: 'Couleur', type: 'color', default: '#F2F0EC' },
+      { key: 'align', label: 'Alignement horizontal', type: 'select', choices: ['left', 'center', 'right'], default: 'center' },
+      { key: 'verticalAlign', label: 'Alignement vertical', type: 'select', choices: ['top', 'middle', 'bottom'], default: 'middle' },
+      { key: 'lineHeight', label: 'Interligne', type: 'number', default: 1.2 },
+      { key: 'letterSpacing', label: 'Espacement des lettres (px)', type: 'number', default: 0 },
+      {
+        key: 'fit',
+        label: 'Ajustement à la zone',
+        description: 'Réduire : la taille diminue jusqu’à ce que le texte tienne dans la zone de la couche ; Aucun : la taille réglée est gardée, le texte peut déborder.',
+        type: 'select',
+        choices: ['shrink', 'none'],
+        default: 'shrink',
+      },
+      { key: 'wrap', label: 'Retour à la ligne automatique', type: 'boolean', default: true },
+      { key: 'outlineWidth', label: 'Contour (px)', type: 'number', default: 0 },
+      { key: 'outlineColor', label: 'Couleur du contour', type: 'color', default: '#0A0A0B' },
+      { key: 'shadowBlur', label: 'Ombre : flou (px)', type: 'number', default: 0 },
+      { key: 'shadowOffsetX', label: 'Ombre : décalage X (px)', type: 'number', default: 0 },
+      { key: 'shadowOffsetY', label: 'Ombre : décalage Y (px)', type: 'number', default: 4 },
+      { key: 'shadowColor', label: 'Couleur de l’ombre', type: 'color', default: '#000000' },
+    ],
+  },
   'water-ripple': {
     legacyIds: ['WaterRippleBackground'],
     label: 'WaterRipple',
@@ -403,8 +449,31 @@ export const LAYER_KINDS = /** @type {*} */ (Object.fromEntries(
 /** Identifiants des types de couche, dans l'ordre d'affichage du sélecteur. */
 export const LAYER_KIND_IDS = /** @type {LayerKindId[]} */ (Object.keys(KIND_DEFINITIONS));
 
-/** Les effets de fond : les types de couche qui ne sont pas des couches d'identité. */
-export const EFFECT_KIND_IDS = /** @type {LayerKindId[]} */ (LAYER_KIND_IDS.filter((id) => !isIdentityKind(id)));
+/** Les effets de fond : les types de couche qui ne sont ni des couches d'identité ni des contenus. */
+export const EFFECT_KIND_IDS = /** @type {LayerKindId[]} */ (LAYER_KIND_IDS.filter((id) => kindFamily(id) === 'effect'));
+
+/** Les types de contenu : texte, forme, image. */
+export const CONTENT_KIND_IDS = /** @type {LayerKindId[]} */ (LAYER_KIND_IDS.filter((id) => isContentKind(id)));
+
+/**
+ * Vrai pour une couche de contenu (texte, forme, image). Un type inconnu n'en est pas un.
+ * @param {unknown} id
+ */
+export function isContentKind(id) {
+  const kind = resolveKindId(id);
+  return kind !== null && /** @type {Record<string, LayerKindDefinition>} */ (KIND_DEFINITIONS)[kind].content === true;
+}
+
+/**
+ * La famille d'un type de couche : `identity` (branding), `content` (texte, forme, image) ou `effect` (effet de fond).
+ * Un type inconnu est rangé parmi les effets, comme `isIdentityKind` le range hors des identités.
+ * @param {unknown} id
+ * @returns {'identity' | 'content' | 'effect'}
+ */
+export function kindFamily(id) {
+  if (isIdentityKind(id)) return 'identity';
+  return isContentKind(id) ? 'content' : 'effect';
+}
 
 /**
  * Vrai pour une couche d'identité (branding) : jamais un effet de fond, toujours au-dessus des transitions.

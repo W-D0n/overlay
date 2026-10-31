@@ -27,7 +27,7 @@
  * @typedef {ReturnType<typeof createSceneEditor>} SceneEditor
  */
 import { MAX_LAYERS, canonicalSceneDoc, createLayer, validateSceneDoc, withoutLook } from '../scene-doc.js';
-import { isIdentityKind, resolveKindId } from '../layer-kinds.js';
+import { isIdentityKind, kindFamily, resolveKindId } from '../layer-kinds.js';
 
 const DEFAULT_HISTORY_LIMIT = 200;
 const DEFAULT_COALESCE_MS = 800;
@@ -538,7 +538,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       if (layer === undefined) return refuse('unknown', `couche introuvable : ${id}`);
       const resolved = resolveKindId(kind);
       if (resolved === null) return refuse('invalid', `type de couche inconnu : ${kind}`);
-      if (isIdentityKind(resolved) !== isIdentityKind(layer.kind)) return refuse('invalid', 'un effet ne devient pas une couche d’identité');
+      if (kindFamily(resolved) !== kindFamily(layer.kind)) return refuse('invalid', 'un effet, un contenu et une couche d’identité ne se remplacent pas entre eux');
       if (isIdentityKind(resolved) && scene.layers.some((other) => other.id !== id && other.kind === resolved)) {
         return refuse('unique', 'cette couche existe déjà dans la scène');
       }

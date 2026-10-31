@@ -15,6 +15,7 @@ export function createLayerHarness({ width = RENDER_REFERENCE.width, height = RE
   const ctx = new Proxy({}, {
     get: (_, name) => (/** @type {any[]} */ ...args) => {
       calls.push([String(name), ...args]);
+      if (name === 'measureText') return { width: String(args[0]).length * 8 };
       return String(name).startsWith('create') && String(name).endsWith('Gradient') ? { addColorStop() {} } : undefined;
     },
     set: (_, name, value) => { calls.push(['set', String(name), value]); return true; },
