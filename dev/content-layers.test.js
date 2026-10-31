@@ -68,3 +68,26 @@ describe('listes de scènes avec des contenus', () => {
     expect(filterScenes([mixed], 'texte', labelOf)).toEqual([mixed]);
   });
 });
+
+describe('la forme comme contenu', () => {
+  test('la forme est proposée avec le texte, comme contenu, avant le branding', () => {
+    const kinds = [...ADDABLE_KIND_IDS];
+    expect(kinds.indexOf('shape')).toBeGreaterThan(kinds.indexOf('water-ripple'));
+    expect(kinds.indexOf('shape')).toBeLessThan(kinds.indexOf('branding'));
+  });
+
+  test('un texte devient une forme (même famille), pas un effet', () => {
+    const editor = createSceneEditor({ scene: scene([createLayer({ id: 't', kind: 'text', options: defaultBackgroundOptions('text') })]) });
+    expect(editor.setLayerKind('t', 'shape', defaultBackgroundOptions('shape')).ok).toBe(true);
+    expect(editor.state().scene.layers[0].kind).toBe('shape');
+    expect(editor.setLayerKind('t', 'rain', {})).toMatchObject({ ok: false });
+  });
+
+  test('les options de départ de la forme forment une scène valide, une option du mauvais type est refusée', () => {
+    const editor = createSceneEditor({ scene: scene([]) });
+    expect(editor.addLayer({ kind: 'shape', options: defaultBackgroundOptions('shape') }).ok).toBe(true);
+    const id = editor.state().scene.layers[0].id;
+    expect(editor.setOptions(id, { shape: 'ellipse', fill: 'gradient' }).ok).toBe(true);
+    expect(editor.setOptions(id, { cornerRadius: 'rond' }).ok).toBe(false);
+  });
+});

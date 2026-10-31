@@ -49,6 +49,9 @@
 /** Familles de police du type `text` : les piles de `tokens.css` et des polices système sûres sous Windows. */
 export const TEXT_FONTS = /** @type {const} */ (['serif', 'sans', 'mono', 'display']);
 
+/** Formes du type `shape`. */
+export const SHAPE_KINDS = /** @type {const} */ (['rectangle', 'ellipse', 'triangle', 'diamond', 'line']);
+
 /** Modes de mouvement prédéfinis de DotGrid (hérités des scènes historiques). */
 export const GRID_MODES = /** @type {const} */ ([
   'discussion', 'codage', 'brb', 'interview', 'react', 'creation', 'fin', 'starting',
@@ -101,6 +104,9 @@ export const NUMBER_FIELD_GUIDANCE = {
   shadowBlur: { min: 0, max: 60, step: 1, unit: 'px' },
   shadowOffsetX: { min: -60, max: 60, step: 1, unit: 'px' },
   shadowOffsetY: { min: -60, max: 60, step: 1, unit: 'px' },
+  strokeWidth: { min: 0, max: 80, step: 0.5, unit: 'px' },
+  cornerRadius: { min: 0, max: 600, step: 1, unit: 'px' },
+  gradientAngle: { min: -180, max: 180, step: 1, unit: '°' },
 };
 
 /**
@@ -397,6 +403,33 @@ const KIND_DEFINITIONS = {
       { key: 'shadowBlur', label: 'Ombre : flou (px)', type: 'number', default: 0 },
       { key: 'shadowOffsetX', label: 'Ombre : décalage X (px)', type: 'number', default: 0 },
       { key: 'shadowOffsetY', label: 'Ombre : décalage Y (px)', type: 'number', default: 4 },
+      { key: 'shadowColor', label: 'Couleur de l’ombre', type: 'color', default: '#000000' },
+    ],
+  },
+  shape: {
+    legacyIds: [],
+    label: 'Forme',
+    content: true,
+    capabilities: { audio: false, reactions: 'overlay' },
+    fields: [
+      { key: 'shape', label: 'Forme', type: 'select', choices: [...SHAPE_KINDS], default: 'rectangle' },
+      {
+        key: 'fill',
+        label: 'Remplissage',
+        description: 'Uni, dégradé linéaire ou aucun (contour seul). Une ligne n’a pas de remplissage : elle prend la couleur et l’épaisseur du contour.',
+        type: 'select',
+        choices: ['solid', 'gradient', 'none'],
+        default: 'solid',
+      },
+      { key: 'color', label: 'Couleur', type: 'color', default: '#C8B97A' },
+      { key: 'color2', label: 'Seconde couleur du dégradé', type: 'color', default: '#2A2A32' },
+      { key: 'gradientAngle', label: 'Angle du dégradé', type: 'number', default: 90 },
+      { key: 'strokeWidth', label: 'Contour (px)', type: 'number', default: 0 },
+      { key: 'strokeColor', label: 'Couleur du contour', type: 'color', default: '#F2F0EC' },
+      { key: 'cornerRadius', label: 'Rayon des coins (rectangle, px)', type: 'number', default: 0 },
+      { key: 'shadowBlur', label: 'Ombre : flou (px)', type: 'number', default: 0 },
+      { key: 'shadowOffsetX', label: 'Ombre : décalage X (px)', type: 'number', default: 0 },
+      { key: 'shadowOffsetY', label: 'Ombre : décalage Y (px)', type: 'number', default: 6 },
       { key: 'shadowColor', label: 'Couleur de l’ombre', type: 'color', default: '#000000' },
     ],
   },

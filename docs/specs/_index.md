@@ -22,7 +22,7 @@ updated: 2026-10-31
 | [layer-kind-etape-3](layer-kind-etape-3.md) | Fait (migration du fichier au prochain redémarrage) | 2026-10-29 | Définition unique d'un type de couche, valeurs neutres |
 | [studio-trois-zones](studio-trois-zones.md) | Fait | 2026-10-29 | Refonte de l'écran du tuner (cadre 16:9, bibliothèque unique, scènes lisibles) |
 | [scene-doc-etape-4](scene-doc-etape-4.md) | Validée | 2026-10-29 | Document de scène (couches), moteur de scène |
-| [couches-de-contenu](couches-de-contenu.md) | En cours (texte livré) | 2026-10-31 | Texte, forme, image et assets : contenus posés dans une scène |
+| [couches-de-contenu](couches-de-contenu.md) | En cours (texte et forme livrés) | 2026-10-31 | Texte, forme, image et assets : contenus posés dans une scène |
 | [controle-processus](controle-processus.md) | Draft | 2026-10-30 | Démarrer, redémarrer, arrêter les serveurs depuis le produit |
 
 ## Archive

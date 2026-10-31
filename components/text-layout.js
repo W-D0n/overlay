@@ -1,5 +1,5 @@
 // @ts-check
-import { LAYER_KINDS, clampOptions } from '../layer-kinds.js';
+import { kindDefaults, normalizeKindOptions } from './kind-options.js';
 import { TEXT_MIN_FIT_SIZE } from './text-layer.config.js';
 
 /**
@@ -17,28 +17,15 @@ import { TEXT_MIN_FIT_SIZE } from './text-layer.config.js';
  */
 
 /** Les options de départ du type `text`, lues de son schéma (`layer-kinds.js`) : une seule source. */
-export const TEXT_DEFAULTS = /** @type {TextOptions} */ (Object.fromEntries(LAYER_KINDS.text.fields.map((field) => [field.key, field.default])));
+export const TEXT_DEFAULTS = /** @type {TextOptions} */ (kindDefaults('text'));
 
 /**
- * Des options reçues (peut-être partielles, anciennes ou invalides) aux options complètes : défauts pour tout champ absent ou de
- * mauvais type, nombres bornés par le schéma.
+ * Des options reçues (peut-être partielles, anciennes ou invalides) aux options complètes du texte.
  * @param {unknown} raw
  * @returns {TextOptions}
  */
 export function normalizeTextOptions(raw) {
-  const source = typeof raw === 'object' && raw !== null ? /** @type {Record<string, unknown>} */ (raw) : {};
-  /** @type {Record<string, unknown>} */
-  const merged = { ...TEXT_DEFAULTS };
-  for (const field of LAYER_KINDS.text.fields) {
-    const value = source[field.key];
-    if (value === undefined) continue;
-    const valid = field.type === 'number' ? typeof value === 'number' && Number.isFinite(value)
-      : field.type === 'boolean' ? typeof value === 'boolean'
-        : field.type === 'textarea' ? Array.isArray(value) && value.every((line) => typeof line === 'string')
-          : typeof value === 'string' && (field.type !== 'select' || (field.choices ?? []).includes(value));
-    if (valid) merged[field.key] = value;
-  }
-  return /** @type {TextOptions} */ (clampOptions('text', merged));
+  return /** @type {TextOptions} */ (normalizeKindOptions('text', raw));
 }
 
 /**

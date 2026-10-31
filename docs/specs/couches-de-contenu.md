@@ -5,7 +5,7 @@ updated: 2026-10-31
 
 # Spec — Couches de contenu (texte, forme, image)
 
-Statut : **en cours** (texte livré, forme et image à suivre). Fait suite à l'audit produit du 2026-10-31 : le Studio n'avait que
+Statut : **en cours** (texte et forme livrés, image et assets à suivre). Fait suite à l'audit produit du 2026-10-31 : le Studio n'avait que
 11 effets de fond et le branding, aucun moyen de poser un titre, un cadre, un logo ou une affiche. Cadrage d'origine :
 `studio-cadrage.md` (gestion d'assets, sources de données). Étape 6 de `scene-doc-etape-6.md` : le modèle de couche (placement,
 opacité, rendu étendu 6d, historique, gestes, modèles) est réutilisé tel quel.
@@ -40,10 +40,16 @@ le config), taille, gras, italique, majuscules, couleur, alignement horizontal e
 Réserve : l'espacement des lettres décale un peu le centrage (le canvas compte l'espace après la dernière lettre). La police est une
 police système ; les polices importées arrivent avec la gestion d'assets (§4).
 
-## 3. Forme (à venir)
+## 3. Forme (livrée)
 
-Type `shape` : rectangle, rectangle arrondi, ellipse, triangle, ligne ; remplissage uni ou dégradé linéaire, contour, rayon,
-ombre. La forme remplit la zone de la couche : la redimensionner redimensionne la forme.
+Type `shape`, `components/ShapeLayer.js`, géométrie pure dans `components/shape-geometry.js`. Formes : rectangle (rayon des coins
+réglable), ellipse, triangle, losange, ligne. Remplissage uni, **dégradé linéaire** (seconde couleur, angle) ou aucun (contour seul),
+contour (épaisseur, couleur), ombre. La forme remplit la zone de la couche : la redimensionner redimensionne la forme.
+
+**Limites devenues fonctions :** le contour est tracé à l'intérieur de la zone (jamais rogné par le bord) ; le rayon des coins ne
+dépasse jamais la moitié du plus petit côté ; un contour plus épais que la zone ne laisse aucune forme (rien n'est peint, pas d'erreur) ;
+le dégradé couvre exactement la zone, du coin au coin opposé, quel que soit l'angle ; une ligne prend la couleur et l'épaisseur du contour.
+Les options valides partagent `components/kind-options.js` avec le texte (défauts, types et bornes lus du schéma : aucune table à tenir).
 
 ## 4. Image et assets (à venir)
 
@@ -57,3 +63,6 @@ Texte : `components/text-layout.test.js`, `components/TextLayer.test.js`, `compo
 `dev/content-layers.test.js`, `layer-kinds.test.js` (familles) ; essai de bout en bout `dev/e2e/suites/21-couche-texte.e2e.js`
 (galerie, pixels peints, rétrécissement dans une zone étroite, vignette, publication, rechargement). 15 mutations unitaires et la
 mise en page de l'essai ont été vues rouges.
+Forme : `components/shape-geometry.test.js`, `components/ShapeLayer.test.js`, `dev/content-layers.test.js` ; essai
+`dev/e2e/suites/22-couche-forme.e2e.js` (couleurs lues dans les pixels : coins transparents d'une ellipse et d'un losange, dégradé,
+zone 30 % × 10 %). 10 mutations unitaires et 1 de l'essai vues rouges.
