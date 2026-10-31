@@ -15,6 +15,7 @@ import { createBackgroundFieldRenderer } from './background-field-renderer.js';
 import { createStudioDocument } from './studio-document.js';
 import { viewScene } from './scene-editor.js';
 import { sceneFromCurrent } from '../scene-doc.js';
+import { errorMessage } from './error-message.js';
 
 const NONE_VALUE = '__none__';
 
@@ -63,6 +64,7 @@ export function createBackgroundPreviewController(input) {
   const reactions = createReactionCoordinator({ mount, overlay });
   const doc = createStudioDocument({ scene: sceneFromCurrent({ component: null, options: {}, showBranding: false }) });
   const { editor } = doc;
+  /** @type {number | null} */
   let measuredFps = null;
   let fpsFrames = 0;
   let fpsSince = now();
@@ -84,6 +86,7 @@ export function createBackgroundPreviewController(input) {
   let testTimer = null;
   let renderedFieldsKey = '';
 
+  /** @param {string} label @param {string} value */
   function createOption(label, value) {
     const option = documentRef.createElement('option');
     option.textContent = label;
@@ -236,7 +239,7 @@ export function createBackgroundPreviewController(input) {
       input.report.ok();
       return true;
     } catch (error) {
-      input.report.error(`state : ${error.message}`);
+      input.report.error(`state : ${errorMessage(error)}`);
       return false;
     }
   }
@@ -251,6 +254,7 @@ export function createBackgroundPreviewController(input) {
   documentRef.addEventListener('visibilitychange', onVisibilityChange);
   mount.setPaused(documentRef.hidden);
 
+  /** @param {number} now */
   function measureFps(now) {
     fpsFrames += 1;
     if (now - fpsSince >= 1000) {
@@ -272,11 +276,13 @@ export function createBackgroundPreviewController(input) {
     /** Le modèle d'édition de la scène brouillon. */
     editor,
     /** Branche la case « Afficher sur ce preset » : elle ajoute ou retire la couche de branding. */
+    /** @param {{ renderShowOnPreset: (visible: boolean) => void }} controls */
     attachBrandingControls(controls) {
       brandingControls = controls;
       controls.renderShowOnPreset(doc.state().scene.layers.some((layer) => layer.kind === 'branding'));
     },
     /** Branche la section « Arrivée de ce preset » sur la transition de la scène. */
+    /** @param {{ render: (transition: *) => void }} controls */
     attachTransitionControls(controls) {
       transitionControls = controls;
       controls.render(normalizeTransition(doc.state().scene.transition));

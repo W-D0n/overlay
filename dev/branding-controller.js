@@ -2,6 +2,7 @@
 import { BrandingLayer } from '../components/BrandingLayer.js';
 import { normalizeBranding } from '../branding-format.js';
 import { pointerToPercent } from './branding-drag.js';
+import { errorMessage } from './error-message.js';
 
 /**
  * dev/branding-controller.js — Section « Branding » du tuner.
@@ -60,7 +61,7 @@ export function createBrandingController(input) {
       await input.client.saveBranding(branding);
       input.report.ok('branding enregistré');
     } catch (error) {
-      input.report.error(`branding : ${error instanceof Error ? error.message : String(error)}`);
+      input.report.error(`branding : ${errorMessage(error)}`);
     }
   }
 

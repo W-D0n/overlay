@@ -73,6 +73,7 @@ export function createObsSceneClient(deps) {
     deps.onStatus?.({ connected, reason });
   }
 
+  /** @param {string} reason */
   function planReconnect(reason) {
     if (stopped || authRejected) return;
     const delay = reconnectDelayMs(attempt);
@@ -88,6 +89,7 @@ export function createObsSceneClient(deps) {
     }));
   }
 
+  /** @param {unknown} raw */
   async function handleMessage(raw) {
     /** @type {any} */
     let message;

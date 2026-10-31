@@ -29,11 +29,11 @@ Ce que seul l'owner peut faire (OBS, regard humain, décision). **Claude rappell
 
 ## Chantiers prévus (Claude)
 
-- **Passe d'audit et de correction des erreurs de typage** (83 au 2026-10-31, gelées dans `dev/typecheck-baseline.json`) :
-  pour chaque fichier, établir si l'erreur est du bruit de typage ou un défaut réel (mesure, pas hypothèse), corriger à
-  la cause racine, abaisser la baseline, et ajouter une garde permanente à chaque classe de défaut trouvée. Fichiers
-  les plus chargés : `dev/background-field-renderer.js` (24), `dev/background-preset-controller.js` (11),
-  `dev/background-preview-controller.js` (10).
+- ~~**Passe d'audit et de correction des erreurs de typage**~~ — **faite le 2026-10-31 : 83 → 0.** Causes racines : typedef JSDoc
+  multi-ligne invalide (6 erreurs en cascade), paramètres à défaut `null` typés `null`, littéraux élargis en `string`,
+  palette typée `never[]` (24 erreurs), `error.message` sur un `catch` non typé (désormais `dev/error-message.js`, gardé par
+  `dev/error-message.test.js`), un test qui fabriquait une fausse erreur 409 au lieu de la vraie, annotations manquantes.
+  La baseline `dev/typecheck-baseline.json` est vide : toute nouvelle erreur de typage fait échouer `bun dev/typecheck.js`.
 - **Parcours clavier de bout en bout** des panneaux (accessibilité, reste de 6f).
 - **Audit produit avant toute proposition d'amélioration** (cible premium) : état réel de l'éditeur, écarts avec les
   éditeurs de référence, puis propositions chiffrées.

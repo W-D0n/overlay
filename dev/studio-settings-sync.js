@@ -17,6 +17,7 @@
  * @typedef {'synced' | 'saving' | 'offline'} SyncStatus
  */
 import { emptyStudioSettings, normalizeStudioSettings, validateStudioSettings } from './studio-settings.js';
+import { errorMessage } from './error-message.js';
 
 const CACHE_KEY = 'overlay.studio.settings-cache';
 /** Clés d'avant la synchronisation : lues une fois pour la reprise, puis laissées intactes. */
@@ -106,7 +107,7 @@ export function createStudioSettingsSync(input) {
         preferences: { ...sending.preferences, ...pending.preferences },
       };
       setStatus('offline');
-      input.onError?.(`réglages du Studio non enregistrés sur le serveur : ${error instanceof Error ? error.message : String(error)}`);
+      input.onError?.(`réglages du Studio non enregistrés sur le serveur : ${errorMessage(error)}`);
       timer = setTimer(() => { timer = null; flush(); }, retryMs);
     }
   }
@@ -181,7 +182,7 @@ export function createStudioSettingsSync(input) {
         settings = cached() ?? legacySettings();
         setStatus('offline');
         notify();
-        input.onError?.(`réglages du Studio : serveur injoignable ou trop ancien, valeurs du navigateur utilisées (${error instanceof Error ? error.message : String(error)})`);
+        input.onError?.(`réglages du Studio : serveur injoignable ou trop ancien, valeurs du navigateur utilisées (${errorMessage(error)})`);
         return 'cache';
       }
     },

@@ -1,6 +1,7 @@
 // @ts-check
 import { backgroundEffectLabel } from './component-field-schemas.js';
 import { historyRows } from './history-view.js';
+import { errorMessage } from './error-message.js';
 
 const CONFIRM_DELAY_MS = 4000;
 
@@ -92,7 +93,7 @@ export function createHistoryController(input) {
         await input.client.rollback(row.at);
         input.summary.textContent = `${row.title} est de retour à l’antenne.`;
       } catch (error) {
-        input.summary.textContent = `Retour impossible : ${error instanceof Error ? error.message : String(error)}`;
+        input.summary.textContent = `Retour impossible : ${errorMessage(error)}`;
       }
       await refresh();
     };

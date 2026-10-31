@@ -1,16 +1,1 @@
-{
-  "audio-levels.js": 3,
-  "background-audio.js": 1,
-  "background-transition.js": 2,
-  "components/GeometricPatternBackground.js": 1,
-  "components/ShapeMorphBackground.js": 3,
-  "dev/background-field-renderer.js": 24,
-  "dev/background-preset-controller.js": 11,
-  "dev/background-preset-transfer-controller.js": 8,
-  "dev/background-preview-controller.js": 10,
-  "dev/background-transition-controller.js": 2,
-  "dev/numeric-field-control.js": 1,
-  "dev/obs-scene-client.js": 2,
-  "dev/start-dev.js": 1,
-  "dev/static-server.js": 1
-}
+{}

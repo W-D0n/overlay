@@ -1,6 +1,7 @@
 // @ts-check
 import { canonicalBackgroundState } from './background-state-format.js';
 import { sceneFromCurrent, sceneFromPreset } from '../scene-doc.js';
+import { errorMessage } from './error-message.js';
 
 export class BackgroundStateClientError extends Error {
   /**
@@ -71,7 +72,7 @@ export function createBackgroundStateClient(options) {
     } catch (error) {
       throw new BackgroundStateClientError(
         operation,
-        error instanceof Error ? error.message : String(error),
+        errorMessage(error),
       );
     }
 

@@ -1,5 +1,6 @@
 // @ts-check
 import { filterSceneRows, obsStatusMessage, partitionSceneRows, sceneMapFromRows, sceneRows } from './obs-scene-map-presenter.js';
+import { errorMessage } from './error-message.js';
 
 /**
  * dev/obs-scene-map-controller.js — Section « Scènes OBS » du tuner.
@@ -142,7 +143,7 @@ export function createObsSceneMapController(input) {
     try {
       [status, state] = await Promise.all([input.client.readObsStatus(), input.client.readState()]);
     } catch (error) {
-      input.report.error(`OBS : ${error instanceof Error ? error.message : String(error)}`);
+      input.report.error(`OBS : ${errorMessage(error)}`);
       return;
     }
 
@@ -164,7 +165,7 @@ export function createObsSceneMapController(input) {
       input.report.ok('associations de scènes enregistrées');
       await refresh();
     } catch (error) {
-      input.report.error(`scene-map : ${error instanceof Error ? error.message : String(error)}`);
+      input.report.error(`scene-map : ${errorMessage(error)}`);
     }
   };
   input.refreshButton.onclick = () => { refresh(); };

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { BackgroundStateClientError } from './background-state-client.js';
 import { createBackgroundPresetBundle } from './background-preset-library.js';
 import { createBackgroundPresetTransferController } from './background-preset-transfer-controller.js';
 
@@ -196,9 +197,7 @@ describe('transfert de presets du tuner', () => {
       importPresets: async (content, revision) => {
         attempts.push({ content, revision });
         if (attempts.length === 1) {
-          const error = new Error('révision obsolète');
-          error.status = 409;
-          throw error;
+          throw new BackgroundStateClientError('import-presets', 'révision obsolète', 409);
         }
       },
     };

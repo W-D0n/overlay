@@ -12,6 +12,8 @@ import {
   formatBackgroundPresetImportChange,
   formatBackgroundPresetImportSummary,
 } from './background-preset-presenter.js';
+import { errorMessage } from './error-message.js';
+import { BackgroundStateClientError } from './background-state-client.js';
 
 /**
  * Parcours autonome d’export et d’import confirmé de la bibliothèque de presets.
@@ -31,7 +33,7 @@ import {
  *   client: ReturnType<typeof import('./background-state-client.js').createBackgroundStateClient>,
  *   preview: ReturnType<typeof import('./background-preview-controller.js').createBackgroundPreviewController>,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
- *   getPresets: () => Array<Record<string, any>>,
+ *   getPresets: () => import('./background-state-format.js').BackgroundPreset[],
  *   getScenes?: () => import('../scene-doc.js').SceneDoc[],
  *   refreshPresets: () => Promise<import("../scene-doc.js").SceneDoc[] | null>,
  *   documentRef?: Document,
@@ -97,6 +99,7 @@ export function createBackgroundPresetTransferController(input) {
     elements.importTrigger.disabled = reviewState.importing;
   }
 
+  /** @param {Parameters<typeof reduceBackgroundPresetImportReview>[1]} event */
   function transition(event) {
     const result = reduceBackgroundPresetImportReview(reviewState, event);
     reviewState = result.state;
@@ -109,6 +112,7 @@ export function createBackgroundPresetTransferController(input) {
     elements.importInput.value = '';
   }
 
+  /** @param {string} content @param {{ presets: { id: string }[] }} parsed */
   async function requestPreview(content, parsed) {
     try {
       const preview = await input.client.previewPresetImport(content);
@@ -125,7 +129,7 @@ export function createBackgroundPresetTransferController(input) {
         },
       };
     } catch (error) {
-      input.report.error(`aperçu d’import impossible : ${error.message}`);
+      input.report.error(`aperçu d’import impossible : ${errorMessage(error)}`);
       return null;
     }
   }
@@ -159,7 +163,7 @@ export function createBackgroundPresetTransferController(input) {
       if (activePresetSynced) input.report.ok(`import terminé · ${summary}`);
     } catch (error) {
       transition({ type: 'failed' });
-      if (error.status === 409) {
+      if (error instanceof BackgroundStateClientError && error.status === 409) {
         const refreshed = await requestPreview(pending.content, pending.parsed);
         if (refreshed === null) {
           transition({ type: 'cancelled' });
@@ -169,7 +173,7 @@ export function createBackgroundPresetTransferController(input) {
         input.report.error('bibliothèque modifiée — résumé actualisé, confirmer à nouveau');
         return;
       }
-      input.report.error(`import-presets : ${error.message}`);
+      input.report.error(`import-presets : ${errorMessage(error)}`);
     }
   }
 
@@ -205,7 +209,7 @@ export function createBackgroundPresetTransferController(input) {
         transition({ type: 'selected', pending });
         input.report.ok('import prêt — confirmer ou annuler');
       } catch (error) {
-        input.report.error(`import impossible : ${error.message}`);
+        input.report.error(`import impossible : ${errorMessage(error)}`);
       } finally {
         elements.importInput.value = '';
       }

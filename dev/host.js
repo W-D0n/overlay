@@ -46,6 +46,7 @@ import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
 import { validateBranding } from '../branding-format.js';
 import { validateBenchReport } from './obs-bench.js';
 import { applySettingsPatch, normalizeStudioSettings, validateSettingsPatch } from './studio-settings.js';
+import { errorMessage } from './error-message.js';
 
 /**
  * @typedef {import('./background-state-format.js').BackgroundFile} BackgroundFile
@@ -322,7 +323,7 @@ export function createHost({ store, channels, obs, control, staticPort, now = ()
       try {
         inspection = await obs.inspect();
       } catch (error) {
-        inspectionError = error instanceof Error ? error.message : String(error);
+        inspectionError = errorMessage(error);
       }
     }
     const read = await store.read();

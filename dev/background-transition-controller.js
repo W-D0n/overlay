@@ -17,10 +17,12 @@
  */
 export function createTransitionController(input) {
   /** Le sens n'a de sens que pour un balayage — le masquer évite un réglage sans effet visible. */
+  /** @param {string} type */
   function reflectTypeVisibility(type) {
     input.directionRow.hidden = type !== 'wipe';
   }
 
+  /** @param {import('../background-transition.js').BackgroundTransition} transition */
   function render(transition) {
     input.typeSelect.value = transition.type;
     input.easingSelect.value = transition.easing;

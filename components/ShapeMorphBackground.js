@@ -221,7 +221,10 @@ function angleDelta(a, b) {
   return d;
 }
 
-/** Pic triangulaire centré sur `center`, largeur angulaire `width`, amplitude [0,1]. */
+/**
+ * Pic triangulaire centré sur `center`, largeur angulaire `width`, amplitude [0,1].
+ * @param {number} theta @param {number} center @param {number} width
+ */
 function spike(theta, center, width) {
   return Math.max(0, 1 - Math.abs(angleDelta(theta, center)) / width);
 }

@@ -1,5 +1,6 @@
 // @ts-check
 import { controlFailure } from './server-control.js';
+import { errorMessage } from './error-message.js';
 
 const RECONNECT_POLL_MS = 1000;
 const RECONNECT_MAX_TRIES = 30;
@@ -56,7 +57,7 @@ export function createServerControlController(input) {
       const status = typeof error === 'object' && error !== null && 'status' in error
         ? /** @type {{ status: number | null }} */ (error).status
         : null;
-      say(controlFailure(status, error instanceof Error ? error.message : String(error)), true);
+      say(controlFailure(status, errorMessage(error)), true);
       setBusy(false);
       return;
     }

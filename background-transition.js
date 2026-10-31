@@ -56,8 +56,8 @@ const WIPE_MASK_SIZE = { right: '200% 100%', left: '200% 100%', up: '100% 200%',
  * dégradé miroir — qui garantit que l'un est opaque là où l'autre ne l'est pas. Vérifié en teintant
  * les deux calques : avec le dégradé miroir, le sortant n'apparaissait nulle part.
  */
-const WIPE_MASK_IMAGE = (axis) => `linear-gradient(${axis}, #000 0%, #000 35%, transparent 65%, transparent 100%)`;
-const WIPE_MASK_IMAGE_INVERSE = (axis) => `linear-gradient(${axis}, transparent 0%, transparent 35%, #000 65%, #000 100%)`;
+const WIPE_MASK_IMAGE = (/** @type {string} */ axis) => `linear-gradient(${axis}, #000 0%, #000 35%, transparent 65%, transparent 100%)`;
+const WIPE_MASK_IMAGE_INVERSE = (/** @type {string} */ axis) => `linear-gradient(${axis}, transparent 0%, transparent 35%, #000 65%, #000 100%)`;
 
 /** Positions extrêmes du masque, identiques pour les deux calques. */
 const WIPE_HIDDEN_POSITION = { right: '100% 0%', left: '0% 0%', up: '0% 0%', down: '0% 100%' };

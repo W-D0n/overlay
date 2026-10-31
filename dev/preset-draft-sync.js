@@ -15,6 +15,7 @@
  * @typedef {{ presetId: string, scene: SceneDoc }} PendingDraft
  */
 import { hasEffectLayer } from './background-state-format.js';
+import { errorMessage } from './error-message.js';
 
 const DEFAULT_DELAY_MS = 600;
 
@@ -63,7 +64,7 @@ export function createPresetDraftSync(input) {
     try {
       await input.client.saveDraft(draft.presetId, draft.scene);
     } catch (error) {
-      fail(`brouillon non enregistré : ${error instanceof Error ? error.message : String(error)}`);
+      fail(`brouillon non enregistré : ${errorMessage(error)}`);
     }
   }
 
@@ -133,7 +134,7 @@ export function createPresetDraftSync(input) {
       try {
         await input.client.discardDraft(presetId);
       } catch (error) {
-        fail(`brouillon non abandonné : ${error instanceof Error ? error.message : String(error)}`);
+        fail(`brouillon non abandonné : ${errorMessage(error)}`);
         await this.load();
       }
     },

@@ -44,6 +44,7 @@ export function buildNumericFieldControl(field, currentValue, onChange, options 
   unit.className = 'field-unit';
   unit.textContent = field.unit ?? '';
 
+  /** @param {number} next */
   function publish(next) {
     if (!Number.isFinite(next)) return;
     const bounded = clampNumericFieldValue(next, min, max);

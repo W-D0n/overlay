@@ -98,7 +98,7 @@ export function createReactionLoop(deps) {
 
 /**
  * @param {{ color?: string, requestFrame?: (cb: () => void) => number, cancelFrame?: (id: number) => void, now?: () => number }} [options]
- * @returns {import('../types.js').ComponentInstance}
+ * @returns {import('../types.js').ComponentInstance & { trigger: (payload: unknown) => void, destroy: () => void }}
  */
 export function ReactionOverlay(options = {}) {
   const shared = options.requestFrame === undefined || options.cancelFrame === undefined

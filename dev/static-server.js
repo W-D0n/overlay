@@ -25,6 +25,7 @@ const ROOT = `${import.meta.dir}/..`;
 Bun.serve({
   hostname: LOOPBACK_HOST,
   port: PORT,
+  /** @param {Request} req */
   async fetch(req) {
     const rejected = rejectNonLocalRequest(req);
     if (rejected !== null) return rejected;

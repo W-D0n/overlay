@@ -178,7 +178,10 @@ export function patternStyle(pattern, colorA, colorB, size, angle = 45) {
 const PATTERNS = /** @type {const} */ (['diamonds', 'dots', 'chevrons', 'eyes']);
 const DIRECTIONS = /** @type {const} */ (['left', 'right', 'up', 'down']);
 
-/** `angled` reste accepté pour relire les anciens presets, mais n'est plus proposé dans le tuner. */
+/**
+ * `angled` reste accepté pour relire les anciens presets, mais n'est plus proposé dans le tuner.
+ * @param {unknown} value
+ */
 function normalizePattern(value) {
   if (value === 'angled') return 'chevrons';
   return typeof value === 'string' && /** @type {readonly string[]} */ (PATTERNS).includes(value)

@@ -40,12 +40,13 @@ import {
   createBackgroundStateClient,
 } from './background-state-client.js';
 import { BACKGROUND_STATE_PORT } from '../ports.config.js';
+import { errorMessage } from './error-message.js';
 
 const STATE_SERVER = `http://localhost:${BACKGROUND_STATE_PORT}`;
 
 /** @param {unknown} error */
 export function stateLoadErrorMessage(error) {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = errorMessage(error);
   if (error instanceof BackgroundStateClientError && error.status !== null) {
     return `GET /state : ${message}`;
   }

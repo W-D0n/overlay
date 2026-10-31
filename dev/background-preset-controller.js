@@ -8,6 +8,7 @@ import { normalizeTransition } from '../background-transition.js';
 import { presetFromScene, sceneFromPreset } from '../scene-doc.js';
 import { createPresetThumbnail } from './preset-thumbnail.js';
 import { createBackgroundPresetTransferController } from './background-preset-transfer-controller.js';
+import { errorMessage } from './error-message.js';
 
 /**
  * @param {{
@@ -52,10 +53,12 @@ export function createBackgroundPresetController(input) {
   /** @type {Map<string, { line: HTMLElement }>} */
   const draftMarks = new Map();
 
+  /** @param {string} prefix @param {unknown} error */
   function reportClientError(prefix, error) {
-    input.report.error(`${prefix} : ${error.message}`);
+    input.report.error(`${prefix} : ${errorMessage(error)}`);
   }
 
+  /** @param {HTMLElement} container */
   function appendEmptyState(container) {
     const empty = documentRef.createElement('p');
     empty.className = 'preset-empty';
@@ -79,12 +82,14 @@ export function createBackgroundPresetController(input) {
   }
 
   /** Une vignette par ligne, capturée une fois puis animée seulement au survol. */
+  /** @param {HTMLElement} row @param {import('../scene-doc.js').SceneDoc} scene @param {{ destroy: () => void }[]} set */
   function appendThumbnail(row, scene, set) {
     const thumbnail = createPresetThumbnail({ scene, documentRef });
     set.push(thumbnail);
     row.appendChild(thumbnail.el);
   }
 
+  /** @param {import('../scene-doc.js').SceneDoc} preset @param {string} metaText */
   function createPresetRowShell(preset, metaText) {
     const row = documentRef.createElement('div');
     row.className = 'preset-row';
@@ -104,6 +109,7 @@ export function createBackgroundPresetController(input) {
     }
   }
 
+  /** @param {import('../scene-doc.js').SceneDoc[]} presets */
   function renderPresets(presets) {
     disposeThumbnails(presetThumbnails);
     draftMarks.clear();
@@ -241,6 +247,7 @@ export function createBackgroundPresetController(input) {
     syncDraftMarks();
   }
 
+  /** @param {string} base */
   function uniquePresetName(base) {
     const names = new Set(cachedPresets.map(({ name }) => name));
     if (!names.has(base)) return base;
@@ -356,7 +363,7 @@ export function createBackgroundPresetController(input) {
         if (activePresetId !== null) input.drafts?.forget(activePresetId);
         input.report.ok();
         const presets = await refresh();
-        const savedPreset = presets?.find((preset) => preset.name === name);
+        const savedPreset = presets?.find((/** @type {import('../scene-doc.js').SceneDoc} */ preset) => preset.name === name);
         if (savedPreset) input.preview.setActivePresetId(savedPreset.id);
       } catch (error) {
         reportClientError('save-preset', error);

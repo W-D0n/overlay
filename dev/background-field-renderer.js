@@ -7,6 +7,11 @@ import { buildNumericFieldControl } from './numeric-field-control.js';
 
 const DEFAULT_ADDED_COLOR = 'var(--color-gold)';
 
+/**
+ * @typedef {import('./color-palette-format.js').NamedColor} PaletteColor
+ * @typedef {import('./color-palette-format.js').NamedGradient} PaletteGradient
+ */
+
 /** @param {unknown} value */
 export function backgroundColorsFieldValues(value) {
   return Array.isArray(value) && value.length > 0 ? [...value] : [DEFAULT_ADDED_COLOR];
@@ -38,8 +43,10 @@ export function backgroundFieldValues(component, options) {
  */
 export function createBackgroundFieldRenderer(input) {
   const documentRef = input.documentRef ?? document;
+  /** @type {{ colors: PaletteColor[], gradients: PaletteGradient[] }} */
   let palette = { colors: [], gradients: [] };
 
+  /** @param {string} label @param {string} value @param {boolean} [selected] */
   function createOption(label, value, selected = false) {
     const option = documentRef.createElement('option');
     option.textContent = label;
@@ -48,11 +55,12 @@ export function createBackgroundFieldRenderer(input) {
     return option;
   }
 
+  /** @param {unknown} value */
   function paletteColorFor(value) {
     const normalized = String(value).toLowerCase();
     return palette.colors.find((color) =>
       [color.value, color.hex, color.oklch]
-        .filter(Boolean)
+        .filter((candidate) => typeof candidate === 'string')
         .some((candidate) => candidate.toLowerCase() === normalized),
     );
   }
@@ -79,6 +87,7 @@ export function createBackgroundFieldRenderer(input) {
       paletteSelect.appendChild(createOption(`${color.name} — ${color.value}`, color.value));
     }
 
+    /** @param {unknown} next */
     function reflect(next) {
       const stringValue = String(next);
       text.value = stringValue;
@@ -107,22 +116,24 @@ export function createBackgroundFieldRenderer(input) {
     return wrapper;
   }
 
+  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value */
   function buildTokenField(field, value) {
     const wrapper = documentRef.createElement('div');
     const select = documentRef.createElement('select');
     select.setAttribute('aria-label', field.label);
-    const tokens = DESIGN_TOKENS[field.tokenCategory];
+    const tokens = field.tokenCategory === undefined ? [] : DESIGN_TOKENS[field.tokenCategory];
+    const isToken = typeof value === 'string' && tokens.includes(value);
     for (const token of tokens) {
       select.appendChild(createOption(tokenLabel(token), token, token === value));
     }
-    select.appendChild(createOption('Personnalisé…', '__custom__', !tokens.includes(value)));
+    select.appendChild(createOption('Personnalisé…', '__custom__', !isToken));
 
     const customInput = documentRef.createElement('input');
     customInput.type = 'text';
-    customInput.value = tokens.includes(value) ? '' : String(value);
+    customInput.value = isToken ? '' : String(value);
     customInput.placeholder = '#hex, rgb(...), var(--...)';
     customInput.style.marginTop = 'var(--space-xs)';
-    customInput.hidden = tokens.includes(value);
+    customInput.hidden = isToken;
 
     select.onchange = () => {
       const isCustom = select.value === '__custom__';
@@ -135,6 +146,7 @@ export function createBackgroundFieldRenderer(input) {
     return wrapper;
   }
 
+  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value */
   function buildColorsField(field, value) {
     const wrapper = documentRef.createElement('div');
     wrapper.className = 'colors-control';
@@ -205,6 +217,7 @@ export function createBackgroundFieldRenderer(input) {
     return wrapper;
   }
 
+  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value */
   function buildField(field, value) {
     if (field.type === 'token') return buildTokenField(field, value);
     if (field.type === 'color') {
@@ -214,7 +227,7 @@ export function createBackgroundFieldRenderer(input) {
     if (field.type === 'select') {
       const select = documentRef.createElement('select');
       select.setAttribute('aria-label', field.label);
-      for (const choice of field.choices) {
+      for (const choice of field.choices ?? []) {
         select.appendChild(createOption(choice, choice, choice === value));
       }
       select.onchange = () => input.onChange(field.key, select.value);
@@ -255,7 +268,7 @@ export function createBackgroundFieldRenderer(input) {
   }
 
   return {
-    /** @param {{ colors?: unknown[], gradients?: unknown[] }} next */
+    /** @param {{ colors?: PaletteColor[], gradients?: PaletteGradient[] }} next */
     setPalette(next) {
       palette = {
         colors: Array.isArray(next.colors) ? next.colors : [],

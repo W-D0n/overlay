@@ -40,7 +40,7 @@ if (busy.length > 0) {
   process.exit(1);
 }
 
-/** @type {import('bun').Subprocess[]} */
+/** @type {ReturnType<typeof Bun.spawn>[]} */
 const children = [];
 
 /**

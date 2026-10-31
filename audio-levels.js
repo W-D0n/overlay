@@ -77,7 +77,7 @@ export function computeLevels({ spectrum, sampleRate, previous }) {
 
   /** @type {AudioLevels} */
   const next = { level: 0, bass: 0, mid: 0, treble: 0 };
-  for (const name of ['bass', 'mid', 'treble']) {
+  for (const name of /** @type {const} */ (['bass', 'mid', 'treble'])) {
     const target = hzPerBin > 0 ? bandPeak(spectrum, hzPerBin, BANDS[name]) : 0;
     next[name] = smooth(previous[name], target);
   }
