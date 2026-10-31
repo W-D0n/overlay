@@ -1,7 +1,7 @@
 // @ts-check
 import { errorMessage } from './error-message.js';
 import { obsStatusMessage } from './obs-scene-map-presenter.js';
-import { describeAlert, describeTwitchat, twitchatSample } from './connection-view.js';
+import { describeAlert, describeTwitch, describeTwitchat, twitchatSample } from './connection-view.js';
 
 /** Au rythme d'un coup d'œil : la fenêtre ouverte suit la connexion (« en cours » → « connecté » ou « refusé »), Twitchat et les alertes reçues. */
 export const SETTINGS_POLL_MS = 1000;
@@ -9,13 +9,16 @@ export const SETTINGS_POLL_MS = 1000;
 export const CONFIRM_MS = 4000;
 
 /**
- * dev/settings-controller.js — La fenêtre « Réglages » du Studio : la connexion à OBS (adresse, mot de passe), le lien avec Twitchat,
- * et les alertes reçues (de toute source).
+ * dev/settings-controller.js — La fenêtre « Réglages » du Studio : la connexion à OBS (adresse, mot de passe), Twitch (identifiant client, code
+ * d'autorisation), le lien avec Twitchat, et les alertes reçues (de toute source).
  *
  * Le mot de passe d'OBS est saisi dans un champ masqué dont un bouton **Afficher / Masquer** bascule les caractères. Seule la **saisie en
  * cours** peut s'afficher : le serveur ne renvoie jamais un mot de passe déjà enregistré (il dit seulement qu'il y en a un), et la fenêtre
  * ne le garde pas — le champ est vidé et remasqué à l'enregistrement et à la fermeture. Laisser le champ vide conserve le mot de passe
  * enregistré. Enregistrer reconnecte OBS aussitôt, sans relancer les serveurs ; la fenêtre ouverte relit l'état chaque seconde.
+ *
+ * Twitch : le Studio ne voit jamais le mot de passe Twitch. « Connecter Twitch » affiche un **code** et l'adresse où le taper ; la fenêtre ouverte relit l'état
+ * chaque seconde et passe seule à « connecté » quand l'autorisation est donnée. Les jetons ne quittent jamais le serveur.
  *
  * L'adresse de Twitchat contient un jeton : elle est masquée comme un mot de passe, et se copie sans s'afficher. Régénérer le jeton coupe
  * Twitchat (il faut recoller l'adresse) : un second appui le confirme.
@@ -31,6 +34,16 @@ export const CONFIRM_MS = 4000;
  *     obsReveal: HTMLButtonElement,
  *     obsSave: HTMLButtonElement,
  *     obsClear: HTMLButtonElement,
+ *     twitchStatus: HTMLElement,
+ *     twitchClient: HTMLInputElement,
+ *     twitchClientSave: HTMLButtonElement,
+ *     twitchCode: HTMLElement,
+ *     twitchLink: HTMLAnchorElement,
+ *     twitchUserCode: HTMLElement,
+ *     twitchCodeCopy: HTMLButtonElement,
+ *     twitchCancel: HTMLButtonElement,
+ *     twitchLogin: HTMLButtonElement,
+ *     twitchLogout: HTMLButtonElement,
  *     twitchatStatus: HTMLElement,
  *     twitchatAddress: HTMLInputElement,
  *     twitchatReveal: HTMLButtonElement,
@@ -101,16 +114,30 @@ export function createSettingsController(input) {
   /** @param {import('./connection-client.js').ConnectionsView} next @param {boolean} fillUrl */
   function render(next, fillUrl) {
     view = next;
-    const { obs, twitchat, alerts } = next;
+    const { obs, twitchat, twitch, alerts } = next;
     const message = obsStatusMessage({ connected: obs.connected, configured: obs.configured, reason: obs.reason, scenes: obs.scenes });
     elements.obsStatus.textContent = message.text;
     elements.obsStatus.dataset.tone = message.tone;
-    if (fillUrl) elements.obsUrl.value = obs.url;
+    if (fillUrl) {
+      elements.obsUrl.value = obs.url;
+      elements.twitchClient.value = twitch.clientId ?? '';
+    }
     elements.obsPassword.placeholder = !obs.passwordSet
       ? 'mot de passe du serveur WebSocket d’OBS'
       : obs.source === 'env' ? 'défini dans .env — saisissez-en un pour le remplacer' : 'enregistré — laissez vide pour le garder';
     elements.obsClear.disabled = obs.source !== 'settings';
     elements.obsClear.title = obs.source === 'env' ? 'Ce mot de passe vient du fichier .env : il ne s’efface pas d’ici' : '';
+
+    const twitchState = describeTwitch(twitch, now());
+    elements.twitchStatus.textContent = twitchState.text;
+    elements.twitchStatus.dataset.tone = twitchState.tone;
+    elements.twitchLogin.disabled = !twitchState.canLogin;
+    elements.twitchLogin.textContent = twitchState.loginLabel;
+    elements.twitchLogout.disabled = !twitchState.canLogout;
+    elements.twitchCode.hidden = !twitchState.showCode;
+    elements.twitchUserCode.textContent = twitch.userCode ?? '';
+    if (twitch.verificationUri !== null && /^https?:\/\//.test(twitch.verificationUri)) elements.twitchLink.href = twitch.verificationUri;
+    else elements.twitchLink.removeAttribute('href');
 
     const state = describeTwitchat(twitchat, now());
     elements.twitchatStatus.textContent = state.text;
@@ -197,6 +224,24 @@ export function createSettingsController(input) {
     input.report.ok(`${what} copié`);
   }
 
+  /** @param {Promise<import('./connection-client.js').ConnectionsView>} request @param {string} done */
+  async function twitchAction(request, done) {
+    try {
+      render(await request, false);
+    } catch (error) {
+      say(errorMessage(error), true);
+      await refresh();
+      return;
+    }
+    say(done);
+  }
+
+  async function saveTwitchClient() {
+    const typed = elements.twitchClient.value.trim();
+    if (view !== null && typed === (view.twitch.clientId ?? '')) return say('Rien à changer.');
+    await twitchAction(client.saveTwitchClient(typed), 'Identifiant client enregistré.');
+  }
+
   async function regenerate() {
     if (elements.twitchatRegenerate.dataset.armed !== 'true') {
       elements.twitchatRegenerate.dataset.armed = 'true';
@@ -228,6 +273,14 @@ export function createSettingsController(input) {
       if (event.key === 'Enter') { event.preventDefault(); void save(); }
     });
   }
+  elements.twitchClientSave.addEventListener('click', () => { void saveTwitchClient(); });
+  elements.twitchClient.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') { event.preventDefault(); void saveTwitchClient(); }
+  });
+  elements.twitchLogin.addEventListener('click', () => { void twitchAction(client.loginTwitch(), 'Ouvrez l’adresse affichée et tapez le code pour autoriser.'); });
+  elements.twitchCancel.addEventListener('click', () => { void twitchAction(client.cancelTwitchLogin(), 'Connexion à Twitch annulée.'); });
+  elements.twitchLogout.addEventListener('click', () => { void twitchAction(client.logoutTwitch(), 'Twitch déconnecté.'); });
+  elements.twitchCodeCopy.addEventListener('click', () => { if (view?.twitch.userCode) void copy(view.twitch.userCode, 'Le code'); });
   elements.twitchatReveal.addEventListener('click', () => revealAddress(elements.twitchatAddress.type === 'password'));
   elements.twitchatCopy.addEventListener('click', () => { if (view !== null) void copy(view.twitchat.withToken, 'L’adresse de Twitchat'); });
   elements.twitchatSample.addEventListener('click', () => {

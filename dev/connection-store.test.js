@@ -18,14 +18,14 @@ afterEach(() => {
 });
 
 test('un fichier absent se lit comme des réglages vides', async () => {
-  expect(await setup().store.read()).toEqual({ obs: {}, twitchat: {} });
+  expect(await setup().store.read()).toEqual({ obs: {}, twitchat: {}, twitch: {} });
 });
 
 test('update écrit, et la lecture suivante le retrouve', async () => {
   const { store, path } = setup();
   await store.update((file) => applyObsPatch(file, { password: 'secret' }));
-  expect(await store.read()).toEqual({ obs: { password: 'secret' }, twitchat: {} });
-  expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({ obs: { password: 'secret' }, twitchat: {} });
+  expect(await store.read()).toEqual({ obs: { password: 'secret' }, twitchat: {}, twitch: {} });
+  expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({ obs: { password: 'secret' }, twitchat: {}, twitch: {} });
 });
 
 test('l’écriture ne laisse aucun fichier temporaire', async () => {
@@ -40,7 +40,7 @@ test('des mises à jour simultanées se suivent : aucune n’en écrase une autr
     store.update((file) => applyObsPatch(file, { url: 'ws://a:1' })),
     store.update((file) => applyObsPatch(file, { password: 'p' })),
   ]);
-  expect(await store.read()).toEqual({ obs: { url: 'ws://a:1', password: 'p' }, twitchat: {} });
+  expect(await store.read()).toEqual({ obs: { url: 'ws://a:1', password: 'p' }, twitchat: {}, twitch: {} });
 });
 
 test('un fichier illisible est signalé et jamais écrasé', async () => {

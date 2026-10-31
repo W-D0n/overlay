@@ -7,7 +7,8 @@ import { createServiceRequest } from './service-request.js';
  * @typedef {ReturnType<typeof import('./connection-settings.js').publicObsView>} ObsConnectionView
  * @typedef {{ token: string, base: string, withToken: string, clients: number, lastMessageAt: string | null, lastAlertAt: string | null, lastError: string | null }} TwitchatView
  * @typedef {{ recent: import('./event-intake.js').JournalEntry[], refused: number }} AlertsView
- * @typedef {{ obs: ObsConnectionView, twitchat: TwitchatView, alerts: AlertsView }} ConnectionsView
+ * @typedef {ReturnType<typeof import('./connection-settings.js').publicTwitchSettings> & { phase: string, detail: string | null, subscriptions: number, needsLogin: boolean, userCode: string | null, verificationUri: string | null, loginExpiresAt: number | null, lastAlertAt: string | null }} TwitchView
+ * @typedef {{ obs: ObsConnectionView, twitchat: TwitchatView, twitch: TwitchView, alerts: AlertsView }} ConnectionsView
  *
  * @param {{ baseUrl: string, fetchImpl?: typeof fetch }} options
  */
@@ -40,5 +41,11 @@ export function createConnectionClient({ baseUrl, fetchImpl }) {
 
     /** Un jeton neuf pour Twitchat : l'ancien ne vaut plus rien. */
     regenerateTwitchatToken: () => write('/connections/twitchat/token'),
+
+    /** @param {string} clientId l'identifiant (public) de l'application Twitch */
+    saveTwitchClient: (clientId) => write('/connections/twitch/client', { clientId }),
+    loginTwitch: () => write('/connections/twitch/login'),
+    cancelTwitchLogin: () => write('/connections/twitch/cancel'),
+    logoutTwitch: () => write('/connections/twitch/logout'),
   };
 }

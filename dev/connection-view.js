@@ -60,3 +60,49 @@ export function twitchatSample(type, token) {
   if (token !== null) message.token = token;
   return JSON.stringify(message);
 }
+
+/**
+ * La phrase d'état de la connexion Twitch et ce que les boutons peuvent faire.
+ * @param {{ clientId: string | null, loggedIn: boolean, login: string | null, phase: string, detail: string | null, subscriptions: number, needsLogin: boolean, userCode: string | null, loginExpiresAt: number | null, lastAlertAt: string | null }} twitch
+ * @param {number} now
+ * @returns {{ tone: 'ready' | 'attention', text: string, canLogin: boolean, loginLabel: string, canLogout: boolean, showCode: boolean }}
+ */
+export function describeTwitch(twitch, now) {
+  /** @type {string} */
+  let text;
+  let tone = /** @type {'ready' | 'attention'} */ ('attention');
+  switch (twitch.phase) {
+    case 'login': {
+      const minutes = twitch.loginExpiresAt === null ? null : Math.max(0, Math.ceil((twitch.loginExpiresAt - now) / 60_000));
+      text = `En attente de votre autorisation sur Twitch${minutes === null ? '' : ` (le code expire dans ${minutes} min)`}.`;
+      break;
+    }
+    case 'connecting':
+      text = 'Connexion à Twitch en cours…';
+      break;
+    case 'connected':
+      tone = 'ready';
+      text = `Connecté en tant que ${twitch.login ?? 'votre compte'} : ${twitch.subscriptions} abonnements actifs.${twitch.lastAlertAt === null ? '' : ` Dernière alerte ${formatAgo(twitch.lastAlertAt, now)}.`}`;
+      if (twitch.detail !== null) text += ` ${twitch.detail}.`;
+      break;
+    case 'reconnecting':
+      text = `Connexion à Twitch perdue : ${twitch.detail ?? 'nouvelle tentative'}.`;
+      break;
+    case 'error':
+      text = `${twitch.detail ?? 'Erreur de connexion à Twitch'}.`.replace(/\.\.$/, '.');
+      break;
+    default:
+      text = twitch.clientId === null
+        ? 'Pas encore configuré : saisissez l’identifiant client de votre application Twitch.'
+        : 'Prêt : cliquez sur « Connecter Twitch ».';
+  }
+  const connectedAccount = twitch.loggedIn || twitch.phase === 'connected' || twitch.phase === 'connecting' || twitch.phase === 'reconnecting';
+  return {
+    tone,
+    text,
+    canLogin: twitch.clientId !== null && twitch.phase !== 'login',
+    loginLabel: connectedAccount || twitch.needsLogin ? 'Reconnecter Twitch' : 'Connecter Twitch',
+    canLogout: connectedAccount,
+    showCode: twitch.phase === 'login' && twitch.userCode !== null,
+  };
+}

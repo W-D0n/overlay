@@ -9,7 +9,8 @@
  *
  * @typedef {{ url?: string, password?: string }} ObsSettings
  * @typedef {{ token?: string }} TwitchatSettings
- * @typedef {{ obs: ObsSettings, twitchat: TwitchatSettings }} ConnectionFile
+ * @typedef {{ clientId?: string, accessToken?: string, refreshToken?: string, expiresAt?: number, userId?: string, login?: string, scopes?: string[] }} TwitchSettings
+ * @typedef {{ obs: ObsSettings, twitchat: TwitchatSettings, twitch: TwitchSettings }} ConnectionFile
  * @typedef {{ url: string, password: string, source: 'settings' | 'env' | 'none' }} ResolvedObs
  * @typedef {{ url?: string | null, password?: string | null }} ObsPatch
  */
@@ -40,7 +41,72 @@ export function normalizeConnectionFile(raw) {
   /** @type {TwitchatSettings} */
   const link = {};
   if (isText(twitchat.token) && TWITCHAT_TOKEN.test(twitchat.token)) link.token = twitchat.token;
-  return { obs: settings, twitchat: link };
+  return { obs: settings, twitchat: link, twitch: normalizeTwitch(record.twitch) };
+}
+
+/** L'identifiant client d'une application Twitch : alphanumérique (30 caractères en pratique). */
+const TWITCH_CLIENT_ID = /^[a-z0-9]{10,64}$/i;
+const TWITCH_TOKEN = /^[\x21-\x7e]{1,1024}$/;
+
+/** @param {unknown} raw @returns {TwitchSettings} */
+function normalizeTwitch(raw) {
+  const record = typeof raw === 'object' && raw !== null ? /** @type {Record<string, unknown>} */ (raw) : {};
+  /** @type {TwitchSettings} */
+  const twitch = {};
+  if (isText(record.clientId) && TWITCH_CLIENT_ID.test(record.clientId)) twitch.clientId = record.clientId;
+  if (isText(record.accessToken) && TWITCH_TOKEN.test(record.accessToken)) twitch.accessToken = record.accessToken;
+  if (isText(record.refreshToken) && TWITCH_TOKEN.test(record.refreshToken)) twitch.refreshToken = record.refreshToken;
+  if (typeof record.expiresAt === 'number' && Number.isFinite(record.expiresAt) && record.expiresAt > 0) twitch.expiresAt = record.expiresAt;
+  if (isText(record.userId) && /^\d{1,20}$/.test(record.userId)) twitch.userId = record.userId;
+  if (isText(record.login) && /^[a-z0-9_]{1,40}$/i.test(record.login)) twitch.login = record.login;
+  if (Array.isArray(record.scopes)) twitch.scopes = record.scopes.filter((scope) => isText(scope) && /^[a-z:_]{1,64}$/.test(scope));
+  return twitch;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {{ ok: true, clientId: string } | { ok: false, error: string }}
+ */
+export function validateTwitchClientId(value) {
+  const clientId = typeof value === 'string' ? value.trim() : '';
+  if (clientId === '') return { ok: false, error: 'identifiant client Twitch manquant' };
+  if (!TWITCH_CLIENT_ID.test(clientId)) return { ok: false, error: 'identifiant client Twitch invalide : lettres et chiffres seulement (30 caractères, affichés dans la console développeur Twitch)' };
+  return { ok: true, clientId };
+}
+
+/**
+ * Change la section Twitch : une valeur `null` la retire, `undefined` la laisse.
+ * @param {ConnectionFile} file
+ * @param {{ [K in keyof TwitchSettings]?: TwitchSettings[K] | null }} changes
+ * @returns {ConnectionFile}
+ */
+export function withTwitch(file, changes) {
+  /** @type {Record<string, unknown>} */
+  const twitch = { ...file.twitch };
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === undefined) continue;
+    if (value === null) delete twitch[key];
+    else twitch[key] = value;
+  }
+  return { ...file, twitch: /** @type {TwitchSettings} */ (twitch) };
+}
+
+/** Les jetons et l'utilisateur sont retirés ; l'identifiant client reste (on se reconnecte sans le ressaisir). @param {ConnectionFile} file @returns {ConnectionFile} */
+export function withoutTwitchLogin(file) {
+  return withTwitch(file, { accessToken: null, refreshToken: null, expiresAt: null, userId: null, login: null, scopes: null });
+}
+
+/**
+ * Ce que l'API montre de Twitch : jamais un jeton.
+ * @param {TwitchSettings} twitch
+ */
+export function publicTwitchSettings(twitch) {
+  return {
+    clientId: twitch.clientId ?? null,
+    loggedIn: twitch.accessToken !== undefined && twitch.refreshToken !== undefined && twitch.userId !== undefined,
+    login: twitch.login ?? null,
+    scopes: twitch.scopes ?? [],
+  };
 }
 
 /** Le jeton de Twitchat : de l'hexadécimal, assez long pour ne pas se deviner. */

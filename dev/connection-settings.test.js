@@ -1,17 +1,17 @@
 import { describe, expect, test } from 'bun:test';
-import { DEFAULT_OBS_URL, applyObsPatch, newTwitchatToken, normalizeConnectionFile, publicObsView, resolveObs, twitchatAddress, validateObsPatch, withTwitchatToken } from './connection-settings.js';
+import { DEFAULT_OBS_URL, applyObsPatch, newTwitchatToken, normalizeConnectionFile, publicObsView, publicTwitchSettings, resolveObs, twitchatAddress, validateObsPatch, validateTwitchClientId, withTwitch, withTwitchatToken, withoutTwitchLogin } from './connection-settings.js';
 
 describe('normalizeConnectionFile', () => {
   test('un fichier vide ou absurde donne des réglages vides', () => {
-    expect(normalizeConnectionFile({})).toEqual({ obs: {}, twitchat: {} });
-    expect(normalizeConnectionFile(null)).toEqual({ obs: {}, twitchat: {} });
-    expect(normalizeConnectionFile('texte')).toEqual({ obs: {}, twitchat: {} });
-    expect(normalizeConnectionFile({ obs: 12, twitchat: 'x' })).toEqual({ obs: {}, twitchat: {} });
+    expect(normalizeConnectionFile({})).toEqual({ obs: {}, twitchat: {}, twitch: {} });
+    expect(normalizeConnectionFile(null)).toEqual({ obs: {}, twitchat: {}, twitch: {} });
+    expect(normalizeConnectionFile('texte')).toEqual({ obs: {}, twitchat: {}, twitch: {} });
+    expect(normalizeConnectionFile({ obs: 12, twitchat: 'x' })).toEqual({ obs: {}, twitchat: {}, twitch: {} });
   });
 
   test('ne garde que des textes non vides', () => {
-    expect(normalizeConnectionFile({ obs: { url: 'ws://h:1', password: 'x' } })).toEqual({ obs: { url: 'ws://h:1', password: 'x' }, twitchat: {} });
-    expect(normalizeConnectionFile({ obs: { url: 4, password: '' } })).toEqual({ obs: {}, twitchat: {} });
+    expect(normalizeConnectionFile({ obs: { url: 'ws://h:1', password: 'x' } })).toEqual({ obs: { url: 'ws://h:1', password: 'x' }, twitchat: {}, twitch: {} });
+    expect(normalizeConnectionFile({ obs: { url: 4, password: '' } })).toEqual({ obs: {}, twitchat: {}, twitch: {} });
   });
 
   test('garde un jeton Twitchat bien formé et écarte les autres', () => {
@@ -70,18 +70,18 @@ describe('validateObsPatch', () => {
 
 describe('applyObsPatch', () => {
   test('pose les valeurs et laisse le reste', () => {
-    expect(applyObsPatch({ obs: { url: 'ws://a:1' }, twitchat: {} }, { password: 'p' })).toEqual({ obs: { url: 'ws://a:1', password: 'p' }, twitchat: {} });
+    expect(applyObsPatch({ obs: { url: 'ws://a:1' }, twitchat: {}, twitch: {} }, { password: 'p' })).toEqual({ obs: { url: 'ws://a:1', password: 'p' }, twitchat: {}, twitch: {} });
   });
 
   test('null retire la valeur saisie', () => {
-    expect(applyObsPatch({ obs: { url: 'ws://a:1', password: 'p' }, twitchat: {} }, { password: null })).toEqual({ obs: { url: 'ws://a:1' }, twitchat: {} });
-    expect(applyObsPatch({ obs: { url: 'ws://a:1', password: 'p' }, twitchat: {} }, { url: null })).toEqual({ obs: { password: 'p' }, twitchat: {} });
+    expect(applyObsPatch({ obs: { url: 'ws://a:1', password: 'p' }, twitchat: {}, twitch: {} }, { password: null })).toEqual({ obs: { url: 'ws://a:1' }, twitchat: {}, twitch: {} });
+    expect(applyObsPatch({ obs: { url: 'ws://a:1', password: 'p' }, twitchat: {}, twitch: {} }, { url: null })).toEqual({ obs: { password: 'p' }, twitchat: {}, twitch: {} });
   });
 
   test('ne modifie pas le fichier reçu', () => {
-    const file = { obs: { password: 'p' }, twitchat: {} };
+    const file = { obs: { password: 'p' }, twitchat: {}, twitch: {} };
     applyObsPatch(file, { password: null });
-    expect(file).toEqual({ obs: { password: 'p' }, twitchat: {} });
+    expect(file).toEqual({ obs: { password: 'p' }, twitchat: {}, twitch: {} });
   });
 
   test('garde le jeton de Twitchat', () => {
@@ -125,6 +125,52 @@ describe('publicObsView', () => {
   });
 });
 
+describe('réglages Twitch', () => {
+  const CLIENT_ID = 'abcdefghij0123456789abcdefghij';
+
+  test('normalizeConnectionFile garde une section Twitch bien formée', () => {
+    const twitch = { clientId: CLIENT_ID, accessToken: 'at.123_x-Y', refreshToken: 'rt', expiresAt: 1234, userId: '42', login: 'mozaik', scopes: ['bits:read', 'channel:read:subscriptions'] };
+    expect(normalizeConnectionFile({ twitch }).twitch).toEqual(twitch);
+  });
+
+  test('chaque champ mal formé est écarté, les autres restent', () => {
+    const bad = { clientId: 'court!', accessToken: 'a b', refreshToken: '', expiresAt: -1, userId: 'abc', login: 'a b', scopes: ['OK', 7, 'bits:read'] };
+    expect(normalizeConnectionFile({ twitch: bad }).twitch).toEqual({ scopes: ['bits:read'] });
+    expect(normalizeConnectionFile({ twitch: 12 }).twitch).toEqual({});
+    expect(normalizeConnectionFile({ twitch: { expiresAt: Infinity } }).twitch).toEqual({});
+  });
+
+  test('validateTwitchClientId : alphanumérique, espaces retirés', () => {
+    expect(validateTwitchClientId(`  ${CLIENT_ID} `)).toEqual({ ok: true, clientId: CLIENT_ID });
+    for (const bad of ['', '   ', 'trop court', 'avec-tiret-0123456789', 4, null, undefined]) expect(validateTwitchClientId(bad).ok).toBe(false);
+    expect(validateTwitchClientId('x'.repeat(65)).ok).toBe(false);
+  });
+
+  test('withTwitch pose, retire (null) ou laisse (undefined), sans toucher le reste ni le fichier reçu', () => {
+    const file = { obs: { password: 'p' }, twitchat: { token: 'a'.repeat(48) }, twitch: { clientId: CLIENT_ID, login: 'm' } };
+    const next = withTwitch(file, { login: null, userId: '42', accessToken: undefined });
+    expect(next).toEqual({ obs: { password: 'p' }, twitchat: { token: 'a'.repeat(48) }, twitch: { clientId: CLIENT_ID, userId: '42' } });
+    expect(file.twitch).toEqual({ clientId: CLIENT_ID, login: 'm' });
+  });
+
+  test('withoutTwitchLogin retire jetons, compte et portées, et garde l’identifiant client', () => {
+    const file = { obs: {}, twitchat: {}, twitch: { clientId: CLIENT_ID, accessToken: 'a', refreshToken: 'r', expiresAt: 5, userId: '1', login: 'l', scopes: ['bits:read'] } };
+    expect(withoutTwitchLogin(file).twitch).toEqual({ clientId: CLIENT_ID });
+  });
+
+  test('publicTwitchSettings : connecté seulement avec jetons ET compte, et jamais un jeton dans la vue', () => {
+    const full = { clientId: CLIENT_ID, accessToken: 'SECRET-A', refreshToken: 'SECRET-R', expiresAt: 5, userId: '1', login: 'mozaik', scopes: ['bits:read'] };
+    expect(publicTwitchSettings(full)).toEqual({ clientId: CLIENT_ID, loggedIn: true, login: 'mozaik', scopes: ['bits:read'] });
+    expect(JSON.stringify(publicTwitchSettings(full))).not.toContain('SECRET');
+    expect(publicTwitchSettings({ clientId: CLIENT_ID, accessToken: 'a' }).loggedIn).toBe(false);
+    expect(publicTwitchSettings({})).toEqual({ clientId: null, loggedIn: false, login: null, scopes: [] });
+  });
+
+  test('un fichier existant sans section Twitch se lit comme une section vide', () => {
+    expect(normalizeConnectionFile({ obs: { password: 'p' }, twitchat: { token: 'a'.repeat(48) } }).twitch).toEqual({});
+  });
+});
+
 describe('jeton de Twitchat', () => {
   test('newTwitchatToken : 48 caractères hexadécimaux, tirés du générateur du système', () => {
     expect(newTwitchatToken()).toMatch(/^[0-9a-f]{48}$/);
@@ -137,9 +183,9 @@ describe('jeton de Twitchat', () => {
   });
 
   test('withTwitchatToken pose le jeton sans toucher OBS ni le fichier reçu', () => {
-    const file = { obs: { password: 'p' }, twitchat: {} };
+    const file = { obs: { password: 'p' }, twitchat: {}, twitch: {} };
     const next = withTwitchatToken(file, 'b'.repeat(48));
-    expect(next).toEqual({ obs: { password: 'p' }, twitchat: { token: 'b'.repeat(48) } });
+    expect(next).toEqual({ obs: { password: 'p' }, twitchat: { token: 'b'.repeat(48) }, twitch: {} });
     expect(file.twitchat).toEqual({});
   });
 

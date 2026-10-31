@@ -159,6 +159,8 @@ export async function run({ page, stack, check, errors }) {
   check('Échap ferme la fenêtre', (await page.evaluate("document.getElementById('settings-dialog').open")) === false);
 
   for (const client of [render, twitchat, noToken, renewed, stale, intruder]) client.close();
+  // La rafale a rempli la fenêtre du limiteur (5 s), que le serveur partage avec les suites suivantes : on la laisse se vider.
+  await new Promise((resolve) => setTimeout(resolve, 5200));
   check('aucune erreur dans la console', errors.length === 0 ? true : errors.slice());
 }
 

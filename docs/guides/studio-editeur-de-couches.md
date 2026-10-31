@@ -203,6 +203,16 @@ le champ est masqué, le bouton **Afficher** montre ce que vous tapez (il se rem
 relancer les serveurs, et la fenêtre dit où en est la connexion : en cours, connecté (avec le nombre de scènes), mot de passe refusé, ou OBS injoignable. Une fois enregistré,
 le mot de passe ne s'affiche plus nulle part : le champ dit « enregistré — laissez vide pour le garder ». **Effacer le mot de passe** déconnecte. L'adresse (`ws://127.0.0.1:4455` par défaut) se change dans le même écran.
 
+### Relier Twitch (alertes réelles)
+
+Le Studio reçoit directement les follows, subs, raids et bits de votre chaîne par **EventSub**, sans passer par Twitchat. À faire une fois :
+
+1. Créez une application sur dev.twitch.tv/console (type **Public**) et copiez son **identifiant client** (il n'est pas secret).
+2. **Réglages › Twitch** : collez-le, **Enregistrer**, puis **Connecter Twitch**. Twitch donne un **code** : ouvrez le lien affiché, tapez le code, autorisez les trois permissions demandées.
+3. Le Studio passe à « Connecté en tant que … : 6 abonnements actifs » et se **reconnecte seul** ensuite (démarrage, coupure réseau, reprise de session demandée par Twitch). Le Studio ne voit jamais votre mot de passe Twitch ; les jetons restent sur cet ordinateur et ne s'affichent nulle part.
+
+Un abonnement offert à vingt personnes donne **une** alerte (celle du donateur). Si l'autorisation est retirée sur Twitch, ou après 30 jours sans lancer les serveurs, le Studio le dit et propose « Reconnecter Twitch ». Les étapes détaillées, avec les messages d'erreur et leur remède : [`docs/procedures-owner.md`](../procedures-owner.md).
+
 ### Relier Twitchat
 
 Twitchat est une page web qui se connecte, en **client WebSocket**, à l'adresse que vous lui donnez, et dont les **triggers** envoient le message que vous écrivez. Le Studio est le serveur.

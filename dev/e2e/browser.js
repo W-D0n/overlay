@@ -58,8 +58,11 @@ export async function launchBrowser({ stateRedirect, viewport = { width: 1700, h
   const deadline = Date.now() + 20_000;
   while (port === 0 && Date.now() < deadline) {
     if (existsSync(activePortFile)) {
-      const [first] = readFileSync(activePortFile, 'utf8').trim().split(String.fromCharCode(10));
-      port = Number(first) || 0;
+      // Chrome écrit ce fichier pendant qu'on le lit : verrouillé (EBUSY) ou à moitié écrit, on relit au prochain tour.
+      try {
+        const [first] = readFileSync(activePortFile, 'utf8').trim().split(String.fromCharCode(10));
+        port = Number(first) || 0;
+      } catch { /* relu dans 100 ms */ }
     }
     if (port === 0) await sleep(100);
   }

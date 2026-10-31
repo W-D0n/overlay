@@ -27,6 +27,7 @@ updated: 2026-10-31
 | [incidents-d-antenne](incidents-d-antenne.md) | Fait | 2026-10-31 | Être prévenu quand le serveur, OBS ou la page de rendu est perdu |
 | [versions-de-scene](versions-de-scene.md) | Fait | 2026-10-31 | Points de restauration nommés d'une scène |
 | [liaisons-de-couche](liaisons-de-couche.md) | Fait | 2026-10-31 | Le son et les alertes pilotent une couche (opacité, échelle, rotation, flou, position) |
+| [connexions-et-alertes](connexions-et-alertes.md) | Fait | 2026-10-31 | Réglages OBS (mot de passe saisi), Twitchat et Twitch EventSub : les alertes réelles arrivent au Studio |
 | [controle-processus](controle-processus.md) | Draft | 2026-10-30 | Démarrer, redémarrer, arrêter les serveurs depuis le produit |
 
 ## Archive

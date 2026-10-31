@@ -7,6 +7,7 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { startFakeTwitch } from './fake-twitch.js';
 
 const ROOT = join(import.meta.dir, '..', '..');
 
@@ -33,11 +34,13 @@ async function untilServing(url, timeoutMs) {
 }
 
 export async function startStack() {
+  // Jamais le vrai Twitch : les trois adresses du serveur d'état pointent vers un faux Twitch, démarré avec la pile.
+  const twitch = startFakeTwitch();
   const directory = mkdtempSync(join(tmpdir(), 'overlay-e2e-state-'));
   const staticPort = freePort();
   const statePort = freePort();
   // Jamais le mot de passe ni l'adresse d'OBS de l'owner (fichier `.env` lu par Bun) : un essai ne parle qu'à un faux OBS qu'il démarre lui-même.
-  const env = { ...process.env, STATIC_PORT: String(staticPort), BACKGROUND_STATE_PORT: String(statePort), BACKGROUND_STATE_FILE: join(directory, 'state.json'), OBS_WS_URL: '', OBS_WS_PASSWORD: '' };
+  const env = { ...process.env, STATIC_PORT: String(staticPort), BACKGROUND_STATE_PORT: String(statePort), BACKGROUND_STATE_FILE: join(directory, 'state.json'), OBS_WS_URL: '', OBS_WS_PASSWORD: '', TWITCH_ID_URL: twitch.idUrl, TWITCH_API_URL: twitch.apiUrl, TWITCH_EVENTSUB_URL: twitch.eventSubUrl };
   const spawn = (/** @type {string} */ script) => Bun.spawn([process.execPath, join(ROOT, 'dev', script)], { env, cwd: ROOT, stdout: 'ignore', stderr: 'ignore' });
   const processes = [spawn('background-state-server.js'), spawn('static-server.js')];
   try {
@@ -45,6 +48,7 @@ export async function startStack() {
     await untilServing(`http://localhost:${staticPort}/dev/studio.html`, 15_000);
   } catch (error) {
     for (const child of processes) child.kill();
+    twitch.stop();
     throw error;
   }
   const base = `http://localhost:${statePort}`;
@@ -54,6 +58,8 @@ export async function startStack() {
     statePort,
     /** Le fichier d'état jetable ; ses voisins (`.connections.json`, `.versions.json`) sont à côté. */
     stateFile: join(directory, 'state.json'),
+    /** Le faux Twitch auquel le serveur d'essai parle (`dev/e2e/fake-twitch.js`). */
+    twitch,
     /** @param {string} path @param {unknown} [body] */
     async api(path, body) {
       const response = await fetch(`${base}${path}`, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -69,6 +75,7 @@ export async function startStack() {
     async stop() {
       for (const child of processes) child.kill();
       await Promise.all(processes.map((child) => child.exited));
+      twitch.stop();
       rmSync(directory, { recursive: true, force: true });
     },
   };

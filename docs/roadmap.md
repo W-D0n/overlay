@@ -29,6 +29,7 @@ conditions réelles dans OBS (liste « À faire par l'owner » de l'inbox).
 | Timeline | Images clés par couche, durée et boucle de scène, lecture dans OBS | `specs/timeline.md` |
 | Versions | Points de restauration nommés d'une scène | `specs/versions-de-scene.md` |
 | Incidents | Alerte quand le serveur, OBS ou la page de rendu est perdu | `specs/incidents-d-antenne.md` |
+| Connexions | Mot de passe OBS saisi dans le Studio (Réglages), alertes réelles par Twitch EventSub et par Twitchat | `specs/connexions-et-alertes.md` |
 
 Le guide d'usage est [`guides/studio-editeur-de-couches.md`](guides/studio-editeur-de-couches.md). Garde-fous : tests unitaires,
 typage strict à 0 erreur, essais de bout en bout dans un vrai Chrome (`bun dev/e2e/run.js`).
@@ -56,8 +57,8 @@ audio), et les contrôles propres au Studio (mode de fusion, contenus, liaisons,
 Aucun engagement pris ; l'ordre ci-dessous est celui que recommande l'audit du 2026-10-31. Chaque piste a sa fiche dans
 [`inbox.md`](inbox.md) § « Pistes d'amélioration ».
 
-1. **Alertes réelles** : brancher Twitch (EventSub) sur `POST /event`. Sans cela, les liaisons « alerte → valeur » ne reçoivent que les
-   alertes de test du Studio. À reprendre avec `security.md` (nouvelle surface réseau, jeton).
+1. ~~**Alertes réelles**~~ — **livrées le 2026-10-31** : Twitch EventSub (autorisation par code d'appareil) et Twitchat (WebSocket), mot de passe OBS saisi dans le Studio
+   (`specs/connexions-et-alertes.md`). Reste à les éprouver en vrai : [`procedures-owner.md`](procedures-owner.md) §1 à §3.
 2. **Rejouer une timeline sur une alerte** : un raid relance l'animation d'un titre.
 3. **Sources de données** : viewers, dernier follower, minuteur, comme texte et comme source de liaison.
 4. **Son du bureau** plutôt que le micro (périphérique de bouclage Windows).

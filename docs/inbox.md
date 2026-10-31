@@ -14,22 +14,25 @@ Notes et items qui restent à traiter. Les clôtures récentes sont consignées 
 ## À faire par l'owner — à rappeler en fin de projet
 
 Ce que seul l'owner peut faire (OBS, regard humain, décision). **Claude rappelle cette liste à la clôture du projet**
-(fin de l'étape 6), avant de dire que tout est terminé.
+(fin de l'étape 6), avant de dire que tout est terminé. **Les étapes détaillées de chaque point sont dans [`procedures-owner.md`](procedures-owner.md)** (numéros entre parenthèses).
 
-- [ ] **Mode de fusion dans OBS** (6d) : mettre une couche en « Produit » sur une source vidéo et regarder si elle se
+- [ ] **Brancher Twitch** (2026-10-31, §1) : créer l'application Twitch (type Public), saisir son identifiant client dans Réglages › Twitch, se connecter par code. Puis premier vrai follow / sub / raid / bits.
+- [ ] **Relier Twitchat** (2026-10-31, §2) : coller l'adresse de Réglages › Twitchat dans le paramètre WebSocket de Twitchat, créer un trigger par alerte avec le modèle de message. À confirmer : libellés de Twitchat, placeholders `{USER}` / `{BITS}`, demande d'accès au réseau local du navigateur.
+- [ ] **Saisir le mot de passe OBS dans Réglages** (2026-10-31, §3) : remplace le `.env` ; vérifier « Connecté à OBS — N scène(s) ».
+- [ ] **Mode de fusion dans OBS** (6d, §4) : mettre une couche en « Produit » sur une source vidéo et regarder si elle se
   mélange avec elle. Hypothèse non mesurée : la page ne voit pas les sources OBS situées dessous.
-- [ ] **Usage réel de l'éditeur (6b à 6g)** pendant quelque temps, puis décider de **6h (groupes de couches)** : utile ou non,
+- [ ] **Usage réel de l'éditeur (6b à 6g, §14)** pendant quelque temps, puis décider de **6h (groupes de couches)** : utile ou non,
   et quels gestes manquent.
-- [ ] **Couches de contenu dans OBS** (texte, forme, image, 2026-10-31) : charger les points de départ « Début de live », « Je reviens » et « Fin de live » dans la Browser Source d'OBS, puis importer une vraie image (logo, affiche) et la poser dans une scène. À vérifier : le texte est net à la résolution de la source, une police installée (ex. Bebas Neue) est bien trouvée par OBS, l'image se charge (elle vient du serveur d'état, port 5932, avec `crossOrigin`), et le coût reste à 60 i/s (relancer le banc avec une scène de 8 couches mêlant contenus et effets).
-- [ ] **Liaisons au son et aux alertes dans OBS** (2026-10-31) : poser un titre avec une liaison « alerte raid → opacité » et une liaison « niveau sonore → échelle » sur un logo, puis déclencher un vrai raid / parler dans le micro. À vérifier : l'animation est fluide à 60 i/s, le micro est bien demandé, la retombée correspond à la durée réglée.
-- [ ] **Alertes système en conditions réelles** (2026-10-31) : activer « Alertes système » dans le bandeau (autoriser les notifications), réduire le Studio, puis fermer OBS ou couper la source navigateur. À vérifier : la notification arrive en moins de 20 s et le titre de l'onglet porte « ⚠ ». Dire si une chute de FPS (non couverte) mérite d'être remontée par la page de rendu.
-- [ ] **Timeline dans OBS** (2026-10-31) : animer un titre (opacité 0 → 1 en 0,8 s), publier, puis changer de scène OBS et revenir : l'animation doit rejouer à chaque arrivée. À vérifier : fluidité à 60 i/s, boucle, comportement pendant une transition de scène.
-- [ ] **Relancer le banc** `dev/obs-bench.html` dans OBS après tout changement de rendu, et vérifier que le rapport se lit
+- [ ] **Couches de contenu dans OBS** (texte, forme, image, 2026-10-31, §5) : charger les points de départ « Début de live », « Je reviens » et « Fin de live » dans la Browser Source d'OBS, puis importer une vraie image (logo, affiche) et la poser dans une scène. À vérifier : le texte est net à la résolution de la source, une police installée (ex. Bebas Neue) est bien trouvée par OBS, l'image se charge (elle vient du serveur d'état, port 5932, avec `crossOrigin`), et le coût reste à 60 i/s (relancer le banc avec une scène de 8 couches mêlant contenus et effets).
+- [ ] **Liaisons au son et aux alertes dans OBS** (2026-10-31, §6) : poser un titre avec une liaison « alerte raid → opacité » et une liaison « niveau sonore → échelle » sur un logo, puis déclencher un vrai raid / parler dans le micro. À vérifier : l'animation est fluide à 60 i/s, le micro est bien demandé, la retombée correspond à la durée réglée.
+- [ ] **Alertes système en conditions réelles** (2026-10-31, §7) : activer « Alertes système » dans le bandeau (autoriser les notifications), réduire le Studio, puis fermer OBS ou couper la source navigateur. À vérifier : la notification arrive en moins de 20 s et le titre de l'onglet porte « ⚠ ». Dire si une chute de FPS (non couverte) mérite d'être remontée par la page de rendu.
+- [ ] **Timeline dans OBS** (2026-10-31, §8) : animer un titre (opacité 0 → 1 en 0,8 s), publier, puis changer de scène OBS et revenir : l'animation doit rejouer à chaque arrivée. À vérifier : fluidité à 60 i/s, boucle, comportement pendant une transition de scène.
+- [ ] **Relancer le banc (§9)** `dev/obs-bench.html` dans OBS après tout changement de rendu, et vérifier que le rapport se lit
   par `GET /bench-result`.
-- [ ] **Tauri** : cocher la case « démarrage avec Windows » du panneau et vérifier qu'elle tient après redémarrage.
-- [ ] **Exécutable sans Bun** : décider si on le livre (aujourd'hui Bun est requis).
-- [ ] **`start-stream`** : trancher l'invite « remplacer ? » quand des serveurs tournent déjà.
-- [ ] **Validations visuelles** listées plus bas (ShapeMorph, ColorDrops, amplitude audio) et le QA OBS 1080p.
+- [ ] **Tauri (§10)** : cocher la case « démarrage avec Windows » du panneau et vérifier qu'elle tient après redémarrage.
+- [ ] **Exécutable sans Bun (§11)** : décider si on le livre (aujourd'hui Bun est requis).
+- [ ] **`start-stream` (§12)** : trancher l'invite « remplacer ? » quand des serveurs tournent déjà.
+- [ ] **Validations visuelles (§13)** listées plus bas (ShapeMorph, ColorDrops, amplitude audio) et le QA OBS 1080p.
 
 ## Chantiers prévus (Claude)
 
@@ -48,12 +51,12 @@ Aucune n'est engagée. Ordre = recommandation de l'audit du 2026-10-31, du plus 
 aucun code Twitch dans le dépôt (les alertes viennent du bouton de test du Studio ou d'un `POST /event`), la sélection multiple existe
 (`selection: string[]`), il n'y a ni groupe de couches ni capture du son du bureau, et la page de rendu ne remonte pas son FPS.
 
-1. **Alertes réelles (Twitch EventSub → `POST /event`)** — sans elles, les liaisons « alerte → valeur » et les réactions du fond
-   ne servent qu'en test. Demande une authentification (jeton Twitch) et une revue de `docs/security.md` (point 4 : toute source réseau
-   nouvelle). Décision owner : brancher EventSub, ou retirer les réactions (`revue-fonctions.md` §5).
-2. **Rejouer une timeline sur une alerte** (`specs/timeline.md` §5) — un raid relance l'entrée d'un titre. Complète la piste 1.
+1. ~~**Alertes réelles (Twitch EventSub)**~~ — **faite le 2026-10-31** (`specs/connexions-et-alertes.md`) : EventSub par WebSocket avec autorisation par code d'appareil, et canal WebSocket pour Twitchat.
+   Reste à les éprouver en vrai (procédures §1 et §2). Les réactions du fond et les liaisons « alerte → valeur » reçoivent désormais de vraies alertes.
+2. **Rejouer une timeline sur une alerte** (`specs/timeline.md` §5) — un raid relance l'entrée d'un titre. Devient la piste la plus utile maintenant que les alertes arrivent.
 3. **Sources de données** (`specs/liaisons-de-couche.md` §5) — nombre de viewers, dernier follower, minuteur : comme texte (« Dernier
-   follow : … ») et comme source de liaison. Dépend de la piste 1 pour les données Twitch ; le minuteur n'en dépend pas.
+   follow : … ») et comme source de liaison. Les données Twitch sont maintenant à portée (le dernier follower et le dernier abonné passent déjà par EventSub) ; le minuteur n'en dépend pas.
+   Autres abonnements EventSub possibles (points de chaîne, début et fin de live, hype train) : `specs/connexions-et-alertes.md` §7.
 4. **Son du bureau** plutôt que le micro (périphérique de bouclage Windows), pour réagir à la musique du live.
 5. **Groupes de couches** (6h) — à décider après un usage réel de l'éditeur (liste de l'owner ci-dessus).
 6. **Chute de FPS comme incident** (`specs/incidents-d-antenne.md` §4) — la page de rendu devrait remonter son rythme par le canal d'état ;

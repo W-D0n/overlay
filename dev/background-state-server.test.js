@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { FAKE_CLIENT_ID, startFakeTwitch } from './e2e/fake-twitch.js';
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -266,11 +267,12 @@ const PRESET_FOR_SCENE = {
   options: { count: 40 },
 };
 
-async function startStateServer({ stateFile, obsUrl, obsPassword }) {
+async function startStateServer({ stateFile, obsUrl, obsPassword, extraEnv = {} }) {
   const port = await reserveFreePort();
   const env = { ...process.env, BACKGROUND_STATE_PORT: String(port), BACKGROUND_STATE_FILE: stateFile };
   if (obsUrl !== undefined) env.OBS_WS_URL = obsUrl;
   env.OBS_WS_PASSWORD = obsPassword ?? '';
+  Object.assign(env, extraEnv);
   const child = Bun.spawn(['bun', 'dev/background-state-server.js'], {
     cwd: join(import.meta.dir, '..'),
     env,
@@ -745,5 +747,60 @@ test('POST /connections/obs reconnecte le serveur en marche sans le relancer', a
     await child.exited;
     fakeObs.stop();
     rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+/** Un serveur d'état dont les trois adresses de Twitch pointent vers le faux Twitch, avec des jetons déjà rangés comme après une connexion antérieure. */
+async function startWithStoredTwitch({ expiresInMs }) {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-twitch-boot-'));
+  const stateFile = join(directory, 'state.json');
+  const twitch = startFakeTwitch();
+  const granted = twitch.grant();
+  writeFileSync(`${stateFile}.connections.json`, JSON.stringify({
+    twitch: { clientId: FAKE_CLIENT_ID, accessToken: granted.access_token, refreshToken: granted.refresh_token, expiresAt: Date.now() + expiresInMs, userId: '42', login: 'mozaik', scopes: ['moderator:read:followers', 'channel:read:subscriptions', 'bits:read'] },
+  }));
+  const server = await startStateServer({ stateFile, obsPassword: '', extraEnv: { TWITCH_ID_URL: twitch.idUrl, TWITCH_API_URL: twitch.apiUrl, TWITCH_EVENTSUB_URL: twitch.eventSubUrl } });
+  const until = async (condition, attempts = 200) => {
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      if (condition()) return true;
+      await delay(25);
+    }
+    return false;
+  };
+  const cleanup = async () => {
+    server.child.kill();
+    await server.child.exited;
+    twitch.stop();
+    rmSync(directory, { recursive: true, force: true });
+  };
+  return { ...server, twitch, granted, stateFile, until, cleanup };
+}
+
+test('Twitch déjà connecté : au démarrage, le serveur rouvre la session EventSub sans nouvelle autorisation', async () => {
+  const { baseUrl, twitch, granted, until, cleanup } = await startWithStoredTwitch({ expiresInMs: 4 * 3_600_000 });
+  try {
+    expect(await until(() => twitch.log.subscriptions.length === 6)).toBe(true);
+    expect(twitch.log.subscriptions.every((entry) => entry.token === granted.access_token)).toBe(true);
+    expect(twitch.log.refreshes).toHaveLength(0);
+    expect(twitch.log.deviceRequests).toHaveLength(0);
+    const view = (await (await fetch(`${baseUrl}/connections`)).json()).twitch;
+    expect(view).toMatchObject({ loggedIn: true, login: 'mozaik', phase: 'connected', subscriptions: 6 });
+    expect(JSON.stringify(view)).not.toContain(granted.access_token);
+  } finally {
+    await cleanup();
+  }
+});
+
+test('Twitch : un jeton près d’expirer est rafraîchi au démarrage, avant la session, et le neuf est gardé dans le fichier', async () => {
+  const { twitch, granted, stateFile, until, cleanup } = await startWithStoredTwitch({ expiresInMs: 60_000 });
+  try {
+    expect(await until(() => twitch.log.subscriptions.length === 6)).toBe(true);
+    expect(twitch.log.refreshes).toHaveLength(1);
+    expect(twitch.log.refreshes[0].refresh_token).toBe(granted.refresh_token);
+    const stored = JSON.parse(readFileSync(`${stateFile}.connections.json`, 'utf8')).twitch;
+    expect(stored.accessToken).not.toBe(granted.access_token);
+    expect(twitch.log.subscriptions.every((entry) => entry.token === stored.accessToken)).toBe(true);
+  } finally {
+    await cleanup();
   }
 });

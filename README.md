@@ -13,7 +13,7 @@ Une **scène** est une pile de couches (effets de fond, texte, formes, images, b
 
 Ce que fait le Studio : couches ordonnées, historique annulable, brouillon puis publication, **texte, formes et images**
 (médiathèque d'images et de polices importées), **liaisons** au son et aux alertes, **timeline à images clés**, **versions nommées**,
-export / import d'une scène avec ses images, et alerte quand le serveur, OBS ou la page de rendu est perdu.
+export / import d'une scène avec ses images, alerte quand le serveur, OBS ou la page de rendu est perdu, et **alertes réelles** (Twitch EventSub, Twitchat) avec la connexion à OBS réglée dans la fenêtre **Réglages**.
 Mode d'emploi : [`docs/guides/studio-editeur-de-couches.md`](docs/guides/studio-editeur-de-couches.md).
 
 Le moteur de scènes a été retiré du dépôt le 2026-07-25. Son code reste restaurable via le tag

@@ -19,15 +19,25 @@ function setup({ env = {}, status = { connected: false, reason: 'not-configured'
   const obs = { restart: async () => { restarts.push(Date.now()); }, status: () => status, configured: false, inspect: async () => ({}) };
   const twitchat = { view: () => ({ clients: 2, lastMessageAt: null, lastAlertAt: null, lastError: 'une erreur' }), disconnectAll: () => { disconnects.push(Date.now()); } };
   const intake = { recent: () => [{ at: '2026-10-31T10:00:00.000Z', source: 'twitchat', type: 'follow' }], refused: 3 };
+  const twitchCalls = [];
+  const twitch = {
+    view: () => ({ clientId: null, loggedIn: false, login: null, scopes: [], phase: 'logged-out', userCode: null }),
+    setClientId: async (clientId) => { twitchCalls.push(['client', clientId]); return clientId === 'invalide' ? { ok: false, error: 'identifiant invalide' } : { ok: true }; },
+    startLogin: async () => { twitchCalls.push(['login']); return env.TWITCH_LOGIN_FAILS ? { ok: false, error: 'Twitch refuse la demande' } : { ok: true }; },
+    cancelLogin: async () => { twitchCalls.push(['cancel']); },
+    logout: async () => { twitchCalls.push(['logout']); },
+  };
   const store = createConnectionStore({ path });
-  const routes = createConnectionRoutes({ store, obs, twitchat, intake, statePort: 5932, env, log: silent });
+  const routes = createConnectionRoutes({ store, obs, twitchat, twitch, intake, statePort: 5932, env, log: silent });
   /** @param {string} pathname @param {RequestInit} [init] */
   const call = (pathname, init) => routes.handle(new Request(`http://localhost:5932${pathname}`, init), new URL(`http://localhost:5932${pathname}`));
   /** @param {unknown} body @param {Record<string, string>} [headers] */
   const postObs = (body, headers = { 'X-Overlay-Control': '1' }) => call('/connections/obs', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
   /** @param {Record<string, string>} [headers] */
   const postToken = (headers = { 'X-Overlay-Control': '1' }) => call('/connections/twitchat/token', { method: 'POST', headers });
-  return { routes, call, postObs, postToken, restarts, disconnects, store, path };
+  /** @param {string} action @param {unknown} [body] @param {Record<string, string>} [headers] */
+  const postTwitch = (action, body = {}, headers = { 'X-Overlay-Control': '1' }) => call(`/connections/twitch/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
+  return { routes, call, postObs, postToken, postTwitch, twitchCalls, restarts, disconnects, store, path };
 }
 
 afterEach(() => {
@@ -166,6 +176,64 @@ describe('Twitchat et alertes', () => {
     const before = (await (await call('/connections')).json()).twitchat.token;
     await postObs({ password: 'nouveau' });
     expect((await (await call('/connections')).json()).twitchat.token).toBe(before);
+  });
+});
+
+describe('Twitch', () => {
+  test('GET porte l’état de Twitch (sans jeton)', async () => {
+    const { call } = setup();
+    expect((await (await call('/connections')).json()).twitch).toMatchObject({ loggedIn: false, phase: 'logged-out' });
+  });
+
+  test('client : transmet l’identifiant et rend la vue', async () => {
+    const { postTwitch, twitchCalls } = setup();
+    const response = await postTwitch('client', { clientId: 'abcdefghij0123456789' });
+    expect(response.status).toBe(200);
+    expect(twitchCalls).toEqual([['client', 'abcdefghij0123456789']]);
+    expect((await response.json()).twitch).toBeDefined();
+  });
+
+  test('client : un identifiant refusé donne 400 avec la raison', async () => {
+    const { postTwitch } = setup();
+    const response = await postTwitch('client', { clientId: 'invalide' });
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toBe('identifiant invalide');
+  });
+
+  test('client : un corps qui n’est pas du JSON est transmis comme absent, sans planter', async () => {
+    const { call, twitchCalls } = setup();
+    await call('/connections/twitch/client', { method: 'POST', headers: { 'X-Overlay-Control': '1' }, body: 'pas du json' });
+    expect(twitchCalls).toEqual([['client', undefined]]);
+  });
+
+  test('login, cancel, logout : chacun appelle la connexion Twitch et rend la vue', async () => {
+    const { postTwitch, twitchCalls } = setup();
+    for (const action of ['login', 'cancel', 'logout']) expect((await postTwitch(action)).status).toBe(200);
+    expect(twitchCalls).toEqual([['login'], ['cancel'], ['logout']]);
+  });
+
+  test('login : un refus de Twitch donne 400 avec la raison', async () => {
+    const { postTwitch } = setup({ env: { TWITCH_LOGIN_FAILS: '1' } });
+    const response = await postTwitch('login');
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toBe('Twitch refuse la demande');
+  });
+
+  test('toute écriture exige l’en-tête de contrôle : sans lui, rien n’est appelé', async () => {
+    const { postTwitch, twitchCalls } = setup();
+    for (const action of ['client', 'login', 'cancel', 'logout']) expect((await postTwitch(action, {}, {})).status).toBe(400);
+    expect(twitchCalls).toEqual([]);
+  });
+
+  test('une action inconnue : 404, sans rien appeler', async () => {
+    const { postTwitch, twitchCalls } = setup();
+    expect((await postTwitch('autre')).status).toBe(404);
+    expect(twitchCalls).toEqual([]);
+  });
+
+  test('un GET sur une route d’écriture : 404', async () => {
+    const { call } = setup();
+    expect((await call('/connections/twitch/login')).status).toBe(404);
   });
 });
 

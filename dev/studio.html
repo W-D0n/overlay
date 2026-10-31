@@ -272,6 +272,11 @@
     .settings-alerts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); font-variant-numeric: tabular-nums; }
     .settings-alerts time { color: var(--color-text-dim); }
     .settings-alerts-empty { color: var(--color-text-dim); }
+    .settings-code { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-sm); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
+    .settings-code[hidden] { display: none; }
+    .settings-code p { margin: 0; }
+    .settings-code a { color: var(--color-gold); }
+    .settings-usercode { font-family: var(--font-mono); font-size: var(--text-xl, 1.5rem); letter-spacing: 0.2em; color: var(--color-text-primary); user-select: all; }
     .settings-state { margin: 0; color: var(--color-text-mid); }
     .settings-state[data-tone="ready"] { color: var(--color-gold); }
     #settings-status { min-height: 1em; padding: var(--space-sm) var(--space-lg); margin: 0; }
@@ -985,6 +990,28 @@
       <div class="settings-actions">
         <button id="settings-obs-save" type="button">Enregistrer et connecter</button>
         <button id="settings-obs-clear" type="button">Effacer le mot de passe</button>
+      </div>
+    </section>
+    <section class="settings-section" aria-labelledby="settings-twitch-title">
+      <h3 id="settings-twitch-title">Twitch</h3>
+      <p class="hint">Reçoit directement les follows, subs, raids et bits de votre chaîne (EventSub), sans passer par Twitchat. À faire une fois : créez une application sur dev.twitch.tv/console (type « Public »), collez son identifiant client ici, puis connectez-vous : Twitch vous donne un code à taper sur son site. Le Studio ne reçoit jamais votre mot de passe Twitch.</p>
+      <p id="settings-twitch-status" class="settings-state" data-tone="attention" role="status" aria-live="polite"></p>
+      <label class="settings-field" for="settings-twitch-client">Identifiant client de l’application</label>
+      <div class="settings-password">
+        <input id="settings-twitch-client" type="text" autocomplete="off" spellcheck="false" placeholder="30 caractères, affiché dans la console développeur de Twitch">
+        <button id="settings-twitch-client-save" type="button">Enregistrer</button>
+      </div>
+      <div id="settings-twitch-code" class="settings-code" hidden>
+        <p>Ouvrez <a id="settings-twitch-link" target="_blank" rel="noopener noreferrer">la page d’autorisation de Twitch</a> et tapez ce code :</p>
+        <strong id="settings-twitch-usercode" class="settings-usercode"></strong>
+        <div class="settings-actions">
+          <button id="settings-twitch-code-copy" type="button">Copier le code</button>
+          <button id="settings-twitch-cancel" type="button">Annuler</button>
+        </div>
+      </div>
+      <div class="settings-actions">
+        <button id="settings-twitch-login" type="button">Connecter Twitch</button>
+        <button id="settings-twitch-logout" type="button">Déconnecter</button>
       </div>
     </section>
     <section class="settings-section" aria-labelledby="settings-twitchat-title">
