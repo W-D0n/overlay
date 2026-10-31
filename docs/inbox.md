@@ -1,6 +1,6 @@
 ---
 created: 2026-06-06
-updated: 2026-10-29
+updated: 2026-10-31
 ---
 
 # Inbox — Overlay Stream
@@ -8,6 +8,35 @@ updated: 2026-10-29
 Notes et items qui restent à traiter. Les clôtures récentes sont consignées dans
 [`docs/devlog.md`](devlog.md) ; l’historique détaillé des décisions vit dans
 [`docs/backlog-history.md`](backlog-history.md).
+
+---
+
+## À faire par l'owner — à rappeler en fin de projet
+
+Ce que seul l'owner peut faire (OBS, regard humain, décision). **Claude rappelle cette liste à la clôture du projet**
+(fin de l'étape 6), avant de dire que tout est terminé.
+
+- [ ] **Mode de fusion dans OBS** (6d) : mettre une couche en « Produit » sur une source vidéo et regarder si elle se
+  mélange avec elle. Hypothèse non mesurée : la page ne voit pas les sources OBS situées dessous.
+- [ ] **Usage réel de l'éditeur (6b à 6g)** pendant quelque temps, puis décider de **6h (groupes de couches)** : utile ou non,
+  et quels gestes manquent.
+- [ ] **Relancer le banc** `dev/obs-bench.html` dans OBS après tout changement de rendu, et vérifier que le rapport se lit
+  par `GET /bench-result`.
+- [ ] **Tauri** : cocher la case « démarrage avec Windows » du panneau et vérifier qu'elle tient après redémarrage.
+- [ ] **Exécutable sans Bun** : décider si on le livre (aujourd'hui Bun est requis).
+- [ ] **`start-stream`** : trancher l'invite « remplacer ? » quand des serveurs tournent déjà.
+- [ ] **Validations visuelles** listées plus bas (ShapeMorph, ColorDrops, amplitude audio) et le QA OBS 1080p.
+
+## Chantiers prévus (Claude)
+
+- **Passe d'audit et de correction des erreurs de typage** (83 au 2026-10-31, gelées dans `dev/typecheck-baseline.json`) :
+  pour chaque fichier, établir si l'erreur est du bruit de typage ou un défaut réel (mesure, pas hypothèse), corriger à
+  la cause racine, abaisser la baseline, et ajouter une garde permanente à chaque classe de défaut trouvée. Fichiers
+  les plus chargés : `dev/background-field-renderer.js` (24), `dev/background-preset-controller.js` (11),
+  `dev/background-preview-controller.js` (10).
+- **Parcours clavier de bout en bout** des panneaux (accessibilité, reste de 6f).
+- **Audit produit avant toute proposition d'amélioration** (cible premium) : état réel de l'éditeur, écarts avec les
+  éditeurs de référence, puis propositions chiffrées.
 
 ---
 
