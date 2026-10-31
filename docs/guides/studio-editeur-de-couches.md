@@ -124,6 +124,20 @@ total de la scène. Vert/neutre : léger ; or : à surveiller ; rouge : une seul
 d'une image à 60 i/s. Une couche masquée est signalée « aucun coût ». C'est une mesure **relative prise dans le
 Studio** : elle dit quelle couche pèse, pas ce que fera OBS — vérifiez dans OBS avant de charger une scène.
 
+### Animer une scène (timeline)
+
+Le panneau **Timeline**, sous l'aperçu, fait **jouer** la scène : elle démarre à son arrivée dans OBS et peut tourner en boucle.
+
+1. Sélectionnez une couche, dépliez « Images clés », choisissez la valeur à animer (opacité, rotation, flou, échelle, position).
+2. Placez le **repère** (le curseur, ou un clic dans une piste), puis « + Image clé » : la clé prend la valeur actuelle, rien ne change encore.
+3. Réglez-la (valeur, instant, courbe), placez le repère plus loin, posez une seconde clé : la valeur évolue entre les deux, selon la **courbe** de la
+   première (linéaire, départ lent, arrivée lente, ou palier).
+4. Glissez les losanges pour caler le rythme (flèches : 10 ms, `Maj` : 100 ms). Se placer dans le temps met en pause : l'aperçu montre cette image.
+5. Réglez la **durée** de la scène et la **boucle**, puis publiez : la page d'OBS joue l'animation depuis l'arrivée de la scène.
+
+Exemple : un titre qui arrive. Opacité de 0 à 1 entre 0 et 0,8 s, et décalage vertical de +8 % à 0 sur le même intervalle. Si une **liaison** (son, alerte)
+vise la même valeur, c'est elle qui l'emporte : la réaction en direct passe devant le scénario.
+
 ### Les versions d'une scène
 
 Une version est un **point de restauration que vous nommez** : « avant le gros changement », « version stream du vendredi ».

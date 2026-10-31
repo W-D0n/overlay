@@ -35,6 +35,7 @@ import { ADDABLE_KIND_IDS, backgroundEffectLabel, defaultBackgroundOptions } fro
 import { createAssetClient } from './asset-client.js';
 import { createBindingsController } from './bindings-controller.js';
 import { createVersionClient } from './version-client.js';
+import { createTimelineController } from './timeline-controller.js';
 import { setIcon } from './icons.js';
 import { createVersionsController } from './versions-controller.js';
 import { collectAssetUsage } from './asset-format.js';
@@ -245,6 +246,33 @@ export async function startBackgroundTuner(environment = {}) {
   const versionsButton = byId('layers-versions');
   setIcon(versionsButton, 'bookmark');
   versionsButton.addEventListener('click', () => { void versions.open(); });
+
+  const timelinePanel = createTimelineController({
+    elements: {
+      panel: byId('timeline-panel'),
+      toggle: /** @type {HTMLButtonElement} */ (byId('timeline-toggle')),
+      play: /** @type {HTMLButtonElement} */ (byId('timeline-play')),
+      restart: /** @type {HTMLButtonElement} */ (byId('timeline-restart')),
+      readout: byId('timeline-readout'),
+      scrub: /** @type {HTMLInputElement} */ (byId('timeline-scrub')),
+      duration: /** @type {HTMLInputElement} */ (byId('timeline-duration')),
+      loop: /** @type {HTMLInputElement} */ (byId('timeline-loop')),
+      title: byId('timeline-title'),
+      target: /** @type {HTMLSelectElement} */ (byId('timeline-target')),
+      addKey: /** @type {HTMLButtonElement} */ (byId('timeline-add-key')),
+      tracks: byId('timeline-tracks'),
+      detail: byId('timeline-detail'),
+      detailTime: /** @type {HTMLInputElement} */ (byId('timeline-key-time')),
+      detailValue: /** @type {HTMLInputElement} */ (byId('timeline-key-value')),
+      detailEase: /** @type {HTMLSelectElement} */ (byId('timeline-key-ease')),
+      detailRemove: /** @type {HTMLButtonElement} */ (byId('timeline-key-remove')),
+    },
+    studio: preview.document,
+    timeline: preview.timeline,
+    report,
+    documentRef,
+    windowRef,
+  });
 
   const bindings = createBindingsController({
     elements: { list: byId('bindings-list'), add: /** @type {HTMLButtonElement} */ (byId('bindings-add')), hint: byId('bindings-hint') },

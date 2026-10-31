@@ -244,26 +244,26 @@ export function removeKey(tracks, target, index) {
 
 /**
  * Les pistes avec une clé modifiée. Changer le temps refuse de se superposer à une autre clé (la liste revient inchangée) et reste trié ; la valeur est
- * bornée. Rend l'index que la clé occupe après le changement.
+ * bornée. Rend l'index que la clé occupe après le changement, et `refused` quand le changement est impossible (superposition, clé absente).
  * @param {readonly Track[]} tracks
  * @param {TimelineTarget} target
  * @param {number} index
  * @param {{ t?: number, v?: number, ease?: Ease }} change
- * @returns {{ tracks: Track[], index: number }}
+ * @returns {{ tracks: Track[], index: number, refused: boolean }}
  */
 export function changeKey(tracks, target, index, change) {
   const track = tracks.find((candidate) => candidate.target === target);
   const key = track?.keys[index];
-  if (track === undefined || key === undefined) return { tracks: [...tracks], index };
+  if (track === undefined || key === undefined) return { tracks: [...tracks], index, refused: true };
   const range = BINDING_TARGETS[target];
   const next = {
     t: change.t === undefined ? key.t : clamp(Math.round(change.t), TIME_LIMITS.min, TIME_LIMITS.max),
     v: change.v === undefined ? key.v : clamp(change.v, range.min, range.max),
     ease: change.ease ?? key.ease,
   };
-  if (track.keys.some((other, at) => at !== index && other.t === next.t)) return { tracks: [...tracks], index };
+  if (track.keys.some((other, at) => at !== index && other.t === next.t)) return { tracks: [...tracks], index, refused: true };
   const keys = track.keys.map((other, at) => (at === index ? next : other)).sort((a, b) => a.t - b.t);
-  return { tracks: tracks.map((candidate) => (candidate === track ? { ...candidate, keys } : candidate)), index: keys.findIndex((other) => other === next) };
+  return { tracks: tracks.map((candidate) => (candidate === track ? { ...candidate, keys } : candidate)), index: keys.findIndex((other) => other === next), refused: false };
 }
 
 /**

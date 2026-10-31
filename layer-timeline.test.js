@@ -154,7 +154,7 @@ describe('édition des pistes', () => {
     const moved = changeKey(tracks, 'opacity', 0, { t: 700 });
     expect(moved.tracks[0].keys.map((k) => k.t)).toEqual([500, 700, 1000]);
     expect(moved.index).toBe(1);
-    expect(changeKey(tracks, 'opacity', 0, { t: 500 }).tracks).toEqual(tracks);
+    expect(changeKey(tracks, 'opacity', 0, { t: 500 })).toMatchObject({ tracks, refused: true });
     expect(changeKey(tracks, 'opacity', 1, { v: 7, ease: 'hold' }).tracks[0].keys[1]).toEqual({ t: 500, v: 1, ease: 'hold' });
     expect(changeKey(tracks, 'opacity', 9, { v: 1 }).tracks).toEqual(tracks);
     expect(changeKey(tracks, 'rotation', 0, { v: 1 }).tracks).toEqual(tracks);

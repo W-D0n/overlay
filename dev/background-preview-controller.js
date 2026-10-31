@@ -358,6 +358,8 @@ export function createBackgroundPreviewController(input) {
     },
     isDraft: () => doc.state().isDraft,
     /** Le coût de dessin lissé de chaque couche montée (ms), `null` pour une couche sans mesure. @returns {Record<string, number | null>} */
+    /** La lecture de la timeline de la scène montrée (`scene-runtime.js`) : le panneau de la timeline la pilote. */
+    timeline: mount.timeline,
     layerCosts() {
       return Object.fromEntries(mount.layers().map(({ id, instance }) => [id, instance.cost?.() ?? null]));
     },

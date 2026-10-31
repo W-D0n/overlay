@@ -79,7 +79,7 @@
     .layers-add { padding: 0 var(--space-sm); border-color: var(--color-gold-dim); color: var(--color-gold); }
     .layer-button:hover:not(:disabled), .layers-add:hover:not(:disabled) { border-color: var(--color-gold); color: var(--color-gold); }
     .layer-button:disabled, .layers-add:disabled { opacity: .35; cursor: default; }
-    .layer-button:focus-visible, .layers-add:focus-visible, .layers-list:focus-visible, .gallery-card:focus-visible, #asset-library button:focus-visible, #versions-dialog button:focus-visible, .binding-remove:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
+    .layer-button:focus-visible, .layers-add:focus-visible, .layers-list:focus-visible, .gallery-card:focus-visible, #asset-library button:focus-visible, #versions-dialog button:focus-visible, .timeline-panel button:focus-visible, .binding-remove:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
     .layer-button[aria-pressed="true"] { color: var(--color-gold); }
     .layer-button.is-on { color: var(--color-gold); border-color: var(--color-gold-dim); }
     .layers-meter { height: 3px; background: var(--color-rule); margin: var(--space-xs) 0 var(--space-sm); }
@@ -295,12 +295,34 @@
 
     .stage-zone {
       display: grid;
-      grid-template-rows: auto auto minmax(0, 1fr);
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
       min-width: 0;
       min-height: 0;
       padding: 12px 16px 16px;
       gap: var(--space-sm);
     }
+    .timeline-panel { min-width: 0; border: 1px solid var(--color-rule); background: var(--color-bg-panel); }
+    .tl-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); padding: var(--space-xs) var(--space-sm); }
+    .tl-head h2 { margin: 0 var(--space-sm) 0 0; font-size: var(--text-base); font-weight: 400; }
+    .tl-head button { padding: 2px var(--space-sm); min-width: 32px; }
+    .tl-scrub { flex: 1; min-width: 120px; accent-color: var(--color-gold); padding: 0; }
+    .tl-readout { color: var(--color-text-mid); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .tl-field { display: inline-flex; align-items: center; gap: var(--space-xs); color: var(--color-text-mid); }
+    .tl-field input[type="number"] { width: 64px; }
+    .tl-body { padding: var(--space-xs) var(--space-sm) var(--space-sm); border-top: 1px solid var(--color-rule); }
+    .timeline-panel:not([data-open="true"]) .tl-body { display: none; }
+    .tl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-xs); }
+    .tl-title { color: var(--color-text-mid); margin-right: auto; }
+    .tl-track { display: grid; grid-template-columns: 96px 1fr; gap: var(--space-sm); align-items: center; margin: 2px 0; }
+    .tl-label { color: var(--color-text-mid); font-size: var(--text-xs); }
+    .tl-lane { position: relative; height: 26px; background: var(--color-bg); border: 1px solid var(--color-rule); cursor: col-resize; touch-action: none; }
+    .tl-key { position: absolute; top: 50%; width: 14px; height: 14px; padding: 0; transform: translate(-50%, -50%) rotate(45deg); border: 1px solid var(--color-gold); background: var(--color-bg-panel); cursor: grab; border-radius: 0; }
+    .tl-key[aria-pressed="true"] { background: var(--color-gold); }
+    .tl-key:focus-visible { outline: 2px solid var(--color-text-primary); outline-offset: 2px; }
+    .tl-playhead { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--color-danger); pointer-events: none; }
+    .tl-detail { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); margin-top: var(--space-xs); padding-top: var(--space-xs); border-top: 1px dashed var(--color-rule); }
+    .tl-detail input[type="number"] { width: 76px; }
+    .tl-empty { margin: var(--space-xs) 0; }
     #stage-area { position: relative; min-height: 0; min-width: 0; }
 
     /* Rail étroit : la vignette passe au-dessus du texte au lieu de l'écraser. */
@@ -318,7 +340,7 @@
       }
       .rail, .inspector { overflow-y: visible; }
       .rail { border-right: 1px solid var(--color-rule); }
-      .stage-zone { grid-template-rows: auto auto auto; }
+      .stage-zone { grid-template-rows: auto auto auto auto; }
       #stage-area { aspect-ratio: 16 / 9; }
     }
     @media (max-width: 720px) {
@@ -1050,6 +1072,32 @@
           <div class="obs-pane-frame"><iframe id="obs-frame" title="Rendu OBS de l’antenne" tabindex="-1"></iframe></div>
         </div>
       </div>
+          <section id="timeline-panel" class="timeline-panel" data-open="false" aria-label="Timeline de la scène">
+        <div class="tl-head">
+          <h2>Timeline</h2>
+          <button id="timeline-play" type="button" aria-pressed="true" aria-label="Pause">⏸</button>
+          <button id="timeline-restart" type="button" aria-label="Revenir au début" title="Revenir au début">⟲</button>
+          <input id="timeline-scrub" class="tl-scrub" type="range" min="0" max="4000" step="10" value="0" aria-label="Position dans la timeline">
+          <span id="timeline-readout" class="tl-readout" aria-live="off">0,00 s / 4,00 s</span>
+          <label class="tl-field">Durée <input id="timeline-duration" type="number" min="0.5" max="60" step="0.5" value="4" aria-label="Durée de la scène en secondes"> s</label>
+          <label class="tl-field"><input id="timeline-loop" type="checkbox"> Boucle</label>
+          <button id="timeline-toggle" type="button" aria-expanded="false" aria-controls="timeline-body">Images clés ▾</button>
+        </div>
+        <div id="timeline-body" class="tl-body">
+          <div class="tl-tools">
+            <span id="timeline-title" class="tl-title"></span>
+            <select id="timeline-target" aria-label="Valeur à animer"></select>
+            <button id="timeline-add-key" type="button">+ Image clé</button>
+          </div>
+          <div id="timeline-tracks"></div>
+          <div id="timeline-detail" class="tl-detail" hidden>
+            <label class="tl-field">Instant <input id="timeline-key-time" type="number" min="0" max="60000" step="10" aria-label="Instant de l’image clé en millisecondes"> ms</label>
+            <label class="tl-field">Valeur <input id="timeline-key-value" type="number" step="0.05"></label>
+            <label class="tl-field">Courbe <select id="timeline-key-ease" aria-label="Courbe vers l’image clé suivante"></select></label>
+            <button id="timeline-key-remove" type="button">Supprimer</button>
+          </div>
+        </div>
+      </section>
     </section>
 
     <aside id="inspector" class="inspector" aria-label="Réglages de la scène">
