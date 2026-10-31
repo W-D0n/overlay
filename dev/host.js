@@ -20,7 +20,7 @@
  *                          à l'antenne).
  *   POST /discard-draft — `{ presetId }`, abandonne le brouillon d'un preset.
  *   POST /branding      — `{ branding }`, contenu global de la couche d'identité.
- *   POST /event         — événement de réaction éphémère : validé puis diffusé, jamais persisté.
+ *   POST /event         — événement de réaction éphémère : validé puis diffusé, jamais persisté ; 429 au-delà du limiteur de `dev/event-intake.js`.
  *   POST /scene-map     — `{ sceneMap }`, table d'association scène OBS → preset.
  *   GET  /studio-settings — `{ customCommands, preferences, templates }` : les réglages du Studio qui suivent l'utilisateur.
  *   POST /studio-settings — `{ customCommands?, preferences?, templates? }`, commandes et modèles remplacés en bloc, préférences fusionnées
@@ -31,6 +31,7 @@
  *   POST /control/restart | /control/stop — demande au lanceur de relancer ou d'arrêter les serveurs.
  *   GET  /obs-status, /live-status, /diagnostics — état d'OBS, pages de rendu, faits du diagnostic.
  *   WS   /state-ws, /presets-ws, /event-ws, /branding-ws, /studio-ws — voir `dev/channels.js`.
+ *   WS   /twitchat-ws, et `/` — l'entrée des alertes de Twitchat, protégée par un jeton (voir `dev/twitchat-link.js`).
  *
  * Voir docs/specs/background-standalone.md.
  */
@@ -52,6 +53,7 @@ import { applySettingsPatch, normalizeStudioSettings, validateSettingsPatch } fr
 import { errorMessage } from './error-message.js';
 import { createAssetRoutes } from './asset-routes.js';
 import { createVersionRoutes } from './version-routes.js';
+import { createEventIntake } from './event-intake.js';
 import { collectAssetUsage } from './asset-format.js';
 
 /**
@@ -65,6 +67,8 @@ import { collectAssetUsage } from './asset-format.js';
  *   obs: { status: () => ObsStatus, configured: boolean, inspect: (() => Promise<import('./obs-inspector.js').ObsInspection>) | null },
  *   control: { supervised: boolean, exit: (code: number) => void },
  *   connections?: ReturnType<typeof import('./connection-routes.js').createConnectionRoutes> | null,
+ *   intake?: ReturnType<typeof import('./event-intake.js').createEventIntake>,
+ *   twitchat?: ReturnType<typeof import('./twitchat-link.js').createTwitchatLink> | null,
  *   staticPort: number,
  *   now?: () => string,
  *   log?: Pick<Console, 'info' | 'warn' | 'error'>,
@@ -74,7 +78,7 @@ import { collectAssetUsage } from './asset-format.js';
 /**
  * @param {HostDeps} deps
  */
-export function createHost({ store, assets, versions, channels, obs, control, connections = null, staticPort, now = () => new Date().toISOString(), log = console }) {
+export function createHost({ store, assets, versions, channels, obs, control, connections = null, intake = createEventIntake({ channels }), twitchat = null, staticPort, now = () => new Date().toISOString(), log = console }) {
   /**
    * Lecture + transformation + écriture. `decide` rend soit une Response d'erreur, soit le fichier à persister.
    * @param {(file: BackgroundFile) => Response | BackgroundFile} decide
@@ -227,7 +231,8 @@ export function createHost({ store, assets, versions, channels, obs, control, co
     const body = /** @type {*} */ (await req.json());
     const validation = validateBackgroundEvent(body);
     if (!validation.ok) return jsonError(validation.errors.join(' ; '), 400);
-    channels.broadcast('event', body);
+    const published = intake.publish(body, 'studio');
+    if (!published.ok) return jsonError(published.error, 429);
     return new Response('ok', { headers: CORS_HEADERS });
   }
 
@@ -442,10 +447,11 @@ export function createHost({ store, assets, versions, channels, obs, control, co
      * @returns {Promise<Response | undefined>}
      */
     async fetch(req, server) {
-      const rejected = rejectNonLocalRequest(req);
-      if (rejected !== null) return rejected;
-
       const url = new URL(req.url);
+      const viaTwitchat = twitchat !== null && twitchat.handles(req, url);
+      const rejected = rejectNonLocalRequest(req, { anyOrigin: viaTwitchat });
+      if (rejected !== null) return rejected;
+      if (viaTwitchat) return twitchat.accept(req, url, /** @type {*} */ (server));
 
       if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS_HEADERS });
 
@@ -481,11 +487,26 @@ export function createHost({ store, assets, versions, channels, obs, control, co
     },
 
     websocket: {
-      /** @param {import('./channels.js').ChannelSocket} ws */
-      open: (ws) => channels.add(ws),
-      /** @param {import('./channels.js').ChannelSocket} ws */
-      close: (ws) => channels.remove(ws),
-      message() {},
+      // Une alerte tient en quelques dizaines d'octets ; au-delà, la connexion est coupée avant d'être lue.
+      maxPayloadLength: 64 * 1024,
+      /** @param {import('./channels.js').ChannelSocket | import('./twitchat-link.js').TwitchatSocket} ws */
+      open: (ws) => {
+        if ('ingest' in ws.data) twitchat?.open(/** @type {import('./twitchat-link.js').TwitchatSocket} */ (ws));
+        else channels.add(/** @type {import('./channels.js').ChannelSocket} */ (ws));
+      },
+      /** @param {import('./channels.js').ChannelSocket | import('./twitchat-link.js').TwitchatSocket} ws */
+      close: (ws) => {
+        if ('ingest' in ws.data) twitchat?.close(/** @type {import('./twitchat-link.js').TwitchatSocket} */ (ws));
+        else channels.remove(/** @type {import('./channels.js').ChannelSocket} */ (ws));
+      },
+      /**
+       * @param {import('./channels.js').ChannelSocket | import('./twitchat-link.js').TwitchatSocket} ws
+       * @param {string | Uint8Array} raw
+       */
+      message: (ws, raw) => {
+        if ('ingest' in ws.data) return twitchat?.message(/** @type {import('./twitchat-link.js').TwitchatSocket} */ (ws), raw);
+        return undefined;
+      },
     },
   };
 }

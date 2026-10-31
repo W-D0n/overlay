@@ -8,7 +8,8 @@
  * lus : une installation existante continue de marcher sans rien ressaisir).
  *
  * @typedef {{ url?: string, password?: string }} ObsSettings
- * @typedef {{ obs: ObsSettings }} ConnectionFile
+ * @typedef {{ token?: string }} TwitchatSettings
+ * @typedef {{ obs: ObsSettings, twitchat: TwitchatSettings }} ConnectionFile
  * @typedef {{ url: string, password: string, source: 'settings' | 'env' | 'none' }} ResolvedObs
  * @typedef {{ url?: string | null, password?: string | null }} ObsPatch
  */
@@ -31,11 +32,43 @@ const isText = (value) => typeof value === 'string';
 export function normalizeConnectionFile(raw) {
   const record = typeof raw === 'object' && raw !== null ? /** @type {Record<string, unknown>} */ (raw) : {};
   const obs = typeof record.obs === 'object' && record.obs !== null ? /** @type {Record<string, unknown>} */ (record.obs) : {};
+  const twitchat = typeof record.twitchat === 'object' && record.twitchat !== null ? /** @type {Record<string, unknown>} */ (record.twitchat) : {};
   /** @type {ObsSettings} */
   const settings = {};
   if (isText(obs.url) && obs.url !== '') settings.url = obs.url;
   if (isText(obs.password) && obs.password !== '') settings.password = obs.password;
-  return { obs: settings };
+  /** @type {TwitchatSettings} */
+  const link = {};
+  if (isText(twitchat.token) && TWITCHAT_TOKEN.test(twitchat.token)) link.token = twitchat.token;
+  return { obs: settings, twitchat: link };
+}
+
+/** Le jeton de Twitchat : de l'hexadécimal, assez long pour ne pas se deviner. */
+const TWITCHAT_TOKEN = /^[0-9a-f]{32,128}$/;
+
+/**
+ * Un jeton neuf : 24 octets aléatoires du système, en hexadécimal.
+ * @param {(bytes: Uint8Array) => Uint8Array} [fill]
+ */
+export function newTwitchatToken(fill = (bytes) => crypto.getRandomValues(bytes)) {
+  return [...fill(new Uint8Array(24))].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * @param {ConnectionFile} file
+ * @param {string} token
+ * @returns {ConnectionFile}
+ */
+export function withTwitchatToken(file, token) {
+  return { ...file, twitchat: { ...file.twitchat, token } };
+}
+
+/**
+ * L'adresse à indiquer dans Twitchat (page → paramètres → connexions → WebSocket), et le jeton qu'elle porte.
+ * @param {{ statePort: number, token: string }} input
+ */
+export function twitchatAddress({ statePort, token }) {
+  return { base: `ws://127.0.0.1:${statePort}`, withToken: `ws://127.0.0.1:${statePort}/twitchat-ws?token=${token}` };
 }
 
 /**

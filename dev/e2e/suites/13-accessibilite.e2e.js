@@ -131,8 +131,17 @@ export async function run({ page, stack, check, errors }) {
   check('la page propose assez de contrôles pour que la règle de focus ait un sens', noFocusStyle.total >= 30);
   check('chaque contrôle visible montre qu’il a le focus clavier', noFocusStyle.fautifs.length === 0 ? true : noFocusStyle.fautifs.slice(0, 12));
 
+  // La fenêtre Réglages (mot de passe masqué, adresse secrète, boutons à état) : les mêmes règles que la page, fenêtre ouverte.
+  await page.click('#settings-open');
+  await page.waitFor("document.getElementById('settings-dialog').open && document.getElementById('settings-twitchat-status').textContent !== ''", 8000);
+  const settingsReport = await page.evaluate(AUDIT);
+  const settingsOffenders = Object.entries(settingsReport).flatMap(([key, list]) => /** @type {string[]} */ (list).map((item) => `${key} : ${item}`));
+  await page.press('Escape');
+  check('la fenêtre Réglages respecte les règles (noms, contraste, focus, états ARIA)', settingsOffenders.length === 0 ? true : settingsOffenders.slice(0, 12));
+
   // Les fenêtres : le focus y entre et Échap les ferme en rendant le focus.
   const dialogs = [
+    ['#settings-open', '#settings-dialog', '#settings-close'],
     ['#history-open', '#history', '#history-close'],
     ['#layers-history', '#edits-dialog', '#edits-close'],
   ];

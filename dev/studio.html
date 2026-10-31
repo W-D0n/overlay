@@ -258,6 +258,7 @@
     .asset-field { display: flex; gap: var(--space-xs); align-items: center; }
     .asset-field select { flex: 1; min-width: 0; }
     #settings-dialog { width: min(36rem, calc(100vw - 2 * var(--space-lg))); }
+    .settings-body { overflow-y: auto; }
     .settings-section { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md) var(--space-lg); border-bottom: var(--border-rule); }
     .settings-section h3 { margin: 0; font-size: var(--text-base); font-weight: 400; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--color-text-mid); }
     .settings-section .hint { margin: 0; }
@@ -266,7 +267,11 @@
     .settings-password { display: flex; gap: var(--space-xs); }
     .settings-password input { flex: 1; }
     .settings-password button { min-width: 6rem; }
-    .settings-actions { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+    .settings-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-xs); }
+    .settings-inline { display: inline-flex; align-items: center; gap: var(--space-xs); color: var(--color-text-mid); }
+    .settings-alerts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-xs); font-variant-numeric: tabular-nums; }
+    .settings-alerts time { color: var(--color-text-dim); }
+    .settings-alerts-empty { color: var(--color-text-dim); }
     .settings-state { margin: 0; color: var(--color-text-mid); }
     .settings-state[data-tone="ready"] { color: var(--color-gold); }
     #settings-status { min-height: 1em; padding: var(--space-sm) var(--space-lg); margin: 0; }
@@ -964,6 +969,7 @@
         <button id="settings-close" type="button">Fermer</button>
       </div>
     </div>
+    <div class="settings-body">
     <section class="settings-section" aria-labelledby="settings-obs-title">
       <h3 id="settings-obs-title">OBS</h3>
       <p class="hint">Le Studio suit la scène active d’OBS et vérifie la source navigateur. Le mot de passe est celui d’OBS › Outils › Paramètres du serveur WebSocket. Il reste sur cet ordinateur et ne s’affiche jamais une fois enregistré.</p>
@@ -981,6 +987,35 @@
         <button id="settings-obs-clear" type="button">Effacer le mot de passe</button>
       </div>
     </section>
+    <section class="settings-section" aria-labelledby="settings-twitchat-title">
+      <h3 id="settings-twitchat-title">Twitchat</h3>
+      <p class="hint">Twitchat envoie ses alertes (follow, sub, raid, bits) à ce serveur : dans Twitchat, collez l’adresse ci-dessous dans le paramètre WebSocket, puis créez un trigger par alerte avec l’action « WebSocket » et le modèle de message. Elle contient un jeton secret.</p>
+      <p id="settings-twitchat-status" class="settings-state" data-tone="attention" role="status" aria-live="polite"></p>
+      <label class="settings-field" for="settings-twitchat-address">Adresse à coller dans Twitchat</label>
+      <div class="settings-password">
+        <input id="settings-twitchat-address" type="password" readonly spellcheck="false" aria-label="Adresse WebSocket à donner à Twitchat (contient un jeton secret)">
+        <button id="settings-twitchat-reveal" type="button" aria-pressed="false" aria-label="Afficher l’adresse de Twitchat">Afficher</button>
+        <button id="settings-twitchat-copy" type="button">Copier</button>
+      </div>
+      <p id="settings-twitchat-hostport" class="hint"></p>
+      <div class="settings-actions">
+        <select id="settings-twitchat-sample-type" aria-label="Type d’alerte du modèle de message">
+          <option value="follow">Follow</option>
+          <option value="sub">Sub</option>
+          <option value="raid">Raid</option>
+          <option value="bits">Bits</option>
+        </select>
+        <label class="settings-inline"><input id="settings-twitchat-sample-token" type="checkbox"> jeton dans le message</label>
+        <button id="settings-twitchat-sample" type="button">Copier le modèle de message</button>
+        <button id="settings-twitchat-regenerate" type="button" data-armed="false">Régénérer le jeton</button>
+      </div>
+    </section>
+    <section class="settings-section" aria-labelledby="settings-alerts-title">
+      <h3 id="settings-alerts-title">Alertes reçues</h3>
+      <p class="hint">Les dernières alertes arrivées au serveur, de toute source : on y voit qu’un trigger fonctionne.</p>
+      <ul id="settings-alerts" class="settings-alerts" aria-label="Dernières alertes reçues"></ul>
+    </section>
+    </div>
     <p id="settings-status" class="gallery-status" role="status" aria-live="polite"></p>
   </dialog>
 

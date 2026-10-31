@@ -1,7 +1,7 @@
 // @ts-check
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { normalizeConnectionFile } from './connection-settings.js';
+import { newTwitchatToken, normalizeConnectionFile, withTwitchatToken } from './connection-settings.js';
 
 /**
  * dev/connection-store.js — Le fichier des réglages de connexion (mot de passe OBS…), à côté du fichier d'état.
@@ -48,20 +48,34 @@ export function createConnectionStore({ path }) {
     await rename(temporary, path);
   }
 
+  /**
+   * Lit, transforme, écrit : une seule opération à la fois. Une transformation qui rend le fichier reçu tel quel n'écrit rien.
+   * @param {(file: import('./connection-settings.js').ConnectionFile) => import('./connection-settings.js').ConnectionFile} change
+   * @returns {Promise<import('./connection-settings.js').ConnectionFile>}
+   */
+  function update(change) {
+    return serialized(async () => {
+      const current = await read();
+      const next = change(current);
+      if (next !== current) await write(next);
+      return next;
+    });
+  }
+
   return {
     read: () => serialized(read),
+    update,
 
-    /**
-     * Lit, transforme, écrit : une seule opération à la fois.
-     * @param {(file: import('./connection-settings.js').ConnectionFile) => import('./connection-settings.js').ConnectionFile} change
-     * @returns {Promise<import('./connection-settings.js').ConnectionFile>}
-     */
-    update(change) {
-      return serialized(async () => {
-        const next = change(await read());
-        await write(next);
-        return next;
-      });
+    /** Le jeton de Twitchat, créé au premier besoin et gardé ensuite. @returns {Promise<string>} */
+    async twitchatToken() {
+      const file = await update((current) => (current.twitchat.token === undefined ? withTwitchatToken(current, newTwitchatToken()) : current));
+      return file.twitchat.token ?? '';
+    },
+
+    /** Un jeton neuf : l'ancien ne vaut plus rien. @returns {Promise<string>} */
+    async regenerateTwitchatToken() {
+      const file = await update((current) => withTwitchatToken(current, newTwitchatToken()));
+      return file.twitchat.token ?? '';
     },
   };
 }

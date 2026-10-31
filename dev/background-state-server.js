@@ -23,6 +23,8 @@ import { createConnectionStore } from './connection-store.js';
 import { createConnectionRoutes } from './connection-routes.js';
 import { createObsConnection } from './obs-connection.js';
 import { resolveObs } from './connection-settings.js';
+import { createEventIntake } from './event-intake.js';
+import { createTwitchatLink } from './twitchat-link.js';
 import { SUPERVISED_ENV } from './supervisor.js';
 import { BACKGROUND_STATE_PORT, STATIC_PORT } from '../ports.config.js';
 
@@ -42,13 +44,20 @@ const obsConnection = createObsConnection({
   onSceneChange: (sceneName) => { void host.applySceneMapping(sceneName); },
 });
 
+const channels = createChannels();
+/** Toutes les sources d'alertes (bouton de test, Twitchat, EventSub) arrivent par ce point d'entrée. */
+const intake = createEventIntake({ channels });
+const twitchat = createTwitchatLink({ intake, getToken: () => connectionStore.twitchatToken() });
+
 host = createHost({
   store: createStateStore({ path: STATE_FILE }),
   assets: createAssetStore({ dir: ASSETS_DIR }),
   versions: createVersionStore({ path: `${STATE_FILE}.versions.json` }),
-  channels: createChannels(),
+  channels,
   obs: obsConnection,
-  connections: createConnectionRoutes({ store: connectionStore, obs: obsConnection, env: process.env }),
+  intake,
+  twitchat,
+  connections: createConnectionRoutes({ store: connectionStore, obs: obsConnection, env: process.env, twitchat, intake, statePort: PORT }),
   control: {
     supervised: process.env[SUPERVISED_ENV] === '1',
     exit: (code) => process.exit(code),

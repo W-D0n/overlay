@@ -1,17 +1,25 @@
 import { describe, expect, test } from 'bun:test';
-import { DEFAULT_OBS_URL, applyObsPatch, normalizeConnectionFile, publicObsView, resolveObs, validateObsPatch } from './connection-settings.js';
+import { DEFAULT_OBS_URL, applyObsPatch, newTwitchatToken, normalizeConnectionFile, publicObsView, resolveObs, twitchatAddress, validateObsPatch, withTwitchatToken } from './connection-settings.js';
 
 describe('normalizeConnectionFile', () => {
   test('un fichier vide ou absurde donne des réglages vides', () => {
-    expect(normalizeConnectionFile({})).toEqual({ obs: {} });
-    expect(normalizeConnectionFile(null)).toEqual({ obs: {} });
-    expect(normalizeConnectionFile('texte')).toEqual({ obs: {} });
-    expect(normalizeConnectionFile({ obs: 12 })).toEqual({ obs: {} });
+    expect(normalizeConnectionFile({})).toEqual({ obs: {}, twitchat: {} });
+    expect(normalizeConnectionFile(null)).toEqual({ obs: {}, twitchat: {} });
+    expect(normalizeConnectionFile('texte')).toEqual({ obs: {}, twitchat: {} });
+    expect(normalizeConnectionFile({ obs: 12, twitchat: 'x' })).toEqual({ obs: {}, twitchat: {} });
   });
 
   test('ne garde que des textes non vides', () => {
-    expect(normalizeConnectionFile({ obs: { url: 'ws://h:1', password: 'x' } })).toEqual({ obs: { url: 'ws://h:1', password: 'x' } });
-    expect(normalizeConnectionFile({ obs: { url: 4, password: '' } })).toEqual({ obs: {} });
+    expect(normalizeConnectionFile({ obs: { url: 'ws://h:1', password: 'x' } })).toEqual({ obs: { url: 'ws://h:1', password: 'x' }, twitchat: {} });
+    expect(normalizeConnectionFile({ obs: { url: 4, password: '' } })).toEqual({ obs: {}, twitchat: {} });
+  });
+
+  test('garde un jeton Twitchat bien formé et écarte les autres', () => {
+    const token = 'a'.repeat(48);
+    expect(normalizeConnectionFile({ twitchat: { token } }).twitchat).toEqual({ token });
+    expect(normalizeConnectionFile({ twitchat: { token: 'court' } }).twitchat).toEqual({});
+    expect(normalizeConnectionFile({ twitchat: { token: 'Z'.repeat(48) } }).twitchat).toEqual({});
+    expect(normalizeConnectionFile({ twitchat: { token: 12 } }).twitchat).toEqual({});
   });
 });
 
@@ -62,38 +70,42 @@ describe('validateObsPatch', () => {
 
 describe('applyObsPatch', () => {
   test('pose les valeurs et laisse le reste', () => {
-    expect(applyObsPatch({ obs: { url: 'ws://a:1' } }, { password: 'p' })).toEqual({ obs: { url: 'ws://a:1', password: 'p' } });
+    expect(applyObsPatch({ obs: { url: 'ws://a:1' }, twitchat: {} }, { password: 'p' })).toEqual({ obs: { url: 'ws://a:1', password: 'p' }, twitchat: {} });
   });
 
   test('null retire la valeur saisie', () => {
-    expect(applyObsPatch({ obs: { url: 'ws://a:1', password: 'p' } }, { password: null })).toEqual({ obs: { url: 'ws://a:1' } });
-    expect(applyObsPatch({ obs: { url: 'ws://a:1', password: 'p' } }, { url: null })).toEqual({ obs: { password: 'p' } });
+    expect(applyObsPatch({ obs: { url: 'ws://a:1', password: 'p' }, twitchat: {} }, { password: null })).toEqual({ obs: { url: 'ws://a:1' }, twitchat: {} });
+    expect(applyObsPatch({ obs: { url: 'ws://a:1', password: 'p' }, twitchat: {} }, { url: null })).toEqual({ obs: { password: 'p' }, twitchat: {} });
   });
 
   test('ne modifie pas le fichier reçu', () => {
-    const file = { obs: { password: 'p' } };
+    const file = { obs: { password: 'p' }, twitchat: {} };
     applyObsPatch(file, { password: null });
-    expect(file).toEqual({ obs: { password: 'p' } });
+    expect(file).toEqual({ obs: { password: 'p' }, twitchat: {} });
+  });
+
+  test('garde le jeton de Twitchat', () => {
+    expect(applyObsPatch({ obs: {}, twitchat: { token: 'a'.repeat(48) } }, { password: 'p' }).twitchat.token).toBe('a'.repeat(48));
   });
 });
 
 describe('resolveObs', () => {
   test('la saisie du Studio l’emporte sur l’environnement', () => {
-    const resolved = resolveObs({ file: { obs: { url: 'ws://studio:1', password: 'studio' } }, env: { OBS_WS_URL: 'ws://env:2', OBS_WS_PASSWORD: 'env' } });
+    const resolved = resolveObs({ file: { twitchat: {}, obs: { url: 'ws://studio:1', password: 'studio' } }, env: { OBS_WS_URL: 'ws://env:2', OBS_WS_PASSWORD: 'env' } });
     expect(resolved).toEqual({ url: 'ws://studio:1', password: 'studio', source: 'settings' });
   });
 
   test('sans saisie, l’environnement reste lu (une installation existante continue de marcher)', () => {
-    expect(resolveObs({ file: { obs: {} }, env: { OBS_WS_URL: 'ws://env:2', OBS_WS_PASSWORD: 'env' } })).toEqual({ url: 'ws://env:2', password: 'env', source: 'env' });
+    expect(resolveObs({ file: { twitchat: {}, obs: {} }, env: { OBS_WS_URL: 'ws://env:2', OBS_WS_PASSWORD: 'env' } })).toEqual({ url: 'ws://env:2', password: 'env', source: 'env' });
   });
 
   test('sans rien : adresse par défaut, aucun mot de passe', () => {
-    expect(resolveObs({ file: { obs: {} }, env: {} })).toEqual({ url: DEFAULT_OBS_URL, password: '', source: 'none' });
-    expect(resolveObs({ file: { obs: {} }, env: { OBS_WS_URL: '', OBS_WS_PASSWORD: '' } })).toEqual({ url: DEFAULT_OBS_URL, password: '', source: 'none' });
+    expect(resolveObs({ file: { twitchat: {}, obs: {} }, env: {} })).toEqual({ url: DEFAULT_OBS_URL, password: '', source: 'none' });
+    expect(resolveObs({ file: { twitchat: {}, obs: {} }, env: { OBS_WS_URL: '', OBS_WS_PASSWORD: '' } })).toEqual({ url: DEFAULT_OBS_URL, password: '', source: 'none' });
   });
 
   test('l’adresse et le mot de passe se résolvent séparément', () => {
-    expect(resolveObs({ file: { obs: { url: 'ws://studio:1' } }, env: { OBS_WS_PASSWORD: 'env' } })).toEqual({ url: 'ws://studio:1', password: 'env', source: 'env' });
+    expect(resolveObs({ file: { twitchat: {}, obs: { url: 'ws://studio:1' } }, env: { OBS_WS_PASSWORD: 'env' } })).toEqual({ url: 'ws://studio:1', password: 'env', source: 'env' });
   });
 });
 
@@ -110,5 +122,28 @@ describe('publicObsView', () => {
   test('sans mot de passe : non configuré', () => {
     const view = publicObsView({ url: DEFAULT_OBS_URL, password: '', source: 'none' }, { connected: false, reason: 'not-configured', scenes: [], activeScene: null }, false);
     expect(view).toMatchObject({ passwordSet: false, configured: false, source: 'none', urlFromSettings: false });
+  });
+});
+
+describe('jeton de Twitchat', () => {
+  test('newTwitchatToken : 48 caractères hexadécimaux, tirés du générateur du système', () => {
+    expect(newTwitchatToken()).toMatch(/^[0-9a-f]{48}$/);
+    expect(newTwitchatToken()).not.toBe(newTwitchatToken());
+  });
+
+  test('newTwitchatToken : un octet donne deux chiffres, zéros compris', () => {
+    expect(newTwitchatToken((bytes) => bytes.fill(0x0a))).toBe('0a'.repeat(24));
+    expect(newTwitchatToken((bytes) => bytes.fill(0xff))).toBe('ff'.repeat(24));
+  });
+
+  test('withTwitchatToken pose le jeton sans toucher OBS ni le fichier reçu', () => {
+    const file = { obs: { password: 'p' }, twitchat: {} };
+    const next = withTwitchatToken(file, 'b'.repeat(48));
+    expect(next).toEqual({ obs: { password: 'p' }, twitchat: { token: 'b'.repeat(48) } });
+    expect(file.twitchat).toEqual({});
+  });
+
+  test('twitchatAddress : l’hôte et le port seuls, et l’adresse complète avec son jeton', () => {
+    expect(twitchatAddress({ statePort: 5932, token: 'abc' })).toEqual({ base: 'ws://127.0.0.1:5932', withToken: 'ws://127.0.0.1:5932/twitchat-ws?token=abc' });
   });
 });

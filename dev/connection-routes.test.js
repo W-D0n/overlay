@@ -15,13 +15,19 @@ function setup({ env = {}, status = { connected: false, reason: 'not-configured'
   directories.push(directory);
   const path = join(directory, 'state.json.connections.json');
   const restarts = [];
+  const disconnects = [];
   const obs = { restart: async () => { restarts.push(Date.now()); }, status: () => status, configured: false, inspect: async () => ({}) };
-  const routes = createConnectionRoutes({ store: createConnectionStore({ path }), obs, env, log: silent });
+  const twitchat = { view: () => ({ clients: 2, lastMessageAt: null, lastAlertAt: null, lastError: 'une erreur' }), disconnectAll: () => { disconnects.push(Date.now()); } };
+  const intake = { recent: () => [{ at: '2026-10-31T10:00:00.000Z', source: 'twitchat', type: 'follow' }], refused: 3 };
+  const store = createConnectionStore({ path });
+  const routes = createConnectionRoutes({ store, obs, twitchat, intake, statePort: 5932, env, log: silent });
   /** @param {string} pathname @param {RequestInit} [init] */
   const call = (pathname, init) => routes.handle(new Request(`http://localhost:5932${pathname}`, init), new URL(`http://localhost:5932${pathname}`));
   /** @param {unknown} body @param {Record<string, string>} [headers] */
   const postObs = (body, headers = { 'X-Overlay-Control': '1' }) => call('/connections/obs', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) });
-  return { routes, call, postObs, restarts, path };
+  /** @param {Record<string, string>} [headers] */
+  const postToken = (headers = { 'X-Overlay-Control': '1' }) => call('/connections/twitchat/token', { method: 'POST', headers });
+  return { routes, call, postObs, postToken, restarts, disconnects, store, path };
 }
 
 afterEach(() => {
@@ -65,7 +71,7 @@ describe('POST /connections/obs', () => {
     expect(restarts).toHaveLength(1);
     expect(JSON.parse(text).obs).toMatchObject({ url: 'ws://127.0.0.1:4466', passwordSet: true, source: 'settings', urlFromSettings: true });
     expect(text).not.toContain('très-secret');
-    expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({ obs: { url: 'ws://127.0.0.1:4466', password: 'très-secret' } });
+    expect(JSON.parse(readFileSync(path, 'utf8')).obs).toEqual({ url: 'ws://127.0.0.1:4466', password: 'très-secret' });
   });
 
   test('exige l’en-tête X-Overlay-Control : sans lui, rien n’est écrit ni reconnecté', async () => {
@@ -109,6 +115,57 @@ describe('POST /connections/obs', () => {
     const { postObs, path } = setup();
     await Promise.all([postObs({ url: 'ws://127.0.0.1:1' }), postObs({ password: 'p' })]);
     expect(JSON.parse(readFileSync(path, 'utf8')).obs).toEqual({ url: 'ws://127.0.0.1:1', password: 'p' });
+  });
+});
+
+describe('Twitchat et alertes', () => {
+  test('GET donne l’adresse à coller dans Twitchat, avec son jeton', async () => {
+    const { call } = setup();
+    const { twitchat } = await (await call('/connections')).json();
+    expect(twitchat.token).toMatch(/^[0-9a-f]{48}$/);
+    expect(twitchat.base).toBe('ws://127.0.0.1:5932');
+    expect(twitchat.withToken).toBe(`ws://127.0.0.1:5932/twitchat-ws?token=${twitchat.token}`);
+  });
+
+  test('le jeton ne change pas d’une lecture à l’autre, et vit dans le fichier', async () => {
+    const { call, path } = setup();
+    const first = (await (await call('/connections')).json()).twitchat.token;
+    const second = (await (await call('/connections')).json()).twitchat.token;
+    expect(second).toBe(first);
+    expect(JSON.parse(readFileSync(path, 'utf8')).twitchat.token).toBe(first);
+  });
+
+  test('GET reprend l’activité de Twitchat et le journal des alertes', async () => {
+    const { call } = setup();
+    const body = await (await call('/connections')).json();
+    expect(body.twitchat).toMatchObject({ clients: 2, lastError: 'une erreur' });
+    expect(body.alerts).toEqual({ recent: [{ at: '2026-10-31T10:00:00.000Z', source: 'twitchat', type: 'follow' }], refused: 3 });
+  });
+
+  test('POST /connections/twitchat/token : un jeton neuf, les connexions de Twitchat coupées', async () => {
+    const { call, postToken, disconnects } = setup();
+    const before = (await (await call('/connections')).json()).twitchat.token;
+    const response = await postToken();
+    expect(response.status).toBe(200);
+    const after = (await response.json()).twitchat;
+    expect(after.token).not.toBe(before);
+    expect(after.withToken).toContain(after.token);
+    expect(disconnects).toHaveLength(1);
+  });
+
+  test('sans l’en-tête de contrôle : 400, le jeton reste et personne n’est déconnecté', async () => {
+    const { call, postToken, disconnects } = setup();
+    const before = (await (await call('/connections')).json()).twitchat.token;
+    expect((await postToken({})).status).toBe(400);
+    expect((await (await call('/connections')).json()).twitchat.token).toBe(before);
+    expect(disconnects).toHaveLength(0);
+  });
+
+  test('changer le mot de passe OBS garde le jeton de Twitchat', async () => {
+    const { call, postObs } = setup();
+    const before = (await (await call('/connections')).json()).twitchat.token;
+    await postObs({ password: 'nouveau' });
+    expect((await (await call('/connections')).json()).twitchat.token).toBe(before);
   });
 });
 

@@ -67,12 +67,15 @@ export function isLocalOrigin(origin) {
 /**
  * Refuse toute requête dont le Host ou l'Origin n'est pas local. Une requête sans Origin
  * (navigation, outil en ligne de commande) est acceptée : elle n'a pas pu partir d'une page tierce.
+ * `anyOrigin` laisse l'Origin libre pour un point d'entrée qu'un site tiers doit pouvoir joindre et qui se protège autrement (le jeton du
+ * canal Twitchat) ; le Host, lui, reste exigé local.
  * @param {Request} req
+ * @param {{ anyOrigin?: boolean }} [options]
  * @returns {Response | null} Une 403 à renvoyer telle quelle, ou `null` si la requête est acceptable.
  */
-export function rejectNonLocalRequest(req) {
+export function rejectNonLocalRequest(req, { anyOrigin = false } = {}) {
   const origin = req.headers.get('origin');
   const refused = !isLocalHost(req.headers.get('host') ?? new URL(req.url).host)
-    || (origin !== null && !isLocalOrigin(origin));
+    || (!anyOrigin && origin !== null && !isLocalOrigin(origin));
   return refused ? new Response('Forbidden', { status: 403 }) : null;
 }

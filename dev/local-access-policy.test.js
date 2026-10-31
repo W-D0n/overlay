@@ -59,6 +59,14 @@ test('rejectNonLocalRequest : refuse Origin étrangère et Host étranger, laiss
   expect(rejectNonLocalRequest(request('http://evil.example:5932/state'))?.status).toBe(403);
 });
 
+test('rejectNonLocalRequest : anyOrigin laisse l’Origin libre, jamais le Host', () => {
+  const option = { anyOrigin: true };
+  expect(rejectNonLocalRequest(request('http://localhost:5932/', { Origin: 'https://twitchat.fr' }), option)).toBeNull();
+  expect(rejectNonLocalRequest(request('http://localhost:5932/'), option)).toBeNull();
+  expect(rejectNonLocalRequest(request('http://evil.example:5932/', { Origin: 'https://twitchat.fr' }), option)?.status).toBe(403);
+  expect(rejectNonLocalRequest(request('http://localhost:5932/', { Origin: 'https://twitchat.fr' }), { anyOrigin: false })?.status).toBe(403);
+});
+
 const lanAddress = Object.values(networkInterfaces()).flat()
   .find((entry) => entry && entry.family === 'IPv4' && !entry.internal)?.address;
 

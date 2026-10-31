@@ -196,12 +196,27 @@ le dit : la ligne d'état passe en erreur, le titre de l'onglet porte « ⚠ »,
 « Antenne » ajoute une **notification du système** (le navigateur vous demande l'autorisation une fois) quand le Studio n'est pas visible. Rien ne change
 dans le rendu d'OBS : le fond continue de se figer plutôt que d'afficher une erreur ; c'est le Studio qui vous prévient.
 
-## 7 ter. Réglages : la connexion à OBS
+## 7 ter. Réglages : OBS, Twitchat et alertes reçues
 
 Le bouton **Réglages** du bandeau « Antenne » (ou `Ctrl+K` → « Réglages ») ouvre la connexion à OBS. Saisissez le mot de passe d'OBS (Outils → Paramètres du serveur WebSocket) :
 le champ est masqué, le bouton **Afficher** montre ce que vous tapez (il se remasque seul à l'enregistrement et à la fermeture). **Enregistrer et connecter** reconnecte aussitôt, sans
 relancer les serveurs, et la fenêtre dit où en est la connexion : en cours, connecté (avec le nombre de scènes), mot de passe refusé, ou OBS injoignable. Une fois enregistré,
 le mot de passe ne s'affiche plus nulle part : le champ dit « enregistré — laissez vide pour le garder ». **Effacer le mot de passe** déconnecte. L'adresse (`ws://127.0.0.1:4455` par défaut) se change dans le même écran.
+
+### Relier Twitchat
+
+Twitchat est une page web qui se connecte, en **client WebSocket**, à l'adresse que vous lui donnez, et dont les **triggers** envoient le message que vous écrivez. Le Studio est le serveur.
+
+1. Dans **Réglages › Twitchat**, **Copier** l'adresse (elle est masquée parce qu'elle contient un jeton secret ; **Afficher** la montre).
+2. Dans Twitchat, collez-la dans le paramètre WebSocket (section des connexions) et connectez. Le Studio passe à « Twitchat est connecté ». Si Twitchat ne demande qu'un hôte et un port, le Studio vous les donne
+   (`127.0.0.1`, le port du serveur, sans connexion sécurisée) : cochez alors « jeton dans le message » avant de copier le modèle.
+3. Dans Twitchat, créez un **trigger par alerte** (nouveau follow, abonnement, raid, bits) avec l'action **WebSocket**. Choisissez le type dans le Studio, **Copier le modèle de message**, collez-le comme payload du trigger.
+   Les `{USER}`, `{VIEWERS}`, `{BITS}` sont des placeholders de Twitchat : remplacez-les au besoin par ceux que son sélecteur propose.
+4. Déclenchez le test du trigger dans Twitchat : l'alerte apparaît dans **Alertes reçues** (avec sa source), et la page d'OBS réagit comme à un test du Studio.
+
+Si rien n'arrive, le statut dit pourquoi (« Dernier problème : … ») : jeton manquant, JSON invalide, type d'alerte inconnu. **Régénérer le jeton** coupe Twitchat et invalide l'ancienne adresse (à recoller). Au plus 20 alertes par tranche de 5 s sont relayées : un trigger qui boucle ne noie pas OBS, et le Studio compte celles qu'il a ignorées.
+
+**Format du message** : `{"type": "follow" | "sub" | "raid" | "bits", "username": "…", "amount": …}`. Le montant peut arriver en texte (`"25"`), c'est ce que fait Twitchat.
 
 ## 8. Vos réglages vous suivent
 
