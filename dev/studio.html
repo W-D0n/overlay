@@ -245,6 +245,7 @@
     .asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-sm); padding: var(--space-md); overflow-y: auto; }
     .asset-card { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
     .asset-thumb { width: 100%; height: 100px; object-fit: contain; background: repeating-conic-gradient(var(--color-bg) 0% 25%, var(--color-bg-panel) 0% 50%) 0 0 / 16px 16px; }
+    .asset-font-sample { display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--color-text-primary); background: var(--color-bg); }
     .asset-name { font-size: var(--text-xs); color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .asset-info { font-size: var(--text-xs); color: var(--color-text-dim); }
     .asset-actions { display: flex; gap: var(--space-xs); }
@@ -909,12 +910,12 @@
     <div class="diagnostic-bar">
       <h2 id="asset-library-title">Médiathèque</h2>
       <div class="diagnostic-actions">
-        <button id="asset-import" type="button">Importer des images…</button>
+        <button id="asset-import" type="button">Importer…</button>
         <button id="asset-library-close" type="button">Fermer</button>
       </div>
     </div>
-    <input id="asset-file" aria-label="Choisir des images à importer" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple hidden>
-    <p id="asset-library-hint" class="hint">Aucune image pour l’instant. Importez des images (PNG, JPEG, GIF, WebP) ou glissez-les ici ; elles restent sur cet ordinateur.</p>
+    <input id="asset-file" aria-label="Choisir des images ou des polices à importer" type="file" accept="image/png,image/jpeg,image/gif,image/webp,.woff2,.woff,.ttf,.otf" multiple hidden>
+    <p id="asset-library-hint" class="hint">Rien pour l’instant. Importez des images (PNG, JPEG, GIF, WebP) ou des polices (WOFF2, WOFF, TTF, OTF), ou glissez-les ici ; elles restent sur cet ordinateur.</p>
     <div id="asset-grid" class="asset-grid"></div>
     <p id="asset-status" class="gallery-status" role="status" aria-live="polite"></p>
   </dialog>

@@ -10,7 +10,12 @@ import { ASSET_ID_PATTERN } from '../layer-kinds.js';
  * références externes. Les dimensions sont lues sans décoder l'image, ce qui permet aussi de refuser une image démesurée avant
  * qu'un navigateur ne l'alloue.
  *
- * @typedef {'png' | 'jpeg' | 'gif' | 'webp'} AssetType
+ * Les polices (WOFF2, WOFF, TrueType, OpenType) sont des assets comme les images : même magasin, même identifiant tiré du contenu, mêmes
+ * routes. Leur type est reconnu de même à l'en-tête (jamais au nom) ; elles n'ont ni largeur ni hauteur (0), et un plafond de poids plus bas.
+ *
+ * @typedef {'png' | 'jpeg' | 'gif' | 'webp'} ImageType
+ * @typedef {'woff2' | 'woff' | 'ttf' | 'otf'} FontType
+ * @typedef {ImageType | FontType} AssetType
  * @typedef {{ id: string, name: string, type: AssetType, mime: string, bytes: number, width: number, height: number, addedAt: string }} AssetMeta
  */
 
@@ -18,10 +23,22 @@ import { ASSET_ID_PATTERN } from '../layer-kinds.js';
 export const MAX_ASSET_BYTES = 15 * 1024 * 1024;
 /** Surface maximale décodée (largeur × hauteur) : 25 millions de pixels, ≈ 100 Mo en mémoire une fois décodée. */
 export const MAX_ASSET_PIXELS = 25_000_000;
+/** Taille maximale d'un fichier de police. */
+export const MAX_FONT_BYTES = 5 * 1024 * 1024;
 /** Longueur maximale d'un nom d'asset. */
 export const MAX_ASSET_NAME = 120;
 
-export const ASSET_MIME = Object.freeze({ png: 'image/png', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp' });
+export const ASSET_MIME = Object.freeze({ png: 'image/png', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', woff2: 'font/woff2', woff: 'font/woff', ttf: 'font/ttf', otf: 'font/otf' });
+
+const FONT_TYPES = new Set(['woff2', 'woff', 'ttf', 'otf']);
+
+/** Les clés d'option qui désignent un asset : `asset` (une image), `fontAsset` (la police d'un texte). */
+export const ASSET_OPTION_KEYS = Object.freeze(['asset', 'fontAsset']);
+
+/** @param {string} type @returns {'image' | 'font'} la famille d'un type d'asset */
+export function assetKind(type) {
+  return FONT_TYPES.has(type) ? 'font' : 'image';
+}
 
 export { ASSET_ID_PATTERN };
 
@@ -43,7 +60,7 @@ const u24le = (bytes, at) => bytes[at] | (bytes[at + 1] << 8) | (bytes[at + 2] <
 const u32be = (bytes, at) => ((bytes[at] << 24) | (bytes[at + 1] << 16) | (bytes[at + 2] << 8) | bytes[at + 3]) >>> 0;
 
 /**
- * Le type d'une image d'après son en-tête, ou `null`.
+ * Le type d'un asset (image ou police) d'après son en-tête, ou `null`.
  * @param {Uint8Array} bytes
  * @returns {AssetType | null}
  */
@@ -52,6 +69,10 @@ export function sniffAssetType(bytes) {
   if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'jpeg';
   if (bytes.length >= 6 && (startsWith(bytes, 'GIF87a') || startsWith(bytes, 'GIF89a'))) return 'gif';
   if (bytes.length >= 12 && startsWith(bytes, 'RIFF') && startsWith(bytes, 'WEBP', 8)) return 'webp';
+  if (bytes.length >= 12 && startsWith(bytes, 'wOF2')) return 'woff2';
+  if (bytes.length >= 12 && startsWith(bytes, 'wOFF')) return 'woff';
+  if (bytes.length >= 12 && startsWith(bytes, 'OTTO')) return 'otf';
+  if (bytes.length >= 12 && ((bytes[0] === 0 && bytes[1] === 1 && bytes[2] === 0 && bytes[3] === 0) || startsWith(bytes, 'true'))) return 'ttf';
   return null;
 }
 
@@ -62,6 +83,7 @@ export function sniffAssetType(bytes) {
  * @returns {{ width: number, height: number } | null}
  */
 export function readAssetDimensions(bytes, type) {
+  /** @type {{ width: number, height: number } | null} */
   let size = null;
   if (type === 'png' && bytes.length >= 24 && startsWith(bytes, 'IHDR', 12)) size = { width: u32be(bytes, 16), height: u32be(bytes, 20) };
   else if (type === 'gif' && bytes.length >= 10) size = { width: u16le(bytes, 6), height: u16le(bytes, 8) };
@@ -120,7 +142,10 @@ export function inspectAsset(bytes) {
   if (bytes.length === 0) return { ok: false, error: 'fichier vide' };
   if (bytes.length > MAX_ASSET_BYTES) return { ok: false, error: `fichier trop lourd (${MAX_ASSET_BYTES / 1024 / 1024} Mo au plus)` };
   const type = sniffAssetType(bytes);
-  if (type === null) return { ok: false, error: 'format non pris en charge (PNG, JPEG, GIF ou WebP)' };
+  if (type === null) return { ok: false, error: 'format non pris en charge (images PNG, JPEG, GIF, WebP ; polices WOFF2, WOFF, TTF, OTF)' };
+  if (assetKind(type) === 'font') {
+    return bytes.length > MAX_FONT_BYTES ? { ok: false, error: `police trop lourde (${MAX_FONT_BYTES / 1024 / 1024} Mo au plus)` } : { ok: true, type, width: 0, height: 0 };
+  }
   const size = readAssetDimensions(bytes, type);
   if (size === null) return { ok: false, error: 'image illisible ou tronquée' };
   if (size.width * size.height > MAX_ASSET_PIXELS) return { ok: false, error: `image trop grande (${size.width}×${size.height} ; ${MAX_ASSET_PIXELS / 1_000_000} millions de pixels au plus)` };
@@ -139,7 +164,7 @@ export function collectAssetUsage(value, found = new Map()) {
     for (const item of value) collectAssetUsage(item, found);
   } else if (typeof value === 'object' && value !== null) {
     for (const [key, nested] of Object.entries(value)) {
-      if (key === 'asset' && typeof nested === 'string' && ASSET_ID_PATTERN.test(nested)) found.set(nested, (found.get(nested) ?? 0) + 1);
+      if (ASSET_OPTION_KEYS.includes(key) && typeof nested === 'string' && ASSET_ID_PATTERN.test(nested)) found.set(nested, (found.get(nested) ?? 0) + 1);
       else collectAssetUsage(nested, found);
     }
   }

@@ -107,3 +107,38 @@ describe('collectAssetUsage', () => {
     expect(collectAssetUsage([1, 'x', { asset: 7 }]).size).toBe(0);
   });
 });
+
+import { MAX_FONT_BYTES, assetKind } from './asset-format.js';
+import { fontBytes } from './test-images.js';
+
+describe('polices', () => {
+  test('WOFF2, WOFF, TrueType (deux signatures) et OpenType sont reconnus à leur en-tête', () => {
+    expect(sniffAssetType(fontBytes('woff2'))).toBe('woff2');
+    expect(sniffAssetType(fontBytes('woff'))).toBe('woff');
+    expect(sniffAssetType(fontBytes('otf'))).toBe('otf');
+    expect(sniffAssetType(fontBytes('ttf'))).toBe('ttf');
+    expect(sniffAssetType(fontBytes('ttf-true'))).toBe('ttf');
+  });
+
+  test('une police est un asset sans dimensions, de la famille « police »', () => {
+    expect(inspectAsset(fontBytes('woff2'))).toEqual({ ok: true, type: 'woff2', width: 0, height: 0 });
+    expect(assetKind('woff2')).toBe('font');
+    expect(assetKind('png')).toBe('image');
+  });
+
+  test('une police trop lourde est refusée, avec sa propre limite ; la limite exacte passe', () => {
+    expect(inspectAsset(fontBytes('ttf', MAX_FONT_BYTES + 1))).toMatchObject({ ok: false, error: expect.stringContaining('police trop lourde') });
+    expect(inspectAsset(fontBytes('ttf', MAX_FONT_BYTES)).ok).toBe(true);
+  });
+
+  test('un en-tête trop court pour être une police, ou un autre format (EOT, texte), est refusé', () => {
+    expect(sniffAssetType(Uint8Array.from([0x77, 0x4f, 0x46, 0x32]))).toBeNull();
+    expect(inspectAsset(new TextEncoder().encode('@font-face { src: url(x) }')).ok).toBe(false);
+  });
+
+  test('la police d’un texte compte comme un usage de l’asset, au même titre qu’une image', () => {
+    const id = 'e'.repeat(32);
+    const usage = collectAssetUsage({ layers: [{ options: { fontAsset: id } }, { options: { asset: id } }] });
+    expect(usage.get(id)).toBe(2);
+  });
+});

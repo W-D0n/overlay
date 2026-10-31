@@ -8,7 +8,7 @@ import { TEXT_MIN_FIT_SIZE } from './text-layer.config.js';
  * fournie (le canvas la donne, un test la simule).
  *
  * @typedef {{
- *   text: string[], font: string, fontFamily: string, fontSize: number, bold: boolean, italic: boolean, uppercase: boolean, color: string,
+ *   text: string[], font: string, fontFamily: string, fontAsset: string, fontSize: number, bold: boolean, italic: boolean, uppercase: boolean, color: string,
  *   align: 'left' | 'center' | 'right', verticalAlign: 'top' | 'middle' | 'bottom', lineHeight: number, letterSpacing: number,
  *   fit: 'shrink' | 'none', wrap: boolean, outlineWidth: number, outlineColor: string,
  *   shadowBlur: number, shadowOffsetX: number, shadowOffsetY: number, shadowColor: string,
@@ -43,14 +43,17 @@ export function sanitizeFontFamily(raw) {
 }
 
 /**
- * La valeur de `font-family` d'une couche texte : la police installée demandée, puis la pile de la famille choisie en repli.
+ * La valeur de `font-family` d'une couche texte : la police importée (si elle est chargée), puis la police installée demandée, puis la pile de la
+ * famille choisie en repli.
  * @param {string} custom la police demandée (brute)
  * @param {string} stack la pile de la famille choisie
+ * @param {string} [imported] le nom de famille de la police importée, chargée ; vide sinon
  * @returns {string}
  */
-export function fontFamilyCss(custom, stack) {
+export function fontFamilyCss(custom, stack, imported = '') {
   const name = sanitizeFontFamily(custom);
-  return name === '' ? stack : `"${name}", ${stack}`;
+  const base = name === '' ? stack : `"${name}", ${stack}`;
+  return imported === '' ? base : `"${imported}", ${base}`;
 }
 
 /**

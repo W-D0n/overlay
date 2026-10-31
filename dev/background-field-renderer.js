@@ -4,11 +4,12 @@ import { isHexColor } from './color-palette-format.js';
 import { isAudioOn } from '../layer-kinds.js';
 import { DESIGN_TOKENS, tokenLabel } from './design-tokens.js';
 import { buildNumericFieldControl } from './numeric-field-control.js';
+import { assetKind } from './asset-format.js';
 
 const DEFAULT_ADDED_COLOR = 'var(--color-gold)';
 
 /**
- * @typedef {{ assets: () => import('./asset-client.js').LibraryAsset[], subscribe: (listener: (assets: import('./asset-client.js').LibraryAsset[]) => void) => () => void, open: (choose: (asset: import('./asset-client.js').LibraryAsset) => void) => void }} AssetLibraryAccess
+ * @typedef {{ assets: () => import('./asset-client.js').LibraryAsset[], subscribe: (listener: (assets: import('./asset-client.js').LibraryAsset[]) => void) => () => void, open: (choose: (asset: import('./asset-client.js').LibraryAsset) => void, accept?: 'image' | 'font') => void }} AssetLibraryAccess
  * @typedef {import('./color-palette-format.js').NamedColor} PaletteColor
  * @typedef {import('./color-palette-format.js').NamedGradient} PaletteGradient
  */
@@ -127,12 +128,13 @@ export function createBackgroundFieldRenderer(input) {
     const select = documentRef.createElement('select');
     select.setAttribute('aria-label', field.label);
     let current = typeof value === 'string' ? value : '';
+    const accept = field.accept === 'font' ? 'font' : 'image';
     /** @param {import('./asset-client.js').LibraryAsset[]} assets */
     function fill(assets) {
-      select.replaceChildren(createOption('(aucune image)', '', current === ''));
-      for (const asset of assets) select.appendChild(createOption(asset.name, asset.id, asset.id === current));
-      // Une image qui n'est plus dans la médiathèque reste visible comme telle : la choisir à nouveau est possible, la taire ne l'est pas.
-      if (current !== '' && !assets.some((asset) => asset.id === current)) select.appendChild(createOption('(image manquante)', current, true));
+      select.replaceChildren(createOption(accept === 'font' ? '(aucune police)' : '(aucune image)', '', current === ''));
+      for (const asset of assets.filter((candidate) => assetKind(candidate.type) === accept)) select.appendChild(createOption(asset.name, asset.id, asset.id === current));
+      // Un asset qui n'est plus dans la médiathèque reste visible comme tel : le choisir à nouveau est possible, le taire ne l'est pas.
+      if (current !== '' && !assets.some((asset) => asset.id === current)) select.appendChild(createOption(accept === 'font' ? '(police manquante)' : '(image manquante)', current, true));
     }
     fill(input.assetLibrary?.assets() ?? []);
     select.onchange = () => {
@@ -146,7 +148,7 @@ export function createBackgroundFieldRenderer(input) {
       current = asset.id;
       input.onChange(field.key, current);
       fill(input.assetLibrary?.assets() ?? []);
-    });
+    }, accept);
     const unsubscribe = input.assetLibrary?.subscribe(fill);
     if (unsubscribe !== undefined) assetCleanups.push(unsubscribe);
     wrapper.append(select, library);

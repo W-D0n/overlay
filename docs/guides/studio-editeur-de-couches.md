@@ -32,12 +32,12 @@ Une couche est un **effet de fond** (pluie, bulles, étoiles…) ou un **contenu
 les deux. Le contenu **Forme** pose un rectangle (coins arrondis au choix), une ellipse, un triangle, un losange ou une ligne, en couleur
 unie ou en dégradé, avec contour et ombre ; elle remplit la zone de sa couche, donc redimensionner la couche redimensionne la
 forme. Le contenu **Texte** affiche un titre, un pseudo ou un message : une ligne par ligne, police (serif, sans, mono,
-display, ou le nom d'une police installée sur l'ordinateur), taille, gras, italique, majuscules, couleur, alignements, interligne, espacement, contour et ombre. Par défaut, le
+display, le nom d'une police installée sur l'ordinateur, ou une **police importée** dans la médiathèque), taille, gras, italique, majuscules, couleur, alignements, interligne, espacement, contour et ombre. Par défaut, le
 texte **rétrécit pour tenir dans la zone de sa couche** (réglage « Ajustement à la zone ») et passe à la ligne tout seul ; placez et
 redimensionnez la couche comme n'importe quelle autre. Un contenu arrive et part avec sa scène, contrairement au branding qui
 reste en place d'une scène à l'autre.
 
-### La médiathèque et les images
+### La médiathèque : images et polices
 
 Le contenu **Image** pose un logo, une affiche, une photo. Ses images sont rangées dans la **médiathèque** (fenêtre ouverte par
 « Image » dans le bouton Ajouter, par la palette `Ctrl+K` → « Ouvrir la médiathèque », ou par le bouton « Médiathèque… » du réglage
@@ -45,6 +45,8 @@ d'une couche image). Importez des PNG, JPEG, GIF ou WebP avec « Importer des im
 image devient une couche, à sa proportion, centrée. Une même image importée deux fois n'est gardée qu'une fois. Les images restent
 sur votre ordinateur, à côté du fichier d'état.
 
+- La médiathèque garde aussi des **polices** (WOFF2, WOFF, TTF, OTF, 5 Mo au plus) : le réglage « Police importée » d'un texte les propose, et elles
+  voyagent avec la scène dans un export, ce que la police installée ne fait pas. Elles se montrent par un échantillon écrit dans leur propre police.
 - Limites : 15 Mo et 25 millions de pixels par image ; le SVG n'est pas accepté. Un fichier qui n'est pas vraiment une image est refusé,
   quel que soit son nom.
 - Le réglage **Cadrage** choisit entre contenir (toute l'image), couvrir (la zone est remplie, l'image est rognée) et étirer.

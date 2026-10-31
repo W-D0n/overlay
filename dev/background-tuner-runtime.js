@@ -40,6 +40,7 @@ import { createVersionsController } from './versions-controller.js';
 import { collectAssetUsage } from './asset-format.js';
 import { createAssetLibraryController } from './asset-library-controller.js';
 import { assetUrl } from '../components/asset-image.js';
+import { assetFonts } from '../components/asset-font.js';
 import { placementForImage } from '../components/image-fit.js';
 import { RENDER_REFERENCE } from '../render-reference.js';
 import { createPresetDraftSync } from './preset-draft-sync.js';
@@ -129,6 +130,7 @@ export async function startBackgroundTuner(environment = {}) {
     },
     client: assetClient,
     urlOf: assetUrl,
+    loadFont: assetFonts.load,
     // Les images des couches de la scène en cours d'édition : le serveur ne les connaît qu'une fois publiées.
     usedHere: () => collectAssetUsage(preview.document.state().scene),
     report,
@@ -138,7 +140,7 @@ export async function startBackgroundTuner(environment = {}) {
   /** @type {ReturnType<typeof createPresetDraftSync> | null} */
   let drafts = null;
   const preview = createBackgroundPreviewController({
-    assetLibrary: { assets: library.assets, subscribe: library.subscribe, open: (choose) => { void library.open({ choose }); } },
+    assetLibrary: { assets: library.assets, subscribe: library.subscribe, open: (choose, accept) => { void library.open({ choose, ...(accept === undefined ? {} : { accept }) }); } },
     layer: byId('bg-layer'),
     effectSelect: byId('effect-select'),
     fields: byId('fields'),
@@ -172,7 +174,7 @@ export async function startBackgroundTuner(environment = {}) {
     const result = preview.editor.addLayer({ kind: 'image', options: { ...defaultBackgroundOptions('image'), asset: asset.id }, placement: placementForImage(asset, RENDER_REFERENCE) });
     if (!result.ok) report.error(result.message);
   }
-  const pickImage = () => { void library.open({ choose: addImageLayer }); };
+  const pickImage = () => { void library.open({ choose: addImageLayer, accept: 'image' }); };
 
   // Déposer des images sur l'aperçu les importe et en fait des couches.
   const dropZone = byId('stage-area');

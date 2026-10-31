@@ -5,7 +5,7 @@ updated: 2026-10-31
 
 # Spec — Couches de contenu (texte, forme, image)
 
-Statut : **livré pour le texte, la forme, l'image et l'export avec images** ; restent les polices importées (§6). Fait suite à l'audit produit du 2026-10-31 : le Studio n'avait que
+Statut : **livré** : texte, forme, image, export avec images, police installée et **polices importées** (§7). Fait suite à l'audit produit du 2026-10-31 : le Studio n'avait que
 11 effets de fond et le branding, aucun moyen de poser un titre, un cadre, un logo ou une affiche. Cadrage d'origine :
 `studio-cadrage.md` (gestion d'assets, sources de données). Étape 6 de `scene-doc-etape-6.md` : le modèle de couche (placement,
 opacité, rendu étendu 6d, historique, gestes, modèles) est réutilisé tel quel.
@@ -126,7 +126,27 @@ Vérifié : `dev/bundle-assets.test.js`, `dev/background-preset-library.test.js`
 essai `24-export-images.e2e.js` (export réel du navigateur, suppression de la scène et de l'image, import du fichier, image revenue
 avec le même identifiant, scène peinte, diagnostic sans image manquante). 8 mutations vues rouges.
 
-## 7. Reste
+## 7. Polices importées (livré)
 
-- **Polices importées** dans la médiathèque (type `font`), pour qu'une scène emporte aussi sa police : aujourd'hui une police installée
-  n'est trouvée que sur l'ordinateur qui l'a, et le lot ne l'emporte pas.
+Une police est un **asset** comme une image : même magasin (`dev/asset-store.js`), même identifiant tiré du contenu, mêmes routes, même garde
+d'usage, même export. `dev/asset-format.js` reconnaît **WOFF2, WOFF, TrueType et OpenType à l'en-tête** du fichier (jamais au nom ni au type
+envoyé par le navigateur, qui n'en donne souvent aucun pour une police) ; une police n'a ni largeur ni hauteur et son plafond est de **5 Mo**.
+
+- Le texte a un réglage **Police importée** (`fontAsset`) : la police passe **avant** la police installée demandée et la famille choisie, qui
+  restent le repli. `components/asset-font.js` la déclare sous un nom de famille **propre à son identifiant** (`overlay-asset-<id>`) : deux polices
+  ne se confondent jamais, ni avec une police installée ; elle est chargée une seule fois et partagée.
+- Pendant qu'une autre police se charge, l'ancienne reste (pas de saut de mise en page) ; une police introuvable est signalée et le texte retombe sur
+  sa famille. Le texte se redessine à l'arrivée de la police.
+- Médiathèque : la police se montre par un **échantillon écrit dans la police elle-même**. Quand on **choisit** une image ou une police, seule la bonne
+  famille s'affiche (`accept`) : le sélecteur d'une police ne propose jamais d'image.
+- Une police utilisée par une scène ne se supprime pas, compte dans le diagnostic « images manquantes » et **voyage dans l'export** : la scène
+  retrouve sa police sur un autre ordinateur, ce que la seule police installée ne permettait pas.
+
+Vérifié : `dev/asset-format.test.js`, `components/asset-font.test.js` (chargeur et texte), `dev/asset-client.test.js` (vue), essai
+`28-police-importee.e2e.js` (vraie police TrueType du système : acceptée sans type MIME, échantillon, chargée par la page, encre du texte
+différente, sélecteur filtré, export, suppression refusée). 11 mutations vues rouges (une équivalente a fait supprimer du code).
+
+## 8. Reste
+
+- Typographie fine : plusieurs graisses d'une même famille, variantes (gras / italique réels d'une police importée) ; aujourd'hui gras et
+  italique sont ceux que le navigateur synthétise.

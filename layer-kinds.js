@@ -26,6 +26,7 @@
  * @property {string} [description] - Aide courte affichée sous le champ
  * @property {'text'|'number'|'select'|'boolean'|'textarea'|'token'|'color'|'colors'|'asset'} type
  * @property {string[]} [choices] - Valeurs possibles si `type === 'select'`
+ * @property {'image'|'font'} [accept] - Famille d'asset proposée si `type === 'asset'` (images par défaut)
  * @property {'color'|'border'|'radius'} [tokenCategory] - Catégorie si `type === 'token'`
  * @property {number} [min] - Borne basse si `type === 'number'`
  * @property {number} [max] - Borne haute si `type === 'number'`
@@ -391,6 +392,14 @@ const KIND_DEFINITIONS = {
         type: 'text',
         default: '',
       },
+      {
+        key: 'fontAsset',
+        label: 'Police importée',
+        description: 'Une police (WOFF2, WOFF, TTF, OTF) de la médiathèque : elle passe avant la police installée et la famille, et voyage avec la scène dans un export.',
+        type: 'asset',
+        accept: 'font',
+        default: '',
+      },
       { key: 'fontSize', label: 'Taille (px)', type: 'number', default: 96 },
       { key: 'bold', label: 'Gras', type: 'boolean', default: true },
       { key: 'italic', label: 'Italique', type: 'boolean', default: false },
@@ -450,7 +459,7 @@ const KIND_DEFINITIONS = {
     content: true,
     capabilities: { audio: false, reactions: 'overlay' },
     fields: [
-      { key: 'asset', label: 'Image', description: 'Une image de la médiathèque ; importez-en une depuis la médiathèque ou en la déposant sur l’aperçu.', type: 'asset', default: '' },
+      { key: 'asset', label: 'Image', description: 'Une image de la médiathèque ; importez-en une depuis la médiathèque ou en la déposant sur l’aperçu.', type: 'asset', accept: 'image', default: '' },
       {
         key: 'fit',
         label: 'Cadrage',

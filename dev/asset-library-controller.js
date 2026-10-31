@@ -1,9 +1,10 @@
 // @ts-check
 import { errorMessage } from './error-message.js';
 import { describeAsset, pickImageFiles, summarizeImport } from './asset-library-view.js';
+import { assetKind } from './asset-format.js';
 
 /**
- * dev/asset-library-controller.js — La médiathèque du Studio : les images importées, leur import (bouton ou glisser-déposer), leur
+ * dev/asset-library-controller.js — La médiathèque du Studio : les images et les polices importées, leur import (bouton ou glisser-déposer), leur
  * suppression, et le choix d'une image pour une couche.
  *
  * La fenêtre s'ouvre pour consulter, ou pour **choisir** : `open({ choose })` montre un bouton « Utiliser » sur chaque image et
@@ -27,6 +28,7 @@ const CONFIRM_MS = 4000;
  *   },
  *   client: ReturnType<typeof import('./asset-client.js').createAssetClient>,
  *   urlOf: (id: string) => string,
+ *   loadFont?: (id: string) => Promise<string>,
  *   usedHere?: () => Map<string, number>,
  *   report: { ok: (message?: string) => void, error: (message: string) => void },
  *   documentRef?: Document,
@@ -43,6 +45,8 @@ export function createAssetLibraryController(input) {
   let assets = [];
   /** @type {((asset: LibraryAsset) => void) | null} */
   let chooser = null;
+  /** La famille d'asset qu'un choix en cours accepte ; `null` : tout s'affiche. @type {'image' | 'font' | null} */
+  let accepted = null;
   /** @type {string | null} */
   let confirming = null;
   /** @type {ReturnType<typeof setTimeout> | null} */
@@ -72,15 +76,25 @@ export function createAssetLibraryController(input) {
 
   function render() {
     elements.grid.replaceChildren();
-    elements.hint.hidden = assets.length > 0;
-    for (const asset of assets) {
+    const shown = assets.filter((asset) => accepted === null || assetKind(asset.type) === accepted);
+    elements.hint.hidden = shown.length > 0;
+    for (const asset of shown) {
       const card = node('article', 'asset-card');
       card.dataset.id = asset.id;
-      const thumb = /** @type {HTMLImageElement} */ (node('img', 'asset-thumb'));
-      thumb.src = input.urlOf(asset.id);
-      thumb.alt = '';
-      thumb.loading = 'lazy';
-      thumb.crossOrigin = 'anonymous';
+      /** @type {HTMLElement} */
+      let thumb;
+      if (assetKind(asset.type) === 'font') {
+        // Une police se montre par un échantillon écrit dans cette police, chargée comme le fera le texte.
+        thumb = node('div', 'asset-thumb asset-font-sample', 'Aa Bb 123');
+        input.loadFont?.(asset.id).then((family) => { thumb.style.fontFamily = `"${family}"`; }, () => { thumb.textContent = 'police illisible'; });
+      } else {
+        const image = /** @type {HTMLImageElement} */ (node('img', 'asset-thumb'));
+        image.src = input.urlOf(asset.id);
+        image.alt = '';
+        image.loading = 'lazy';
+        image.crossOrigin = 'anonymous';
+        thumb = image;
+      }
       const name = node('div', 'asset-name', asset.name);
       name.title = asset.name;
       const here = input.usedHere?.().get(asset.id) ?? 0;
@@ -150,6 +164,7 @@ export function createAssetLibraryController(input) {
    */
   async function importFiles(files) {
     const { images, ignored } = pickImageFiles(files);
+    const noun = images.every((file) => /^image\//.test(file.type)) ? 'image' : 'fichier';
     /** @type {import('./asset-format.js').AssetMeta[]} */
     const obtained = [];
     let added = 0;
@@ -165,7 +180,7 @@ export function createAssetLibraryController(input) {
         failed.push(`${file.name} : ${errorMessage(error)}`);
       }
     }
-    const message = summarizeImport({ added, known, failed, ignored });
+    const message = summarizeImport({ added, known, failed, ignored, noun });
     say(message, failed.length > 0 || (obtained.length === 0 && files.length > 0));
     if (failed.length > 0) input.report.error(message);
     await refresh();
@@ -175,6 +190,7 @@ export function createAssetLibraryController(input) {
   function close() {
     resetConfirm();
     chooser = null;
+    accepted = null;
     if (elements.dialog.open) elements.dialog.close();
   }
 
@@ -185,7 +201,7 @@ export function createAssetLibraryController(input) {
     if (files.length > 0) void importFiles(files);
   });
   elements.close.addEventListener('click', close);
-  elements.dialog.addEventListener('close', () => { resetConfirm(); chooser = null; });
+  elements.dialog.addEventListener('close', () => { resetConfirm(); chooser = null; accepted = null; });
   elements.dialog.addEventListener('dragover', (event) => { event.preventDefault(); });
   elements.dialog.addEventListener('drop', (event) => {
     event.preventDefault();
@@ -194,10 +210,11 @@ export function createAssetLibraryController(input) {
   });
 
   return {
-    /** @param {{ choose?: (asset: LibraryAsset) => void }} [options] */
-    async open({ choose } = {}) {
+    /** @param {{ choose?: (asset: LibraryAsset) => void, accept?: 'image' | 'font' }} [options] `accept` : n'afficher que les images, ou que les polices, pendant un choix */
+    async open({ choose, accept } = {}) {
       chooser = choose ?? null;
-      say(choose === undefined ? '' : 'Choisissez une image, ou importez-en une.');
+      accepted = choose === undefined ? null : accept ?? null;
+      say(choose === undefined ? '' : accept === 'font' ? 'Choisissez une police, ou importez-en une.' : 'Choisissez une image, ou importez-en une.');
       render();
       if (typeof elements.dialog.showModal === 'function') elements.dialog.showModal();
       else elements.dialog.setAttribute('open', '');

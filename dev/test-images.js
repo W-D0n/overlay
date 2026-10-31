@@ -44,3 +44,9 @@ export function webpBytes(width, height, variant = 'extended') {
   const size = 4 + chunk.length;
   return Uint8Array.from([...ascii('RIFF'), size & 255, (size >>> 8) & 255, 0, 0, ...ascii('WEBP'), ...chunk]);
 }
+
+/** Un en-tête de police reconnaissable (pas une vraie police). @param {'woff2' | 'woff' | 'ttf' | 'otf' | 'ttf-true'} type @param {number} [length] @returns {Uint8Array} */
+export function fontBytes(type, length = 64) {
+  const heads = { woff2: ascii('wOF2'), woff: ascii('wOFF'), otf: ascii('OTTO'), ttf: [0, 1, 0, 0], 'ttf-true': ascii('true') };
+  return Uint8Array.from([...heads[type], ...new Array(Math.max(0, length - 4)).fill(1)]);
+}
