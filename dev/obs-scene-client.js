@@ -169,7 +169,7 @@ export function createObsSceneClient(deps) {
       if (/** @type {*} */ (event)?.code === 4009) {
         authRejected = true;
         publish(false, 'auth-rejected');
-        log('mot de passe refusé par OBS — corrige OBS_WS_PASSWORD puis relance le serveur');
+        log('mot de passe refusé par OBS — corrige-le dans les Réglages du Studio (il se reconnecte seul)');
         return;
       }
       planReconnect('closed');

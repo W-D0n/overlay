@@ -42,7 +42,7 @@ declare module 'node:fs/promises' {
   export function readFile(path: string, encoding: 'utf8'): Promise<string>;
   export function rename(from: string, to: string): Promise<void>;
   export function rm(path: string, options?: { force?: boolean; recursive?: boolean }): Promise<void>;
-  export function writeFile(path: string, data: string | Uint8Array): Promise<void>;
+  export function writeFile(path: string, data: string | Uint8Array, options?: { mode?: number }): Promise<void>;
 }
 
 declare module 'node:path' {

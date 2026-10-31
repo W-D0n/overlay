@@ -79,7 +79,7 @@
     .layers-add { padding: 0 var(--space-sm); border-color: var(--color-gold-dim); color: var(--color-gold); }
     .layer-button:hover:not(:disabled), .layers-add:hover:not(:disabled) { border-color: var(--color-gold); color: var(--color-gold); }
     .layer-button:disabled, .layers-add:disabled { opacity: .35; cursor: default; }
-    .layer-button:focus-visible, .layers-add:focus-visible, .layers-list:focus-visible, .gallery-card:focus-visible, #asset-library button:focus-visible, #versions-dialog button:focus-visible, .timeline-panel button:focus-visible, .binding-remove:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
+    .layer-button:focus-visible, .layers-add:focus-visible, .layers-list:focus-visible, .gallery-card:focus-visible, #asset-library button:focus-visible, #versions-dialog button:focus-visible, #settings-dialog button:focus-visible, .timeline-panel button:focus-visible, .binding-remove:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 1px; }
     .layer-button[aria-pressed="true"] { color: var(--color-gold); }
     .layer-button.is-on { color: var(--color-gold); border-color: var(--color-gold-dim); }
     .layers-meter { height: 3px; background: var(--color-rule); margin: var(--space-xs) 0 var(--space-sm); }
@@ -257,6 +257,20 @@
     #asset-library.is-dropping, #stage-area.is-dropping { outline: 2px dashed var(--color-gold); outline-offset: -4px; }
     .asset-field { display: flex; gap: var(--space-xs); align-items: center; }
     .asset-field select { flex: 1; min-width: 0; }
+    #settings-dialog { width: min(36rem, calc(100vw - 2 * var(--space-lg))); }
+    .settings-section { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md) var(--space-lg); border-bottom: var(--border-rule); }
+    .settings-section h3 { margin: 0; font-size: var(--text-base); font-weight: 400; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--color-text-mid); }
+    .settings-section .hint { margin: 0; }
+    .settings-field { display: flex; flex-direction: column; gap: var(--space-xs); color: var(--color-text-mid); }
+    .settings-field input { min-width: 0; }
+    .settings-password { display: flex; gap: var(--space-xs); }
+    .settings-password input { flex: 1; }
+    .settings-password button { min-width: 6rem; }
+    .settings-actions { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
+    .settings-state { margin: 0; color: var(--color-text-mid); }
+    .settings-state[data-tone="ready"] { color: var(--color-gold); }
+    #settings-status { min-height: 1em; padding: var(--space-sm) var(--space-lg); margin: 0; }
+    #settings-open { padding: 3px 10px; }
     #versions-dialog { max-width: min(640px, 94vw); }
     .versions-save { display: flex; gap: var(--space-xs); padding: var(--space-md) var(--space-md) 0; }
     .versions-save input { flex: 1; min-width: 0; }
@@ -771,6 +785,7 @@
       <div id="antenna-items"></div>
       <button id="antenna-copy" type="button">Copier l’URL OBS</button>
       <button id="antenna-alerts" type="button" aria-pressed="false" title="Une notification du système quand OBS, le serveur ou la page de rendu est perdu, même si le Studio est derrière une autre fenêtre">Alertes système</button>
+      <button id="settings-open" type="button">Réglages</button>
       <button id="diagnostic-open" type="button">Diagnostic</button>
       <button id="history-open" type="button">Historique</button>
     </div>
@@ -940,6 +955,33 @@
     <p id="asset-library-hint" class="hint">Rien pour l’instant. Importez des images (PNG, JPEG, GIF, WebP) ou des polices (WOFF2, WOFF, TTF, OTF), ou glissez-les ici ; elles restent sur cet ordinateur.</p>
     <div id="asset-grid" class="asset-grid"></div>
     <p id="asset-status" class="gallery-status" role="status" aria-live="polite"></p>
+  </dialog>
+
+  <dialog id="settings-dialog" class="diagnostic" aria-labelledby="settings-title">
+    <div class="diagnostic-bar">
+      <h2 id="settings-title">Réglages</h2>
+      <div class="diagnostic-actions">
+        <button id="settings-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <section class="settings-section" aria-labelledby="settings-obs-title">
+      <h3 id="settings-obs-title">OBS</h3>
+      <p class="hint">Le Studio suit la scène active d’OBS et vérifie la source navigateur. Le mot de passe est celui d’OBS › Outils › Paramètres du serveur WebSocket. Il reste sur cet ordinateur et ne s’affiche jamais une fois enregistré.</p>
+      <p id="settings-obs-status" class="settings-state" data-tone="attention" role="status" aria-live="polite"></p>
+      <label class="settings-field">Adresse du serveur WebSocket
+        <input id="settings-obs-url" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="ws://127.0.0.1:4455">
+      </label>
+      <label class="settings-field" for="settings-obs-password">Mot de passe</label>
+      <div class="settings-password">
+        <input id="settings-obs-password" type="password" autocomplete="new-password" spellcheck="false" aria-label="Mot de passe du serveur WebSocket d’OBS">
+        <button id="settings-obs-reveal" type="button" aria-pressed="false" aria-label="Afficher le mot de passe">Afficher</button>
+      </div>
+      <div class="settings-actions">
+        <button id="settings-obs-save" type="button">Enregistrer et connecter</button>
+        <button id="settings-obs-clear" type="button">Effacer le mot de passe</button>
+      </div>
+    </section>
+    <p id="settings-status" class="gallery-status" role="status" aria-live="polite"></p>
   </dialog>
 
   <dialog id="versions-dialog" class="diagnostic" aria-labelledby="versions-title">

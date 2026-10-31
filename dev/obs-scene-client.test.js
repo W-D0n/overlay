@@ -161,7 +161,7 @@ test('10. un mot de passe refusé arrête les tentatives et laisse une trace', (
 
   expect(harness.retries).toEqual([]);
   expect(harness.statuses.at(-1)).toEqual({ connected: false, reason: 'auth-rejected' });
-  expect(harness.logs.join(' ')).toContain('OBS_WS_PASSWORD');
+  expect(harness.logs.join(' ')).toContain('Réglages du Studio');
 });
 
 test('11. stop empêche toute reconnexion ultérieure', () => {

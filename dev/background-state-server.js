@@ -19,34 +19,36 @@ import { createVersionStore } from './version-store.js';
 import { createChannels } from './channels.js';
 import { createHost } from './host.js';
 import { LOOPBACK_HOST } from './local-access-policy.js';
-import { createObsSceneClient } from './obs-scene-client.js';
-import { inspectObs } from './obs-inspector.js';
+import { createConnectionStore } from './connection-store.js';
+import { createConnectionRoutes } from './connection-routes.js';
+import { createObsConnection } from './obs-connection.js';
+import { resolveObs } from './connection-settings.js';
 import { SUPERVISED_ENV } from './supervisor.js';
 import { BACKGROUND_STATE_PORT, STATIC_PORT } from '../ports.config.js';
 
 const PORT = Number(process.env.BACKGROUND_STATE_PORT ?? BACKGROUND_STATE_PORT);
-const OBS_WS_URL = process.env.OBS_WS_URL ?? 'ws://127.0.0.1:4455';
-const OBS_WS_PASSWORD = process.env.OBS_WS_PASSWORD ?? '';
 const STATE_FILE = process.env.BACKGROUND_STATE_FILE ?? `${import.meta.dir}/data/background-state.json`;
 /** Les images importées vivent à côté du fichier d'état : un état de test (`BACKGROUND_STATE_FILE`) a ses propres images. */
 const ASSETS_DIR = process.env.BACKGROUND_ASSETS_DIR ?? `${STATE_FILE}.assets`;
 
-/** @type {import('./host.js').ObsStatus} */
-const obsStatus = { connected: false, reason: null, scenes: [], activeScene: null };
+/** Les réglages saisis dans le Studio (mot de passe OBS…) : un fichier à part, jamais exporté ni renvoyé par l'API. */
+const connectionStore = createConnectionStore({ path: `${STATE_FILE}.connections.json` });
 
-/** @type {ReturnType<typeof createObsSceneClient> | null} */
-let obsClient = null;
+/** @type {ReturnType<typeof createHost>} */
+let host;
 
-const host = createHost({
+const obsConnection = createObsConnection({
+  resolve: async () => resolveObs({ file: await connectionStore.read(), env: process.env }),
+  onSceneChange: (sceneName) => { void host.applySceneMapping(sceneName); },
+});
+
+host = createHost({
   store: createStateStore({ path: STATE_FILE }),
   assets: createAssetStore({ dir: ASSETS_DIR }),
   versions: createVersionStore({ path: `${STATE_FILE}.versions.json` }),
   channels: createChannels(),
-  obs: {
-    status: () => obsStatus,
-    configured: OBS_WS_PASSWORD !== '',
-    inspect: OBS_WS_PASSWORD === '' ? null : () => inspectObs(/** @type {NonNullable<typeof obsClient>} */ (obsClient).request),
-  },
+  obs: obsConnection,
+  connections: createConnectionRoutes({ store: connectionStore, obs: obsConnection, env: process.env }),
   control: {
     supervised: process.env[SUPERVISED_ENV] === '1',
     exit: (code) => process.exit(code),
@@ -63,22 +65,6 @@ Bun.serve({
 
 console.info(`[background-state-server] écoute sur http://localhost:${PORT} — état dans ${STATE_FILE}`);
 
-// Le client OBS démarre uniquement si un mot de passe est configuré : sans lui, ce serveur se comporte
-// exactement comme avant ③ (docs/specs/obs-scene-preset-mapping.md).
-if (OBS_WS_PASSWORD !== '') {
-  obsClient = createObsSceneClient({
-    url: OBS_WS_URL,
-    password: OBS_WS_PASSWORD,
-    onSceneChange: (sceneName) => { obsStatus.activeScene = sceneName; host.applySceneMapping(sceneName); },
-    onScenes: (scenes) => { obsStatus.scenes = scenes; },
-    onActiveScene: (sceneName) => { obsStatus.activeScene = sceneName; },
-    onStatus: ({ connected, reason }) => {
-      obsStatus.connected = connected;
-      obsStatus.reason = reason;
-      if (!connected) obsStatus.activeScene = null;
-    },
-  });
-} else {
-  obsStatus.reason = 'not-configured';
-  console.info('[background-state-server] OBS_WS_PASSWORD absent — mapping scène → preset désactivé');
-}
+// Le client OBS ne s'ouvre qu'avec un mot de passe (saisi dans le Studio, sinon `OBS_WS_PASSWORD`) : sans lui, ce serveur se comporte
+// exactement comme avant ③ (docs/specs/obs-scene-preset-mapping.md). Le Studio le reconfigure sans relancer le serveur.
+void obsConnection.restart();

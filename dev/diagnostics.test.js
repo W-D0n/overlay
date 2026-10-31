@@ -51,7 +51,14 @@ describe('diagnose', () => {
   test('mot de passe refusé : erreur avec la correction', () => {
     const obs = check(diagnose({ ...HEALTHY, obs: { ...OBS_OK, connected: false, reason: 'auth-rejected' } }), 'obs');
     expect(obs.tone).toBe('bad');
-    expect(obs.fix).toContain('OBS_WS_PASSWORD');
+    expect(obs.fix).toContain('Réglages');
+  });
+
+  test('connexion en cours : avertissement sans correction à faire', () => {
+    const obs = check(diagnose({ ...HEALTHY, obs: { ...OBS_OK, connected: false, reason: 'connecting' } }), 'obs');
+    expect(obs.tone).toBe('warn');
+    expect(obs.short).toBe('connexion en cours');
+    expect(obs.fix).toBeNull();
   });
 
   test('OBS fermé : avertissement qui promet la reconnexion', () => {

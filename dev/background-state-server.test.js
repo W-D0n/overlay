@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -695,4 +695,55 @@ describe('contrôle depuis le Studio (arrêt et redémarrage)', () => {
       expect(child.exitCode).toBeNull();
     } finally { cleanup(); }
   });
+});
+
+test('le mot de passe saisi dans le Studio est relu au démarrage : OBS se connecte sans variable d’environnement', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-connections-boot-'));
+  const stateFile = join(directory, 'state.json');
+  const fakeObs = startFakeObs();
+  writeFileSync(`${stateFile}.connections.json`, JSON.stringify({ obs: { url: fakeObs.url, password: 'saisi-dans-le-studio' } }));
+  const { child, baseUrl } = await startStateServer({ stateFile, obsPassword: '' });
+
+  try {
+    await waitFor(() => fakeObs.connections.length > 0, 3000);
+    const view = (await (await fetch(`${baseUrl}/connections`)).json()).obs;
+    expect(view).toMatchObject({ passwordSet: true, source: 'settings', url: fakeObs.url });
+    expect(JSON.stringify(view)).not.toContain('saisi-dans-le-studio');
+  } finally {
+    child.kill();
+    await child.exited;
+    fakeObs.stop();
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('POST /connections/obs reconnecte le serveur en marche sans le relancer', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-connections-live-'));
+  const stateFile = join(directory, 'state.json');
+  const fakeObs = startFakeObs();
+  const { child, baseUrl } = await startStateServer({ stateFile, obsPassword: '' });
+
+  try {
+    await delay(300);
+    expect(fakeObs.connections.length).toBe(0);
+    const saved = await fetch(`${baseUrl}/connections/obs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Overlay-Control': '1' },
+      body: JSON.stringify({ url: fakeObs.url, password: 'nouveau' }),
+    });
+    expect(saved.status).toBe(200);
+    await waitFor(() => fakeObs.connections.length > 0, 3000);
+    let connected = false;
+    for (let attempt = 0; attempt < 100 && !connected; attempt += 1) {
+      connected = (await (await fetch(`${baseUrl}/obs-status`)).json()).connected === true;
+      if (!connected) await delay(30);
+    }
+    expect(connected).toBe(true);
+    expect(JSON.parse(readFileSync(`${stateFile}.connections.json`, 'utf8')).obs.password).toBe('nouveau');
+  } finally {
+    child.kill();
+    await child.exited;
+    fakeObs.stop();
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

@@ -41,6 +41,7 @@ describe('bandeau d’antenne', () => {
     expect(obs({ configured: false, connected: false })).toBe('off');
     expect(obs({ connected: false, reason: 'closed' })).toBe('warn');
     expect(obs({ connected: false, reason: 'auth-rejected' })).toBe('bad');
+    expect(obs({ connected: false, reason: 'connecting' })).toBe('warn');
   });
 
   test('le micro n’apparaît que s’il est demandé', () => {

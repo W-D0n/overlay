@@ -90,19 +90,24 @@ Pour la seconde, il faut donner au serveur d'état l'accès au serveur WebSocket
 
 1. Dans OBS : **Outils → Paramètres du serveur WebSocket**, activer le serveur et afficher le mot
    de passe.
-2. À la racine du dépôt, créer `.env` (ignoré par git, gabarit dans `.env.example`) :
-   `OBS_WS_URL=ws://127.0.0.1:4455` et `OBS_WS_PASSWORD=<le mot de passe>`.
-3. Relancer `start-dev.bat` ou `start-stream.bat`.
-4. Dans le tuner, section **Scènes OBS** : chaque scène détectée reçoit un preset, puis
+2. Dans le Studio, bouton **Réglages** (ou la palette `Ctrl+K`, « Réglages ») : saisir le mot de passe
+   (le bouton **Afficher** montre ce que vous tapez), puis **Enregistrer et connecter**. La connexion se
+   fait aussitôt, sans relancer les serveurs ; la fenêtre dit si OBS est connecté, injoignable ou si le
+   mot de passe est refusé.
+3. Dans le tuner, section **Scènes OBS** : chaque scène détectée reçoit un preset, puis
    `Enregistrer les associations`.
 
+Le mot de passe reste dans un fichier à côté de votre état (`dev/data/background-state.json.connections.json`,
+non versionné, jamais servi ni exporté) ; une fois enregistré, il ne s'affiche plus nulle part, le champ dit
+seulement « enregistré ». Un `.env` existant (`OBS_WS_URL`, `OBS_WS_PASSWORD`) reste lu : ce que vous saisissez dans
+les Réglages passe devant.
 Ce qu'il faut savoir :
 
 - une scène **sans** association ne change rien — un oubli ne noircit jamais un live ;
 - l'association **reprend la main** sur un réglage fait à la main dans le tuner, au prochain
   changement de scène ;
 - une URL `?preset=` n'est jamais concernée : elle est attachée à son preset ;
-- sans `OBS_WS_PASSWORD`, rien ne se connecte et tout fonctionne comme avant ;
+- sans mot de passe OBS (ni saisi dans les Réglages, ni dans `.env`), rien ne se connecte et tout fonctionne comme avant ;
 - l'association se fait par **nom de scène** : renommer une scène dans OBS casse le lien, à refaire
   dans le tuner.
 
@@ -168,7 +173,7 @@ Le bandeau **Antenne**, dans l'en-tête (toujours visible), se relit toutes les 
 visible. Il dit où en est la chaîne jusqu'à OBS :
 
 - **Serveur d'état** : connecté ou injoignable (relancer `start-stream.bat`) ;
-- **OBS** : connecté avec le nom de la scène active, non configuré (`OBS_WS_PASSWORD` dans `.env`),
+- **OBS** : connecté avec le nom de la scène active, non configuré (mot de passe à saisir dans **Réglages**),
   injoignable ou mot de passe refusé ;
 - **Page de rendu** : nombre de pages `background.html` connectées au serveur. « Aucune page
   connectée » signifie qu'aucune source OBS n'affiche le fond : rafraîchir la source. Un serveur

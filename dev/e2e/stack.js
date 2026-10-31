@@ -36,7 +36,8 @@ export async function startStack() {
   const directory = mkdtempSync(join(tmpdir(), 'overlay-e2e-state-'));
   const staticPort = freePort();
   const statePort = freePort();
-  const env = { ...process.env, STATIC_PORT: String(staticPort), BACKGROUND_STATE_PORT: String(statePort), BACKGROUND_STATE_FILE: join(directory, 'state.json') };
+  // Jamais le mot de passe ni l'adresse d'OBS de l'owner (fichier `.env` lu par Bun) : un essai ne parle qu'à un faux OBS qu'il démarre lui-même.
+  const env = { ...process.env, STATIC_PORT: String(staticPort), BACKGROUND_STATE_PORT: String(statePort), BACKGROUND_STATE_FILE: join(directory, 'state.json'), OBS_WS_URL: '', OBS_WS_PASSWORD: '' };
   const spawn = (/** @type {string} */ script) => Bun.spawn([process.execPath, join(ROOT, 'dev', script)], { env, cwd: ROOT, stdout: 'ignore', stderr: 'ignore' });
   const processes = [spawn('background-state-server.js'), spawn('static-server.js')];
   try {
@@ -51,6 +52,8 @@ export async function startStack() {
   return {
     staticPort,
     statePort,
+    /** Le fichier d'état jetable ; ses voisins (`.connections.json`, `.versions.json`) sont à côté. */
+    stateFile: join(directory, 'state.json'),
     /** @param {string} path @param {unknown} [body] */
     async api(path, body) {
       const response = await fetch(`${base}${path}`, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -61,6 +64,7 @@ export async function startStack() {
       rmSync(join(directory, 'state.json'), { force: true });
       rmSync(join(directory, 'state.json.pre-v4.bak'), { force: true });
       rmSync(join(directory, 'state.json.assets'), { recursive: true, force: true });
+      rmSync(join(directory, 'state.json.connections.json'), { force: true });
     },
     async stop() {
       for (const child of processes) child.kill();

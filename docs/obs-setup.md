@@ -39,7 +39,7 @@ Les ports se changent dans `ports.config.js` (`STATIC_PORT`, `BACKGROUND_STATE_P
 Le serveur d'état se connecte en **lecture seule** à OBS WebSocket v5 pour connaître la scène active.
 
 1. Dans OBS : **Outils → Paramètres du serveur WebSocket**, activer le serveur et définir un mot de passe.
-2. Copier `.env.example` en `.env` (ignoré par git) et renseigner `OBS_WS_URL` et `OBS_WS_PASSWORD`.
+2. Dans le Studio, ouvrir **Réglages** et saisir le mot de passe d'OBS (la connexion se fait aussitôt, sans relancer). Alternative : copier `.env.example` en `.env` (ignoré par git) et renseigner `OBS_WS_URL` et `OBS_WS_PASSWORD` ; ce que le Studio enregistre passe devant.
    Sans mot de passe, le serveur démarre sans client OBS : le fond fonctionne, sans association de scènes.
 3. Dans le Studio, onglet **Diffusion → Scènes OBS** : choisir un preset par scène. Un changement de
    scène change le fond ; une URL `?preset=` n'est jamais concernée.

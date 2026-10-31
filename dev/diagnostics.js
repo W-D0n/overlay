@@ -90,11 +90,12 @@ function serverCheck({ serverReachable }) {
 function obsConnectionCheck({ obs }) {
   const label = 'Connexion à OBS';
   if (obs === null || !obs.configured) {
-    return { id: 'obs', label, tone: 'off', short: 'non configurée', detail: 'Aucun mot de passe OBS n’est renseigné : le Studio ne peut ni suivre les scènes ni inspecter OBS.', fix: 'Renseigne OBS_WS_PASSWORD dans .env (OBS > Outils > Paramètres du serveur WebSocket), puis redémarre les serveurs.' };
+    return { id: 'obs', label, tone: 'off', short: 'non configurée', detail: 'Aucun mot de passe OBS n’est renseigné : le Studio ne peut ni suivre les scènes ni inspecter OBS.', fix: 'Renseigne le mot de passe dans Réglages (celui d’OBS > Outils > Paramètres du serveur WebSocket) : la connexion se fait aussitôt.' };
   }
   if (obs.connected) return { id: 'obs', label, tone: 'ok', short: 'connecté', detail: 'Connecté à OBS (WebSocket).', fix: null };
+  if (obs.reason === 'connecting') return { id: 'obs', label, tone: 'warn', short: 'connexion en cours', detail: 'La connexion à OBS s’établit.', fix: null };
   if (obs.reason === 'auth-rejected') {
-    return { id: 'obs', label, tone: 'bad', short: 'mot de passe refusé', detail: 'OBS a refusé le mot de passe.', fix: 'Corrige OBS_WS_PASSWORD dans .env pour qu’il corresponde à celui d’OBS, puis redémarre les serveurs.' };
+    return { id: 'obs', label, tone: 'bad', short: 'mot de passe refusé', detail: 'OBS a refusé le mot de passe.', fix: 'Corrige le mot de passe dans Réglages pour qu’il corresponde à celui d’OBS : la connexion se refait aussitôt.' };
   }
   return { id: 'obs', label, tone: 'warn', short: 'injoignable', detail: 'OBS ne répond pas sur son port WebSocket.', fix: 'Ouvre OBS et active le serveur WebSocket (Outils > Paramètres du serveur WebSocket). La connexion se rétablit seule.' };
 }

@@ -38,11 +38,12 @@ export function antennaItems({ serverReachable, obs, renderPages, audio }) {
 
 /** @param {AntennaObsStatus | null} obs @returns {{ tone: AntennaTone, short: string, detail: string }} */
 function obsReading(obs) {
-  if (obs === null || !obs.configured) return { tone: 'off', short: 'non configuré', detail: 'non configuré (OBS_WS_PASSWORD dans .env)' };
+  if (obs === null || !obs.configured) return { tone: 'off', short: 'non configuré', detail: 'non configuré (mot de passe dans Réglages)' };
   if (obs.connected) {
     return { tone: 'ok', short: obs.activeScene ?? 'connecté', detail: obs.activeScene ? `connecté · scène « ${obs.activeScene} »` : 'connecté' };
   }
-  if (obs.reason === 'auth-rejected') return { tone: 'bad', short: 'mot de passe refusé', detail: 'mot de passe refusé' };
+  if (obs.reason === 'auth-rejected') return { tone: 'bad', short: 'mot de passe refusé', detail: 'mot de passe refusé — voir Réglages' };
+  if (obs.reason === 'connecting') return { tone: 'warn', short: 'connexion…', detail: 'connexion à OBS en cours' };
   return { tone: 'warn', short: 'injoignable', detail: 'injoignable — OBS est-il ouvert ?' };
 }
 

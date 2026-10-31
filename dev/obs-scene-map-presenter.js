@@ -79,7 +79,7 @@ export function obsStatusMessage(status) {
   if (!status.configured) {
     return {
       tone: 'attention',
-      text: 'Non configuré — renseigne OBS_WS_URL et OBS_WS_PASSWORD dans .env, puis relance le serveur d’état.',
+      text: 'Non configuré — renseigne le mot de passe OBS dans Réglages.',
     };
   }
   if (status.connected) {
@@ -88,9 +88,10 @@ export function obsStatusMessage(status) {
   if (status.reason === 'auth-rejected') {
     return {
       tone: 'attention',
-      text: 'Mot de passe refusé par OBS — corrige OBS_WS_PASSWORD puis relance le serveur d’état.',
+      text: 'Mot de passe refusé par OBS — corrige-le dans Réglages.',
     };
   }
+  if (status.reason === 'connecting') return { tone: 'attention', text: 'Connexion à OBS en cours…' };
   return { tone: 'attention', text: 'OBS injoignable — les associations enregistrées restent modifiables.' };
 }
 

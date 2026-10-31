@@ -27,7 +27,7 @@ import { PLACEMENT_PRESETS, alignPlacements, distributePlacements } from './plac
  *   publication: {
  *     publish(): void, discard(): void, showChanges(): void, toggleCompare(): void, testTransition(): void,
  *   },
- *   dialogs: { palette(): void, shortcuts(): void, history(): void, editHistory(): void, diagnostic(): void, library(): void, versions(): void, saveVersion(): void },
+ *   dialogs: { palette(): void, shortcuts(): void, history(): void, editHistory(): void, diagnostic(): void, settings(): void, library(): void, versions(): void, saveVersion(): void },
  *   pickImage: () => void,
  *   templates: { open(): void, save(): void },
  *   customCommands: { open(): void, create(): void, startRecording(): void, isRecording(): boolean },
@@ -198,6 +198,7 @@ export function createStudioCommands({ studio, clipboard, labelOf, addableKinds,
     { id: 'help.shortcuts', label: 'Raccourcis clavier', group: 'Aide', shortcut: '?', keywords: ['aide'], run: () => dialogs.shortcuts() },
     { id: 'help.history', label: 'Ouvrir l’historique des publications', group: 'Aide', run: () => dialogs.history() },
     { id: 'help.diagnostic', label: 'Ouvrir le diagnostic', group: 'Aide', run: () => dialogs.diagnostic() },
+    { id: 'help.settings', label: 'Réglages (connexion à OBS)…', group: 'Aide', keywords: ['mot de passe', 'obs', 'websocket', 'connexion', 'paramètres', 'préférences'], run: () => dialogs.settings() },
   ]);
 
   return registry;

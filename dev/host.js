@@ -27,6 +27,7 @@
  *                          (`null` retire une clé) ; diffusé sur le canal `studio`.
  *   GET|POST /versions, POST /versions/rename, DELETE /versions/<id> — les versions nommées d'une scène (voir `dev/version-routes.js`).
  *   GET|POST /assets, GET|DELETE /assets/<id> — la médiathèque d'images (voir `dev/asset-routes.js`).
+ *   GET /connections, POST /connections/obs — les réglages de connexion du Studio, mot de passe OBS compris (voir `dev/connection-routes.js`).
  *   POST /control/restart | /control/stop — demande au lanceur de relancer ou d'arrêter les serveurs.
  *   GET  /obs-status, /live-status, /diagnostics — état d'OBS, pages de rendu, faits du diagnostic.
  *   WS   /state-ws, /presets-ws, /event-ws, /branding-ws, /studio-ws — voir `dev/channels.js`.
@@ -63,6 +64,7 @@ import { collectAssetUsage } from './asset-format.js';
  *   channels: ReturnType<typeof import('./channels.js').createChannels>,
  *   obs: { status: () => ObsStatus, configured: boolean, inspect: (() => Promise<import('./obs-inspector.js').ObsInspection>) | null },
  *   control: { supervised: boolean, exit: (code: number) => void },
+ *   connections?: ReturnType<typeof import('./connection-routes.js').createConnectionRoutes> | null,
  *   staticPort: number,
  *   now?: () => string,
  *   log?: Pick<Console, 'info' | 'warn' | 'error'>,
@@ -72,7 +74,7 @@ import { collectAssetUsage } from './asset-format.js';
 /**
  * @param {HostDeps} deps
  */
-export function createHost({ store, assets, versions, channels, obs, control, staticPort, now = () => new Date().toISOString(), log = console }) {
+export function createHost({ store, assets, versions, channels, obs, control, connections = null, staticPort, now = () => new Date().toISOString(), log = console }) {
   /**
    * Lecture + transformation + écriture. `decide` rend soit une Response d'erreur, soit le fichier à persister.
    * @param {(file: BackgroundFile) => Response | BackgroundFile} decide
@@ -449,6 +451,7 @@ export function createHost({ store, assets, versions, channels, obs, control, st
 
       if (assetRoutes.handles(url.pathname)) return assetRoutes.handle(req, url);
       if (versionRoutes.handles(url.pathname)) return versionRoutes.handle(req, url);
+      if (connections !== null && connections.handles(url.pathname)) return connections.handle(req, url);
 
       const channel = channelForPath(url.pathname);
       if (channel !== null) {

@@ -35,6 +35,8 @@ import { ADDABLE_KIND_IDS, backgroundEffectLabel, defaultBackgroundOptions } fro
 import { createAssetClient } from './asset-client.js';
 import { createBindingsController } from './bindings-controller.js';
 import { createVersionClient } from './version-client.js';
+import { createConnectionClient } from './connection-client.js';
+import { createSettingsController } from './settings-controller.js';
 import { createTimelineController } from './timeline-controller.js';
 import { setIcon } from './icons.js';
 import { createVersionsController } from './versions-controller.js';
@@ -247,6 +249,23 @@ export async function startBackgroundTuner(environment = {}) {
   setIcon(versionsButton, 'bookmark');
   versionsButton.addEventListener('click', () => { void versions.open(); });
 
+  const settingsDialog = createSettingsController({
+    elements: {
+      dialog: /** @type {HTMLDialogElement} */ (byId('settings-dialog')),
+      close: /** @type {HTMLButtonElement} */ (byId('settings-close')),
+      status: byId('settings-status'),
+      obsStatus: byId('settings-obs-status'),
+      obsUrl: /** @type {HTMLInputElement} */ (byId('settings-obs-url')),
+      obsPassword: /** @type {HTMLInputElement} */ (byId('settings-obs-password')),
+      obsReveal: /** @type {HTMLButtonElement} */ (byId('settings-obs-reveal')),
+      obsSave: /** @type {HTMLButtonElement} */ (byId('settings-obs-save')),
+      obsClear: /** @type {HTMLButtonElement} */ (byId('settings-obs-clear')),
+    },
+    client: createConnectionClient({ baseUrl: STATE_SERVER }),
+    report,
+  });
+  byId('settings-open').addEventListener('click', () => { void settingsDialog.open(); });
+
   const timelinePanel = createTimelineController({
     elements: {
       panel: byId('timeline-panel'),
@@ -449,6 +468,7 @@ export async function startBackgroundTuner(environment = {}) {
       history: () => byId('history-open').click(),
       editHistory: () => editHistory.open(),
       diagnostic: () => byId('diagnostic-open').click(),
+      settings: () => { void settingsDialog.open(); },
       library: () => { void library.open(); },
       versions: () => { void versions.open(); },
       saveVersion: () => { void versions.save(); },

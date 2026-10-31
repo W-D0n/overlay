@@ -196,6 +196,13 @@ le dit : la ligne d'état passe en erreur, le titre de l'onglet porte « ⚠ »,
 « Antenne » ajoute une **notification du système** (le navigateur vous demande l'autorisation une fois) quand le Studio n'est pas visible. Rien ne change
 dans le rendu d'OBS : le fond continue de se figer plutôt que d'afficher une erreur ; c'est le Studio qui vous prévient.
 
+## 7 ter. Réglages : la connexion à OBS
+
+Le bouton **Réglages** du bandeau « Antenne » (ou `Ctrl+K` → « Réglages ») ouvre la connexion à OBS. Saisissez le mot de passe d'OBS (Outils → Paramètres du serveur WebSocket) :
+le champ est masqué, le bouton **Afficher** montre ce que vous tapez (il se remasque seul à l'enregistrement et à la fermeture). **Enregistrer et connecter** reconnecte aussitôt, sans
+relancer les serveurs, et la fenêtre dit où en est la connexion : en cours, connecté (avec le nombre de scènes), mot de passe refusé, ou OBS injoignable. Une fois enregistré,
+le mot de passe ne s'affiche plus nulle part : le champ dit « enregistré — laissez vide pour le garder ». **Effacer le mot de passe** déconnecte. L'adresse (`ws://127.0.0.1:4455` par défaut) se change dans le même écran.
+
 ## 8. Vos réglages vous suivent
 
 Commandes personnalisées, modèles, unité de position, aides de vue : tout est rangé **sur le serveur d'état**

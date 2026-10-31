@@ -49,10 +49,11 @@ test('5. aucune scène et aucune association → aucune ligne', () => {
   expect(rows).toEqual([]);
 });
 
-test('6. le message d’état nomme les variables quand rien n’est configuré', () => {
+test('6. le message d’état renvoie vers Réglages quand rien n’est configuré', () => {
   const message = obsStatusMessage({ connected: false, configured: false, reason: 'not-configured', scenes: [] });
   expect(message.tone).toBe('attention');
-  expect(message.text).toContain('OBS_WS_PASSWORD');
+  expect(message.text).toContain('Réglages');
+  expect(message.text).not.toContain('.env');
 });
 
 test('7. connecté annonce le nombre de scènes', () => {
@@ -66,7 +67,14 @@ test('8. un mot de passe refusé est distingué d’un OBS fermé', () => {
   const rejected = obsStatusMessage({ connected: false, configured: true, reason: 'auth-rejected', scenes: [] });
   const closed = obsStatusMessage({ connected: false, configured: true, reason: 'closed', scenes: [] });
   expect(rejected.text).toContain('Mot de passe refusé');
+  expect(rejected.text).toContain('Réglages');
   expect(closed.text).toContain('injoignable');
+});
+
+test('8 bis. la connexion en cours n’est pas dite « injoignable »', () => {
+  const connecting = obsStatusMessage({ connected: false, configured: true, reason: 'connecting', scenes: [] });
+  expect(connecting.text).toContain('en cours');
+  expect(connecting.text).not.toContain('injoignable');
 });
 
 test('9. les lignes sans preset sortent de la table enregistrée', () => {
