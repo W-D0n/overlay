@@ -124,11 +124,19 @@ Studio** : elle dit quelle couche pèse, pas ce que fera OBS — vérifiez dans 
 
 ### Les versions d'une scène
 
-Quand une scène vous plaît, donnez-lui un **nom** : bouton « Versions de la scène » (marque-page, en haut de la pile de couches) ou palette `Ctrl+K`
-→ « Enregistrer une version de la scène… ». La version garde la scène **telle qu'elle est dans le brouillon**. Plus tard, « Restaurer » remet ses
-couches dans le brouillon, **sans rien publier** : un seul `Ctrl+Z` revient à ce qu'il y avait avant. Chaque version dit ce que sa restauration
-changerait (« retire 1 couche », « identique à la scène en cours »). Trente versions par scène ; on les renomme et on les supprime (deux
-pressions) depuis la même fenêtre. Ce n'est pas l'historique de publication : celui-ci se remplit tout seul, une version est un point que vous posez.
+Une version est un **point de restauration que vous nommez** : « avant le gros changement », « version stream du vendredi ».
+
+- **Enregistrer** : le bouton marque-page, en haut de la pile de couches (ou `Ctrl+K` → « Enregistrer une version de la scène… »), garde la scène
+  **telle qu'elle est dans le brouillon**, réglages non publiés compris, sous le nom que vous choisissez.
+- **Restaurer** : remet les couches et la transition dans le brouillon, en **une seule entrée d'historique**. Un `Ctrl+Z` revient à la scène d'avant, et
+  **rien n'est publié** tant que vous ne le décidez pas. Le nom, l'identité et les étiquettes de la scène ne changent pas.
+- **Lire avant de restaurer** : chaque version affiche sa date, son contenu et ce que sa restauration changerait (« retire 1 couche par rapport à
+  la scène en cours », « identique à la scène en cours »).
+- **Gérer** : on renomme sur place (Entrée valide, Échap annule) et on supprime en deux pressions. Trente versions par scène au plus ; au-delà, rien
+  n'est jamais supprimé à votre place : on vous dit d'en retirer une.
+
+**Ce que ce n'est pas.** L'historique de publication se remplit tout seul et ne garde que les scènes qui ont quitté l'antenne. Une version, c'est un
+point que vous posez et qui reste jusqu'à ce que vous le supprimiez.
 
 ## 5. L'historique d'édition
 
