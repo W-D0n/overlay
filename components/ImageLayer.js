@@ -79,6 +79,7 @@ export function createImageLayer({ loader = assetImages, warn = (message) => con
 
     return {
       animated: false,
+      sceneScaled: true,
 
       resize(next) {
         size = next;

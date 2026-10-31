@@ -59,6 +59,16 @@ export async function run({ page, stack, check, errors }) {
   })()`);
   check('la zone de la couche fait bien 20 % de la toile', Math.abs(inkBox - stageWidth * 0.2) <= 3);
 
+  // La taille est celle de la source de référence, pas celle de la zone : 96 px de texte restent 96 px dans une zone plus petite que la toile.
+  await page.fill('#fields textarea', 'Titre');
+  await page.fill('#inspector-width', 40);
+  await page.fill('#inspector-height', 30);
+  await page.sleep(700);
+  const small = (await inks()).at(-1);
+  const stageHeight = await page.evaluate("document.getElementById('bg-layer').getBoundingClientRect().height");
+  const canvasHeight = await page.evaluate("[...document.getElementById('bg-layer').querySelectorAll('canvas')].filter((c) => c.parentElement.id !== 'bg-layer').at(-1).getBoundingClientRect().height");
+  const inkHeight = ((small.bottom - small.top) / small.height) * canvasHeight;
+  check('un texte de 96 px garde sa taille de source dans une zone plus petite que la toile (au moins 5 % de la hauteur)', inkHeight / stageHeight >= 0.05 ? true : [inkHeight, stageHeight]);
   const rows = await layerRows(page);
   const textRow = rows.find((/** @type {*} */ row) => row.title === 'Texte');
   check('la vignette de la couche texte montre du texte', textRow !== undefined && await page.waitFor("[...document.querySelectorAll('#layers-list .layer-row')].some((r) => r.querySelector('.layer-title').textContent === 'Texte' && r.querySelector('.preset-thumb')?.dataset.state === 'ready')", 15_000));
@@ -66,7 +76,7 @@ export async function run({ page, stack, check, errors }) {
   await page.click('#publish-send');
   await page.waitFor("document.getElementById('publish-bar').dataset.state === 'live'", 8000);
   const aired = (await air()).layers.find((/** @type {*} */ layer) => layer.kind === 'text');
-  check('publié : la couche texte est à l’antenne avec ses options et son placement', aired !== undefined && aired.options.text?.[0] === 'Bonsoir tout le monde' && Math.abs(aired.placement.width - 0.2) < 0.001);
+  check('publié : la couche texte est à l’antenne avec ses options et son placement', aired !== undefined && aired.options.text?.[0] === 'Titre' && Math.abs(aired.placement.width - 0.4) < 0.001);
 
   await page.goto(`http://localhost:${stack.staticPort}/dev/studio.html`);
   await page.waitFor("(document.getElementById('server-status')?.textContent ?? '').includes('connecté')", 15_000);

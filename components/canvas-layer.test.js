@@ -261,3 +261,44 @@ describe('couche statique', () => {
     expect(events.length).toBe(3);
   });
 });
+
+describe('échelle de la scène', () => {
+  test('un effet dessine à l’échelle de sa couche : un calque plus petit montre une version réduite', () => {
+    const harness = createHarness({ width: 960, height: 540 });
+    const sizes = [];
+    defineCanvasLayer(() => ({ resize: (size) => sizes.push(size), draw() {} }))({}, { ...harness.environment, sceneHeight: () => 1080 });
+    harness.tick(16);
+    expect(sizes).toEqual([{ width: 1920, height: 1080 }]);
+  });
+
+  test('un contenu dessine à l’échelle de la scène : sa zone est une fenêtre, pas une réduction', () => {
+    const harness = createHarness({ width: 960, height: 540 });
+    const sizes = [];
+    defineCanvasLayer(() => ({ sceneScaled: true, resize: (size) => sizes.push(size), draw() {} }))({}, { ...harness.environment, sceneHeight: () => 1080 });
+    harness.tick(16);
+    expect(sizes).toEqual([{ width: 960, height: 540 }]);
+    // Le contexte n'est pas réduit : 1 unité de dessin = 1 px de la source de référence.
+    expect(harness.calls.find(([name]) => name === 'scale').slice(1)).toEqual([2, 2]);
+  });
+
+  test('une scène plus petite que la référence réduit le contenu en proportion', () => {
+    const harness = createHarness({ width: 480, height: 270 });
+    const sizes = [];
+    defineCanvasLayer(() => ({ sceneScaled: true, resize: (size) => sizes.push(size), draw() {} }))({}, { ...harness.environment, sceneHeight: () => 540 });
+    harness.tick(16);
+    expect(sizes).toEqual([{ width: 960, height: 540 }]);
+  });
+
+  test('sans hauteur de scène connue, le contenu retombe sur l’échelle de sa couche', () => {
+    const harness = createHarness({ width: 960, height: 540 });
+    const sizes = [];
+    defineCanvasLayer(() => ({ sceneScaled: true, resize: (size) => sizes.push(size), draw() {} }))({}, harness.environment);
+    harness.tick(16);
+    expect(sizes).toEqual([{ width: 1920, height: 1080 }]);
+    const unknown = createHarness({ width: 960, height: 540 });
+    const zero = [];
+    defineCanvasLayer(() => ({ sceneScaled: true, resize: (size) => zero.push(size), draw() {} }))({}, { ...unknown.environment, sceneHeight: () => 0 });
+    unknown.tick(16);
+    expect(zero).toEqual([{ width: 1920, height: 1080 }]);
+  });
+});

@@ -50,6 +50,7 @@ export const TextLayer = defineCanvasLayer((/** @type {Record<string, unknown>} 
 
   return {
     animated: false,
+    sceneScaled: true,
 
     resize(next) {
       size = next;

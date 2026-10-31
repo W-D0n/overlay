@@ -155,7 +155,7 @@ export function createSceneRuntime(container, deps = {}) {
   function mountLayer(stage, layer) {
     const factory = Object.hasOwn(registry, layer.kind) ? registry[layer.kind] : undefined;
     if (factory === undefined) throw new Error(`type de couche inconnu : ${layer.kind}`);
-    const instance = factory(layer.options);
+    const instance = factory(layer.options, { sceneHeight: () => container.clientHeight });
     const calque = createCalque();
     calque.appendChild(instance.el);
     stage.calque.appendChild(calque);

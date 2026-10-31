@@ -19,7 +19,12 @@ opacité, rendu étendu 6d, historique, gestes, modèles) est réutilisé tel qu
 | C3 | Les contenus sont dessinés sur **canvas**, comme les effets, par le même squelette (`canvas-layer.js`). | Une seule chaîne de rendu : échelle de la source, vignettes (photo de canvas), pastille de coût, aperçu OBS identique, texte net à toute résolution. |
 | C4 | Squelette **statique** : `animated: false`. Une couche statique ne dessine qu'à la création, au changement de taille ou de ratio, et sur `host.invalidate()`. | Huit contenus ne coûtent aucun dessin par image. |
 | C5 | Un changement de type reste **dans sa famille** (`setLayerKind`) ; le sélecteur « Type » de la couche réglée ne propose que sa famille. | Un effet ne devient pas un texte. |
+| C7 | Un contenu dessine à l'**échelle de la scène** (`sceneScaled`, `environment.sceneHeight` fournie par le moteur), pas à celle de sa couche : sa zone est une fenêtre. 96 px de texte font 96 px de la source de référence dans une zone de 20 % comme de 100 %. Les effets gardent l'échelle de leur couche (un calque réduit montre une version réduite). | Trouvé en regardant le rendu des points de départ : à l'échelle de la couche, un titre de 150 px dans une zone de 24 % de haut s'affichait quatre fois trop petit. Gardé par `components/canvas-layer.test.js` et l'essai `21-couche-texte`. |
 | C6 | Les noms de réglage sont propres au type (`fontSize`, pas `size`) : `NUMBER_FIELD_GUIDANCE` est indexé par nom de champ, partagé par tous les types. | Évite qu'un champ prenne les bornes d'un effet. |
+
+## 1 bis. Points de départ à contenu
+
+Trois scènes prêtes à l'emploi dans la bibliothèque (`dev/builtin-background-presets.js`) : **Début de live** (étoiles, titre, filet doré, sous-titre), **Je reviens** (ondes, panneau en dégradé à coins arrondis, message), **Fin de live** (grille de points, remerciement en italique, « À bientôt »). Elles servent de modèles : on change le texte et la scène est à soi.
 
 ## 2. Texte (livré)
 

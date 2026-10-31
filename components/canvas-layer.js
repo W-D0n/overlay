@@ -16,6 +16,11 @@ import { smooth } from '../layer-cost.js';
  * `destroy` libère ce que la couche détient hors du canvas (minuteurs) ; `extend` ajoute des
  * méthodes propres à l'effet sur l'instance (ex. `morphTo`).
  *
+ * Par défaut, l'échelle est celle de la **hauteur de la couche** : un effet dessine sa composition de référence dans son calque, un calque
+ * plus petit en montre une version réduite. Une couche de **contenu** (`sceneScaled: true` : texte, forme, image) dessine à l'échelle de la
+ * **scène** (`environment.sceneHeight`, fournie par le moteur) : sa zone est une fenêtre, pas une réduction, et 96 px de texte font 96 px
+ * de la source de référence quelle que soit la taille de la couche.
+ *
  * Une couche **statique** (`animated: false` : texte, forme, image) ne dessine que lorsqu'elle est invalidée — à la création, à
  * chaque changement de taille ou de ratio, et quand elle appelle `host.invalidate()` après une mise à jour : huit couches de
  * contenu ne coûtent alors aucun dessin par image.
@@ -24,6 +29,7 @@ import { smooth } from '../layer-cost.js';
  * @typedef {import('../render-clock.js').RenderFrame} RenderFrame
  * @typedef {{
  *   animated?: boolean,
+ *   sceneScaled?: boolean,
  *   resize: (size: LayerSize, pixelRatio: number) => void,
  *   draw: (ctx: CanvasRenderingContext2D, frame: RenderFrame, size: LayerSize) => void,
  *   update?: (options: unknown) => void,
@@ -37,6 +43,7 @@ import { smooth } from '../layer-cost.js';
  *   documentRef?: Document,
  *   ResizeObserverImpl?: typeof ResizeObserver,
  *   now?: () => number,
+ *   sceneHeight?: () => number,
  * }} CanvasLayerEnvironment
  */
 
@@ -79,7 +86,8 @@ export function defineCanvasLayer(create) {
       if (width === surface.width && height === surface.height && pixelRatio === ratio) return true;
       surface = { width, height };
       ratio = pixelRatio;
-      const scale = referenceScale(height);
+      const scene = layer.sceneScaled === true ? environment.sceneHeight?.() : undefined;
+      const scale = referenceScale(scene !== undefined && scene > 0 ? scene : height);
       size = { width: width / scale, height: height / scale };
       canvas.width = width * pixelRatio;
       canvas.height = height * pixelRatio;

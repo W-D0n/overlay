@@ -25,3 +25,20 @@ test('les points de départ à plusieurs couches sont des scènes valides, uniqu
     expect(scene.tags?.length, `${scene.id} tags`).toBeGreaterThan(0);
   }
 });
+
+test('les points de départ à contenu posent un titre lisible : texte et formes dans la scène, ordre du fond vers le premier plan', async () => {
+  const { BUILTIN_BACKGROUND_SCENES } = await import('./builtin-background-presets.js');
+  const { kindFamily } = await import('../layer-kinds.js');
+  const withContent = BUILTIN_BACKGROUND_SCENES.filter((scene) => scene.layers.some((layer) => kindFamily(layer.kind) === 'content'));
+  expect(withContent.map(({ name }) => name)).toEqual(['Début de live', 'Je reviens', 'Fin de live']);
+  for (const scene of withContent) {
+    const kinds = scene.layers.map((layer) => kindFamily(layer.kind));
+    expect(kinds[0], `${scene.id} : un effet de fond d'abord`).toBe('effect');
+    expect(kinds.lastIndexOf('effect'), `${scene.id} : les effets sous les contenus`).toBeLessThan(kinds.indexOf('content'));
+    expect(scene.layers.some((layer) => layer.kind === 'text'), `${scene.id} : un texte`).toBe(true);
+    for (const layer of scene.layers) {
+      const { x, y, width, height } = layer.placement;
+      expect(x >= 0 && y >= 0 && x + width <= 1.0001 && y + height <= 1.0001, `${scene.id}/${layer.id} dans la toile`).toBe(true);
+    }
+  }
+});

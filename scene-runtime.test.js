@@ -390,3 +390,20 @@ describe('scene-runtime : couches d’identité (branding)', () => {
     expect(runtime.layers().filter(({ kind }) => kind === 'branding').map(({ id }) => id)).toEqual(['b2']);
   });
 });
+
+describe('scene-runtime : environnement des couches', () => {
+  test('chaque fabrique reçoit la hauteur de la scène (celle du conteneur), pour dessiner un contenu à l’échelle de la scène', () => {
+    const received = [];
+    const container = { appendChild: () => {}, clientHeight: 720 };
+    const runtime = createSceneRuntime(container, {
+      registry: { rain: (options, environment) => { received.push(environment); return { el: {}, update() {}, destroy() {} }; } },
+      createStageCalque: () => ({ style: {}, appendChild() {}, remove() {} }),
+      createCalque: () => ({ style: {}, appendChild() {}, remove() {} }),
+    });
+    runtime.apply({ version: 1, id: 's', name: 'S', layers: [createLayer({ id: 'a', kind: 'rain' })] });
+    expect(received.length).toBe(1);
+    expect(received[0].sceneHeight()).toBe(720);
+    container.clientHeight = 1080;
+    expect(received[0].sceneHeight()).toBe(1080);
+  });
+});
