@@ -32,7 +32,7 @@ Une couche est un **effet de fond** (pluie, bulles, étoiles…) ou un **contenu
 les deux. Le contenu **Forme** pose un rectangle (coins arrondis au choix), une ellipse, un triangle, un losange ou une ligne, en couleur
 unie ou en dégradé, avec contour et ombre ; elle remplit la zone de sa couche, donc redimensionner la couche redimensionne la
 forme. Le contenu **Texte** affiche un titre, un pseudo ou un message : une ligne par ligne, police (serif, sans, mono,
-display), taille, gras, italique, majuscules, couleur, alignements, interligne, espacement, contour et ombre. Par défaut, le
+display, ou le nom d'une police installée sur l'ordinateur), taille, gras, italique, majuscules, couleur, alignements, interligne, espacement, contour et ombre. Par défaut, le
 texte **rétrécit pour tenir dans la zone de sa couche** (réglage « Ajustement à la zone ») et passe à la ligne tout seul ; placez et
 redimensionnez la couche comme n'importe quelle autre. Un contenu arrive et part avec sa scène, contrairement au branding qui
 reste en place d'une scène à l'autre.

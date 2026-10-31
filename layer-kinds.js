@@ -384,6 +384,13 @@ const KIND_DEFINITIONS = {
     fields: [
       { key: 'text', label: 'Texte (une ligne par ligne)', type: 'textarea', default: ['Titre'] },
       { key: 'font', label: 'Police', type: 'select', choices: [...TEXT_FONTS], default: 'serif' },
+      {
+        key: 'fontFamily',
+        label: 'Police installée (nom exact)',
+        description: 'Le nom d’une police installée sur cet ordinateur (par exemple Bebas Neue) : elle remplace la famille ci-dessus. Introuvable, elle est ignorée et la famille ci-dessus s’applique.',
+        type: 'text',
+        default: '',
+      },
       { key: 'fontSize', label: 'Taille (px)', type: 'number', default: 96 },
       { key: 'bold', label: 'Gras', type: 'boolean', default: true },
       { key: 'italic', label: 'Italique', type: 'boolean', default: false },

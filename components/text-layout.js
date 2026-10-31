@@ -8,7 +8,7 @@ import { TEXT_MIN_FIT_SIZE } from './text-layer.config.js';
  * fournie (le canvas la donne, un test la simule).
  *
  * @typedef {{
- *   text: string[], font: string, fontSize: number, bold: boolean, italic: boolean, uppercase: boolean, color: string,
+ *   text: string[], font: string, fontFamily: string, fontSize: number, bold: boolean, italic: boolean, uppercase: boolean, color: string,
  *   align: 'left' | 'center' | 'right', verticalAlign: 'top' | 'middle' | 'bottom', lineHeight: number, letterSpacing: number,
  *   fit: 'shrink' | 'none', wrap: boolean, outlineWidth: number, outlineColor: string,
  *   shadowBlur: number, shadowOffsetX: number, shadowOffsetY: number, shadowColor: string,
@@ -26,6 +26,43 @@ export const TEXT_DEFAULTS = /** @type {TextOptions} */ (kindDefaults('text'));
  */
 export function normalizeTextOptions(raw) {
   return /** @type {TextOptions} */ (normalizeKindOptions('text', raw));
+}
+
+/** Longueur maximale d'un nom de police. */
+export const FONT_FAMILY_MAX = 80;
+
+/**
+ * Le nom d'une police installée prêt à entrer dans une pile CSS : sans guillemet, barre oblique inverse, accolade, point-virgule, virgule,
+ * chevron ni caractère de contrôle (rien ne sort de la pile), espaces rognés, borné. Vide si rien de valable ne reste.
+ * @param {unknown} raw
+ * @returns {string}
+ */
+export function sanitizeFontFamily(raw) {
+  // eslint-disable-next-line no-control-regex
+  return String(raw ?? '').replace(/["'\\{};,<>\u0000-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim().slice(0, FONT_FAMILY_MAX);
+}
+
+/**
+ * La valeur de `font-family` d'une couche texte : la police installée demandée, puis la pile de la famille choisie en repli.
+ * @param {string} custom la police demandée (brute)
+ * @param {string} stack la pile de la famille choisie
+ * @returns {string}
+ */
+export function fontFamilyCss(custom, stack) {
+  const name = sanitizeFontFamily(custom);
+  return name === '' ? stack : `"${name}", ${stack}`;
+}
+
+/**
+ * Vrai si une police est installée : un texte d'essai mesuré dans cette police, puis dans deux polices génériques de repli, change
+ * de largeur. Si les deux mesures sont identiques à celles du repli, le navigateur n'a pas trouvé la police.
+ * @param {string} name
+ * @param {(family: string) => number} measure largeur du texte d'essai dans une pile donnée
+ * @returns {boolean}
+ */
+export function isFontInstalled(name, measure) {
+  const quoted = `"${sanitizeFontFamily(name)}"`;
+  return measure(`${quoted}, monospace`) !== measure('monospace') || measure(`${quoted}, serif`) !== measure('serif');
 }
 
 /**

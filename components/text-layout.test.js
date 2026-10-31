@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { TEXT_DEFAULTS, layoutText, normalizeTextOptions, wrapLine } from './text-layout.js';
+import { FONT_FAMILY_MAX, TEXT_DEFAULTS, fontFamilyCss, isFontInstalled, layoutText, normalizeTextOptions, sanitizeFontFamily, wrapLine } from './text-layout.js';
 
 /** Une police factice : chaque caractère fait la moitié de la taille. */
 const measure = (text, size) => text.length * size * 0.5;
@@ -99,5 +99,40 @@ describe('layoutText', () => {
 
   test('des lignes vides gardent leur hauteur', () => {
     expect(layout({ text: ['a', '', 'b'] }).lines).toEqual(['a', '', 'b']);
+  });
+});
+
+describe('police installée', () => {
+  test('sanitizeFontFamily : rien de ce qui sortirait d’une pile CSS ne passe', () => {
+    expect(sanitizeFontFamily('Bebas Neue')).toBe('Bebas Neue');
+    expect(sanitizeFontFamily('  Bebas   Neue  ')).toBe('Bebas Neue');
+    expect(sanitizeFontFamily('A"; color: red; }<b>')).toBe('A color: red b');
+    expect(sanitizeFontFamily("O'Brien, serif")).toBe('OBrien serif');
+    expect(sanitizeFontFamily('a\\b')).toBe('ab');
+    expect(sanitizeFontFamily('a\u0000b\u001fc')).toBe('abc');
+    expect(sanitizeFontFamily('x'.repeat(500))).toHaveLength(FONT_FAMILY_MAX);
+    expect(sanitizeFontFamily(null)).toBe('');
+    expect(sanitizeFontFamily('";{}')).toBe('');
+  });
+
+  test('fontFamilyCss : la police demandée d’abord, la pile choisie en repli ; vide, la pile seule', () => {
+    expect(fontFamilyCss('Bebas Neue', "'Times New Roman', serif")).toBe('"Bebas Neue", \'Times New Roman\', serif');
+    expect(fontFamilyCss('', 'serif')).toBe('serif');
+    expect(fontFamilyCss('  ', 'serif')).toBe('serif');
+    expect(fontFamilyCss('";}', 'serif')).toBe('serif');
+  });
+
+  test('isFontInstalled : une police installée change la largeur du texte d’essai, une absente la laisse à celle du repli', () => {
+    const installed = (family) => (family.includes('Bebas') ? 480 : family.endsWith('monospace') ? 800 : 600);
+    expect(isFontInstalled('Bebas Neue', installed)).toBe(true);
+    expect(isFontInstalled('Police Fantôme', installed)).toBe(false);
+    // Une police dont la largeur coïncide avec l'un des replis est reconnue grâce à l'autre.
+    expect(isFontInstalled('Courier', (family) => (family.includes('Courier') ? 800 : family.endsWith('monospace') ? 800 : 600))).toBe(true);
+  });
+
+  test('le champ fontFamily est une option de texte comme les autres : défaut vide, texte seulement', () => {
+    expect(TEXT_DEFAULTS.fontFamily).toBe('');
+    expect(normalizeTextOptions({ fontFamily: 'Bebas Neue' }).fontFamily).toBe('Bebas Neue');
+    expect(normalizeTextOptions({ fontFamily: 12 }).fontFamily).toBe('');
   });
 });

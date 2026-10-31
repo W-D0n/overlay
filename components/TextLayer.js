@@ -2,7 +2,7 @@
 import { defineCanvasLayer } from './canvas-layer.js';
 import { resolveColor } from './color-utils.js';
 import { TEXT_FONT_FALLBACKS } from './text-layer.config.js';
-import { layoutText, normalizeTextOptions } from './text-layout.js';
+import { fontFamilyCss, isFontInstalled, layoutText, normalizeTextOptions, sanitizeFontFamily } from './text-layout.js';
 
 /**
  * components/TextLayer.js — Couche de contenu « texte » : un titre, un pseudo, un message, dans la zone de la couche.
@@ -44,8 +44,25 @@ export const TextLayer = defineCanvasLayer((/** @type {Record<string, unknown>} 
 
   /** @param {CanvasRenderingContext2D} ctx @param {number} px */
   function applyFont(ctx, px) {
-    ctx.font = `${options.italic ? 'italic ' : ''}${options.bold ? '700' : '400'} ${px}px ${fontStack(options.font)}`;
+    ctx.font = `${options.italic ? 'italic ' : ''}${options.bold ? '700' : '400'} ${px}px ${fontFamilyCss(options.fontFamily, fontStack(options.font))}`;
     ctx.letterSpacing = `${options.letterSpacing}px`;
+  }
+
+  /** Le nom de police déjà signalé introuvable : un avertissement par nom, pas un à chaque dessin. */
+  let warnedFont = '';
+
+  /** @param {CanvasRenderingContext2D} ctx */
+  function warnIfMissingFont(ctx) {
+    const name = sanitizeFontFamily(options.fontFamily);
+    if (name === '' || name === warnedFont) return;
+    const saved = ctx.font;
+    const installed = isFontInstalled(name, (family) => {
+      ctx.font = `100px ${family}`;
+      return ctx.measureText('mmmmmmmmmmlli').width;
+    });
+    ctx.font = saved;
+    warnedFont = name;
+    if (!installed) console.warn(`[TextLayer] police « ${name} » introuvable sur cet ordinateur : la famille choisie est utilisée`);
   }
 
   return {
@@ -57,6 +74,7 @@ export const TextLayer = defineCanvasLayer((/** @type {Record<string, unknown>} 
     },
 
     draw(ctx) {
+      warnIfMissingFont(ctx);
       const layout = layoutText({
         options,
         box: size,

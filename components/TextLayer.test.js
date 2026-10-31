@@ -66,3 +66,44 @@ describe('TextLayer', () => {
     expect(texts(harness.tick(16))).toEqual([]);
   });
 });
+
+describe('TextLayer : police installée', () => {
+  const fonts = (calls) => calls.filter(([kind, name]) => kind === 'set' && name === 'font').map(([, , value]) => value);
+
+  test('la police demandée passe en tête de la pile, la famille choisie en repli', async () => {
+    const { harness } = await mounted({ text: ['A'], fontFamily: 'Bebas Neue', font: 'sans' });
+    const used = fonts(harness.tick(16)).at(-1);
+    expect(used).toMatch(/700 96px "Bebas Neue", /);
+  });
+
+  test('une police introuvable est signalée une seule fois, par nom', async () => {
+    const warnings = [];
+    const original = console.warn;
+    console.warn = (message) => warnings.push(message);
+    try {
+      const { harness, instance } = await mounted({ text: ['A'], fontFamily: 'Police Fantôme' });
+      harness.tick(16);
+      instance.update({ text: ['B'], fontFamily: 'Police Fantôme' });
+      harness.tick(32);
+      expect(warnings.filter((message) => message.includes('Police Fantôme')).length).toBe(1);
+      instance.update({ text: ['B'], fontFamily: 'Autre Fantôme' });
+      harness.tick(48);
+      expect(warnings.length).toBe(2);
+    } finally {
+      console.warn = original;
+    }
+  });
+
+  test('sans police demandée, rien n’est mesuré ni signalé', async () => {
+    const warnings = [];
+    const original = console.warn;
+    console.warn = (message) => warnings.push(message);
+    try {
+      const { harness } = await mounted({ text: ['A'] });
+      expect(fonts(harness.tick(16)).every((font) => !font.includes('"'))).toBe(true);
+      expect(warnings).toEqual([]);
+    } finally {
+      console.warn = original;
+    }
+  });
+});

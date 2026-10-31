@@ -32,7 +32,8 @@ Type `text`, `components/TextLayer.js`, mise en page pure dans `components/text-
 police factice), données dans `components/text-layer.config.js`.
 
 Réglages : texte (une ligne par ligne), police (`serif`, `sans`, `mono`, `display` : les tokens `--font-*` de `tokens.css`, repli dans
-le config), taille, gras, italique, majuscules, couleur, alignement horizontal et vertical, interligne, espacement des lettres,
+le config) ou **police installée** par son nom (« Bebas Neue » : OBS tourne sur le même ordinateur, il voit ses polices ; la famille choisie sert
+de repli, et une police introuvable est signalée dans la console, une fois, sans casser le rendu ; le nom est assaini, rien ne sort de la pile CSS), taille, gras, italique, majuscules, couleur, alignement horizontal et vertical, interligne, espacement des lettres,
 **ajustement à la zone**, retour à la ligne automatique, contour (taille, couleur), ombre (flou, décalage X et Y, couleur).
 
 **Limites devenues fonctions :**
@@ -127,4 +128,5 @@ avec le même identifiant, scène peinte, diagnostic sans image manquante). 8 mu
 
 ## 7. Reste
 
-- **Polices importées** pour le texte (même magasin, type `font`).
+- **Polices importées** dans la médiathèque (type `font`), pour qu'une scène emporte aussi sa police : aujourd'hui une police installée
+  n'est trouvée que sur l'ordinateur qui l'a, et le lot ne l'emporte pas.
