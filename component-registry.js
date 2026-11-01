@@ -24,6 +24,7 @@ import { BrandingSceneLayer } from './components/BrandingSceneLayer.js';
 import { TextLayer } from './components/TextLayer.js';
 import { ShapeLayer } from './components/ShapeLayer.js';
 import { ImageLayer } from './components/ImageLayer.js';
+import { CodeLayer } from './components/CodeLayer.js';
 
 /**
  * Les factories ont des signatures hétérogènes ; le registry expose la vue unifiée
@@ -47,5 +48,6 @@ export const COMPONENT_REGISTRY = ({
   text: TextLayer,
   shape: ShapeLayer,
   image: ImageLayer,
+  code: CodeLayer,
 });
 

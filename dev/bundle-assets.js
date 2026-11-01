@@ -1,5 +1,5 @@
 // @ts-check
-import { ASSET_ID_PATTERN, MAX_ASSET_BYTES, MAX_ASSET_NAME, collectAssetUsage, sanitizeAssetName, sniffAssetType } from './asset-format.js';
+import { ASSET_ID_PATTERN, MAX_ASSET_BYTES, MAX_ASSET_NAME, collectAssetUsage, detectAssetType, sanitizeAssetName } from './asset-format.js';
 
 /**
  * dev/bundle-assets.js — Les images d'un lot d'export (version 4) : mise en base64 à l'export, lecture et contrôle à l'import. Pur.
@@ -32,6 +32,25 @@ export function base64ToBytes(text) {
   const bytes = new Uint8Array(binary.length);
   for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
   return bytes;
+}
+
+/**
+ * Le nombre de couches Code que des presets et des scènes contiennent : un lot qui en porte exécute du code sur l'ordinateur de celui qui l'importe, et
+ * le dit avant d'être confirmé.
+ * @param {unknown} presets
+ * @param {unknown} scenes
+ * @returns {number}
+ */
+export function countCodeLayers(presets, scenes) {
+  /** @param {unknown} value @returns {number} */
+  const count = (value) => {
+    if (Array.isArray(value)) return value.reduce((/** @type {number} */ sum, item) => sum + count(item), 0);
+    if (typeof value !== 'object' || value === null) return 0;
+    const entry = /** @type {Record<string, unknown>} */ (value);
+    const own = entry.kind === 'code' && typeof entry.options === 'object' && entry.options !== null ? 1 : 0;
+    return own + Object.values(entry).reduce((/** @type {number} */ sum, nested) => sum + count(nested), 0);
+  };
+  return count([presets, scenes]);
 }
 
 /**
@@ -83,8 +102,8 @@ export function unpackAssets(raw) {
       errors.push(`${where}.data : base64 illisible`);
       return;
     }
-    const type = sniffAssetType(bytes);
-    if (type === null) { errors.push(`${where} : ce n’est pas une image acceptée`); return; }
+    const type = detectAssetType(bytes, name);
+    if (type === null) { errors.push(`${where} : ce n’est pas un fichier accepté (image, police, script ou modèle 3D)`); return; }
     total += bytes.length;
     assets.push({ id, name: sanitizeAssetName(typeof name === 'string' ? name.slice(0, MAX_ASSET_NAME) : ''), type, bytes });
   });

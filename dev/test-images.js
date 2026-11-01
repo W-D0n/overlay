@@ -50,3 +50,8 @@ export function fontBytes(type, length = 64) {
   const heads = { woff2: ascii('wOF2'), woff: ascii('wOFF'), otf: ascii('OTTO'), ttf: [0, 1, 0, 0], 'ttf-true': ascii('true') };
   return Uint8Array.from([...heads[type], ...new Array(Math.max(0, length - 4)).fill(1)]);
 }
+
+/** Un en-tête de modèle 3D binaire (glTF 2) reconnaissable : pas un vrai modèle. @param {number} [length] @returns {Uint8Array} */
+export function glbBytes(length = 64) {
+  return Uint8Array.from([...ascii('glTF'), 2, 0, 0, 0, length & 255, (length >>> 8) & 255, 0, 0, ...new Array(Math.max(0, length - 12)).fill(0x20)]);
+}

@@ -53,6 +53,9 @@ test('initialise le parcours d’import avec son panneau de détails', () => {
     importDetails: element({ children: [element()] }),
     importConfirm: element(),
     importCancel: element(),
+    importCode: element(),
+    importCodeText: element(),
+    importCodeAck: element(),
     save: element(),
     createNew: element(),
   };
@@ -83,7 +86,7 @@ test('présente chaque point de départ comme une ligne cliquable plus un ajout 
   const elements = {
     list: element(), builtinList: element(), name: element(), tags: element(), search: element(),
     exportButton: element(), importTrigger: element(), importInput: element(), importReview: element(),
-    importSummary: element(), importDetails: element(), importConfirm: element(), importCancel: element(),
+    importSummary: element(), importDetails: element(), importConfirm: element(), importCancel: element(), importCode: element(), importCodeText: element(), importCodeAck: element(),
     save: element(), createNew: element(),
   };
   const controller = createBackgroundPresetController({
@@ -124,7 +127,7 @@ test('re-rendre les presets personnels ne détruit pas les vignettes des points 
   const elements = {
     list: element(), builtinList: element(), name: element(), tags: element(), search: element(),
     exportButton: element(), importTrigger: element(), importInput: element(), importReview: element(),
-    importSummary: element(), importDetails: element(), importConfirm: element(), importCancel: element(),
+    importSummary: element(), importDetails: element(), importConfirm: element(), importCancel: element(), importCode: element(), importCodeText: element(), importCodeAck: element(),
     save: element(), createNew: element(),
   };
   const controller = createBackgroundPresetController({
@@ -160,7 +163,7 @@ function draftSetup({ drafts, activePresetId = null }) {
   const elements = {
     list: element(), builtinList: element(), name: element(), tags: element(), search: element(),
     exportButton: element(), importTrigger: element(), importInput: element(), importReview: element(),
-    importSummary: element(), importDetails: element(), importConfirm: element(), importCancel: element(),
+    importSummary: element(), importDetails: element(), importConfirm: element(), importCancel: element(), importCode: element(), importCodeText: element(), importCodeAck: element(),
     save: element(), createNew: element(),
   };
   const applied = [];

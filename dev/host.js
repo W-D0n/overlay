@@ -46,6 +46,9 @@ import { findEntry, recordReplaced } from './background-history.js';
 import { withDraft, withDrafts, withoutDraft } from './preset-drafts.js';
 import { channelForPath } from './channels.js';
 import { EXIT_RESTART, EXIT_STOP } from './supervisor.js';
+
+/** Le fichier d'un asset de la médiathèque : seule route qu'une page isolée (Origin `null`) peut lire. */
+const ASSET_FILE_PATH = /^\/assets\/[0-9a-f]{32}$/;
 import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
 import { validateBranding } from '../branding-format.js';
 import { validateBenchReport } from './obs-bench.js';
@@ -449,7 +452,9 @@ export function createHost({ store, assets, versions, channels, obs, control, co
     async fetch(req, server) {
       const url = new URL(req.url);
       const viaTwitchat = twitchat !== null && twitchat.handles(req, url);
-      const rejected = rejectNonLocalRequest(req, { anyOrigin: viaTwitchat });
+      // Une couche Code lit ses fichiers depuis une page isolée, dont l'Origin est `null` : cette lecture seule, d'un fichier de la médiathèque, l'accepte.
+      const assetFileRead = req.method === 'GET' && ASSET_FILE_PATH.test(url.pathname);
+      const rejected = rejectNonLocalRequest(req, { anyOrigin: viaTwitchat, opaqueOrigin: assetFileRead });
       if (rejected !== null) return rejected;
       if (viaTwitchat) return twitchat.accept(req, url, /** @type {*} */ (server));
 

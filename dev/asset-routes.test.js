@@ -8,7 +8,7 @@ import { createStateStore } from './state-store.js';
 import { createAssetStore } from './asset-store.js';
 import { createVersionStore } from './version-store.js';
 import { MAX_ASSET_BYTES } from './asset-format.js';
-import { gifBytes, jpegBytes, pngBytes } from './test-images.js';
+import { gifBytes, glbBytes, jpegBytes, pngBytes } from './test-images.js';
 
 /** @type {string[]} */
 const directories = [];
@@ -181,5 +181,56 @@ describe('GET /diagnostics : les images des scènes', () => {
     await post('/state', { scene: { version: 1, id: 'current', name: 'En antenne', layers: [{ id: 'rain', kind: 'rain', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {} }] } });
     // L'image n'est plus qu'dans l'historique : le diagnostic ne la réclame pas.
     expect((await (await call('/diagnostics')).json()).assetUse.referenced).toBe(0);
+  });
+});
+
+describe('fichiers d’une couche Code : scripts et modèles 3D', () => {
+  const script = new TextEncoder().encode('export const VERSION = "r170";\n');
+
+  test('un script .js est rangé, puis servi comme du JavaScript (module accepté), sans reniflage', async () => {
+    const { upload, call } = setup();
+    const created = await upload(script, 'three.module.min.js');
+    expect(created.status).toBe(201);
+    const { asset } = await created.json();
+    expect(asset).toMatchObject({ type: 'js', mime: 'text/javascript; charset=utf-8', width: 0, height: 0, name: 'three.module.min.js' });
+    const served = await call(`/assets/${asset.id}`);
+    expect(served.headers.get('content-type')).toBe('text/javascript; charset=utf-8');
+    expect(served.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(served.headers.get('access-control-allow-origin')).toBe('*');
+    expect(new TextDecoder().decode(await served.arrayBuffer())).toBe('export const VERSION = "r170";\n');
+  });
+
+  test('du texte sous un nom qui n’est pas .js, ou un binaire sous un nom .js, est refusé', async () => {
+    const { upload } = setup();
+    expect((await upload(script, 'lib.txt')).status).toBe(400);
+    expect((await upload(script, 'lib.svg')).status).toBe(400);
+    expect((await upload(Uint8Array.from([0x61, 0x00, 0x62]), 'lib.js')).status).toBe(400);
+    expect((await upload(script)).status).toBe(400);
+  });
+
+  test('un modèle .glb est rangé et servi avec son type', async () => {
+    const { upload, call } = setup();
+    const { asset } = await (await upload(glbBytes(), 'dragon.glb')).json();
+    expect(asset.type).toBe('glb');
+    expect((await call(`/assets/${asset.id}`)).headers.get('content-type')).toBe('model/gltf-binary');
+  });
+
+  test('un script trop lourd est refusé avec la raison', async () => {
+    const { upload } = setup();
+    const response = await upload(new Uint8Array(5 * 1024 * 1024 + 1).fill(0x20), 'gros.js');
+    expect(response.status).toBe(400);
+    expect((await response.json()).error).toContain('script trop lourd');
+  });
+
+  test('la liste compte l’usage d’un script référencé par asset:<id> dans le code d’une couche, et la suppression est refusée', async () => {
+    const { upload, call, post } = setup();
+    const { asset } = await (await upload(script, 'lib.js')).json();
+    const layer = { id: 'c', kind: 'code', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: { html: '', css: '', js: `import 'asset:${asset.id}';`, paramSpec: '[]', params: {}, audioReactive: false } };
+    const published = await post('/state', { scene: { version: 1, id: 's', name: 's', layers: [layer] } });
+    expect(published.status).toBe(200);
+    const listed = (await (await call('/assets')).json()).assets.find((entry) => entry.id === asset.id);
+    expect(listed.uses).toBe(1);
+    const removal = await call(`/assets/${asset.id}`, { method: 'DELETE' });
+    expect(removal.status).toBe(409);
   });
 });

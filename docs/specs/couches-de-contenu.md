@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # Spec — Couches de contenu (texte, forme, image)
@@ -147,6 +147,8 @@ Vérifié : `dev/asset-format.test.js`, `components/asset-font.test.js` (chargeu
 différente, sélecteur filtré, export, suppression refusée). 11 mutations vues rouges (une équivalente a fait supprimer du code).
 
 ## 8. Reste
+
+- La couche **Code** (HTML, CSS et JavaScript dans une page isolée) est un quatrième contenu, spécifié à part : `couche-code.md`. Elle n'est pas un canvas : pas de vignette, pas de photo de scène.
 
 - Typographie fine : plusieurs graisses d'une même famille, variantes (gras / italique réels d'une police importée) ; aujourd'hui gras et
   italique sont ceux que le navigateur synthétise.

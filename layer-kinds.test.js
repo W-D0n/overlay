@@ -155,3 +155,30 @@ describe('familles de types : effet, contenu, identité', () => {
     expect(EFFECT_KIND_IDS.length + CONTENT_KIND_IDS.length + 1).toBe(LAYER_KIND_IDS.length);
   });
 });
+
+describe('couche Code', () => {
+  test('c’est un contenu qu’une vignette ne photographie pas, qui reçoit le son et les alertes', async () => {
+    const { kindFamily, isPhotographable, kindCapabilities } = await import('./layer-kinds.js');
+    expect(kindFamily('code')).toBe('content');
+    expect(CONTENT_KIND_IDS).toContain('code');
+    expect(EFFECT_KIND_IDS).not.toContain('code');
+    expect(isPhotographable('code')).toBe(false);
+    for (const id of LAYER_KIND_IDS) if (id !== 'code') expect(isPhotographable(id)).toBe(true);
+    expect(isPhotographable('inconnu')).toBe(true);
+    expect(kindCapabilities('code')).toEqual({ audio: true, reactions: 'overlay', events: true });
+  });
+
+  test('seul le code reçoit les alertes en plus de la surcouche', () => {
+    expect(LAYER_KIND_IDS.filter((id) => LAYER_KINDS[id].capabilities.events === true)).toEqual(['code']);
+  });
+
+  test('le texte du code est borné, le reste est un texte ou un objet', () => {
+    expect(validateOptions('code', { html: 'x'.repeat(200_000), css: '', js: '', paramSpec: '[]', params: {}, audioReactive: false })).toEqual([]);
+    expect(validateOptions('code', { html: 'x'.repeat(200_001) })).toEqual(['html : 200000 caractères au plus']);
+    expect(validateOptions('code', { paramSpec: 'x'.repeat(20_001) })).toEqual(['paramSpec : 20000 caractères au plus']);
+    expect(validateOptions('code', { js: 42 })).toEqual(['js : texte attendu']);
+    expect(validateOptions('code', { params: [] })).toEqual(['params : objet attendu']);
+    expect(validateOptions('code', { params: null })).toEqual(['params : objet attendu']);
+    expect(validateOptions('code', { params: { a: 1 } })).toEqual([]);
+  });
+});

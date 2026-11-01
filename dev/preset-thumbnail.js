@@ -1,5 +1,6 @@
 // @ts-check
 import { createSceneRuntime } from '../scene-runtime.js';
+import { isPhotographable } from '../layer-kinds.js';
 import { createThumbnailQueue } from './thumbnail-queue.js';
 import { STAGE_HEIGHT, STAGE_WIDTH } from './preview-stage.js';
 
@@ -225,7 +226,8 @@ export function createPresetThumbnail(input) {
   async function captureStill() {
     if (destroyed) return;
     const mount = createSceneRuntime(stage);
-    mount.apply(input.scene);
+    // Une couche Code est un document isolé, pas un canvas : la monter pour une photo ferait tourner son code pour rien.
+    mount.apply({ ...input.scene, layers: input.scene.layers.filter((layer) => isPhotographable(layer.kind)) });
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
       await delay(WARMUP_MS);

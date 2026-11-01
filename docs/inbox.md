@@ -16,6 +16,7 @@ Notes et items qui restent à traiter. Les clôtures récentes sont consignées 
 Ce que seul l'owner peut faire (OBS, regard humain, décision). **Claude rappelle cette liste à la clôture du projet**
 (fin de l'étape 6), avant de dire que tout est terminé. **Les étapes détaillées de chaque point sont dans [`procedures-owner.md`](procedures-owner.md)** (numéros entre parenthèses).
 
+- [ ] **Couche Code dans OBS** (2026-11-01, §15) : WebGL2 disponible dans la source navigateur ? i/s tenus avec un cube three.js ? coût d'une page isolée (processus en plus) ? l'animation rejoue à chaque arrivée de scène ?
 - [ ] **Brancher Twitch** (2026-10-31, §1) : créer l'application Twitch (type Public), saisir son identifiant client dans Réglages › Twitch, se connecter par code. Puis premier vrai follow / sub / raid / bits.
 - [ ] **Relier Twitchat** (2026-10-31, §2) : coller l'adresse de Réglages › Twitchat dans le paramètre WebSocket de Twitchat, créer un trigger par alerte avec le modèle de message. À confirmer : libellés de Twitchat, placeholders `{USER}` / `{BITS}`, demande d'accès au réseau local du navigateur.
 - [ ] **Saisir le mot de passe OBS dans Réglages** (2026-10-31, §3) : remplace le `.env` ; vérifier « Connecté à OBS — N scène(s) ».
@@ -65,6 +66,24 @@ aucun code Twitch dans le dépôt (les alertes viennent du bouton de test du Stu
    dans la timeline, valeurs animables supplémentaires (couleur, rognage, taille du texte), graisses et variantes réelles d'une
    police importée, comparaison visuelle et vignettes de versions, versions emportées par un export.
 8. **Alerte sonore ou notification native** des incidents (repli sur l'application de bureau Tauri) — selon l'usage réel.
+
+### Création riche : animations CSS, JS, 3D (2026-11-01)
+
+Constat vérifié : les 12 effets dessinent en canvas 2D, et le code ne contient ni WebGL, ni shader, ni couche HTML/CSS libre.
+Principe retenu : **three.js n'entre pas dans le produit** (lib de ~700 Ko, contraire à « zéro dépendance ») ; il devient du contenu
+que l'owner apporte dans la médiathèque et que la couche Code charge. Exception possible, **à décider par l'owner** : livrer three.js avec le produit.
+Ordre = recommandation.
+
+1. ~~**Couche Code isolée**~~ — **faite le 2026-11-01** (`specs/couche-code.md`) : HTML + CSS + JS dans une `iframe` `sandbox` sans `allow-same-origin`, politique de contenu limitée à la médiathèque,
+   réglages déclarés par le code → formulaire du Studio, son et alertes reçus par `postMessage`, fichiers `asset:<id>` (images, polices, scripts `.js`, modèles `.glb`), import confirmé par une case. À éprouver dans OBS (procédure §15).
+   **Reste (écart avec ce qui était annoncé)** : les réglages du code ne sont **pas encore animables par la timeline ni les liaisons** (elles ne ciblent que opacité, rotation, flou, échelle, position — c'est la piste 5, « valeurs animables supplémentaires », qui en devient un prérequis) ;
+   le code reçoit déjà le son et les alertes lui-même. Autres restes : éditeur de réglages en lignes plutôt qu'en JSON, éditeur de code (indentation, coloration), modèles de départ, `.gltf` à fichiers séparés.
+2. **Couche Shader** (GLSL en WebGL2 natif, uniformes `time`, `resolution`, `audio` et paramètres) — fonds premium plus légers que three.js.
+3. **Déclencheurs d'alerte → animation** (rejouer une timeline sur une alerte, piste 2 ci-dessus), qui sert aussi les couches Code et Shader.
+4. **Animations de texte et de forme sans code** : préréglages d'entrée, de boucle et de sortie (lettre par lettre, machine à écrire, glitch, rebond, masque).
+5. **Finitions** : groupes de couches, courbes de Bézier, copier-coller d'images clés, filtres par couche (flou, lueur, masque), bibliothèque de modèles.
+6. **À mesurer avant d'aller plus loin** (hypothèses, rien n'est mesuré) : WebGL2 et `iframe` dans la source navigateur d'OBS (dépend de l'accélération matérielle) ;
+   coût d'une `iframe` plus un rendu 3D par scène à 1080p/60 → plafond ou indicateur de charge dans le Studio.
 
 ---
 

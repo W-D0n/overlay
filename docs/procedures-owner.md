@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # Procédures — ce que seul l'owner peut faire
@@ -9,7 +9,7 @@ Chaque point de [`inbox.md`](inbox.md) § « À faire par l'owner » a ici ses �
 essais (faux OBS, faux Twitch, vrai Chrome) n'est pas répété : ces procédures couvrent ce qu'**aucun essai ne peut montrer** (le vrai OBS, le vrai Twitch,
 le vrai Twitchat, un regard humain). Quand je n'ai pas pu lire une étiquette d'interface chez un tiers (Twitch, Twitchat), je l'écris **« à vérifier à l'écran »**.
 
-Ordre conseillé : 1 → 2 → 3 (les connexions), puis 4 à 9 (OBS), puis 10 à 14 (le reste).
+Ordre conseillé : 1 → 2 → 3 (les connexions), puis 4 à 9 et 15 (OBS), puis 10 à 14 (le reste).
 
 ---
 
@@ -200,6 +200,22 @@ Quand les serveurs tournent déjà, que doit faire `start-stream.bat` ? Aujourd'
 
 Utilisez l'éditeur pour de vrais lives pendant quelque temps. Notez les moments où vous avez voulu **déplacer, masquer ou animer plusieurs couches ensemble**, ou retrouver une couche dans une longue pile.
 **Me dire** : les gestes qui ont manqué, et si des **groupes de couches** les auraient résolus. C'est ce qui décide de 6h.
+
+---
+
+## 15. Couche Code dans OBS (WebGL, performances)
+
+**Pourquoi** : les essais prouvent l'isolement et le comportement dans Chrome ; ils ne peuvent pas dire ce que la source navigateur d'**OBS** accepte, ni ce que coûte une page isolée à 1080p / 60 i/s.
+**Hypothèses non mesurées** : WebGL2 est disponible dans la source navigateur d'OBS (cela dépend de l'option d'accélération matérielle de la source) ; une page isolée coûte un processus de plus.
+
+1. Studio → **+ Ajouter › Code** : gardez le titre qui bat (CSS seul), publiez, regardez dans OBS : le titre est net, à la bonne taille, **bat à 60 i/s**.
+2. Remplacez le JavaScript par un canvas WebGL (n'importe quel exemple de triangle ou de cube qui appelle `canvas.getContext('webgl2')`), publiez. Si l'écran reste vide : dans les propriétés de la source navigateur d'OBS,
+   cochez **Utiliser l'accélération matérielle du navigateur** (nom *à vérifier à l'écran*), puis rafraîchissez la source.
+3. Importez `three.module.min.js` dans la médiathèque, chargez-le (`import * as THREE from 'asset:…'`) et affichez un cube qui tourne. Regardez la fluidité.
+4. Regardez le coût machine d'OBS (Gestionnaire des tâches : processus de la source navigateur) avec 0, puis 1, puis 3 couches Code.
+5. Changez de scène OBS et revenez : l'animation d'entrée **rejoue** à chaque arrivée.
+
+**Me dire** : WebGL2 disponible ou non (et avec quelle case cochée), i/s tenus avec le cube, processus et mémoire en plus par couche Code, si l'animation rejoue.
 
 ---
 

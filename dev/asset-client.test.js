@@ -82,8 +82,8 @@ describe('vue de la médiathèque', () => {
 
   test('summarizeImport décrit ce qui s’est passé, sans rien taire', () => {
     expect(summarizeImport({ added: 2, known: 1, failed: [], ignored: 0 })).toBe('2 images importées · 1 image était déjà là.');
-    expect(summarizeImport({ added: 0, known: 0, failed: ['x.png : image illisible'], ignored: 2 })).toBe('2 fichiers ignorés (ni images ni polices) · refusé : x.png : image illisible.');
-    expect(summarizeImport({ added: 1, known: 0, failed: [], ignored: 1 })).toBe('1 image importée · 1 fichier ignoré (ce n’est ni une image ni une police).');
+    expect(summarizeImport({ added: 0, known: 0, failed: ['x.png : image illisible'], ignored: 2 })).toBe('2 fichiers ignorés (format non pris en charge) · refusé : x.png : image illisible.');
+    expect(summarizeImport({ added: 1, known: 0, failed: [], ignored: 1 })).toBe('1 image importée · 1 fichier ignoré (format non pris en charge).');
     expect(summarizeImport({ added: 0, known: 0, failed: [], ignored: 0 })).toBe('Aucun fichier à importer.');
   });
 });
@@ -104,5 +104,24 @@ describe('vue de la médiathèque : polices', () => {
   test('summarizeImport parle de fichiers dès qu’une police s’y mêle, au masculin', () => {
     expect(summarizeImport({ added: 2, known: 1, failed: [], ignored: 0, noun: 'fichier' })).toBe('2 fichiers importés · 1 fichier était déjà là.');
     expect(summarizeImport({ added: 1, known: 0, failed: [], ignored: 0, noun: 'fichier' })).toBe('1 fichier importé.');
+  });
+});
+
+describe('vue de la médiathèque : scripts et modèles 3D', () => {
+  test('describeAsset dit le genre de fichier, pas des dimensions', () => {
+    expect(describeAsset({ type: 'js', width: 0, height: 0, bytes: 700 * 1024, uses: 1 })).toBe('script JavaScript · 700 Ko · utilisée 1 fois');
+    expect(describeAsset({ type: 'glb', width: 0, height: 0, bytes: 2 * 1024 * 1024, uses: 0 })).toBe('modèle 3D · 2,0 Mo · inutilisée');
+  });
+
+  test('pickImageFiles garde aussi les scripts et les modèles, reconnus à leur extension (le navigateur ne leur donne pas de type)', () => {
+    const files = [{ name: 'three.module.js', type: 'text/javascript' }, { name: 'lib.mjs', type: '' }, { name: 'dragon.GLB', type: '' }, { name: 'notes.txt', type: 'text/plain' }];
+    const { images, ignored } = pickImageFiles(files);
+    expect(images.map((file) => file.name)).toEqual(['three.module.js', 'lib.mjs', 'dragon.GLB']);
+    expect(ignored).toBe(1);
+  });
+
+  test('le sélecteur de fichiers propose les extensions de scripts et de modèles', async () => {
+    const { ACCEPTED_FILE_TYPES } = await import('./asset-library-view.js');
+    for (const extension of ['.js', '.mjs', '.glb']) expect(ACCEPTED_FILE_TYPES).toContain(extension);
   });
 });

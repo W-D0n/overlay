@@ -1,6 +1,6 @@
 ---
 created: 2026-10-30
-updated: 2026-10-31
+updated: 2026-11-01
 ---
 
 # Studio — l'éditeur de couches
@@ -47,6 +47,7 @@ sur votre ordinateur, à côté du fichier d'état.
 
 - La médiathèque garde aussi des **polices** (WOFF2, WOFF, TTF, OTF, 5 Mo au plus) : le réglage « Police importée » d'un texte les propose, et elles
   voyagent avec la scène dans un export, ce que la police installée ne fait pas. Elles se montrent par un échantillon écrit dans leur propre police.
+- La médiathèque garde aussi les **fichiers d'une couche Code** : scripts `.js` / `.mjs` (5 Mo au plus, texte UTF-8) et modèles 3D `.glb` ; ils se montrent par une étiquette « JS » ou « 3D ».
 - Limites : 15 Mo et 25 millions de pixels par image ; le SVG n'est pas accepté. Un fichier qui n'est pas vraiment une image est refusé,
   quel que soit son nom.
 - Le réglage **Cadrage** choisit entre contenir (toute l'image), couvrir (la zone est remplie, l'image est rognée) et étirer.
@@ -55,6 +56,30 @@ sur votre ordinateur, à côté du fichier d'état.
   le dit).
 - Une image **utilisée** par une scène ne se supprime pas : retirez-la d'abord des couches. Si une image manque (dossier copié sans
   elle), le diagnostic le signale et la couche affiche « (image manquante) » : importez-la à nouveau et choisissez-la.
+
+### Écrire du code : la couche Code
+
+La couche **Code** exécute du **HTML, du CSS et du JavaScript** que vous écrivez ou importez : animations CSS riches, canvas, WebGL, et une
+bibliothèque 3D comme three.js. Elle s'ajoute comme les autres (« + Ajouter › Code ») et se place comme un contenu ; elle arrive et part avec sa scène, et **la page
+repart de zéro à chaque arrivée de scène** (une animation d'entrée se rejoue).
+
+- **Trois zones de code** : HTML (le corps de la page), CSS, JavaScript. Le JavaScript est un **module** : `import`, `await` de premier niveau. Un changement de code recharge la
+  page après une courte pause ; un réglage ne la recharge pas.
+- **Réglages exposés** : une liste JSON décrit les réglages que le Studio présente comme des champs (`number`, `text`, `color`, `boolean`, `select`) :
+  `{ "key": "taille", "label": "Taille", "type": "number", "default": 120, "min": 20, "max": 400, "step": 1 }`. Chaque réglage est une variable CSS
+  `var(--param-<clé>)` et se lit dans `overlay.params`. Une déclaration invalide ne casse rien : le défaut est dit sous le champ, en direct.
+- **Ce que le code reçoit** : `overlay.params` (réglages), `overlay.size` (largeur et hauteur **en pixels de la source de référence**, comme le texte : 96 px de CSS font
+  96 px de la source quelle que soit la résolution d'OBS), `overlay.pixelRatio`, `overlay.levels` (le son : `level`, `bass`, `mid`, `treble`, si « Réagit au son » est coché),
+  `overlay.on("params" | "levels" | "alert" | "resize", fonction)` et `overlay.assetUrl(id)`. Les variables CSS `--audio`, `--audio-bass`, `--audio-mid`, `--audio-treble` suivent le son ;
+  une alerte pose la classe `alert-follow`, `alert-sub`, `alert-raid` ou `alert-bits` sur la page pendant 3 s (ce qui relance une animation CSS), et arrive à `overlay.on("alert", …)` avec
+  `type`, `username` et `amount`. Une alerte qui arrive pendant le chargement de la page est gardée quelques secondes, puis remise.
+- **Fichiers** : le bouton **Insérer un fichier…** écrit `asset:<identifiant>` à l'endroit du curseur. Tout fichier de la médiathèque s'y référence : image (`<img src="asset:…">`,
+  `url(asset:…)`), police, **script** `.js` ou `.mjs` (`import * as THREE from 'asset:…'`), **modèle 3D** `.glb`. Ces fichiers **voyagent dans un export** et ne se suppriment plus tant que le code les référence.
+  Pour three.js, importez son fichier `three.module.min.js` dans la médiathèque (rien n'est livré avec le Studio) et chargez-le comme ci-dessus.
+- **Erreurs** : une erreur du code apparaît sous le champ JavaScript, avec sa ligne dans votre code.
+- **Isolement** : le code tourne dans une page isolée. Il ne voit ni le Studio, ni ses fichiers, ni Internet : il ne peut lire que la médiathèque. Une scène **importée** qui contient du code demande une
+  case cochée avant d'être importée : n'importez que ce dont vous connaissez l'auteur. Détail et limites : `docs/security.md`.
+- **Aperçu** : une couche Code n'a pas de vignette (pictogramme à la place). Le reste de la scène est inchangé.
 
 ### Faire réagir une couche (liaisons)
 

@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync } from 'no
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { FAKE_CLIENT_ID, startFakeTwitch } from './e2e/fake-twitch.js';
+import { pngBytes } from './test-images.js';
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -802,5 +803,44 @@ test('Twitch : un jeton près d’expirer est rafraîchi au démarrage, avant la
     expect(twitch.log.subscriptions.every((entry) => entry.token === stored.accessToken)).toBe(true);
   } finally {
     await cleanup();
+  }
+});
+
+test('une page isolée (Origin « null ») ne lit qu’un fichier de la médiathèque : ni l’état, ni la liste, ni une écriture, ni une suppression', async () => {
+  const directory = mkdtempSync(join(tmpdir(), 'overlay-opaque-'));
+  const stateFile = join(directory, 'state.json');
+  const { child, baseUrl } = await startStateServer({ stateFile });
+  try {
+    const uploaded = await fetch(`${baseUrl}/assets?name=logo.png`, { method: 'POST', body: pngBytes(4, 4) });
+    expect(uploaded.status).toBe(201);
+    const { asset } = await uploaded.json();
+    const opaque = { Origin: 'null' };
+
+    const file = await fetch(`${baseUrl}/assets/${asset.id}`, { headers: opaque });
+    expect(file.status).toBe(200);
+    expect(file.headers.get('access-control-allow-origin')).toBe('*');
+    expect(file.headers.get('x-content-type-options')).toBe('nosniff');
+
+    for (const [method, path, body] of [
+      ['GET', '/state', undefined],
+      ['GET', '/assets', undefined],
+      ['GET', '/connections', undefined],
+      ['GET', '/diagnostics', undefined],
+      ['GET', '/history', undefined],
+      ['DELETE', `/assets/${asset.id}`, undefined],
+      ['POST', '/assets?name=x.png', pngBytes(2, 2)],
+      ['POST', '/event', JSON.stringify({ type: 'follow', username: 'x' })],
+      ['POST', '/save-preset', JSON.stringify({ name: 'Intrus', component: 'rain', options: {} })],
+    ]) {
+      const response = await fetch(`${baseUrl}${path}`, { method, headers: { ...opaque, 'X-Overlay-Control': '1', 'Content-Type': 'application/json' }, body });
+      expect([method, path, response.status]).toEqual([method, path, 403]);
+    }
+    // Une origine étrangère, elle, ne lit pas même le fichier.
+    expect((await fetch(`${baseUrl}/assets/${asset.id}`, { headers: { Origin: 'https://evil.example' } })).status).toBe(403);
+    // Et l'asset est toujours là : rien de ce qui précède ne l'a touché.
+    expect((await fetch(`${baseUrl}/assets/${asset.id}`)).status).toBe(200);
+  } finally {
+    child.kill();
+    rmSync(directory, { recursive: true, force: true });
   }
 });

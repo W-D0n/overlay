@@ -5,11 +5,13 @@ import { isAudioOn } from '../layer-kinds.js';
 import { DESIGN_TOKENS, tokenLabel } from './design-tokens.js';
 import { buildNumericFieldControl } from './numeric-field-control.js';
 import { assetKind } from './asset-format.js';
+import { normalizeParamValues, paramFieldSchemas, parseParamSpec } from '../components/code-params.js';
 
 const DEFAULT_ADDED_COLOR = 'var(--color-gold)';
 
 /**
  * @typedef {{ assets: () => import('./asset-client.js').LibraryAsset[], subscribe: (listener: (assets: import('./asset-client.js').LibraryAsset[]) => void) => () => void, open: (choose: (asset: import('./asset-client.js').LibraryAsset) => void, accept?: 'image' | 'font') => void }} AssetLibraryAccess
+ * @typedef {Pick<NonNullable<import('../types.js').ComponentInstance['reports']>, 'current' | 'subscribe'>} CodeReports
  * @typedef {import('./color-palette-format.js').NamedColor} PaletteColor
  * @typedef {import('./color-palette-format.js').NamedGradient} PaletteGradient
  */
@@ -50,6 +52,10 @@ export function createBackgroundFieldRenderer(input) {
   let palette = { colors: [], gradients: [] };
   /** Les abonnements aux listes d'images du formulaire affiché ; relâchés à chaque nouveau formulaire. @type {(() => void)[]} */
   const assetCleanups = [];
+  /** Le formulaire des réglages déclarés par le code (couche Code) affiché, et ce qui le reconstruit quand la déclaration change. @type {{ host: HTMLElement, values: Record<string, unknown> } | null} */
+  let paramsForm = null;
+  /** Les erreurs que le code de la couche affichée a remontées. @type {CodeReports | null} */
+  let codeReports = null;
 
   /** @param {string} label @param {string} value @param {boolean} [selected] */
   function createOption(label, value, selected = false) {
@@ -121,8 +127,10 @@ export function createBackgroundFieldRenderer(input) {
     return wrapper;
   }
 
-  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value */
-  function buildAssetField(field, value) {
+  /** @typedef {(key: string, value: unknown) => void} Emit */
+
+  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit */
+  function buildAssetField(field, value, emit) {
     const wrapper = documentRef.createElement('div');
     wrapper.className = 'asset-field';
     const select = documentRef.createElement('select');
@@ -139,14 +147,14 @@ export function createBackgroundFieldRenderer(input) {
     fill(input.assetLibrary?.assets() ?? []);
     select.onchange = () => {
       current = select.value;
-      input.onChange(field.key, current);
+      emit(field.key, current);
     };
     const library = documentRef.createElement('button');
     library.type = 'button';
     library.textContent = 'Médiathèque…';
     library.onclick = () => input.assetLibrary?.open((asset) => {
       current = asset.id;
-      input.onChange(field.key, current);
+      emit(field.key, current);
       fill(input.assetLibrary?.assets() ?? []);
     }, accept);
     const unsubscribe = input.assetLibrary?.subscribe(fill);
@@ -155,8 +163,8 @@ export function createBackgroundFieldRenderer(input) {
     return wrapper;
   }
 
-  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value */
-  function buildTokenField(field, value) {
+  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit */
+  function buildTokenField(field, value, emit) {
     const wrapper = documentRef.createElement('div');
     const select = documentRef.createElement('select');
     select.setAttribute('aria-label', field.label);
@@ -178,15 +186,15 @@ export function createBackgroundFieldRenderer(input) {
       const isCustom = select.value === '__custom__';
       customInput.hidden = !isCustom;
       if (isCustom) customInput.focus();
-      else input.onChange(field.key, select.value);
+      else emit(field.key, select.value);
     };
-    customInput.oninput = () => input.onChange(field.key, customInput.value);
+    customInput.oninput = () => emit(field.key, customInput.value);
     wrapper.append(select, customInput);
     return wrapper;
   }
 
-  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value */
-  function buildColorsField(field, value) {
+  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit */
+  function buildColorsField(field, value, emit) {
     const wrapper = documentRef.createElement('div');
     wrapper.className = 'colors-control';
     let values = backgroundColorsFieldValues(value);
@@ -209,7 +217,7 @@ export function createBackgroundFieldRenderer(input) {
     list.className = 'color-list';
 
     function publish() {
-      input.onChange(field.key, [...values]);
+      emit(field.key, [...values]);
     }
 
     function renderRows() {
@@ -256,21 +264,28 @@ export function createBackgroundFieldRenderer(input) {
     return wrapper;
   }
 
-  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value */
-  function buildField(field, value) {
-    if (field.type === 'token') return buildTokenField(field, value);
+  /**
+   * @param {import('../layer-kinds.js').FieldSchema} field
+   * @param {unknown} value
+   * @param {Emit} [emit] où part le changement (par défaut, l'option de la couche réglée)
+   * @param {Record<string, unknown>} [options] les options de la couche réglée (le champ « réglages » lit la déclaration qui s'y trouve)
+   */
+  function buildField(field, value, emit = input.onChange, options = {}) {
+    if (field.type === 'token') return buildTokenField(field, value, emit);
     if (field.type === 'color') {
-      return buildColorControl(value, (next) => input.onChange(field.key, next), field.label);
+      return buildColorControl(value, (next) => emit(field.key, next), field.label);
     }
-    if (field.type === 'colors') return buildColorsField(field, value);
-    if (field.type === 'asset') return buildAssetField(field, value);
+    if (field.type === 'colors') return buildColorsField(field, value, emit);
+    if (field.type === 'asset') return buildAssetField(field, value, emit);
+    if (field.type === 'code') return buildCodeField(field, value, emit);
+    if (field.type === 'params') return buildParamsField(field, value, emit, options);
     if (field.type === 'select') {
       const select = documentRef.createElement('select');
       select.setAttribute('aria-label', field.label);
       for (const choice of field.choices ?? []) {
         select.appendChild(createOption(choice, choice, choice === value));
       }
-      select.onchange = () => input.onChange(field.key, select.value);
+      select.onchange = () => emit(field.key, select.value);
       return select;
     }
     if (field.type === 'boolean') {
@@ -278,14 +293,14 @@ export function createBackgroundFieldRenderer(input) {
       checkbox.type = 'checkbox';
       checkbox.setAttribute('aria-label', field.label);
       checkbox.checked = isAudioOn(value);
-      checkbox.onchange = () => input.onChange(field.key, checkbox.checked);
+      checkbox.onchange = () => emit(field.key, checkbox.checked);
       return checkbox;
     }
     if (field.type === 'textarea') {
       const textarea = documentRef.createElement('textarea');
       textarea.setAttribute('aria-label', field.label);
       textarea.value = Array.isArray(value) ? value.join('\n') : '';
-      textarea.oninput = () => input.onChange(
+      textarea.oninput = () => emit(
         field.key,
         textarea.value.split('\n').filter((line) => line.length > 0),
       );
@@ -295,7 +310,7 @@ export function createBackgroundFieldRenderer(input) {
       return buildNumericFieldControl(
         field,
         value,
-        (next) => input.onChange(field.key, next),
+        (next) => emit(field.key, next),
         { documentRef },
       );
     }
@@ -303,8 +318,125 @@ export function createBackgroundFieldRenderer(input) {
     text.type = 'text';
     text.setAttribute('aria-label', field.label);
     text.value = String(value ?? '');
-    text.oninput = () => input.onChange(field.key, text.value);
+    text.oninput = () => emit(field.key, text.value);
     return text;
+  }
+
+  /** @param {string} text @param {{ start: number, end: number }} selection @param {string} insertion */
+  function insertAt(text, selection, insertion) {
+    return { text: `${text.slice(0, selection.start)}${insertion}${text.slice(selection.end)}`, caret: selection.start + insertion.length };
+  }
+
+  /**
+   * Un texte de code : zone de saisie à chasse fixe, insertion d'un fichier de la médiathèque (HTML, CSS, JavaScript), et un compte rendu
+   * dessous — la déclaration des réglages dit ses défauts en direct, le JavaScript montre les erreurs que la page a remontées.
+   * @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit
+   */
+  function buildCodeField(field, value, emit) {
+    const wrapper = documentRef.createElement('div');
+    wrapper.className = 'code-field';
+    const textarea = documentRef.createElement('textarea');
+    textarea.className = 'code-input';
+    textarea.setAttribute('aria-label', field.label);
+    textarea.setAttribute('spellcheck', 'false');
+    textarea.setAttribute('autocapitalize', 'off');
+    textarea.setAttribute('autocomplete', 'off');
+    textarea.setAttribute('wrap', 'off');
+    textarea.rows = field.language === 'javascript' ? 14 : field.language === 'css' ? 10 : 8;
+    textarea.value = typeof value === 'string' ? value : '';
+    const status = documentRef.createElement('p');
+    status.className = 'field-status';
+    status.setAttribute('role', 'status');
+
+    /** @param {string} text */
+    function showParamProblems(text) {
+      const { errors } = parseParamSpec(text);
+      status.textContent = errors.join('\n');
+      status.dataset.level = errors.length > 0 ? 'error' : 'ok';
+    }
+    textarea.oninput = () => {
+      emit(field.key, textarea.value);
+      if (field.key === 'paramSpec') {
+        showParamProblems(textarea.value);
+        rebuildParams(textarea.value);
+      }
+    };
+    wrapper.appendChild(textarea);
+
+    if (['html', 'css', 'javascript'].includes(field.language ?? '')) {
+      const insert = documentRef.createElement('button');
+      insert.type = 'button';
+      insert.className = 'code-insert';
+      insert.textContent = 'Insérer un fichier…';
+      insert.title = 'Choisir un fichier de la médiathèque : son adresse (asset:<identifiant>) est écrite à l’endroit du curseur';
+      insert.disabled = input.assetLibrary === undefined;
+      insert.onclick = () => {
+        const selection = { start: textarea.selectionStart ?? textarea.value.length, end: textarea.selectionEnd ?? textarea.value.length };
+        input.assetLibrary?.open((asset) => {
+          const next = insertAt(textarea.value, selection, `asset:${asset.id}`);
+          textarea.value = next.text;
+          textarea.focus();
+          textarea.setSelectionRange(next.caret, next.caret);
+          emit(field.key, next.text);
+        });
+      };
+      wrapper.appendChild(insert);
+    }
+    wrapper.appendChild(status);
+
+    if (field.key === 'paramSpec') showParamProblems(textarea.value);
+    if (field.key === 'js' && codeReports !== null) {
+      /** @param {readonly { message: string, line: number | null }[]} reports */
+      const show = (reports) => {
+        status.textContent = reports.slice(-3).map(({ message, line }) => (line === null ? message : `ligne ${line} : ${message}`)).join('\n');
+        status.dataset.level = reports.length > 0 ? 'error' : 'ok';
+      };
+      show(codeReports.current());
+      assetCleanups.push(codeReports.subscribe(show));
+    }
+    return wrapper;
+  }
+
+  /**
+   * Les réglages que le code déclare, présentés comme les champs de n'importe quelle couche. Leurs valeurs vivent dans l'option `params` ; la déclaration
+   * (`paramSpec`) vient des options de la couche réglée et se relit à chaque frappe (voir `rebuildParams`).
+   * @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit @param {Record<string, unknown>} options
+   */
+  function buildParamsField(field, value, emit, options) {
+    const host = documentRef.createElement('div');
+    host.className = 'params-field';
+    paramsForm = { host, values: typeof value === 'object' && value !== null ? { .../** @type {Record<string, unknown>} */ (value) } : {} };
+    paramsEmit = (values) => emit(field.key, values);
+    rebuildParams(typeof options.paramSpec === 'string' ? options.paramSpec : '');
+    return host;
+  }
+
+  /** @type {((values: Record<string, unknown>) => void) | null} */
+  let paramsEmit = null;
+
+  /** Reconstruit le formulaire des réglages d'après une déclaration ; les valeurs déjà réglées sont gardées pour les clés qui restent. @param {string} specText */
+  function rebuildParams(specText) {
+    if (paramsForm === null || paramsEmit === null) return;
+    const form = paramsForm;
+    const publish = paramsEmit;
+    const { params } = parseParamSpec(specText);
+    form.host.replaceChildren();
+    if (params.length === 0) {
+      const none = documentRef.createElement('p');
+      none.className = 'field-help';
+      none.textContent = 'Aucun réglage déclaré : ajoutez-en dans « Réglages exposés » pour les voir ici.';
+      form.host.appendChild(none);
+      return;
+    }
+    form.values = normalizeParamValues(params, form.values);
+    for (const sub of paramFieldSchemas(params)) {
+      const label = documentRef.createElement('label');
+      label.textContent = sub.label;
+      form.host.append(label, buildField(sub, form.values[sub.key], (key, next) => {
+        form.values = { ...form.values, [key]: next };
+        publish(form.values);
+      }));
+    }
   }
 
   return {
@@ -315,14 +447,21 @@ export function createBackgroundFieldRenderer(input) {
         gradients: Array.isArray(next.gradients) ? next.gradients : [],
       };
     },
-    /** @param {string | null} component @param {Record<string, unknown>} options */
-    render(component, options) {
+    /**
+     * @param {string | null} component
+     * @param {Record<string, unknown>} options
+     * @param {{ reports?: CodeReports }} [context] ce que la couche affichée remonte (les erreurs de son code)
+     */
+    render(component, options, context = {}) {
       for (const cleanup of assetCleanups.splice(0)) cleanup();
+      paramsForm = null;
+      paramsEmit = null;
+      codeReports = context.reports ?? null;
       input.container.replaceChildren();
       for (const { field, value } of backgroundFieldValues(component, options)) {
         const label = documentRef.createElement('label');
         label.textContent = field.label;
-        input.container.append(label, buildField(field, value));
+        input.container.append(label, buildField(field, value, input.onChange, options));
         if (field.description) {
           const help = documentRef.createElement('p');
           help.className = 'field-help';

@@ -31,7 +31,8 @@ export function normalizeKindOptions(kind, raw) {
     const valid = field.type === 'number' ? typeof value === 'number' && Number.isFinite(value)
       : field.type === 'boolean' ? typeof value === 'boolean'
         : field.type === 'textarea' || field.type === 'colors' ? Array.isArray(value) && value.every((line) => typeof line === 'string')
-          : typeof value === 'string' && (field.type !== 'select' || (field.choices ?? []).includes(value));
+          : field.type === 'params' ? typeof value === 'object' && value !== null && !Array.isArray(value)
+            : typeof value === 'string' && (field.type !== 'select' || (field.choices ?? []).includes(value));
     if (valid) merged[field.key] = value;
   }
   return clampOptions(kind, merged);

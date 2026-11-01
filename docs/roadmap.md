@@ -30,6 +30,7 @@ conditions réelles dans OBS (liste « À faire par l'owner » de l'inbox).
 | Versions | Points de restauration nommés d'une scène | `specs/versions-de-scene.md` |
 | Incidents | Alerte quand le serveur, OBS ou la page de rendu est perdu | `specs/incidents-d-antenne.md` |
 | Connexions | Mot de passe OBS saisi dans le Studio (Réglages), alertes réelles par Twitch EventSub et par Twitchat | `specs/connexions-et-alertes.md` |
+| Code | Couche Code : HTML, CSS, JavaScript dans une page isolée ; réglages déclarés, son et alertes reçus ; scripts et modèles 3D de la médiathèque (three.js) | `specs/couche-code.md` |
 
 Le guide d'usage est [`guides/studio-editeur-de-couches.md`](guides/studio-editeur-de-couches.md). Garde-fous : tests unitaires,
 typage strict à 0 erreur, essais de bout en bout dans un vrai Chrome (`bun dev/e2e/run.js`).

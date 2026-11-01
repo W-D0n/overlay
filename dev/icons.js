@@ -19,6 +19,7 @@ const PATHS = {
   redo: '<path d="M11 3l3 3-3 3"/><path d="M14 6H7.5a4 4 0 0 0 0 8H10"/>',
   grip: '<circle cx="6" cy="4" r=".9"/><circle cx="10" cy="4" r=".9"/><circle cx="6" cy="8" r=".9"/><circle cx="10" cy="8" r=".9"/><circle cx="6" cy="12" r=".9"/><circle cx="10" cy="12" r=".9"/>',
   type: '<path d="M3 4V3h10v1M8 3v10M6 13h4"/>',
+  code: '<path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5M9 3l-2 10"/>',
   'align-left': '<path d="M2 2v12"/><rect x="4" y="4" width="9" height="3"/><rect x="4" y="9" width="5" height="3"/>',
   'align-hcenter': '<path d="M8 2v12"/><rect x="3" y="4" width="10" height="3"/><rect x="5" y="9" width="6" height="3"/>',
   'align-right': '<path d="M14 2v12"/><rect x="3" y="4" width="9" height="3"/><rect x="7" y="9" width="5" height="3"/>',

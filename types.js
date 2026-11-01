@@ -39,6 +39,8 @@
  *   (général, graves, aigus) ; présent seulement si l'effet réagit au son (`scene-runtime.js`).
  * @property {() => number | null} [cost]          - Temps de dessin moyen d'une image, en ms (`layer-cost.js`) ;
  *   présent sur les effets canvas, `null` avant la première image.
+ * @property {{ current: () => readonly { message: string, line: number | null, column: number | null }[], subscribe: (listener: (reports: readonly { message: string, line: number | null, column: number | null }[]) => void) => () => void }} [reports] -
+ *   Les erreurs que le code de la couche a remontées (couche Code) ; le Studio les montre sous le champ.
  * @property {() => void} [destroy]                 - Libère les ressources (observers, timers)
  * @property {(payload: unknown) => void} [trigger] - Réaction impérative à un événement discret
  *   (alerte stream). Optionnel : un effet sans `trigger` est couvert par `ReactionOverlay`

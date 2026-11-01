@@ -142,3 +142,80 @@ describe('polices', () => {
     expect(usage.get(id)).toBe(2);
   });
 });
+
+describe('collectAssetUsage — fichiers référencés par le code d’une couche Code', () => {
+  const a = 'a'.repeat(32);
+  const b = 'b'.repeat(32);
+
+  test('asset:<identifiant> dans le HTML, le CSS ou le JavaScript compte comme un usage, une fois par occurrence', () => {
+    const state = { scenes: [{ layers: [{ kind: 'code', options: {
+      html: `<img src="asset:${a}">`,
+      css: `a{background:url(asset:${a})} b{background:url(asset:${b})}`,
+      js: `import * as T from 'asset:${b}'; const u = overlay.assetUrl('${a}');`,
+    } }] }] };
+    expect([...collectAssetUsage(state)].sort()).toEqual([[a, 2], [b, 2]]);
+  });
+
+  test('ni un identifiant nu, ni une référence tronquée, ni le même texte dans une autre option ne compte', () => {
+    const state = { options: { html: `${a} asset:${'c'.repeat(31)} asset:`, texte: `asset:${b}`, text: [`asset:${b}`] } };
+    expect(collectAssetUsage(state).size).toBe(0);
+  });
+
+  test('répété sur le même document, le résultat est le même (aucun état gardé entre deux appels)', () => {
+    const state = { options: { js: `asset:${a}` } };
+    expect([...collectAssetUsage(state)]).toEqual([...collectAssetUsage(state)]);
+    expect([...collectAssetUsage(state)]).toEqual([[a, 1]]);
+  });
+});
+
+import { glbBytes } from './test-images.js';
+import { MAX_SCRIPT_BYTES, detectAssetType, sniffScript } from './asset-format.js';
+
+describe('scripts et modèles 3D (fichiers d’une couche Code)', () => {
+  const text = (value) => new TextEncoder().encode(value);
+
+  test('un modèle .glb est reconnu à son en-tête, jamais à son nom', () => {
+    expect(sniffAssetType(glbBytes())).toBe('glb');
+    expect(assetKind('glb')).toBe('model');
+    expect(inspectAsset(glbBytes(), 'dragon.png')).toMatchObject({ ok: true, type: 'glb', width: 0, height: 0 });
+    expect(inspectAsset(text('pas un modèle, glTF seulement ensuite'), 'dragon.glb')).toMatchObject({ ok: false });
+  });
+
+  test('un script est du texte UTF-8 dont le nom finit par .js ou .mjs', () => {
+    expect(sniffScript(text('export const a = 1;'), 'three.module.min.js')).toBe('js');
+    expect(sniffScript(text('export const a = 1;'), 'lib.MJS')).toBe('js');
+    expect(sniffScript(text('export const a = 1;'), 'lib.js ')).toBe('js');
+    expect(assetKind('js')).toBe('script');
+    expect(inspectAsset(text('console.log("é")'), 'a.js')).toMatchObject({ ok: true, type: 'js', width: 0, height: 0 });
+  });
+
+  test('sans le bon nom, du texte n’est pas un script', () => {
+    for (const name of ['a.txt', 'a.js.png', 'a', 'js', '', undefined, null, 42]) expect(sniffScript(text('x = 1'), name)).toBeNull();
+    expect(inspectAsset(text('x = 1'), 'a.html')).toMatchObject({ ok: false });
+  });
+
+  test('un binaire renommé .js n’est pas un script : octet nul ou UTF-8 invalide', () => {
+    expect(sniffScript(Uint8Array.from([0x61, 0x00, 0x62]), 'a.js')).toBeNull();
+    expect(sniffScript(Uint8Array.from([0xff, 0xfe, 0xfd]), 'a.js')).toBeNull();
+    expect(sniffScript(new Uint8Array(0), 'a.js')).toBeNull();
+  });
+
+  test('une image renommée .js reste une image : l’en-tête passe avant le nom', () => {
+    expect(detectAssetType(pngBytes(2, 2), 'x.js')).toBe('png');
+    expect(detectAssetType(glbBytes(), 'x.js')).toBe('glb');
+    expect(detectAssetType(fontBytes('woff2'), 'x.js')).toBe('woff2');
+  });
+
+  test('un script a son propre plafond, plus bas que celui d’un fichier', () => {
+    const big = new Uint8Array(MAX_SCRIPT_BYTES + 1).fill(0x20);
+    expect(inspectAsset(big, 'gros.js')).toEqual({ ok: false, error: 'script trop lourd (5 Mo au plus)' });
+    expect(inspectAsset(big.subarray(0, MAX_SCRIPT_BYTES), 'limite.js')).toMatchObject({ ok: true });
+  });
+
+  test('le refus d’un format dit ce qui est accepté, scripts et modèles compris', () => {
+    const refused = inspectAsset(text('<svg/>'), 'logo.svg');
+    expect(refused.ok).toBe(false);
+    expect(refused.error).toContain('.js ou .mjs');
+    expect(refused.error).toContain('.glb');
+  });
+});

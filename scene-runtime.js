@@ -410,6 +410,8 @@ export function createSceneRuntime(container, deps = {}) {
     react(event) {
       const native = visibleLayers().filter(({ kind }) => capabilitiesOf(kind).reactions === 'native');
       for (const entry of native) entry.instance.trigger?.(event);
+      // Une couche qui reçoit les alertes (le code d'une couche Code) les reçoit sans que la surcouche en soit privée.
+      for (const entry of visibleLayers()) if (capabilitiesOf(entry.kind).events === true) entry.instance.trigger?.(event);
       if (typeof event?.type === 'string') recordPulse(pulses, event.type, clockTime);
       return native.length > 0;
     },

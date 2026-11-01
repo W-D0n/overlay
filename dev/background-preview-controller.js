@@ -143,7 +143,8 @@ export function createBackgroundPreviewController(input) {
     }
     const fieldsKey = `${target?.id ?? ''}|${target?.kind ?? ''}`;
     if (!fieldEdit || fieldsKey !== renderedFieldsKey) {
-      fieldRenderer.render(target?.kind ?? null, target?.options ?? {});
+      const reports = target === null ? undefined : mount.layers().find((entry) => entry.id === target.id)?.instance.reports;
+      fieldRenderer.render(target?.kind ?? null, target?.options ?? {}, reports === undefined ? {} : { reports });
       renderedFieldsKey = fieldsKey;
     }
     transitionControls?.render(normalizeTransition(scene.transition));

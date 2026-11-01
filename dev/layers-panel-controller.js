@@ -15,7 +15,7 @@
  * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
  * @typedef {import('../scene-doc.js').Layer} Layer
  */
-import { isIdentityKind } from '../layer-kinds.js';
+import { isIdentityKind, isPhotographable } from '../layer-kinds.js';
 import { withoutLook } from '../scene-doc.js';
 import { createPresetThumbnail } from './preset-thumbnail.js';
 import { icon, setIcon } from './icons.js';
@@ -173,12 +173,13 @@ export function createLayersPanelController(input) {
    * @param {Layer} layer
    */
   function syncThumbnail(parts, layer) {
-    if (isIdentityKind(layer.kind)) {
-      if (parts.signature !== 'identity') {
+    if (isIdentityKind(layer.kind) || !isPhotographable(layer.kind)) {
+      const sign = isIdentityKind(layer.kind) ? 'identity' : `pictogram|${layer.kind}`;
+      if (parts.signature !== sign) {
         disposeThumbnail(parts);
-        parts.thumb.innerHTML = icon('type');
+        parts.thumb.innerHTML = icon(isIdentityKind(layer.kind) ? 'type' : 'code');
         parts.thumb.classList.add('layer-thumb-identity');
-        parts.signature = 'identity';
+        parts.signature = sign;
       }
       return;
     }
@@ -504,9 +505,9 @@ export function createLayersPanelController(input) {
     card.dataset.kind = kind;
     const preview = documentRef.createElement('span');
     preview.className = 'gallery-preview';
-    if (isIdentityKind(kind)) {
+    if (isIdentityKind(kind) || !isPhotographable(kind)) {
       preview.classList.add('layer-thumb-identity');
-      preview.innerHTML = icon('type');
+      preview.innerHTML = icon(isIdentityKind(kind) ? 'type' : 'code');
     } else {
       const thumbnail = createPresetThumbnail({
         scene: aloneScene({ id: 'apercu', kind: /** @type {*} */ (kind), visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: input.defaultOptions(kind) }),

@@ -98,3 +98,12 @@ test.skipIf(lanAddress === undefined)('static-server : fichiers de l’overlay s
     child.kill();
   }
 });
+
+test('rejectNonLocalRequest : opaqueOrigin accepte l’Origin « null » d’une page isolée, et elle seule', () => {
+  const option = { opaqueOrigin: true };
+  expect(rejectNonLocalRequest(request('http://localhost:5932/assets/x', { Origin: 'null' }), option)).toBeNull();
+  expect(rejectNonLocalRequest(request('http://localhost:5932/assets/x', { Origin: 'null' }))?.status).toBe(403);
+  expect(rejectNonLocalRequest(request('http://localhost:5932/assets/x', { Origin: 'https://evil.example' }), option)?.status).toBe(403);
+  expect(rejectNonLocalRequest(request('http://localhost:5932/assets/x', { Origin: 'file://' }), option)?.status).toBe(403);
+  expect(rejectNonLocalRequest(request('http://evil.example:5932/assets/x', { Origin: 'null' }), option)?.status).toBe(403);
+});

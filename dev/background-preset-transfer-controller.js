@@ -14,7 +14,7 @@ import {
 } from './background-preset-presenter.js';
 import { errorMessage } from './error-message.js';
 import { BackgroundStateClientError } from './background-state-client.js';
-import { packAssets, referencedAssetIds } from './bundle-assets.js';
+import { countCodeLayers, packAssets, referencedAssetIds } from './bundle-assets.js';
 
 /**
  * Parcours autonome d’export et d’import confirmé de la bibliothèque de presets.
@@ -33,6 +33,9 @@ import { packAssets, referencedAssetIds } from './bundle-assets.js';
  *     importDetails: HTMLElement,
  *     importConfirm: HTMLButtonElement,
  *     importCancel: HTMLButtonElement,
+ *     importCode: HTMLElement,
+ *     importCodeText: HTMLElement,
+ *     importCodeAck: HTMLInputElement,
  *     presetName: HTMLInputElement,
  *   },
  *   client: ReturnType<typeof import('./background-state-client.js').createBackgroundStateClient>,
@@ -104,7 +107,11 @@ export function createBackgroundPresetTransferController(input) {
       ? ''
       : `Vérifier l'import : ${formatBackgroundPresetImportSummary(pending.plan)}`;
     renderImportDetails(pending?.plan.changes ?? []);
-    elements.importConfirm.disabled = reviewState.importing;
+    const codeLayers = pending?.codeLayers ?? 0;
+    elements.importCode.hidden = codeLayers === 0;
+    elements.importCodeText.textContent = codeLayers === 0 ? '' : `Ce fichier contient ${codeLayers === 1 ? 'une couche Code' : `${codeLayers} couches Code`} : du HTML, du CSS et du JavaScript qui s’exécuteront dans une page isolée (sans accès au Studio, à ses fichiers ni à Internet, seulement à la médiathèque) chaque fois que la scène sera affichée. Ne l’importez que si vous en connaissez l’auteur.`;
+    // Une couche Code se confirme par écrit : tant que la case n'est pas cochée, l'import ne part pas.
+    elements.importConfirm.disabled = reviewState.importing || (codeLayers > 0 && !elements.importCodeAck.checked);
     elements.importCancel.disabled = reviewState.importing;
     elements.importTrigger.disabled = reviewState.importing;
   }
@@ -118,6 +125,7 @@ export function createBackgroundPresetTransferController(input) {
   }
 
   function clearPendingImport() {
+    elements.importCodeAck.checked = false;
     transition({ type: 'cancelled' });
     elements.importInput.value = '';
   }
@@ -129,6 +137,7 @@ export function createBackgroundPresetTransferController(input) {
       return {
         content,
         parsed,
+        codeLayers: countCodeLayers(parsed.presets, 'scenes' in parsed ? parsed.scenes : []),
         revision: preview.revision,
         plan: {
           created: preview.created,
@@ -183,6 +192,10 @@ export function createBackgroundPresetTransferController(input) {
   }
 
   async function confirmImport() {
+    if ((reviewState.pending?.codeLayers ?? 0) > 0 && !elements.importCodeAck.checked) {
+      input.report.error('ce lot contient du code : cochez la case de confirmation avant d’importer');
+      return;
+    }
     const command = transition({ type: 'confirmed' });
     if (command === null) return;
     const { pending } = command;
@@ -272,6 +285,7 @@ export function createBackgroundPresetTransferController(input) {
       }
     };
     elements.importCancel.onclick = clearPendingImport;
+    elements.importCodeAck.onchange = renderReview;
     elements.importConfirm.onclick = confirmImport;
     renderReview();
   }

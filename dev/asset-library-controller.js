@@ -45,7 +45,7 @@ export function createAssetLibraryController(input) {
   let assets = [];
   /** @type {((asset: LibraryAsset) => void) | null} */
   let chooser = null;
-  /** La famille d'asset qu'un choix en cours accepte ; `null` : tout s'affiche. @type {'image' | 'font' | null} */
+  /** La famille d'asset qu'un choix en cours accepte ; `null` : tout s'affiche. @type {'image' | 'font' | 'script' | 'model' | null} */
   let accepted = null;
   /** @type {string | null} */
   let confirming = null;
@@ -83,10 +83,14 @@ export function createAssetLibraryController(input) {
       card.dataset.id = asset.id;
       /** @type {HTMLElement} */
       let thumb;
-      if (assetKind(asset.type) === 'font') {
+      const kind = assetKind(asset.type);
+      if (kind === 'font') {
         // Une police se montre par un échantillon écrit dans cette police, chargée comme le fera le texte.
         thumb = node('div', 'asset-thumb asset-font-sample', 'Aa Bb 123');
         input.loadFont?.(asset.id).then((family) => { thumb.style.fontFamily = `"${family}"`; }, () => { thumb.textContent = 'police illisible'; });
+      } else if (kind === 'script' || kind === 'model') {
+        // Ni image ni police : un script ou un modèle 3D se reconnaît à son étiquette.
+        thumb = node('div', 'asset-thumb asset-file-sample', kind === 'script' ? 'JS' : '3D');
       } else {
         const image = /** @type {HTMLImageElement} */ (node('img', 'asset-thumb'));
         image.src = input.urlOf(asset.id);
@@ -210,11 +214,11 @@ export function createAssetLibraryController(input) {
   });
 
   return {
-    /** @param {{ choose?: (asset: LibraryAsset) => void, accept?: 'image' | 'font' }} [options] `accept` : n'afficher que les images, ou que les polices, pendant un choix */
+    /** @param {{ choose?: (asset: LibraryAsset) => void, accept?: 'image' | 'font' | 'script' | 'model' }} [options] `accept` : n'afficher que cette famille pendant un choix ; sans elle, tout s'affiche */
     async open({ choose, accept } = {}) {
       chooser = choose ?? null;
       accepted = choose === undefined ? null : accept ?? null;
-      say(choose === undefined ? '' : accept === 'font' ? 'Choisissez une police, ou importez-en une.' : 'Choisissez une image, ou importez-en une.');
+      say(choose === undefined ? '' : accept === 'font' ? 'Choisissez une police, ou importez-en une.' : accept === 'image' ? 'Choisissez une image, ou importez-en une.' : 'Choisissez un fichier, ou importez-en un.');
       render();
       if (typeof elements.dialog.showModal === 'function') elements.dialog.showModal();
       else elements.dialog.setAttribute('open', '');

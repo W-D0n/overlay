@@ -11,12 +11,14 @@
  * `type` d'un champ : `text` (input texte), `number` (input numérique), `select` (liste, `choices`), `boolean` (case à cocher),
  * `textarea` (une ligne par élément d'un tableau de chaînes), `token` (liste des tokens `tokens.css`
  * d'une catégorie), `color` (picker + couleurs nommées + saisie CSS libre), `colors` (liste dynamique), `asset` (une image de la
- * médiathèque : son identifiant, ou vide).
+ * médiathèque : son identifiant, ou vide), `code` (un texte de code, `language`, `max` caractères), `params` (les valeurs des réglages
+ * que le code d'une couche Code déclare lui-même : un objet, présenté par un formulaire tiré de sa déclaration).
  * Aucune logique ici (pattern « configuration hors composant », CLAUDE.md).
  *
- * @typedef {{ audio: boolean, reactions: 'native' | 'overlay' }} LayerCapabilities
+ * @typedef {{ audio: boolean, reactions: 'native' | 'overlay', events?: boolean }} LayerCapabilities
  *   `audio` : l'effet reçoit les niveaux audio (`setAudioLevel`). `reactions` : `native` si l'effet dessine
- *   lui-même les réactions d'alerte (`trigger`), `overlay` si `ReactionOverlay` les dessine par-dessus.
+ *   lui-même les réactions d'alerte (`trigger`), `overlay` si `ReactionOverlay` les dessine par-dessus. `events` : la couche reçoit
+ *   aussi chaque alerte (`trigger`) **sans** empêcher la surcouche de la dessiner (le code d'une couche Code décide seul de ce qu'il en fait).
  */
 
 /**
@@ -24,12 +26,13 @@
  * @property {string} key - Clé dans `ComponentMount.options`
  * @property {string} label - Libellé affiché
  * @property {string} [description] - Aide courte affichée sous le champ
- * @property {'text'|'number'|'select'|'boolean'|'textarea'|'token'|'color'|'colors'|'asset'} type
+ * @property {'text'|'number'|'select'|'boolean'|'textarea'|'token'|'color'|'colors'|'asset'|'code'|'params'} type
+ * @property {'html'|'css'|'javascript'|'json'} [language] - Langage du texte si `type === 'code'`
  * @property {string[]} [choices] - Valeurs possibles si `type === 'select'`
  * @property {'image'|'font'} [accept] - Famille d'asset proposée si `type === 'asset'` (images par défaut)
  * @property {'color'|'border'|'radius'} [tokenCategory] - Catégorie si `type === 'token'`
  * @property {number} [min] - Borne basse si `type === 'number'`
- * @property {number} [max] - Borne haute si `type === 'number'`
+ * @property {number} [max] - Borne haute si `type === 'number'` ; nombre de caractères au plus si `type === 'code'`
  * @property {number} [step] - Pas si `type === 'number'`
  * @property {string} [unit] - Unité affichée à côté de la valeur
  * @property {'slider'|'number'} [control] - Présentation préférée du contrôle numérique
@@ -44,12 +47,26 @@
  * @property {FieldSchema[]} fields
  * @property {boolean} [identity] - Couche d'identité (branding), pas un effet de fond : absente du sélecteur d'effets,
  *   et dessinée au-dessus des transitions entre scènes (elle ne s'estompe pas d'une scène à l'autre)
- * @property {boolean} [content] - Couche de contenu (texte, forme, image) : posée dans la pile avec les effets, elle arrive et part
+ * @property {boolean} [content] - Couche de contenu (texte, forme, image, code) : posée dans la pile avec les effets, elle arrive et part
  *   avec sa scène ; ce n'est pas un effet de fond (absente des listes d'effets, de la charge de test et du banc OBS)
+ * @property {boolean} [snapshot] - Faux : la couche n'est pas un canvas, une vignette ne peut pas la photographier (une couche Code est un
+ *   document isolé) ; ni les vignettes de scène ni l'aperçu de la galerie ne la montent
  */
 
 /** Les identifiants d'asset : 32 caractères hexadécimaux (début de l'empreinte SHA-256 du contenu de l'image). */
 export const ASSET_ID_PATTERN = /^[0-9a-f]{32}$/;
+
+/** Nombre de caractères au plus du HTML, du CSS et du JavaScript d'une couche Code : au-delà, une bibliothèque se range dans la médiathèque (script). */
+export const CODE_MAX_CHARS = 200_000;
+
+/** Les réglages d'une couche Code : nombre et longueur de la déclaration. */
+export const CODE_PARAMS_MAX_CHARS = 20_000;
+
+/** Les options d'une couche Code qui portent du code, donc des références de fichier `asset:<id>`. */
+export const CODE_OPTION_KEYS = Object.freeze(['html', 'css', 'js']);
+
+/** Une référence à un fichier de la médiathèque dans le code d'une couche : `asset:` suivi de l'identifiant (32 hexadécimaux). */
+export const CODE_ASSET_REFERENCE = /asset:([0-9a-f]{32})/g;
 
 /** Familles de police du type `text` : les piles de `tokens.css` et des polices système sûres sous Windows. */
 export const TEXT_FONTS = /** @type {const} */ (['serif', 'sans', 'mono', 'display']);
@@ -113,6 +130,13 @@ export const NUMBER_FIELD_GUIDANCE = {
   cornerRadius: { min: 0, max: 600, step: 1, unit: 'px' },
   gradientAngle: { min: -180, max: 180, step: 1, unit: '°' },
 };
+
+/** Les réglages que propose une couche Code neuve : de quoi voir le formulaire se construire. */
+const DEFAULT_CODE_PARAMS = `[
+  { "key": "couleur", "label": "Couleur", "type": "color", "default": "#C8B97A" },
+  { "key": "taille", "label": "Taille (px)", "type": "number", "default": 120, "min": 20, "max": 400, "step": 1 },
+  { "key": "duree", "label": "Durée du battement (s)", "type": "number", "default": 3, "min": 0.5, "max": 20, "step": 0.1 }
+]`;
 
 /**
  * Types de couche. Couleurs : `color`/`colors` utilisent `components/color-palette.json`, un picker
@@ -477,6 +501,74 @@ const KIND_DEFINITIONS = {
       { key: 'shadowColor', label: 'Couleur de l’ombre', type: 'color', default: '#000000' },
     ],
   },
+  code: {
+    legacyIds: [],
+    label: 'Code',
+    content: true,
+    snapshot: false,
+    capabilities: { audio: true, reactions: 'overlay', events: true },
+    fields: [
+      {
+        key: 'html',
+        label: 'HTML',
+        description: 'Le corps du document. Un fichier de la médiathèque s’écrit asset:<identifiant> (bouton « Insérer un fichier »).',
+        type: 'code',
+        language: 'html',
+        max: CODE_MAX_CHARS,
+        default: '<div class="titre">Bonjour</div>',
+      },
+      {
+        key: 'css',
+        label: 'CSS',
+        description: 'Les réglages déclarés ci-dessous sont des variables : var(--param-<clé>). Le son : var(--audio), var(--audio-bass), var(--audio-mid), var(--audio-treble). Une alerte pose la classe alert-follow, alert-sub, alert-raid ou alert-bits sur la page pendant 3 s.',
+        type: 'code',
+        language: 'css',
+        max: CODE_MAX_CHARS,
+        default: `.titre {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 700 calc(var(--param-taille) * 1px) / 1 Georgia, serif;
+  color: var(--param-couleur);
+  animation: battement calc(var(--param-duree) * 1s) ease-in-out infinite alternate;
+}
+.alert-raid .titre { color: #fff; }
+@keyframes battement {
+  from { transform: scale(0.96); opacity: 0.7; }
+  to { transform: scale(1.04); opacity: 1; }
+}
+`,
+      },
+      {
+        key: 'js',
+        label: 'JavaScript',
+        description: 'Un module : import, await de premier niveau. L’objet overlay donne params, levels (son), size (en pixels de la source de référence), pixelRatio, on("params" | "levels" | "alert" | "resize", fonction) et assetUrl(id). Aucun réseau hors médiathèque.',
+        type: 'code',
+        language: 'javascript',
+        max: CODE_MAX_CHARS,
+        default: `// overlay.on('alert', (alerte) => { /* alerte.type, alerte.username, alerte.amount */ });
+`,
+      },
+      {
+        key: 'paramSpec',
+        label: 'Réglages exposés (JSON)',
+        description: 'Une liste de réglages que le Studio présente comme des champs : { "key", "label", "type": "number" | "text" | "color" | "boolean" | "select", "default", "min", "max", "step", "choices" }. 24 au plus.',
+        type: 'code',
+        language: 'json',
+        max: CODE_PARAMS_MAX_CHARS,
+        default: DEFAULT_CODE_PARAMS,
+      },
+      { key: 'params', label: 'Réglages', type: 'params', default: {} },
+      {
+        key: 'audioReactive',
+        label: 'Réagit au son',
+        description: 'Le code reçoit le niveau sonore du micro (overlay.levels, --audio…). OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
+        type: 'boolean',
+        default: false,
+      },
+    ],
+  },
   'water-ripple': {
     legacyIds: ['WaterRippleBackground'],
     label: 'WaterRipple',
@@ -529,11 +621,21 @@ export const LAYER_KIND_IDS = /** @type {LayerKindId[]} */ (Object.keys(KIND_DEF
 /** Les effets de fond : les types de couche qui ne sont ni des couches d'identité ni des contenus. */
 export const EFFECT_KIND_IDS = /** @type {LayerKindId[]} */ (LAYER_KIND_IDS.filter((id) => kindFamily(id) === 'effect'));
 
-/** Les types de contenu : texte, forme, image. */
+/** Les types de contenu : texte, forme, image, code. */
 export const CONTENT_KIND_IDS = /** @type {LayerKindId[]} */ (LAYER_KIND_IDS.filter((id) => isContentKind(id)));
 
 /**
- * Vrai pour une couche de contenu (texte, forme, image). Un type inconnu n'en est pas un.
+ * Vrai si une vignette peut photographier la couche (elle dessine sur un canvas). Faux pour une couche Code, qui est un document isolé : on ne la
+ * monte pas pour une vignette. Un type inconnu se photographie (le montage dira qu'il ne sait pas le faire).
+ * @param {unknown} id
+ */
+export function isPhotographable(id) {
+  const kind = resolveKindId(id);
+  return kind === null || /** @type {Record<string, LayerKindDefinition>} */ (KIND_DEFINITIONS)[kind].snapshot !== false;
+}
+
+/**
+ * Vrai pour une couche de contenu (texte, forme, image, code). Un type inconnu n'en est pas un.
  * @param {unknown} id
  */
 export function isContentKind(id) {
@@ -645,6 +747,11 @@ function fieldTypeError(field, value) {
       return isTextList(value) ? null : 'liste de lignes attendue';
     case 'asset':
       return value === '' || (typeof value === 'string' && ASSET_ID_PATTERN.test(value)) ? null : 'identifiant d’image attendu';
+    case 'code':
+      if (typeof value !== 'string') return 'texte attendu';
+      return field.max !== undefined && value.length > field.max ? `${field.max} caractères au plus` : null;
+    case 'params':
+      return typeof value === 'object' && value !== null && !Array.isArray(value) ? null : 'objet attendu';
     default:
       return typeof value === 'string' ? null : 'texte attendu';
   }

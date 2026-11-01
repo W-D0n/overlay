@@ -22,7 +22,7 @@ export async function run({ page, stack, check, errors }) {
 
   await page.click('#layers-add');
   const cards = await page.evaluate("[...document.querySelectorAll('#gallery-grid .gallery-card')].map((c) => ({ kind: c.dataset.kind, disabled: c.disabled }))");
-  check('la galerie propose 11 effets, le texte, la forme, l’image et le branding (désactivé : déjà présent)', cards.length === 15 && cards.find((/** @type {*} */ c) => c.kind === 'branding')?.disabled === true && cards.filter((/** @type {*} */ c) => !c.disabled).length === 14);
+  check('la galerie propose 11 effets, le texte, la forme, l’image, le code et le branding (désactivé : déjà présent)', cards.length === 16 && cards.find((/** @type {*} */ c) => c.kind === 'branding')?.disabled === true && cards.filter((/** @type {*} */ c) => !c.disabled).length === 15);
   await page.click('#gallery-grid [data-kind="bubble"]');
   await page.sleep(400);
   rows = await layerRows(page);

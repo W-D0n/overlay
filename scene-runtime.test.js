@@ -407,3 +407,52 @@ describe('scene-runtime : environnement des couches', () => {
     expect(received[0].sceneHeight()).toBe(1080);
   });
 });
+
+describe('createSceneRuntime — couche qui reçoit les alertes (events)', () => {
+  function build(capabilities) {
+    const calls = [];
+    const make = (kind) => () => ({ el: {}, trigger: (event) => calls.push(`${kind}:${event.type}`), update() {} });
+    const stage = () => ({ style: {}, appendChild() {}, remove() {} });
+    const runtime = createSceneRuntime({ appendChild() {} }, {
+      registry: { rain: make('rain'), code: make('code'), dotgrid: make('dotgrid') },
+      createCalque: stage,
+      createStageCalque: stage,
+      capabilitiesOf: (kind) => capabilities[kind],
+    });
+    return { runtime, calls };
+  }
+  const capabilities = {
+    rain: { audio: false, reactions: 'overlay' },
+    dotgrid: { audio: true, reactions: 'native' },
+    code: { audio: true, reactions: 'overlay', events: true },
+  };
+  const sceneOf = (...layers) => ({ version: 1, id: 's', name: 's', layers: layers.map(([id, kind, extra]) => ({ id, kind, visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {}, ...extra })) });
+
+  test('la couche Code reçoit chaque alerte, et la surcouche dessine quand même (react rend false)', () => {
+    const { runtime, calls } = build(capabilities);
+    runtime.apply(sceneOf(['a', 'rain'], ['b', 'code']));
+    expect(runtime.react({ type: 'raid' })).toBe(false);
+    expect(calls).toEqual(['code:raid']);
+  });
+
+  test('avec une couche native en plus, chacune reçoit l’alerte une seule fois', () => {
+    const { runtime, calls } = build(capabilities);
+    runtime.apply(sceneOf(['a', 'dotgrid'], ['b', 'code']));
+    expect(runtime.react({ type: 'sub' })).toBe(true);
+    expect(calls.sort()).toEqual(['code:sub', 'dotgrid:sub']);
+  });
+
+  test('une couche Code masquée ne reçoit rien', () => {
+    const { runtime, calls } = build(capabilities);
+    runtime.apply(sceneOf(['b', 'code', { visible: false }]));
+    runtime.react({ type: 'follow' });
+    expect(calls).toEqual([]);
+  });
+
+  test('un type sans « events » ne reçoit pas les alertes qu’il ne traite pas lui-même', () => {
+    const { runtime, calls } = build(capabilities);
+    runtime.apply(sceneOf(['a', 'rain']));
+    runtime.react({ type: 'bits' });
+    expect(calls).toEqual([]);
+  });
+});

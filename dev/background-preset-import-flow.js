@@ -6,6 +6,7 @@
  * @property {{presets:{id:string}[],assets?:import('./bundle-assets.js').BundleAsset[]}} parsed
  * @property {string} revision
  * @property {import('./background-preset-library.js').BackgroundPresetImportPreview} plan
+ * @property {number} [codeLayers] couches Code que le lot contient ; au moins une exige la confirmation écrite de celui qui importe
  */
 
 /** @returns {{pending:BackgroundPresetImportPending|null,importing:boolean}} */

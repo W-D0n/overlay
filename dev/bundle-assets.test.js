@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { MAX_BUNDLE_ASSETS, base64ToBytes, bytesToBase64, packAssets, referencedAssetIds, unpackAssets } from './bundle-assets.js';
+import { MAX_BUNDLE_ASSETS, base64ToBytes, bytesToBase64, countCodeLayers, packAssets, referencedAssetIds, unpackAssets } from './bundle-assets.js';
 import { createBackgroundPresetBundle, parseBackgroundPresetBundle } from './background-preset-library.js';
 import { pngBytes } from './test-images.js';
 
@@ -57,7 +57,7 @@ describe('packAssets / unpackAssets', () => {
     expect(unpackAssets([packed({ data: 12 })]).ok).toBe(false);
     expect(unpackAssets([packed({ data: '%%%' })]).errors[0]).toContain('base64');
     const svg = bytesToBase64(new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg"/>'));
-    expect(unpackAssets([packed({ data: svg, type: 'png', name: 'logo.png' })]).errors[0]).toContain('pas une image');
+    expect(unpackAssets([packed({ data: svg, type: 'png', name: 'logo.png' })]).errors[0]).toContain('pas un fichier accepté');
   });
 
   test('un nom absent ou piégé est assaini', () => {
@@ -83,5 +83,34 @@ describe('lot version 4', () => {
   test('les lots des versions précédentes se lisent sans image, même s’ils en déclarent', () => {
     const v3 = { format: 'overlay-background-presets', version: 3, presets: [], scenes: [], assets: [packed()] };
     expect(parseBackgroundPresetBundle(v3)).toMatchObject({ ok: true, assets: [] });
+  });
+});
+
+describe('countCodeLayers', () => {
+  const code = { kind: 'code', options: { html: '' } };
+
+  test('compte les couches Code des scènes et des presets, où qu’elles soient', () => {
+    expect(countCodeLayers([], [{ layers: [code, { kind: 'rain', options: {} }, code] }, { layers: [code] }])).toBe(3);
+    expect(countCodeLayers([{ layers: [code] }], [])).toBe(1);
+  });
+
+  test('un texte qui parle de code, ou un type voisin, n’en est pas une', () => {
+    expect(countCodeLayers([], [{ layers: [{ kind: 'text', options: { text: ['kind: code'] } }, { kind: 'code' }, { kind: 'codec', options: {} }] }])).toBe(0);
+    expect(countCodeLayers(undefined, null)).toBe(0);
+  });
+});
+
+describe('unpackAssets — scripts et modèles 3D', () => {
+  const script = bytesToBase64(new TextEncoder().encode('export default 1;'));
+
+  test('un script voyage avec son nom : reconnu à l’extension et au contenu', () => {
+    const result = unpackAssets([{ id: ID, name: 'three.module.js', type: 'js', data: script }]);
+    expect(result.ok).toBe(true);
+    expect(result.assets[0].type).toBe('js');
+  });
+
+  test('le même texte sous un nom d’image est refusé, comme un script au nom effacé', () => {
+    expect(unpackAssets([{ id: ID, name: 'logo.png', type: 'png', data: script }]).ok).toBe(false);
+    expect(unpackAssets([{ id: ID, type: 'js', data: script }]).ok).toBe(false);
   });
 });

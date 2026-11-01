@@ -1,5 +1,5 @@
 // @ts-check
-import { ASSET_ID_PATTERN } from '../layer-kinds.js';
+import { ASSET_ID_PATTERN, CODE_ASSET_REFERENCE, CODE_OPTION_KEYS } from '../layer-kinds.js';
 
 /**
  * dev/asset-format.js — Les assets d'image : reconnaissance du type, lecture des dimensions, limites, usages. Pur : octets en
@@ -13,9 +13,16 @@ import { ASSET_ID_PATTERN } from '../layer-kinds.js';
  * Les polices (WOFF2, WOFF, TrueType, OpenType) sont des assets comme les images : même magasin, même identifiant tiré du contenu, mêmes
  * routes. Leur type est reconnu de même à l'en-tête (jamais au nom) ; elles n'ont ni largeur ni hauteur (0), et un plafond de poids plus bas.
  *
+ * Les fichiers d'une couche Code sont des assets aussi : un **modèle 3D** binaire (`.glb`, reconnu à son en-tête « glTF ») et un **script**
+ * (`.js`, `.mjs` : une bibliothèque comme three.js que le code charge par `asset:<identifiant>`). Un script n'a pas d'en-tête : c'est le seul type
+ * reconnu par l'extension du nom — et par son contenu, qui doit être du texte UTF-8 sans octet nul. Cela ne l'expose à rien : un script ne s'exécute
+ * que dans la page isolée d'une couche Code, jamais dans le Studio ni dans la page de rendu.
+ *
  * @typedef {'png' | 'jpeg' | 'gif' | 'webp'} ImageType
  * @typedef {'woff2' | 'woff' | 'ttf' | 'otf'} FontType
- * @typedef {ImageType | FontType} AssetType
+ * @typedef {'js'} ScriptType
+ * @typedef {'glb'} ModelType
+ * @typedef {ImageType | FontType | ScriptType | ModelType} AssetType
  * @typedef {{ id: string, name: string, type: AssetType, mime: string, bytes: number, width: number, height: number, addedAt: string }} AssetMeta
  */
 
@@ -25,19 +32,23 @@ export const MAX_ASSET_BYTES = 15 * 1024 * 1024;
 export const MAX_ASSET_PIXELS = 25_000_000;
 /** Taille maximale d'un fichier de police. */
 export const MAX_FONT_BYTES = 5 * 1024 * 1024;
+/** Taille maximale d'un script (three.js minifié : environ 0,7 Mo). */
+export const MAX_SCRIPT_BYTES = 5 * 1024 * 1024;
 /** Longueur maximale d'un nom d'asset. */
 export const MAX_ASSET_NAME = 120;
 
-export const ASSET_MIME = Object.freeze({ png: 'image/png', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', woff2: 'font/woff2', woff: 'font/woff', ttf: 'font/ttf', otf: 'font/otf' });
+export const ASSET_MIME = Object.freeze({ png: 'image/png', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', woff2: 'font/woff2', woff: 'font/woff', ttf: 'font/ttf', otf: 'font/otf', js: 'text/javascript; charset=utf-8', glb: 'model/gltf-binary' });
 
 const FONT_TYPES = new Set(['woff2', 'woff', 'ttf', 'otf']);
 
 /** Les clés d'option qui désignent un asset : `asset` (une image), `fontAsset` (la police d'un texte). */
 export const ASSET_OPTION_KEYS = Object.freeze(['asset', 'fontAsset']);
 
-/** @param {string} type @returns {'image' | 'font'} la famille d'un type d'asset */
+/** @param {string} type @returns {'image' | 'font' | 'script' | 'model'} la famille d'un type d'asset */
 export function assetKind(type) {
-  return FONT_TYPES.has(type) ? 'font' : 'image';
+  if (FONT_TYPES.has(type)) return 'font';
+  if (type === 'js') return 'script';
+  return type === 'glb' ? 'model' : 'image';
 }
 
 export { ASSET_ID_PATTERN };
@@ -73,7 +84,37 @@ export function sniffAssetType(bytes) {
   if (bytes.length >= 12 && startsWith(bytes, 'wOFF')) return 'woff';
   if (bytes.length >= 12 && startsWith(bytes, 'OTTO')) return 'otf';
   if (bytes.length >= 12 && ((bytes[0] === 0 && bytes[1] === 1 && bytes[2] === 0 && bytes[3] === 0) || startsWith(bytes, 'true'))) return 'ttf';
+  if (bytes.length >= 12 && startsWith(bytes, 'glTF')) return 'glb';
   return null;
+}
+
+/**
+ * Un script : du texte UTF-8 sans octet nul, dont le nom finit par `.js` ou `.mjs`. Aucun en-tête ne l'annonce, donc le nom compte — et le contenu,
+ * qui écarte un binaire renommé.
+ * @param {Uint8Array} bytes
+ * @param {unknown} name
+ * @returns {'js' | null}
+ */
+export function sniffScript(bytes, name) {
+  if (typeof name !== 'string' || !/\.m?js$/i.test(name.trim())) return null;
+  if (bytes.length === 0 || bytes.includes(0)) return null;
+  try {
+    new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+  return 'js';
+}
+
+/**
+ * Le type d'un fichier reçu : son en-tête d'abord (jamais le nom pour une image, une police ou un modèle), puis, à défaut, un script reconnu à son nom
+ * et à son contenu.
+ * @param {Uint8Array} bytes
+ * @param {unknown} name
+ * @returns {AssetType | null}
+ */
+export function detectAssetType(bytes, name) {
+  return sniffAssetType(bytes) ?? sniffScript(bytes, name);
 }
 
 /**
@@ -136,16 +177,21 @@ export function sanitizeAssetName(raw) {
 /**
  * Ce qu'un fichier reçu vaut comme asset : son type, ses dimensions, ou la raison du refus.
  * @param {Uint8Array} bytes
+ * @param {unknown} [name] le nom du fichier (il décide seul d'un script)
  * @returns {{ ok: true, type: AssetType, width: number, height: number } | { ok: false, error: string }}
  */
-export function inspectAsset(bytes) {
+export function inspectAsset(bytes, name) {
   if (bytes.length === 0) return { ok: false, error: 'fichier vide' };
   if (bytes.length > MAX_ASSET_BYTES) return { ok: false, error: `fichier trop lourd (${MAX_ASSET_BYTES / 1024 / 1024} Mo au plus)` };
-  const type = sniffAssetType(bytes);
-  if (type === null) return { ok: false, error: 'format non pris en charge (images PNG, JPEG, GIF, WebP ; polices WOFF2, WOFF, TTF, OTF)' };
+  const type = detectAssetType(bytes, name);
+  if (type === null) return { ok: false, error: 'format non pris en charge (images PNG, JPEG, GIF, WebP ; polices WOFF2, WOFF, TTF, OTF ; scripts .js ou .mjs en UTF-8 ; modèles 3D .glb)' };
   if (assetKind(type) === 'font') {
     return bytes.length > MAX_FONT_BYTES ? { ok: false, error: `police trop lourde (${MAX_FONT_BYTES / 1024 / 1024} Mo au plus)` } : { ok: true, type, width: 0, height: 0 };
   }
+  if (assetKind(type) === 'script') {
+    return bytes.length > MAX_SCRIPT_BYTES ? { ok: false, error: `script trop lourd (${MAX_SCRIPT_BYTES / 1024 / 1024} Mo au plus)` } : { ok: true, type, width: 0, height: 0 };
+  }
+  if (assetKind(type) === 'model') return { ok: true, type, width: 0, height: 0 };
   const size = readAssetDimensions(bytes, type);
   if (size === null) return { ok: false, error: 'image illisible ou tronquée' };
   if (size.width * size.height > MAX_ASSET_PIXELS) return { ok: false, error: `image trop grande (${size.width}×${size.height} ; ${MAX_ASSET_PIXELS / 1_000_000} millions de pixels au plus)` };
@@ -154,7 +200,8 @@ export function inspectAsset(bytes) {
 
 /**
  * Les assets référencés par un document (fichier d'état, scène, brouillon…), avec le nombre de références : toute valeur
- * `asset` qui est un identifiant d'asset, où qu'elle soit.
+ * `asset` qui est un identifiant d'asset, où qu'elle soit, et toute référence `asset:<identifiant>` écrite dans le HTML, le CSS ou le JavaScript
+ * d'une couche Code.
  * @param {unknown} value
  * @param {Map<string, number>} [found]
  * @returns {Map<string, number>}
@@ -165,7 +212,9 @@ export function collectAssetUsage(value, found = new Map()) {
   } else if (typeof value === 'object' && value !== null) {
     for (const [key, nested] of Object.entries(value)) {
       if (ASSET_OPTION_KEYS.includes(key) && typeof nested === 'string' && ASSET_ID_PATTERN.test(nested)) found.set(nested, (found.get(nested) ?? 0) + 1);
-      else collectAssetUsage(nested, found);
+      else if (CODE_OPTION_KEYS.includes(key) && typeof nested === 'string') {
+        for (const [, id] of nested.matchAll(CODE_ASSET_REFERENCE)) found.set(id, (found.get(id) ?? 0) + 1);
+      } else collectAssetUsage(nested, found);
     }
   }
   return found;

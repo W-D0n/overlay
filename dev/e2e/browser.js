@@ -89,17 +89,17 @@ export async function launchBrowser({ stateRedirect, viewport = { width: 1700, h
       if (message.error) call?.reject(new Error(`${message.error.message}`));
       else call?.resolve(message.result);
     } else {
-      for (const handler of handlers.get(message.method) ?? []) handler(message.params);
+      for (const handler of handlers.get(message.method) ?? []) handler(message.params, message.sessionId);
     }
   };
-  /** @param {string} method @param {Record<string, unknown>} [params] @returns {Promise<any>} */
-  const send = (method, params = {}) => new Promise((resolve, reject) => {
+  /** @param {string} method @param {Record<string, unknown>} [params] @param {string} [sessionId] une page isolée (cible enfant) plutôt que la page @returns {Promise<any>} */
+  const send = (method, params = {}, sessionId) => new Promise((resolve, reject) => {
     const id = nextId;
     nextId += 1;
     pending.set(id, { resolve, reject });
-    socket.send(JSON.stringify({ id, method, params }));
+    socket.send(JSON.stringify({ id, method, params, ...(sessionId === undefined ? {} : { sessionId }) }));
   });
-  /** @param {string} method @param {(params: any) => void} handler */
+  /** @param {string} method @param {(params: any, sessionId?: string) => void} handler */
   const on = (method, handler) => {
     if (!handlers.has(method)) handlers.set(method, new Set());
     /** @type {Set<(params: any) => void>} */ (handlers.get(method)).add(handler);
@@ -122,20 +122,35 @@ export async function launchBrowser({ stateRedirect, viewport = { width: 1700, h
 
   if (stateRedirect !== undefined) {
     const { from, to } = stateRedirect;
-    // Les pages codent le port d'état en dur : HTTP et WebSocket sont réécrits vers le serveur d'essai.
-    on('Fetch.requestPaused', (params) => {
-      send('Fetch.continueRequest', { requestId: params.requestId, url: params.request.url.replace(`:${from}`, `:${to}`) }).catch(() => {});
-    });
-    await send('Fetch.enable', { patterns: [{ urlPattern: `http://localhost:${from}/*` }] });
-    await send('Page.addScriptToEvaluateOnNewDocument', {
-      source: `(() => {
+    const patterns = [{ urlPattern: `http://localhost:${from}/*` }];
+    const redirectSockets = `(() => {
         const Native = window.WebSocket;
         function Redirected(url, protocols) { return new Native(String(url).replace(':${from}', ':${to}'), protocols); }
         Redirected.prototype = Native.prototype;
         for (const key of ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED']) Redirected[key] = Native[key];
         window.WebSocket = Redirected;
-      })();`,
+      })();`;
+    // Les pages codent le port d'état en dur : HTTP et WebSocket sont réécrits vers le serveur d'essai. Une page isolée (couche Code) peut vivre dans
+    // un autre processus, donc dans une autre cible : elle est suspendue à son démarrage, reçoit la même réécriture, puis reprend ; sans cela
+    // sa requête partirait vers le vrai port de l'owner.
+    on('Fetch.requestPaused', (params, sessionId) => {
+      send('Fetch.continueRequest', { requestId: params.requestId, url: params.request.url.replace(`:${from}`, `:${to}`) }, sessionId).catch(() => {});
     });
+    on('Target.attachedToTarget', (params) => {
+      const { sessionId, waitingForDebugger } = params;
+      (async () => {
+        try {
+          await send('Fetch.enable', { patterns }, sessionId);
+          await send('Page.addScriptToEvaluateOnNewDocument', { source: redirectSockets }, sessionId);
+          await send('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true }, sessionId);
+        } catch { /* une cible déjà fermée : rien à réécrire */ } finally {
+          if (waitingForDebugger) await send('Runtime.runIfWaitingForDebugger', {}, sessionId).catch(() => {});
+        }
+      })();
+    });
+    await send('Fetch.enable', { patterns });
+    await send('Target.setAutoAttach', { autoAttach: true, waitForDebuggerOnStart: true, flatten: true });
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: redirectSockets });
   }
 
   /** @type {{ x: number, y: number }} */

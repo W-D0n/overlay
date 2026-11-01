@@ -74,13 +74,13 @@ export function createAssetStore({ dir, now = () => new Date().toISOString() }) 
     },
 
     /**
-     * Range une image. Une image déjà connue est reconnue à son contenu et n'est pas dupliquée.
+     * Range un fichier (image, police, script, modèle 3D). Un fichier déjà connu est reconnu à son contenu et n'est pas dupliqué.
      * @param {Uint8Array} bytes
      * @param {unknown} name
      * @returns {Promise<{ ok: true, asset: AssetMeta, created: boolean } | { ok: false, error: string }>}
      */
     put(bytes, name) {
-      const inspected = inspectAsset(bytes);
+      const inspected = inspectAsset(bytes, name);
       if (!inspected.ok) return Promise.resolve(inspected);
       const id = createHash('sha256').update(bytes).digest('hex').slice(0, 32);
       return serialized(async () => {

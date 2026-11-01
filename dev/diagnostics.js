@@ -158,18 +158,18 @@ function renderCheck({ renderPages, obs, staticPort }, inspection) {
 }
 
 /**
- * Les images que les scènes utilisent : l'une manque dans la médiathèque (supprimée à la main, dossier copié sans elle) et la
+ * Les fichiers (images, polices, scripts, modèles) que les scènes utilisent : l'un manque dans la médiathèque (supprimée à la main, dossier copié sans elle) et la
  * couche concernée n'afficherait rien à l'antenne. Sans image utilisée, ou d'un serveur qui ne sait pas le dire, aucune ligne.
  * @param {{ assetUse?: { referenced: number, missing: number } }} input
  * @returns {Check | null}
  */
 function imagesCheck({ assetUse }) {
-  const label = 'Images des scènes';
+  const label = 'Fichiers des scènes';
   if (assetUse === undefined || assetUse.referenced === 0) return null;
   if (assetUse.missing > 0) {
-    return { id: 'images', label, tone: 'bad', short: `${assetUse.missing} manquante${assetUse.missing > 1 ? 's' : ''}`, detail: `${assetUse.missing} image${assetUse.missing > 1 ? 's' : ''} utilisée${assetUse.missing > 1 ? 's' : ''} par les scènes ne sont plus dans la médiathèque : les couches concernées n’affichent rien.`, fix: 'Importez à nouveau ces images dans la médiathèque, puis choisissez-les dans les couches « (image manquante) ».' };
+    return { id: 'images', label, tone: 'bad', short: `${assetUse.missing} manquante${assetUse.missing > 1 ? 's' : ''}`, detail: `${assetUse.missing} fichier${assetUse.missing > 1 ? 's' : ''} utilisé${assetUse.missing > 1 ? 's' : ''} par les scènes ne sont plus dans la médiathèque : les couches concernées n’affichent rien ou ne fonctionnent plus.`, fix: 'Importez à nouveau ces fichiers dans la médiathèque, puis choisissez-les dans les couches « (image manquante) » ; le code d’une couche Code les référence par asset:<identifiant>.' };
   }
-  return { id: 'images', label, tone: 'ok', short: String(assetUse.referenced), detail: `${assetUse.referenced} image${assetUse.referenced > 1 ? 's' : ''} utilisée${assetUse.referenced > 1 ? 's' : ''} par les scènes, toutes présentes dans la médiathèque.`, fix: null };
+  return { id: 'images', label, tone: 'ok', short: String(assetUse.referenced), detail: `${assetUse.referenced} fichier${assetUse.referenced > 1 ? 's' : ''} utilisé${assetUse.referenced > 1 ? 's' : ''} par les scènes, tous présents dans la médiathèque.`, fix: null };
 }
 
 /** @param {{ obs: ObsState | null, sceneMap: Record<string, string> }} input @returns {Check} */

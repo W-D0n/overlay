@@ -246,6 +246,7 @@
     .asset-card { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
     .asset-thumb { width: 100%; height: 100px; object-fit: contain; background: repeating-conic-gradient(var(--color-bg) 0% 25%, var(--color-bg-panel) 0% 50%) 0 0 / 16px 16px; }
     .asset-font-sample { display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--color-text-primary); background: var(--color-bg); }
+    .asset-file-sample { display: flex; align-items: center; justify-content: center; font-size: 28px; letter-spacing: 1px; color: var(--color-gold); background: var(--color-bg); }
     .asset-name { font-size: var(--text-xs); color: var(--color-text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .asset-info { font-size: var(--text-xs); color: var(--color-text-dim); }
     .asset-actions { display: flex; gap: var(--space-xs); }
@@ -257,6 +258,12 @@
     #asset-library.is-dropping, #stage-area.is-dropping { outline: 2px dashed var(--color-gold); outline-offset: -4px; }
     .asset-field { display: flex; gap: var(--space-xs); align-items: center; }
     .asset-field select { flex: 1; min-width: 0; }
+    .code-field { display: flex; flex-direction: column; gap: var(--space-xs); }
+    .code-input { resize: vertical; min-height: 6em; white-space: pre; overflow: auto; tab-size: 2; line-height: 1.45; }
+    .code-insert { align-self: flex-start; }
+    .field-status { margin: 0; min-height: 1em; font-size: var(--text-xs); line-height: 1.35; white-space: pre-wrap; color: var(--color-text-dim); }
+    .field-status[data-level="error"] { color: var(--color-danger); }
+    .params-field { display: flex; flex-direction: column; gap: var(--space-xs); }
     #settings-dialog { width: min(36rem, calc(100vw - 2 * var(--space-lg))); }
     .settings-body { overflow-y: auto; }
     .settings-section { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md) var(--space-lg); border-bottom: var(--border-rule); }
@@ -589,6 +596,11 @@
       background: var(--color-bg-panel);
     }
     .preset-import-review[hidden] { display: none; }
+    .preset-import-code { margin: 0 0 var(--space-sm); padding: var(--space-sm); border: 1px solid var(--color-danger); border-radius: var(--radius-sm); }
+    .preset-import-code[hidden] { display: none; }
+    .preset-import-code p { color: var(--color-danger); }
+    .preset-import-code-ack { display: flex; gap: var(--space-sm); align-items: center; cursor: pointer; color: var(--color-text-primary); }
+    .preset-import-code-ack input { width: auto; }
     .preset-import-review p { margin: 0 0 var(--space-sm); color: var(--color-text-primary); }
     .preset-import-details {
       display: grid;
@@ -1079,6 +1091,10 @@
     <div id="preset-import-review" class="preset-import-review" hidden>
       <p id="preset-import-summary"></p>
       <div id="preset-import-details" class="preset-import-details" aria-label="Détail des changements"></div>
+      <div id="preset-import-code" class="preset-import-code" role="alert" hidden>
+        <p id="preset-import-code-text"></p>
+        <label class="preset-import-code-ack"><input type="checkbox" id="preset-import-code-ack"> J’ai compris, ce fichier peut faire exécuter du code</label>
+      </div>
       <div class="preset-import-actions">
         <button id="preset-import-confirm">Confirmer l'import</button>
         <button id="preset-import-cancel">Annuler</button>

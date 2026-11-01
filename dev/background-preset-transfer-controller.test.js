@@ -44,6 +44,9 @@ function createHarness(overrides = {}) {
     importDetails: element(),
     importConfirm: element(),
     importCancel: element(),
+    importCode: element(),
+    importCodeText: element(),
+    importCodeAck: element(),
     presetName: element(),
   };
   const reports = [];
@@ -318,5 +321,76 @@ describe('images dans les lots', () => {
     await harness.elements.importInput.onchange();
     expect(harness.reports.at(-1)[0]).toBe('error');
     expect(harness.reports.at(-1)[1]).toContain('base64');
+  });
+
+  describe('un lot qui contient une couche Code', () => {
+    const codeLayer = (id) => ({ id, kind: 'code', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: { html: '<b>x</b>', css: '', js: 'overlay.on("alert", () => {})', paramSpec: '[]', params: {}, audioReactive: false } });
+    const scene = (layers) => ({ version: 1, id: 'avec-code', name: 'Avec code', layers });
+    const bundleWithCode = (layers) => JSON.stringify(createBackgroundPresetBundle([], [scene(layers)]));
+
+    async function pick(layers) {
+      let imports = 0;
+      const client = { previewPresetImport: async () => ({ revision: 'rev-1', created: 1, updated: 0, renamed: 0, unchanged: 0, changes: [] }), importPresets: async () => { imports += 1; } };
+      const harness = createHarness({ client });
+      harness.elements.importInput.files = [{ text: async () => bundleWithCode(layers) }];
+      await harness.elements.importInput.onchange();
+      return { harness, imports: () => imports };
+    }
+
+    test('l’aperçu le dit en clair et l’import est bloqué tant que la case n’est pas cochée', async () => {
+      const { harness } = await pick([codeLayer('a')]);
+      expect(harness.elements.importCode.hidden).toBeFalse();
+      expect(harness.elements.importCodeText.textContent).toContain('une couche Code');
+      expect(harness.elements.importCodeText.textContent).toContain('page isolée');
+      expect(harness.elements.importConfirm.disabled).toBeTrue();
+      harness.elements.importCodeAck.checked = true;
+      harness.elements.importCodeAck.onchange();
+      expect(harness.elements.importConfirm.disabled).toBeFalse();
+      harness.elements.importCodeAck.checked = false;
+      harness.elements.importCodeAck.onchange();
+      expect(harness.elements.importConfirm.disabled).toBeTrue();
+    });
+
+    test('confirmer sans la case cochée n’importe rien, même si le bouton est actionné', async () => {
+      const { harness, imports } = await pick([codeLayer('a')]);
+      await harness.elements.importConfirm.onclick();
+      expect(imports()).toBe(0);
+      expect(harness.reports.at(-1)).toEqual(['error', 'ce lot contient du code : cochez la case de confirmation avant d’importer']);
+      expect(harness.elements.importReview.hidden).toBeFalse();
+    });
+
+    test('la case cochée, l’import part', async () => {
+      const { harness, imports } = await pick([codeLayer('a')]);
+      harness.elements.importCodeAck.checked = true;
+      harness.elements.importCodeAck.onchange();
+      await harness.elements.importConfirm.onclick();
+      expect(imports()).toBe(1);
+      expect(harness.reports.at(-1)[0]).toBe('ok');
+    });
+
+    test('plusieurs couches Code sont comptées', async () => {
+      const { harness } = await pick([codeLayer('a'), codeLayer('b'), codeLayer('c')]);
+      expect(harness.elements.importCodeText.textContent).toContain('3 couches Code');
+    });
+
+    test('annuler décoche la case : le lot suivant repart de zéro', async () => {
+      const { harness } = await pick([codeLayer('a')]);
+      harness.elements.importCodeAck.checked = true;
+      harness.elements.importCancel.onclick();
+      expect(harness.elements.importCodeAck.checked).toBeFalse();
+      expect(harness.elements.importCode.hidden).toBeTrue();
+    });
+
+    test('un lot sans code n’affiche rien et se confirme sans case', async () => {
+      let imports = 0;
+      const client = { previewPresetImport: async () => ({ revision: 'rev-1', created: 1, updated: 0, renamed: 0, unchanged: 0, changes: [] }), importPresets: async () => { imports += 1; } };
+      const harness = createHarness({ client });
+      harness.elements.importInput.files = [{ text: async () => JSON.stringify(createBackgroundPresetBundle([preset])) }];
+      await harness.elements.importInput.onchange();
+      expect(harness.elements.importCode.hidden).toBeTrue();
+      expect(harness.elements.importConfirm.disabled).toBeFalse();
+      await harness.elements.importConfirm.onclick();
+      expect(imports).toBe(1);
+    });
   });
 });
