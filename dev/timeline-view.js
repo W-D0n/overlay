@@ -1,5 +1,5 @@
 // @ts-check
-import { BINDING_TARGETS } from '../layer-bindings.js';
+import { paramBase, targetLabel, targetRange } from '../layer-bindings.js';
 import { effectiveTimeline, sampleKeys } from '../layer-timeline.js';
 
 /**
@@ -31,7 +31,7 @@ export function timeFromPointer(pointerX, lane, durationMs, snapMs = 10) {
   return Math.min(durationMs, Math.round((ratio * durationMs) / snapMs) * snapMs);
 }
 
-/** La valeur de base d'une valeur animée : celle de la couche quand rien ne l'anime (opacité et rotation de la couche, 1 pour l'échelle, 0 sinon). */
+/** La valeur de base d'une valeur commune : celle de la couche quand rien ne l'anime (opacité et rotation de la couche, 1 pour l'échelle, 0 sinon). */
 const BASES = /** @type {const} */ ({
   opacity: (/** @type {import('../scene-doc.js').Layer} */ layer) => layer.opacity,
   rotation: (/** @type {import('../scene-doc.js').Layer} */ layer) => layer.rotation ?? 0,
@@ -52,18 +52,21 @@ const BASES = /** @type {const} */ ({
 export function valueAt(layer, target, timeMs) {
   const track = layer.timeline?.find((candidate) => candidate.target === target);
   const sampled = track === undefined ? null : sampleKeys(track.keys, timeMs);
-  return sampled ?? BASES[target](layer);
+  if (sampled !== null) return sampled;
+  const setting = paramBase(layer, target);
+  return setting ?? (Object.hasOwn(BASES, target) ? BASES[/** @type {keyof typeof BASES} */ (target)](layer) : 0);
 }
 
 /**
  * La phrase lue par un lecteur d'écran pour une image clé.
  * @param {import('../layer-bindings.js').BindingTarget} target
  * @param {import('../layer-timeline.js').Keyframe} key
+ * @param {import('../layer-bindings.js').TargetOwner | null} [owner] la couche, pour le nom d'un réglage
  * @returns {string}
  */
-export function describeKey(target, key) {
-  const range = BINDING_TARGETS[target];
-  return `Image clé ${range.label.toLowerCase()} à ${formatSeconds(key.t)}, valeur ${key.v}${range.unit === '' ? '' : ` ${range.unit}`}`;
+export function describeKey(target, key, owner = null) {
+  const unit = targetRange(target, owner)?.unit ?? '';
+  return `Image clé ${targetLabel(target, owner).toLowerCase()} à ${formatSeconds(key.t)}, valeur ${key.v}${unit === '' ? '' : ` ${unit}`}`;
 }
 
 /**

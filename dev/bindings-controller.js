@@ -1,5 +1,5 @@
 // @ts-check
-import { BINDING_SOURCES, BINDING_TARGETS, DURATION_LIMITS, MAX_BINDINGS, addBinding, changeBinding, isContinuousSource, removeBinding } from '../layer-bindings.js';
+import { BINDING_SOURCES, DURATION_LIMITS, MAX_BINDINGS, addBinding, changeBinding, isContinuousSource, layerTargets, removeBinding, targetLabel, targetRange } from '../layer-bindings.js';
 
 /**
  * dev/bindings-controller.js — La section « Animation » de l'inspecteur : les liaisons de la couche sélectionnée (`layer-bindings.js`).
@@ -76,36 +76,39 @@ export function createBindingsController(input) {
         el.value = option.id;
         source.appendChild(el);
       }
-      source.addEventListener('change', () => commit(layer, changeBinding(live(layer.id), index, 'source', source.value), `${index}:source`));
+      source.addEventListener('change', () => commit(layer, changeBinding(live(layer.id), index, 'source', source.value, layer), `${index}:source`));
 
       const target = /** @type {HTMLSelectElement} */ (node('select'));
       target.dataset.field = 'target';
       target.setAttribute('aria-label', `Liaison ${index + 1} : valeur pilotée`);
-      for (const [id, range] of Object.entries(BINDING_TARGETS)) {
+      const choices = layerTargets(layer);
+      // Un réglage que la couche ne déclare plus garde sa liaison : elle reste visible et retirable.
+      if (!choices.some(({ id }) => id === binding.target)) choices.push({ id: binding.target, range: { label: targetLabel(binding.target, layer), unit: '', min: -Infinity, max: Infinity, step: 1, from: binding.from, to: binding.to } });
+      for (const { id, range } of choices) {
         const el = /** @type {HTMLOptionElement} */ (node('option', undefined, range.label));
         el.value = id;
         // Une valeur déjà pilotée par une autre liaison ne se propose pas deux fois.
         el.disabled = bindings.some((other, at) => at !== index && other.target === id);
         target.appendChild(el);
       }
-      target.addEventListener('change', () => commit(layer, changeBinding(live(layer.id), index, 'target', target.value), `${index}:target`));
+      target.addEventListener('change', () => commit(layer, changeBinding(live(layer.id), index, 'target', target.value, layer), `${index}:target`));
 
-      const range = BINDING_TARGETS[binding.target];
+      const range = targetRange(binding.target, layer) ?? { label: '', unit: '', min: -Infinity, max: Infinity, step: 1, from: 0, to: 0 };
       /** @param {'from' | 'to' | 'durationMs'} field @param {string} label @param {number} min @param {number} max @param {number} step */
       const number = (field, label, min, max, step) => {
         const wrap = node('label', 'binding-number');
         const caption = node('span', undefined, label);
         const el = /** @type {HTMLInputElement} */ (node('input'));
         el.type = 'number';
-        el.min = String(min);
-        el.max = String(max);
+        if (Number.isFinite(min)) el.min = String(min);
+        if (Number.isFinite(max)) el.max = String(max);
         el.step = String(step);
         el.dataset.field = field;
         el.setAttribute('aria-label', `Liaison ${index + 1} : ${label}`);
         el.addEventListener('input', () => {
           const typed = Number.parseFloat(el.value.replace(',', '.'));
           if (!Number.isFinite(typed)) return;
-          commit(layer, changeBinding(live(layer.id), index, field, typed), `${index}:${field}`);
+          commit(layer, changeBinding(live(layer.id), index, field, typed, layer), `${index}:${field}`);
         });
         el.addEventListener('blur', render);
         wrap.append(caption, el);
@@ -135,7 +138,7 @@ export function createBindingsController(input) {
     elements.add.disabled = !single || (layer.bindings?.length ?? 0) >= MAX_BINDINGS;
     elements.hint.textContent = layers.length === 0 ? '' : single
       ? ((layer.bindings?.length ?? 0) === 0
-        ? 'Faites réagir la couche au son ou aux alertes : son échelle, son opacité, sa rotation, son flou ou sa position.'
+        ? 'Faites réagir la couche au son ou aux alertes : son échelle, son opacité, sa rotation, son flou, sa position, ou un réglage numérique borné de son code.'
         : 'Au repos, chaque valeur est celle de « De » ; la source la fait aller vers « À ».')
       : 'Sélectionnez une seule couche pour régler ses liaisons.';
     if (!single) {
@@ -144,7 +147,7 @@ export function createBindingsController(input) {
       return;
     }
     const bindings = layer.bindings ?? [];
-    const key = `${layer.id}|${bindings.map((binding) => `${binding.source}>${binding.target}`).join(',')}`;
+    const key = `${layer.id}|${layerTargets(layer).map(({ id, range }) => `${id}=${range.label}:${range.min}:${range.max}`).join(',')}|${bindings.map((binding) => `${binding.source}>${binding.target}`).join(',')}`;
     if (key !== shownKey) {
       shownKey = key;
       build(layer);

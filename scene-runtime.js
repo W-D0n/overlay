@@ -3,7 +3,7 @@ import { COMPONENT_REGISTRY } from './component-registry.js';
 import { cssEasing, normalizeTransition, transitionStyles } from './background-transition.js';
 import { isAudioOn, isIdentityKind, kindCapabilities } from './layer-kinds.js';
 import { referenceScale } from './render-reference.js';
-import { evaluateBindings, recordPulse, usesAudio } from './layer-bindings.js';
+import { PARAM_TARGET_PREFIX, evaluateBindings, recordPulse, usesAudio } from './layer-bindings.js';
 import { effectiveTimeline, evaluateTimeline, hasKeys, playbackTime } from './layer-timeline.js';
 import { getRenderClock } from './render-clock.js';
 import { CROP_SIDES } from './scene-doc.js';
@@ -190,6 +190,8 @@ export function createSceneRuntime(container, deps = {}) {
     if (entry.layer.bindings !== layer.bindings) entry.memory = [];
     entry.layer = layer;
     entry.appliedKey = '';
+    const animated = bindingValues(entry, clockTime, 0);
+    driveParams(entry, animated);
     Object.assign(entry.calque.style, {
       left: percent(x),
       top: percent(y),
@@ -197,7 +199,7 @@ export function createSceneRuntime(container, deps = {}) {
       height: percent(height),
       display: layer.visible ? '' : 'none',
       zIndex: String(index),
-      ...lookStyles(layer, bindingValues(entry, clockTime, 0)),
+      ...lookStyles(layer, animated),
     });
     syncClock();
   }
@@ -231,6 +233,21 @@ export function createSceneRuntime(container, deps = {}) {
     return { ...scripted, ...evaluateBindings(bindings, { levels: live, pulses, time, dt, memory: entry.memory }) };
   }
 
+  /**
+   * Les valeurs animées d'un réglage (`param:<clé>`) vont au composant, qui les applique à sa façon ; les autres sont du style du calque.
+   * Appelé même sans réglage animé : `{}` rend au composant les valeurs réglées à la main.
+   * @param {MountedLayer} entry @param {Partial<Record<import('./layer-bindings.js').BindingTarget, number>>} values
+   */
+  function driveParams(entry, values) {
+    if (typeof entry.instance.drive !== 'function') return;
+    /** @type {Record<string, number>} */
+    const driven = {};
+    for (const [target, value] of Object.entries(values)) {
+      if (value !== undefined && target.startsWith(PARAM_TARGET_PREFIX)) driven[target.slice(PARAM_TARGET_PREFIX.length)] = value;
+    }
+    entry.instance.drive(driven);
+  }
+
   /** @param {import('./render-clock.js').RenderFrame} frame */
   function tickBindings(frame) {
     clockTime = frame.time;
@@ -242,6 +259,7 @@ export function createSceneRuntime(container, deps = {}) {
       const key = JSON.stringify(values);
       if (key === entry.appliedKey) continue;
       entry.appliedKey = key;
+      driveParams(entry, values);
       Object.assign(entry.calque.style, lookStyles(entry.layer, values));
     }
     if (timelineListeners.size > 0) for (const listener of timelineListeners) listener(timelineState());

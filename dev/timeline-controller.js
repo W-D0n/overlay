@@ -1,5 +1,5 @@
 // @ts-check
-import { BINDING_TARGETS } from '../layer-bindings.js';
+import { layerTargets, targetLabel, targetRange } from '../layer-bindings.js';
 import { DURATION_BOUNDS, EASES, MAX_KEYS, changeKey, removeKey, setKey } from '../layer-timeline.js';
 import { describeKey, formatSeconds, percentOf, timeFromPointer, timelineOf, valueAt } from './timeline-view.js';
 
@@ -90,8 +90,27 @@ export function createTimelineController(input) {
     placePlayheads(state);
   }
 
+  /** Les valeurs proposées pour une nouvelle piste : les communes, et les réglages animables de la couche ; la liste ne se reconstruit que si elle change. */
+  let targetsKey = '';
+  /** @param {import('../scene-doc.js').Layer | null} owner */
+  function syncTargets(owner) {
+    const list = layerTargets(owner);
+    const key = list.map(({ id, range }) => `${id}=${range.label}`).join('|');
+    if (key === targetsKey) return;
+    targetsKey = key;
+    const kept = elements.target.value;
+    elements.target.replaceChildren();
+    for (const { id, range } of list) {
+      const option = /** @type {HTMLOptionElement} */ (node('option', undefined, range.label));
+      option.value = id;
+      elements.target.appendChild(option);
+    }
+    if (list.some(({ id }) => id === kept)) elements.target.value = kept;
+  }
+
   function renderTracks() {
     const target = layer();
+    syncTargets(target);
     const scene = studio.state().scene;
     const settings = timelineOf(scene);
     if (target?.id !== selectedLayerId) {
@@ -105,12 +124,12 @@ export function createTimelineController(input) {
     elements.tracks.replaceChildren();
     const tracks = target?.timeline ?? [];
     for (const track of tracks) {
-      const range = BINDING_TARGETS[track.target];
+      const name = targetLabel(track.target, target);
       const lane = node('div', 'tl-track');
       lane.setAttribute('role', 'group');
-      lane.setAttribute('aria-label', `Piste ${range.label.toLowerCase()}`);
+      lane.setAttribute('aria-label', `Piste ${name.toLowerCase()}`);
       lane.dataset.target = track.target;
-      const label = node('span', 'tl-label', range.label);
+      const label = node('span', 'tl-label', name);
       const area = node('div', 'tl-lane');
       area.dataset.target = track.target;
       area.addEventListener('pointerdown', (event) => {
@@ -122,7 +141,7 @@ export function createTimelineController(input) {
         button.type = 'button';
         button.dataset.index = String(index);
         button.style.left = `${percentOf(key.t, settings.durationMs)}%`;
-        button.setAttribute('aria-label', describeKey(track.target, key));
+        button.setAttribute('aria-label', describeKey(track.target, key, target));
         button.setAttribute('aria-pressed', String(selected?.target === track.target && selected.index === index));
         button.addEventListener('pointerdown', (event) => startDrag(event, target, track.target, index, area));
         button.addEventListener('keydown', (event) => onKeyKey(event, track.target, index));
@@ -144,14 +163,21 @@ export function createTimelineController(input) {
     const key = selected === null ? undefined : track?.keys[selected.index];
     elements.detail.hidden = key === undefined;
     if (key === undefined || selected === null) return;
-    const range = BINDING_TARGETS[selected.target];
+    const range = targetRange(selected.target, target);
     elements.detail.dataset.target = selected.target;
     show(elements.detailTime, String(key.t));
     show(elements.detailValue, String(key.v));
-    elements.detailValue.min = String(range.min);
-    elements.detailValue.max = String(range.max);
-    elements.detailValue.step = String(range.step);
-    elements.detailValue.setAttribute('aria-label', `Valeur de l’image clé (${range.label.toLowerCase()}${range.unit === '' ? '' : `, ${range.unit}`})`);
+    // Un réglage que la couche ne déclare plus garde sa piste sans bornes : on la voit et on peut la retirer, rien n'est perdu.
+    if (range === null) {
+      elements.detailValue.removeAttribute('min');
+      elements.detailValue.removeAttribute('max');
+      elements.detailValue.removeAttribute('step');
+    } else {
+      elements.detailValue.min = String(range.min);
+      elements.detailValue.max = String(range.max);
+      elements.detailValue.step = String(range.step);
+    }
+    elements.detailValue.setAttribute('aria-label', `Valeur de l’image clé (${targetLabel(selected.target, target).toLowerCase()}${range === null || range.unit === '' ? '' : `, ${range.unit}`})`);
     show(elements.detailEase, key.ease);
   }
 
@@ -175,7 +201,7 @@ export function createTimelineController(input) {
       // La piste est relue à chaque mouvement : l'affichage a pu être reconstruit depuis le début du glisser (la clé choisie change d'aspect).
       const lane = elements.tracks.querySelector(`.tl-lane[data-target="${target}"]`) ?? area;
       const t = timeFromPointer(moveEvent.clientX, lane.getBoundingClientRect(), timelineOf(studio.state().scene).durationMs);
-      const result = changeKey(live.timeline ?? [], target, current, { t });
+      const result = changeKey(live.timeline ?? [], target, current, { t }, targetRange(target, live));
       // Passer sur une autre image clé est refusé : la clé reste où elle était, le pointeur reprend la main plus loin.
       if (result.refused) return;
       current = result.index;
@@ -201,7 +227,7 @@ export function createTimelineController(input) {
       event.preventDefault();
       const key = live.timeline?.find((track) => track.target === target)?.keys[index];
       if (key === undefined) return;
-      const result = changeKey(live.timeline ?? [], target, index, { t: key.t + (event.key === 'ArrowRight' ? 1 : -1) * (event.shiftKey ? 100 : 10) });
+      const result = changeKey(live.timeline ?? [], target, index, { t: key.t + (event.key === 'ArrowRight' ? 1 : -1) * (event.shiftKey ? 100 : 10) }, targetRange(target, live));
       if (result.refused) return;
       selected = { target, index: result.index };
       commitTracks(result.tracks, `move:${target}`);
@@ -227,7 +253,7 @@ export function createTimelineController(input) {
     if (live === null) return;
     const target = /** @type {import('../layer-bindings.js').BindingTarget} */ (elements.target.value);
     const t = Math.round(timeline.state().timeMs);
-    const tracks = setKey(live.timeline ?? [], target, t, valueAt(live, target, t));
+    const tracks = setKey(live.timeline ?? [], target, t, valueAt(live, target, t), 'easeInOut', targetRange(target, live));
     if (tracks === null) {
       input.report.error(`limite atteinte : ${MAX_KEYS} images clés par piste, une piste par valeur`);
       return;
@@ -242,7 +268,7 @@ export function createTimelineController(input) {
     const live = layer();
     if (live === null || selected === null) return;
     const before = live.timeline ?? [];
-    const result = changeKey(before, selected.target, selected.index, change);
+    const result = changeKey(before, selected.target, selected.index, change, targetRange(selected.target, live));
     if (result.refused) {
       input.report.error('une image clé existe déjà à cet instant');
       renderTracks();
@@ -282,11 +308,6 @@ export function createTimelineController(input) {
     elements.toggle.setAttribute('aria-expanded', String(open));
   });
 
-  for (const [id, range] of Object.entries(BINDING_TARGETS)) {
-    const option = /** @type {HTMLOptionElement} */ (node('option', undefined, range.label));
-    option.value = id;
-    elements.target.appendChild(option);
-  }
   for (const ease of EASES) {
     const option = /** @type {HTMLOptionElement} */ (node('option', undefined, ease.label));
     option.value = ease.id;

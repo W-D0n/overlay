@@ -41,6 +41,8 @@
  *   présent sur les effets canvas, `null` avant la première image.
  * @property {{ current: () => readonly { message: string, line: number | null, column: number | null }[], subscribe: (listener: (reports: readonly { message: string, line: number | null, column: number | null }[]) => void) => () => void }} [reports] -
  *   Les erreurs que le code de la couche a remontées (couche Code) ; le Studio les montre sous le champ.
+ * @property {(values: Readonly<Record<string, number>>) => void} [drive] - Reçoit les valeurs que la timeline ou une liaison impose
+ *   aux réglages de la couche (clé de réglage → nombre) ; elles passent avant les valeurs réglées à la main, et `{}` les retire.
  * @property {() => void} [destroy]                 - Libère les ressources (observers, timers)
  * @property {(payload: unknown) => void} [trigger] - Réaction impérative à un événement discret
  *   (alerte stream). Optionnel : un effet sans `trigger` est couvert par `ReactionOverlay`

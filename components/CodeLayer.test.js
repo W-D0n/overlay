@@ -273,6 +273,59 @@ describe('CodeLayer — mise à jour', () => {
   });
 });
 
+describe('CodeLayer — réglages imposés par la timeline ou une liaison', () => {
+  test('une valeur imposée part au code sans recharger la page, par-dessus la valeur réglée à la main, bornée par la déclaration', () => {
+    const t = setup();
+    const layer = CodeLayer(options({ params: { taille: 100 } }), t.environment);
+    t.fromFrame({ type: 'ready' });
+    t.posted.length = 0;
+    const before = t.frame.srcdoc;
+    layer.drive?.({ taille: 150 });
+    expect(t.sent()).toHaveLength(1);
+    expect(t.sent()[0]).toMatchObject({ type: 'params', values: { taille: 150 }, variables: { '--param-taille': '150' } });
+    layer.drive?.({ taille: 99999 });
+    expect(t.sent().at(-1).values.taille).toBeLessThanOrEqual(400);
+    expect(t.frame.srcdoc).toBe(before);
+  });
+
+  test('la même valeur imposée deux fois n’envoie rien de plus ; {} rend la valeur réglée à la main', () => {
+    const t = setup();
+    const layer = CodeLayer(options({ params: { taille: 100 } }), t.environment);
+    t.fromFrame({ type: 'ready' });
+    layer.drive?.({ taille: 150 });
+    t.posted.length = 0;
+    layer.drive?.({ taille: 150 });
+    expect(t.posted).toEqual([]);
+    layer.drive?.({});
+    expect(t.sent()).toHaveLength(1);
+    expect(t.sent()[0].values.taille).toBe(100);
+  });
+
+  test('une valeur imposée résiste à un réglage fait à la main pendant ce temps, et reste pour la page rechargée', () => {
+    const t = setup();
+    const layer = CodeLayer(options({ params: { taille: 100 } }), t.environment);
+    t.fromFrame({ type: 'ready' });
+    layer.drive?.({ taille: 150 });
+    t.posted.length = 0;
+    layer.update?.(options({ params: { taille: 120 } }));
+    expect(t.sent().at(-1).values.taille).toBe(150);
+    t.fromFrame({ type: 'ready' });
+    expect(t.sent().at(-1).values.taille).toBe(150);
+  });
+
+  test('avant « ready » rien n’est envoyé, la première valeur partira avec la page ; un nombre invalide est écarté', () => {
+    const t = setup();
+    const layer = CodeLayer(options({ params: { taille: 100 } }), t.environment);
+    layer.drive?.({ taille: 150 });
+    expect(t.posted).toEqual([]);
+    t.fromFrame({ type: 'ready' });
+    expect(t.sent()[0].values.taille).toBe(150);
+    t.posted.length = 0;
+    layer.drive?.({ taille: Number.NaN });
+    expect(t.sent()[0].values.taille).toBe(100);
+  });
+});
+
 describe('CodeLayer — erreurs remontées au Studio', () => {
   test('les erreurs s’accumulent (20 au plus, les plus récentes) et préviennent les abonnés', () => {
     const t = setup();

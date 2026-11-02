@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-02
 ---
 
 # Spec — Liaisons de couche (le son et les alertes pilotent une couche)
@@ -12,6 +12,7 @@ Studio et sans code.
 ## 1. Le modèle
 
 `Layer.bindings` : 4 liaisons au plus, chacune `{ source, target, from, to, durationMs }` (`layer-bindings.js`, module pur).
+La cible est l'une des six valeurs communes (opacité, rotation, flou, échelle, `x`, `y`) ou, pour une couche Code, `param:<clé>` d'un réglage numérique qui déclare `min` et `max` (`specs/couche-code.md` §9) : ses bornes sont celles de la déclaration.
 
 | Source | Famille | Effet |
 |---|---|---|

@@ -1,6 +1,6 @@
 ---
 created: 2026-11-01
-updated: 2026-11-01
+updated: 2026-11-02
 ---
 
 # Spec — Couche Code (HTML, CSS et JavaScript dans une page isolée)
@@ -96,10 +96,24 @@ l'échappement des guillemets de la politique dans son attribut (l'origine valid
 rejetée par le type : le test reste utile comme garde du résultat). Trois mutations ont d'abord survécu et ont fait corriger les essais : une redirection lancée **avant** la fin du chargement ne produit aucun chargement « de trop »
 (le document étranger prend la place de celui qui était attendu) — mesuré dans Chrome, d'où le délai pour `ready` ; la vignette qui monte la page n'était vue par aucun essai (la page est démontée avant le contrôle) — un observateur de mutations la compte désormais.
 
-## 9. Reste
+## 9. Réglages animés (2026-11-02)
 
-- **Réglages animables par la timeline et les liaisons** : elles ne ciblent aujourd'hui que opacité, rotation, flou, échelle et position (`layer-bindings.js`). Le code reçoit déjà le son et les alertes et peut les traduire lui-même ; animer ses réglages dans le temps demande d'ouvrir ces
-  cibles aux réglages numériques déclarés (même chantier que les « valeurs animables supplémentaires »).
+La timeline et les liaisons pilotent aussi les réglages numériques du code : cible `param:<clé>`, pour tout réglage `number` qui déclare **`min` et `max`**
+(sans bornes, une valeur de piste n'aurait ni limite à respecter ni échelle à l'écran ; un seul côté ou `min == max` ne s'anime pas).
+Les bornes de la piste ou de la liaison sont celles de la déclaration (`layerTargets`, `targetRange` dans `layer-bindings.js`), le pas aussi (à défaut, une puissance de dix qui découpe l'intervalle en une centaine de pas) ;
+une liaison neuve part du défaut du réglage jusqu'à son maximum.
+
+- **Chemin** : le moteur (`scene-runtime.js`) évalue la timeline puis les liaisons (qui l'emportent), retire le préfixe et passe les nombres au composant par `instance.drive(values)` ;
+  `CodeLayer` les superpose aux valeurs réglées à la main (bornées par `normalizeParamValues`), envoie le message `params` (même message que pour un réglage manuel : `overlay.on('params')` et `--param-<clé>`) **sans recharger la page**, et ne renvoie rien si les valeurs n'ont pas changé.
+  `drive({})` rend les valeurs réglées à la main : c'est ce qui se passe quand la piste ou la liaison disparaît.
+- **Une déclaration qui change ne casse rien** : une piste ou une liaison sur un réglage que la couche ne déclare plus (ou plus comme nombre borné) reste dans le document, sans effet, visible et retirable dans les panneaux ; elle reprend vie si le réglage revient.
+  À l'écriture (forme canonique), les valeurs sont ramenées dans les bornes de la déclaration courante.
+- **Ce qui n'est pas animé** : les réglages texte, couleur, case et liste (pas d'interpolation définie ; les couleurs relèvent des « valeurs animables supplémentaires » de l'inbox).
+- **Preuves** : `layer-param-targets.test.js` et `CodeLayer.test.js` (44 mutations réinjectées, 42 vues rouges, 2 équivalentes : le test du type dans `paramTargets` — seul un nombre porte `min`/`max` — et le test du préfixe dans `paramBase`) ;
+  `dev/e2e/suites/34-reglages-animes.e2e.js` lit les valeurs **dans la page isolée** (images clés, bornes, courbe, liaison qui l'emporte, retour à la valeur manuelle, aucun rechargement), vue rouge sur deux régressions réelles.
+
+## 10. Reste
+
 - Éditeur de réglages en lignes (au lieu du JSON), éditeur de code (indentation, coloration, numéros de ligne), modèles de départ (titre animé, particules canvas, cube WebGL), `.gltf` à fichiers séparés, bibliothèque de scripts proposée.
 - **À mesurer dans OBS** (hypothèses, procédure §15) : WebGL2 dans la source navigateur ; coût d'une page isolée (processus en plus) à 1080p / 60 i/s ; plafond ou indicateur de charge dans le Studio.
 - Couche Shader (GLSL en WebGL2 natif) et déclencheurs d'alerte → animation : pistes 2 et 3 de l'inbox.

@@ -291,9 +291,9 @@ function canonicalLook(layer) {
     const bounded = canonicalCrop(crop);
     if (bounded !== null) look.crop = bounded;
   }
-  const canonical = canonicalBindings(bindings);
+  const canonical = canonicalBindings(bindings, layer);
   if (canonical !== undefined) look.bindings = canonical;
-  const tracks = canonicalTracks(timeline);
+  const tracks = canonicalTracks(timeline, layer);
   if (tracks !== undefined) look.timeline = tracks;
   return /** @type {Layer} */ ({ ...rest, ...look });
 }

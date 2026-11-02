@@ -1,6 +1,6 @@
 ---
 created: 2026-10-30
-updated: 2026-11-01
+updated: 2026-11-02
 ---
 
 # Studio — l'éditeur de couches
@@ -68,6 +68,9 @@ repart de zéro à chaque arrivée de scène** (une animation d'entrée se rejou
 - **Réglages exposés** : une liste JSON décrit les réglages que le Studio présente comme des champs (`number`, `text`, `color`, `boolean`, `select`) :
   `{ "key": "taille", "label": "Taille", "type": "number", "default": 120, "min": 20, "max": 400, "step": 1 }`. Chaque réglage est une variable CSS
   `var(--param-<clé>)` et se lit dans `overlay.params`. Une déclaration invalide ne casse rien : le défaut est dit sous le champ, en direct.
+- **Réglages animés** : un réglage `number` qui déclare **`min` et `max`** s'anime comme n'importe quelle valeur de la couche : choisissez « Réglage : … » dans la liste de la
+  timeline (images clés) ou d'une liaison (le son, une alerte). Le code reçoit chaque valeur par `overlay.on("params", …)` et dans `var(--param-<clé>)`, sans rechargement de la page.
+  Si la timeline et une liaison visent le même réglage, la liaison l'emporte ; retirer la piste rend la valeur réglée à la main. Les autres types de réglage ne s'animent pas.
 - **Ce que le code reçoit** : `overlay.params` (réglages), `overlay.size` (largeur et hauteur **en pixels de la source de référence**, comme le texte : 96 px de CSS font
   96 px de la source quelle que soit la résolution d'OBS), `overlay.pixelRatio`, `overlay.levels` (le son : `level`, `bass`, `mid`, `treble`, si « Réagit au son » est coché),
   `overlay.on("params" | "levels" | "alert" | "resize", fonction)` et `overlay.assetUrl(id)`. Les variables CSS `--audio`, `--audio-bass`, `--audio-mid`, `--audio-treble` suivent le son ;
@@ -84,7 +87,7 @@ repart de zéro à chaque arrivée de scène** (une animation d'entrée se rejou
 ### Faire réagir une couche (liaisons)
 
 La section **Animation** de l'inspecteur lie une couche au **son** ou aux **alertes** (follow, sub, raid, bits, ou toute alerte). Une liaison
-dit : quelle source, quelle valeur de la couche elle pilote (échelle, opacité, rotation, flou, position), la valeur **au repos** (« De ») et celle
+dit : quelle source, quelle valeur de la couche elle pilote (échelle, opacité, rotation, flou, position, ou un réglage numérique d'une couche Code), la valeur **au repos** (« De ») et celle
 quand la source est **au maximum** (« À »). Exemples :
 
 - *Un titre qui paraît à chaque raid* : source « Alerte raid », valeur « Opacité », de 0 à 1, retombée 1 500 ms. Au repos le titre est invisible ;
@@ -153,7 +156,7 @@ Studio** : elle dit quelle couche pèse, pas ce que fera OBS — vérifiez dans 
 
 Le panneau **Timeline**, sous l'aperçu, fait **jouer** la scène : elle démarre à son arrivée dans OBS et peut tourner en boucle.
 
-1. Sélectionnez une couche, dépliez « Images clés », choisissez la valeur à animer (opacité, rotation, flou, échelle, position).
+1. Sélectionnez une couche, dépliez « Images clés », choisissez la valeur à animer (opacité, rotation, flou, échelle, position, ou un réglage numérique de votre code — voir « Écrire du code »).
 2. Placez le **repère** (le curseur, ou un clic dans une piste), puis « + Image clé » : la clé prend la valeur actuelle, rien ne change encore.
 3. Réglez-la (valeur, instant, courbe), placez le repère plus loin, posez une seconde clé : la valeur évolue entre les deux, selon la **courbe** de la
    première (linéaire, départ lent, arrivée lente, ou palier).

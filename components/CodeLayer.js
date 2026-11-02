@@ -114,6 +114,8 @@ export function CodeLayer(rawOptions, environment = {}) {
   let lastLevels = null;
   /** @type {{ event: unknown, at: number }[]} */
   let pendingAlerts = [];
+  /** Les valeurs de réglages imposées par la timeline ou une liaison (`drive`). @type {Record<string, number>} */
+  let driven = {};
   /** @type {CodeReport[]} */
   let reports = [];
   /** @type {Set<(reports: readonly CodeReport[]) => void>} */
@@ -205,8 +207,18 @@ export function CodeLayer(rawOptions, environment = {}) {
   observer.observe(wrapper);
   fit();
 
+  /** Les valeurs des réglages vues par la page : celles qu'on règle à la main, sous celles que la timeline ou une liaison impose. */
+  function currentValues() {
+    return Object.keys(driven).length === 0 ? options.values : normalizeParamValues(options.params, { ...options.values, ...driven });
+  }
+
+  function sendParams() {
+    const values = currentValues();
+    send({ type: 'params', values, variables: paramCssVariables(options.params, values) });
+  }
+
   function flush() {
-    send({ type: 'params', values: options.values, variables: paramCssVariables(options.params, options.values) });
+    sendParams();
     if (lastLevels !== null) send({ type: 'levels', levels: lastLevels });
     const fresh = pendingAlerts.filter(({ at }) => now() - at <= PENDING_ALERT_MS);
     pendingAlerts = [];
@@ -262,8 +274,16 @@ export function CodeLayer(rawOptions, environment = {}) {
         if (reloadTimer !== null) clearTimer(reloadTimer);
         reloadTimer = setTimer(() => { reloadTimer = null; if (!destroyed) load(); }, reloadDelayMs);
       } else if (valuesChanged && ready && reloadTimer === null) {
-        send({ type: 'params', values: options.values, variables: paramCssVariables(options.params, options.values) });
+        sendParams();
       }
+    },
+
+    /** @param {Readonly<Record<string, number>>} values */
+    drive(values) {
+      const next = Object.fromEntries(Object.entries(values).filter(([, value]) => typeof value === 'number' && Number.isFinite(value)));
+      if (JSON.stringify(next) === JSON.stringify(driven)) return;
+      driven = next;
+      if (ready && reloadTimer === null) sendParams();
     },
 
     /** @param {import('../audio-levels.js').AudioLevels} levels */

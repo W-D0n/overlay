@@ -1,6 +1,6 @@
 ---
 created: 2026-06-06
-updated: 2026-10-31
+updated: 2026-11-02
 ---
 
 # Inbox — Overlay Stream
@@ -76,8 +76,8 @@ Ordre = recommandation.
 
 1. ~~**Couche Code isolée**~~ — **faite le 2026-11-01** (`specs/couche-code.md`) : HTML + CSS + JS dans une `iframe` `sandbox` sans `allow-same-origin`, politique de contenu limitée à la médiathèque,
    réglages déclarés par le code → formulaire du Studio, son et alertes reçus par `postMessage`, fichiers `asset:<id>` (images, polices, scripts `.js`, modèles `.glb`), import confirmé par une case. À éprouver dans OBS (procédure §15).
-   **Reste (écart avec ce qui était annoncé)** : les réglages du code ne sont **pas encore animables par la timeline ni les liaisons** (elles ne ciblent que opacité, rotation, flou, échelle, position — c'est la piste 5, « valeurs animables supplémentaires », qui en devient un prérequis) ;
-   le code reçoit déjà le son et les alertes lui-même. Autres restes : éditeur de réglages en lignes plutôt qu'en JSON, éditeur de code (indentation, coloration), modèles de départ, `.gltf` à fichiers séparés.
+   **Réglages animés : faits le 2026-11-02** (`specs/couche-code.md` §9) : la timeline et les liaisons pilotent les réglages numériques bornés (`param:<clé>`). Restent hors de cette étape les réglages couleur, texte, case et liste.
+   Autres restes : éditeur de réglages en lignes plutôt qu'en JSON, éditeur de code (indentation, coloration), modèles de départ, `.gltf` à fichiers séparés.
 2. **Couche Shader** (GLSL en WebGL2 natif, uniformes `time`, `resolution`, `audio` et paramètres) — fonds premium plus légers que three.js.
 3. **Déclencheurs d'alerte → animation** (rejouer une timeline sur une alerte, piste 2 ci-dessus), qui sert aussi les couches Code et Shader.
 4. **Animations de texte et de forme sans code** : préréglages d'entrée, de boucle et de sortie (lettre par lettre, machine à écrire, glitch, rebond, masque).

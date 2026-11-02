@@ -1,8 +1,13 @@
 // @ts-check
+import { PARAM_KEY_PATTERN, parseParamSpec, normalizeParamValues } from './components/code-params.js';
+
 /**
  * layer-bindings.js — Les liaisons d'une couche : une **source** (le son, une alerte) pilote une **valeur** de la couche (opacité,
- * rotation, flou, échelle, position). Module pur, sans DOM ni import : le modèle (forme, bornes, validation), puis l'évaluation, que le
- * moteur (`scene-runtime.js`) appelle à chaque image. Voir docs/specs/liaisons-de-couche.md.
+ * rotation, flou, échelle, position, ou un réglage numérique d'une couche Code). Module pur, sans DOM : le modèle (forme, bornes, validation), puis
+ * l'évaluation, que le moteur (`scene-runtime.js`) appelle à chaque image. Voir docs/specs/liaisons-de-couche.md.
+ *
+ * Une **valeur** est pilotable par une liaison ou une timeline : les six valeurs communes à toutes les couches, et les réglages `param:<clé>` d'une
+ * couche Code dont la déclaration est un nombre avec `min` et `max` (ses bornes sont celles de la déclaration : `layerTargets`, `targetRange`).
  *
  * Deux familles de source :
  *   - **continue** (`audio`, `bass`, `mid`, `treble`) : la valeur suit le niveau sonore de 0 à 1, lissé sur `durationMs` ;
@@ -11,10 +16,15 @@
  * Au repos (silence, aucune alerte), la valeur est `from` : une liaison ne change rien tant que sa source ne dit rien.
  * Une valeur liée **remplace** celle de la couche, sauf `scale`, `x` et `y`, qui s'y ajoutent (échelle 1, décalage 0 : neutres).
  *
- * @typedef {'opacity' | 'rotation' | 'blur' | 'scale' | 'x' | 'y'} BindingTarget
+ * @typedef {'opacity' | 'rotation' | 'blur' | 'scale' | 'x' | 'y'} CommonTarget
+ * @typedef {CommonTarget | `param:${string}`} BindingTarget
+ * @typedef {{ label: string, unit: string, min: number, max: number, step: number, from: number, to: number }} TargetRange
  * @typedef {{ source: string, target: BindingTarget, from: number, to: number, durationMs: number }} Binding
  * @typedef {{ level: number, bass: number, mid: number, treble: number }} Levels
+ * @typedef {{ kind?: string, options?: unknown }} TargetOwner la couche dont on lit les réglages
  */
+
+export const PARAM_TARGET_PREFIX = 'param:';
 
 export const MAX_BINDINGS = 4;
 
@@ -31,7 +41,7 @@ export const BINDING_SOURCES = Object.freeze([
   { id: 'event:bits', label: 'Alerte bits', continuous: false },
 ].map((source) => Object.freeze(source)));
 
-/** Bornes de chaque valeur liée, et ce qu'elle vaut « au repos » à la création d'une liaison. @type {Readonly<Record<BindingTarget, { label: string, unit: string, min: number, max: number, step: number, from: number, to: number }>>} */
+/** Bornes de chaque valeur commune, et ce qu'elle vaut « au repos » à la création d'une liaison. @type {Readonly<Record<CommonTarget, TargetRange>>} */
 export const BINDING_TARGETS = Object.freeze({
   opacity: Object.freeze({ label: 'Opacité', unit: '', min: 0, max: 1, step: 0.05, from: 0, to: 1 }),
   rotation: Object.freeze({ label: 'Rotation', unit: '°', min: -180, max: 180, step: 1, from: 0, to: 15 }),
@@ -40,6 +50,83 @@ export const BINDING_TARGETS = Object.freeze({
   x: Object.freeze({ label: 'Décalage horizontal', unit: '%', min: -100, max: 100, step: 1, from: 0, to: 10 }),
   y: Object.freeze({ label: 'Décalage vertical', unit: '%', min: -100, max: 100, step: 1, from: 0, to: -10 }),
 });
+
+/** Vrai si la valeur est une cible bien formée : une valeur commune, ou `param:` suivi d'une clé de réglage. @param {unknown} target @returns {target is BindingTarget} */
+export function isTargetId(target) {
+  if (typeof target !== 'string') return false;
+  if (Object.hasOwn(BINDING_TARGETS, target)) return true;
+  return target.startsWith(PARAM_TARGET_PREFIX) && PARAM_KEY_PATTERN.test(target.slice(PARAM_TARGET_PREFIX.length));
+}
+
+/** Le pas d'un curseur sur [min, max] quand la déclaration n'en donne pas : une puissance de dix qui découpe l'intervalle en une centaine de pas. @param {number} min @param {number} max */
+function defaultStep(min, max) {
+  return 10 ** Math.floor(Math.log10((max - min) / 100));
+}
+
+/**
+ * Les réglages d'une couche que l'animation peut piloter : les nombres de sa déclaration qui portent `min` et `max` (sans bornes, une valeur de clé n'aurait
+ * pas de sens à l'écran ni de limite à respecter). Vide pour une couche sans réglages.
+ * @param {TargetOwner | null | undefined} owner
+ * @returns {{ id: `param:${string}`, range: TargetRange }[]}
+ */
+export function paramTargets(owner) {
+  const spec = owner?.kind === 'code' && typeof owner.options === 'object' && owner.options !== null ? /** @type {Record<string, unknown>} */ (owner.options).paramSpec : undefined;
+  if (typeof spec !== 'string') return [];
+  return parseParamSpec(spec).params.flatMap((definition) => {
+    if (definition.type !== 'number' || definition.min === undefined || definition.max === undefined || definition.max <= definition.min) return [];
+    const { min, max } = definition;
+    const step = definition.step ?? defaultStep(min, max);
+    return [{
+      id: /** @type {`param:${string}`} */ (`${PARAM_TARGET_PREFIX}${definition.key}`),
+      range: { label: `Réglage : ${definition.label}`, unit: '', min, max, step, from: Number(definition.default), to: max },
+    }];
+  });
+}
+
+/**
+ * Les bornes d'une valeur pilotable ; `null` pour un réglage que la couche ne déclare plus (ou plus comme nombre borné) : la piste ou la liaison
+ * est alors laissée telle quelle et sans effet, pour qu'elle reprenne vie si le réglage revient.
+ * @param {BindingTarget} target
+ * @param {TargetOwner | null | undefined} [owner]
+ * @returns {TargetRange | null}
+ */
+export function targetRange(target, owner) {
+  if (Object.hasOwn(BINDING_TARGETS, target)) return BINDING_TARGETS[/** @type {CommonTarget} */ (target)];
+  return paramTargets(owner).find(({ id }) => id === target)?.range ?? null;
+}
+
+/**
+ * Le nom d'une valeur pilotable pour l'afficher ; sans la couche, un réglage garde sa clé.
+ * @param {BindingTarget} target
+ * @param {TargetOwner | null} [owner]
+ * @returns {string}
+ */
+export function targetLabel(target, owner = null) {
+  return targetRange(target, owner)?.label ?? (target.startsWith(PARAM_TARGET_PREFIX) ? `Réglage : ${target.slice(PARAM_TARGET_PREFIX.length)}` : target);
+}
+
+/**
+ * Toutes les valeurs pilotables d'une couche, les communes d'abord, avec leur identifiant : ce que proposent les listes de la timeline et des liaisons.
+ * @param {TargetOwner | null | undefined} owner
+ * @returns {{ id: BindingTarget, range: TargetRange }[]}
+ */
+export function layerTargets(owner) {
+  return [...Object.entries(BINDING_TARGETS).map(([id, range]) => ({ id: /** @type {BindingTarget} */ (id), range })), ...paramTargets(owner)];
+}
+
+/**
+ * La valeur de base d'un réglage de la couche (celle qu'on règle à la main), pour qu'une image clé posée sans rien changer reparte de là.
+ * @param {TargetOwner} owner
+ * @param {BindingTarget} target
+ * @returns {number | null} `null` si la cible n'est pas un réglage numérique de cette couche
+ */
+export function paramBase(owner, target) {
+  if (!target.startsWith(PARAM_TARGET_PREFIX)) return null;
+  const options = /** @type {Record<string, unknown>} */ (typeof owner.options === 'object' && owner.options !== null ? owner.options : {});
+  const { params } = parseParamSpec(options.paramSpec);
+  const value = normalizeParamValues(params, options.params)[target.slice(PARAM_TARGET_PREFIX.length)];
+  return typeof value === 'number' ? value : null;
+}
 
 const SETTLE = 1e-4;
 
@@ -59,10 +146,11 @@ const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
  * Une liaison de départ, prête à régler : la source et la valeur choisies, les bornes de la valeur, une durée raisonnable.
  * @param {string} source
  * @param {BindingTarget} target
+ * @param {TargetOwner | null} [owner] la couche, pour les bornes d'un réglage
  * @returns {Binding}
  */
-export function createBinding(source = 'audio', target = 'scale') {
-  const range = BINDING_TARGETS[target];
+export function createBinding(source = 'audio', target = 'scale', owner = null) {
+  const range = targetRange(target, owner) ?? BINDING_TARGETS.scale;
   return { source, target, from: range.from, to: range.to, durationMs: isContinuousSource(source) ? 120 : 800 };
 }
 
@@ -84,7 +172,7 @@ export function bindingErrors(where, bindings) {
     if (typeof binding !== 'object' || binding === null) { errors.push(`${at} : objet attendu`); return; }
     const { source, target, from, to, durationMs } = /** @type {Record<string, unknown>} */ (binding);
     if (!BINDING_SOURCES.some(({ id }) => id === source)) errors.push(`${at}.source : source inconnue`);
-    if (typeof target !== 'string' || !Object.hasOwn(BINDING_TARGETS, target)) errors.push(`${at}.target : valeur liée inconnue`);
+    if (!isTargetId(target)) errors.push(`${at}.target : valeur liée inconnue`);
     else if (targets.has(target)) errors.push(`${at}.target : « ${target} » est déjà piloté par une autre liaison`);
     else targets.add(target);
     if (!isNumber(from)) errors.push(`${at}.from : nombre attendu`);
@@ -98,15 +186,16 @@ export function bindingErrors(where, bindings) {
  * La forme canonique : chaque valeur dans les bornes de sa cible, la durée bornée ; une liste vide disparaît (absent = aucune liaison).
  * Ce qui n'est pas une liaison valide reste tel quel : `bindingErrors` le refuse.
  * @param {unknown} bindings
+ * @param {TargetOwner | null} [owner] la couche, pour les bornes d'un réglage
  * @returns {unknown}
  */
-export function canonicalBindings(bindings) {
+export function canonicalBindings(bindings, owner = null) {
   if (!Array.isArray(bindings)) return bindings;
   if (bindings.length === 0) return undefined;
   return bindings.map((binding) => {
     if (typeof binding !== 'object' || binding === null) return binding;
     const entry = /** @type {Record<string, unknown>} */ (binding);
-    const range = typeof entry.target === 'string' && Object.hasOwn(BINDING_TARGETS, entry.target) ? BINDING_TARGETS[/** @type {BindingTarget} */ (entry.target)] : null;
+    const range = isTargetId(entry.target) ? targetRange(entry.target, owner) : null;
     return {
       ...entry,
       ...(range !== null && isNumber(entry.from) ? { from: clamp(entry.from, range.min, range.max) } : {}),
@@ -175,7 +264,7 @@ export function usesAudio(bindings) {
 
 // ── Édition d'une liste de liaisons (l'inspecteur du Studio) ───────────────────
 
-/** Les valeurs liées, de la plus parlante à la moins parlante pour une première liaison. */
+/** Les valeurs communes, de la plus parlante à la moins parlante pour une première liaison (une couche porte quatre liaisons au plus : un réglage se choisit dans la liste). */
 const TARGET_ORDER = /** @type {BindingTarget[]} */ (['scale', 'opacity', 'rotation', 'blur', 'x', 'y']);
 
 /**
@@ -207,9 +296,10 @@ export function removeBinding(bindings, index) {
  * @param {number} index
  * @param {'source' | 'target' | 'from' | 'to' | 'durationMs'} field
  * @param {string | number} value
+ * @param {TargetOwner | null} [owner] la couche, pour les bornes d'un réglage
  * @returns {Binding[]}
  */
-export function changeBinding(bindings, index, field, value) {
+export function changeBinding(bindings, index, field, value, owner = null) {
   const current = bindings[index];
   if (current === undefined) return [...bindings];
   /** @type {Binding} */
@@ -217,10 +307,10 @@ export function changeBinding(bindings, index, field, value) {
   if (field === 'source' && typeof value === 'string') {
     next = { ...current, source: value };
     if (isContinuousSource(value) !== isContinuousSource(current.source)) next.durationMs = isContinuousSource(value) ? 120 : 800;
-  } else if (field === 'target' && typeof value === 'string' && Object.hasOwn(BINDING_TARGETS, value)) {
-    if (bindings.some((binding, at) => at !== index && binding.target === value)) return [...bindings];
-    const range = BINDING_TARGETS[/** @type {BindingTarget} */ (value)];
-    next = { ...current, target: /** @type {BindingTarget} */ (value), from: range.from, to: range.to };
+  } else if (field === 'target' && isTargetId(value)) {
+    const range = targetRange(value, owner);
+    if (range === null || bindings.some((binding, at) => at !== index && binding.target === value)) return [...bindings];
+    next = { ...current, target: value, from: range.from, to: range.to };
   } else if ((field === 'from' || field === 'to' || field === 'durationMs') && typeof value === 'number' && Number.isFinite(value)) {
     next = { ...current, [field]: value };
   } else {

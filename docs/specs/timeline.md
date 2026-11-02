@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-02
 ---
 
 # Spec — Timeline à images clés
@@ -15,7 +15,8 @@ images clés ») et la raison d'être des **chemins adressables** de `scene-doc.
   `linear`, `easeIn`, `easeOut`, `easeInOut`, ou `hold` (palier : la valeur saute à la clé suivante).
 - La scène porte sa **durée** (0,5 à 60 s) et son **mode** (`once` : s'arrête à la dernière image ; `loop` : recommence) : `SceneDoc.timeline`. Absente, la
   scène a la timeline par défaut : 4 s (ou la dernière clé si elle est plus tardive), une seule fois.
-- Les valeurs animées et leurs bornes sont **celles des liaisons** (`layer-bindings.js`) : opacité, rotation, flou, échelle, décalages. Une même
+- Les valeurs animées et leurs bornes sont **celles des liaisons** (`layer-bindings.js`) : opacité, rotation, flou, échelle, décalages, et les réglages numériques bornés d'une
+  couche Code (`param:<clé>`, `specs/couche-code.md` §9). Une même
   valeur se règle donc dans le temps (timeline) ou par le son et les alertes (liaison) ; **quand les deux visent la même valeur, la liaison
   l'emporte** (la réaction en direct passe devant le scénario).
 - Avant la première clé, la valeur de la première ; après la dernière, celle de la dernière ; entre deux clés, l'interpolation par la courbe de la
