@@ -342,6 +342,8 @@
     .tl-field input[type="number"] { width: 64px; }
     .tl-body { padding: var(--space-xs) var(--space-sm) var(--space-sm); border-top: 1px solid var(--color-rule); }
     .timeline-panel:not([data-open="true"]) .tl-body { display: none; }
+    .tl-restart { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-xs); }
+    .tl-restart-label { color: var(--color-text-mid); }
     .tl-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-xs); }
     .tl-title { color: var(--color-text-mid); margin-right: auto; }
     .tl-track { display: grid; grid-template-columns: 96px 1fr; gap: var(--space-sm); align-items: center; margin: 2px 0; }
@@ -1204,6 +1206,9 @@
           <button id="timeline-toggle" type="button" aria-expanded="false" aria-controls="timeline-body">Images clés ▾</button>
         </div>
         <div id="timeline-body" class="tl-body">
+          <div id="timeline-restart-on" class="tl-restart" role="group" aria-labelledby="timeline-restart-label">
+            <span id="timeline-restart-label" class="tl-restart-label">Rejouer l’animation quand arrive</span>
+          </div>
           <div class="tl-tools">
             <span id="timeline-title" class="tl-title"></span>
             <select id="timeline-target" aria-label="Valeur à animer"></select>

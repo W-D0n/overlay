@@ -15,6 +15,12 @@ images clés ») et la raison d'être des **chemins adressables** de `scene-doc.
   `linear`, `easeIn`, `easeOut`, `easeInOut`, ou `hold` (palier : la valeur saute à la clé suivante).
 - La scène porte sa **durée** (0,5 à 60 s) et son **mode** (`once` : s'arrête à la dernière image ; `loop` : recommence) : `SceneDoc.timeline`. Absente, la
   scène a la timeline par défaut : 4 s (ou la dernière clé si elle est plus tardive), une seule fois.
+- **Relance par une alerte** (2026-11-02) : `SceneDoc.timeline.restartOn` liste les sources d'alerte (`event:any`, `event:follow`, `event:sub`, `event:raid`, `event:bits` : les
+  impulsions des liaisons) qui **ramènent la lecture à zéro et la remettent en marche** quand elles arrivent, même arrêtée à sa fin ou mise en pause : « un raid rejoue l'entrée du titre ».
+  `event:any` les relance toutes, `event:<type>` celles de ce type ; une liste vide n'est pas écrite (forme canonique, ordre des sources, sans doublon). Le moteur
+  (`scene-runtime.js`, `react`) la lit à chaque alerte ; le panneau de la timeline propose une case par alerte. Elle vaut pour toute la scène (la durée est celle de la scène),
+  donc pour les valeurs animées des couches Code et Shader comme pour les autres. Preuves : `layer-timeline-restart.test.js` (19 mutations, 18 vues rouges, 1 équivalente retirée du code)
+  et `dev/e2e/suites/36-timeline-alerte.e2e.js` (de vraies alertes par le serveur : choisie → relance, autre → rien, « toute alerte », annulation).
 - Les valeurs animées et leurs bornes sont **celles des liaisons** (`layer-bindings.js`) : opacité, rotation, flou, échelle, décalages, et les réglages numériques bornés d'une
   couche Code (`param:<clé>`, `specs/couche-code.md` §9). Une même
   valeur se règle donc dans le temps (timeline) ou par le son et les alertes (liaison) ; **quand les deux visent la même valeur, la liaison
@@ -60,8 +66,8 @@ rouges (certaines survivantes ont fait ajouter des tests).
 
 ## 5. Reste
 
-- **Déclencher la timeline par une alerte** (une entrée qui rejoue l'animation à chaque raid) : aujourd'hui elle joue à l'arrivée de la scène ; une liaison
-  peut déjà réagir à une alerte, mais pas relancer le scénario.
+- **Une relance par couche** : `restartOn` vaut pour la scène entière. Faire rejouer l'entrée d'un seul titre pendant qu'un autre continue demande une horloge par couche
+  (ou des groupes de couches).
 - Plusieurs couches vues en même temps dans le panneau ; copier-coller des images clés ; édition de la courbe (Bézier).
 - Valeurs animées autres que celles des liaisons (couleur, rognage, taille du texte).
 - Vérifier la fluidité dans OBS (`docs/inbox.md`).

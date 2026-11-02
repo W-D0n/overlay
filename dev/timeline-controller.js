@@ -1,6 +1,6 @@
 // @ts-check
 import { layerTargets, targetLabel, targetRange } from '../layer-bindings.js';
-import { DURATION_BOUNDS, EASES, MAX_KEYS, changeKey, removeKey, setKey } from '../layer-timeline.js';
+import { DURATION_BOUNDS, EASES, MAX_KEYS, RESTART_SOURCES, changeKey, removeKey, setKey } from '../layer-timeline.js';
 import { describeKey, formatSeconds, percentOf, timeFromPointer, timelineOf, valueAt } from './timeline-view.js';
 
 /**
@@ -15,7 +15,7 @@ import { describeKey, formatSeconds, percentOf, timeFromPointer, timelineOf, val
  * @param {{
  *   elements: {
  *     panel: HTMLElement, toggle: HTMLButtonElement, play: HTMLButtonElement, restart: HTMLButtonElement, readout: HTMLElement, scrub: HTMLInputElement,
- *     duration: HTMLInputElement, loop: HTMLInputElement, title: HTMLElement, target: HTMLSelectElement, addKey: HTMLButtonElement, tracks: HTMLElement,
+ *     duration: HTMLInputElement, loop: HTMLInputElement, restartOn: HTMLElement, title: HTMLElement, target: HTMLSelectElement, addKey: HTMLButtonElement, tracks: HTMLElement,
  *     detail: HTMLElement, detailTime: HTMLInputElement, detailValue: HTMLInputElement, detailEase: HTMLSelectElement, detailRemove: HTMLButtonElement,
  *   },
  *   studio: ReturnType<typeof import('./studio-document.js').createStudioDocument>,
@@ -119,6 +119,7 @@ export function createTimelineController(input) {
     }
     show(elements.duration, String(settings.durationMs / 1000));
     elements.loop.checked = settings.loop === 'loop';
+    for (const box of restartBoxes) box.checked = (settings.restartOn ?? []).includes(box.value);
     elements.addKey.disabled = target === null;
     elements.title.textContent = target === null ? 'Sélectionnez une couche pour l’animer.' : `Animation de « ${target.name ?? target.kind} »`;
     elements.tracks.replaceChildren();
@@ -302,6 +303,23 @@ export function createTimelineController(input) {
   });
   elements.duration.addEventListener('blur', renderTracks);
   elements.loop.addEventListener('change', () => commitScene({ loop: elements.loop.checked ? 'loop' : 'once' }));
+
+  // Les alertes qui relancent la lecture : une case par alerte, dans l'ordre des sources ; aucune case = la timeline ne repart qu’à l’arrivée de la scène (la forme canonique retire la liste vide).
+  /** @type {HTMLInputElement[]} */
+  const restartBoxes = RESTART_SOURCES.map(({ id, label }) => {
+    const box = /** @type {HTMLInputElement} */ (node('input'));
+    box.type = 'checkbox';
+    box.value = id;
+    box.dataset.source = id;
+    const wrap = node('label', 'tl-field');
+    wrap.append(box, documentRef.createTextNode(label));
+    elements.restartOn.appendChild(wrap);
+    box.addEventListener('change', () => {
+      const chosen = restartBoxes.filter((other) => other.checked).map((other) => other.value);
+      commitScene({ restartOn: chosen });
+    });
+    return box;
+  });
   elements.toggle.addEventListener('click', () => {
     const open = elements.panel.dataset.open !== 'true';
     elements.panel.dataset.open = String(open);

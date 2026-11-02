@@ -4,7 +4,7 @@ import { cssEasing, normalizeTransition, transitionStyles } from './background-t
 import { isAudioOn, isIdentityKind, kindCapabilities } from './layer-kinds.js';
 import { referenceScale } from './render-reference.js';
 import { PARAM_TARGET_PREFIX, evaluateBindings, recordPulse, usesAudio } from './layer-bindings.js';
-import { effectiveTimeline, evaluateTimeline, hasKeys, playbackTime } from './layer-timeline.js';
+import { effectiveTimeline, evaluateTimeline, hasKeys, playbackTime, restartsOn } from './layer-timeline.js';
 import { getRenderClock } from './render-clock.js';
 import { CROP_SIDES } from './scene-doc.js';
 
@@ -248,6 +248,13 @@ export function createSceneRuntime(container, deps = {}) {
     entry.instance.drive(driven);
   }
 
+  /** Reprend la lecture au début de la scène et prévient les panneaux qui la suivent. */
+  function restartPlayback() {
+    playback.elapsedMs = 0;
+    playback.playing = true;
+    for (const listener of timelineListeners) listener(timelineState());
+  }
+
   /** @param {import('./render-clock.js').RenderFrame} frame */
   function tickBindings(frame) {
     clockTime = frame.time;
@@ -430,7 +437,11 @@ export function createSceneRuntime(container, deps = {}) {
       for (const entry of native) entry.instance.trigger?.(event);
       // Une couche qui reçoit les alertes (le code d'une couche Code) les reçoit sans que la surcouche en soit privée.
       for (const entry of visibleLayers()) if (capabilitiesOf(entry.kind).events === true) entry.instance.trigger?.(event);
-      if (typeof event?.type === 'string') recordPulse(pulses, event.type, clockTime);
+      if (typeof event?.type === 'string') {
+        recordPulse(pulses, event.type, clockTime);
+        // Une alerte que la scène a choisie relance son animation (« un raid rejoue l'entrée »).
+        if (restartsOn(sceneTimeline(), event.type)) restartPlayback();
+      }
       return native.length > 0;
     },
 
@@ -443,7 +454,7 @@ export function createSceneRuntime(container, deps = {}) {
       play() { playback.playing = true; },
       pause() { playback.playing = false; },
       /** Reprend au début de la scène, comme à son arrivée. */
-      restart() { playback.elapsedMs = 0; playback.playing = true; },
+      restart: restartPlayback,
       /** @param {number} ms se place à cet instant (borné à la durée) et met la scène en pause : on regarde cette image */
       seek(ms) {
         playback.playing = false;

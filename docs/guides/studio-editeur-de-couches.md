@@ -178,6 +178,10 @@ Le panneau **Timeline**, sous l'aperçu, fait **jouer** la scène : elle démarr
 4. Glissez les losanges pour caler le rythme (flèches : 10 ms, `Maj` : 100 ms). Se placer dans le temps met en pause : l'aperçu montre cette image.
 5. Réglez la **durée** de la scène et la **boucle**, puis publiez : la page d'OBS joue l'animation depuis l'arrivée de la scène.
 
+6. **Rejouer sur une alerte** : cochez, dans le panneau, les alertes qui relancent l'animation (« Alerte raid », « Alerte follow »… ou « Toute alerte »). À leur arrivée, la scène repart du début
+   et se remet à jouer, même si elle était arrivée à sa fin : un raid rejoue l'entrée du titre. Décochez tout pour que l'animation ne se joue qu'à l'arrivée de la scène.
+   Cela vaut pour toute la scène (et donc aussi pour les réglages animés d'une couche Code ou Shader).
+
 Exemple : un titre qui arrive. Opacité de 0 à 1 entre 0 et 0,8 s, et décalage vertical de +8 % à 0 sur le même intervalle. Si une **liaison** (son, alerte)
 vise la même valeur, c'est elle qui l'emporte : la réaction en direct passe devant le scénario.
 

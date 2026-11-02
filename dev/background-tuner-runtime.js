@@ -296,6 +296,7 @@ export async function startBackgroundTuner(environment = {}) {
       scrub: /** @type {HTMLInputElement} */ (byId('timeline-scrub')),
       duration: /** @type {HTMLInputElement} */ (byId('timeline-duration')),
       loop: /** @type {HTMLInputElement} */ (byId('timeline-loop')),
+      restartOn: byId('timeline-restart-on'),
       title: byId('timeline-title'),
       target: /** @type {HTMLSelectElement} */ (byId('timeline-target')),
       addKey: /** @type {HTMLButtonElement} */ (byId('timeline-add-key')),

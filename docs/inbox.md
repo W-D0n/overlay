@@ -55,7 +55,7 @@ aucun code Twitch dans le dépôt (les alertes viennent du bouton de test du Stu
 
 1. ~~**Alertes réelles (Twitch EventSub)**~~ — **faite le 2026-10-31** (`specs/connexions-et-alertes.md`) : EventSub par WebSocket avec autorisation par code d'appareil, et canal WebSocket pour Twitchat.
    Reste à les éprouver en vrai (procédures §1 et §2). Les réactions du fond et les liaisons « alerte → valeur » reçoivent désormais de vraies alertes.
-2. **Rejouer une timeline sur une alerte** (`specs/timeline.md` §5) — un raid relance l'entrée d'un titre. Devient la piste la plus utile maintenant que les alertes arrivent.
+2. ~~**Rejouer une timeline sur une alerte**~~ — **fait le 2026-11-02** (`specs/timeline.md` §1) : `timeline.restartOn`, une case par alerte dans le panneau. Reste : une relance **par couche** (horloge par couche ou groupes de couches).
 3. **Sources de données** (`specs/liaisons-de-couche.md` §5) — nombre de viewers, dernier follower, minuteur : comme texte (« Dernier
    follow : … ») et comme source de liaison. Les données Twitch sont maintenant à portée (le dernier follower et le dernier abonné passent déjà par EventSub) ; le minuteur n'en dépend pas.
    Autres abonnements EventSub possibles (points de chaîne, début et fin de live, hype train) : `specs/connexions-et-alertes.md` §7.
@@ -81,7 +81,7 @@ Ordre = recommandation.
    Autres restes : éditeur de réglages en lignes plutôt qu'en JSON, éditeur de code (indentation, coloration), modèles de départ, `.gltf` à fichiers séparés.
 2. ~~**Couche Shader**~~ — **faite le 2026-11-02** (`specs/couche-shader.md`) : fragment GLSL en WebGL2 à la Shadertoy, uniformes `uResolution`, `uTime`, `uAudio`, `uAlert` et réglages en `u_<clé>`, qualité de rendu, dernier programme valide conservé en cas d'erreur, réglages numériques animables. À éprouver dans OBS (procédure §16).
    **Reste** : textures (image de la médiathèque en `sampler2D`), passes multiples (fluides), vignette, coût GPU mesuré par couche.
-3. **Déclencheurs d'alerte → animation** (rejouer une timeline sur une alerte, piste 2 ci-dessus), qui sert aussi les couches Code et Shader.
+3. ~~**Déclencheurs d'alerte → animation**~~ — **faits le 2026-11-02** (piste 2 ci-dessus) : ils servent aussi les réglages animés des couches Code et Shader.
 4. **Animations de texte et de forme sans code** : préréglages d'entrée, de boucle et de sortie (lettre par lettre, machine à écrire, glitch, rebond, masque).
 5. **Finitions** : groupes de couches, courbes de Bézier, copier-coller d'images clés, filtres par couche (flou, lueur, masque), bibliothèque de modèles.
 6. **À mesurer avant d'aller plus loin** (hypothèses, rien n'est mesuré) : WebGL2 et `iframe` dans la source navigateur d'OBS (dépend de l'accélération matérielle) ;

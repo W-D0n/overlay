@@ -1,5 +1,5 @@
 // @ts-check
-import { BINDING_TARGETS, isTargetId, targetRange } from './layer-bindings.js';
+import { BINDING_SOURCES, BINDING_TARGETS, isTargetId, targetRange } from './layer-bindings.js';
 
 /**
  * layer-timeline.js — La timeline à images clés d'une scène : des **pistes** par couche (une par valeur : opacité, rotation, flou, échelle, position),
@@ -14,13 +14,15 @@ import { BINDING_TARGETS, isTargetId, targetRange } from './layer-bindings.js';
  * @typedef {'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'hold'} Ease
  * @typedef {{ t: number, v: number, ease: Ease }} Keyframe
  * @typedef {{ target: TimelineTarget, keys: Keyframe[] }} Track
- * @typedef {{ durationMs: number, loop: 'once' | 'loop' }} SceneTimeline
+ * @typedef {{ durationMs: number, loop: 'once' | 'loop', restartOn?: string[] }} SceneTimeline
  */
 
 export const MAX_TRACKS = 6;
 export const MAX_KEYS = 24;
 export const TIME_LIMITS = Object.freeze({ min: 0, max: 60_000 });
 export const DURATION_BOUNDS = Object.freeze({ min: 500, max: 60_000 });
+/** Les alertes qui peuvent relancer la lecture : les sources de type impulsion des liaisons (`event:any`, `event:raid`…). */
+export const RESTART_SOURCES = Object.freeze(BINDING_SOURCES.filter(({ continuous }) => !continuous).map(({ id, label }) => Object.freeze({ id, label })));
 export const DEFAULT_TIMELINE = Object.freeze({ durationMs: 4000, loop: /** @type {'once'} */ ('once') });
 
 /** @type {readonly { id: Ease, label: string }[]} */
@@ -48,11 +50,16 @@ const isTarget = isTargetId;
 export function sceneTimelineErrors(where, timeline) {
   if (timeline === undefined) return [];
   if (typeof timeline !== 'object' || timeline === null || Array.isArray(timeline)) return [`${where} : objet attendu`];
-  const { durationMs, loop } = /** @type {Record<string, unknown>} */ (timeline);
+  const { durationMs, loop, restartOn } = /** @type {Record<string, unknown>} */ (timeline);
   /** @type {string[]} */
   const errors = [];
   if (!isNumber(durationMs)) errors.push(`${where}.durationMs : nombre attendu`);
   if (loop !== 'once' && loop !== 'loop') errors.push(`${where}.loop : « once » ou « loop » attendu`);
+  if (restartOn !== undefined) {
+    if (!Array.isArray(restartOn)) errors.push(`${where}.restartOn : liste attendue`);
+    else if (restartOn.some((id) => !RESTART_SOURCES.some((source) => source.id === id))) errors.push(`${where}.restartOn : alerte inconnue`);
+    else if (new Set(restartOn).size !== restartOn.length) errors.push(`${where}.restartOn : une alerte ne figure qu'une fois`);
+  }
   return errors;
 }
 
@@ -94,14 +101,32 @@ export function trackErrors(where, tracks) {
 }
 
 /**
- * La forme canonique de la timeline d'une scène : durée bornée ; absente si c'est le défaut exact (rien à écrire).
+ * La forme canonique de la timeline d'une scène : durée bornée, alertes de relance dans l'ordre des sources et sans doublon (une liste vide disparaît :
+ * absent = la timeline ne repart qu'à l'arrivée de la scène). Une liste qui n'en est pas une reste telle quelle : `sceneTimelineErrors` la refuse.
  * @param {unknown} timeline
  * @returns {unknown}
  */
 export function canonicalSceneTimeline(timeline) {
   if (typeof timeline !== 'object' || timeline === null || Array.isArray(timeline)) return timeline;
-  const entry = /** @type {Record<string, unknown>} */ (timeline);
-  return { ...entry, ...(isNumber(entry.durationMs) ? { durationMs: clamp(Math.round(entry.durationMs), DURATION_BOUNDS.min, DURATION_BOUNDS.max) } : {}) };
+  const { restartOn, ...entry } = /** @type {Record<string, unknown>} */ (timeline);
+  const known = Array.isArray(restartOn) && restartOn.every((id) => RESTART_SOURCES.some((source) => source.id === id));
+  const ordered = known ? RESTART_SOURCES.map(({ id }) => id).filter((id) => /** @type {unknown[]} */ (restartOn).includes(id)) : [];
+  return {
+    ...entry,
+    ...(isNumber(entry.durationMs) ? { durationMs: clamp(Math.round(entry.durationMs), DURATION_BOUNDS.min, DURATION_BOUNDS.max) } : {}),
+    ...(restartOn === undefined || (known && ordered.length === 0) ? {} : { restartOn: known ? ordered : restartOn }),
+  };
+}
+
+/**
+ * Vrai si cette alerte relance la lecture de la timeline : `event:any` les relance toutes, `event:<type>` celles de ce type.
+ * @param {SceneTimeline} timeline
+ * @param {string} type le type de l'alerte (`raid`, `follow`…)
+ * @returns {boolean}
+ */
+export function restartsOn(timeline, type) {
+  const list = timeline.restartOn;
+  return Array.isArray(list) && (list.includes('event:any') || list.includes(`event:${type}`));
 }
 
 /**
