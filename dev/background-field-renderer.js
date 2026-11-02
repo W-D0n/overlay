@@ -342,7 +342,7 @@ export function createBackgroundFieldRenderer(input) {
     textarea.setAttribute('autocapitalize', 'off');
     textarea.setAttribute('autocomplete', 'off');
     textarea.setAttribute('wrap', 'off');
-    textarea.rows = field.language === 'javascript' ? 14 : field.language === 'css' ? 10 : 8;
+    textarea.rows = field.language === 'javascript' || field.language === 'glsl' ? 14 : field.language === 'css' ? 10 : 8;
     textarea.value = typeof value === 'string' ? value : '';
     const status = documentRef.createElement('p');
     status.className = 'field-status';
@@ -385,7 +385,7 @@ export function createBackgroundFieldRenderer(input) {
     wrapper.appendChild(status);
 
     if (field.key === 'paramSpec') showParamProblems(textarea.value);
-    if (field.key === 'js' && codeReports !== null) {
+    if (field.reports === true && codeReports !== null) {
       /** @param {readonly { message: string, line: number | null }[]} reports */
       const show = (reports) => {
         status.textContent = reports.slice(-3).map(({ message, line }) => (line === null ? message : `ligne ${line} : ${message}`)).join('\n');

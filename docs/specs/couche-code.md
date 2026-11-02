@@ -98,6 +98,8 @@ rejetée par le type : le test reste utile comme garde du résultat). Trois muta
 
 ## 9. Réglages animés (2026-11-02)
 
+La couche Shader (`couche-shader.md`) utilise la même cible et le même chemin (`drive`).
+
 La timeline et les liaisons pilotent aussi les réglages numériques du code : cible `param:<clé>`, pour tout réglage `number` qui déclare **`min` et `max`**
 (sans bornes, une valeur de piste n'aurait ni limite à respecter ni échelle à l'écran ; un seul côté ou `min == max` ne s'anime pas).
 Les bornes de la piste ou de la liaison sont celles de la déclaration (`layerTargets`, `targetRange` dans `layer-bindings.js`), le pas aussi (à défaut, une puissance de dix qui découpe l'intervalle en une centaine de pas) ;

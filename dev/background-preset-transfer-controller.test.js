@@ -340,7 +340,7 @@ describe('images dans les lots', () => {
     test('l’aperçu le dit en clair et l’import est bloqué tant que la case n’est pas cochée', async () => {
       const { harness } = await pick([codeLayer('a')]);
       expect(harness.elements.importCode.hidden).toBeFalse();
-      expect(harness.elements.importCodeText.textContent).toContain('une couche Code');
+      expect(harness.elements.importCodeText.textContent).toContain('une couche de code');
       expect(harness.elements.importCodeText.textContent).toContain('page isolée');
       expect(harness.elements.importConfirm.disabled).toBeTrue();
       harness.elements.importCodeAck.checked = true;
@@ -370,7 +370,16 @@ describe('images dans les lots', () => {
 
     test('plusieurs couches Code sont comptées', async () => {
       const { harness } = await pick([codeLayer('a'), codeLayer('b'), codeLayer('c')]);
-      expect(harness.elements.importCodeText.textContent).toContain('3 couches Code');
+      expect(harness.elements.importCodeText.textContent).toContain('3 couches de code');
+    });
+
+    test('une couche Shader demande la même case, et le texte parle de la carte graphique', async () => {
+      const shaderLayer = { id: 's', kind: 'shader', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: { glsl: 'void mainImage(out vec4 c, in vec2 f) { c = vec4(1.0); }', paramSpec: '[]', params: {}, quality: 'full', audioReactive: false } };
+      const { harness } = await pick([shaderLayer]);
+      expect(harness.elements.importCode.hidden).toBeFalse();
+      expect(harness.elements.importCodeText.textContent).toContain('une couche de code');
+      expect(harness.elements.importCodeText.textContent).toContain('carte graphique');
+      expect(harness.elements.importConfirm.disabled).toBeTrue();
     });
 
     test('annuler décoche la case : le lot suivant repart de zéro', async () => {

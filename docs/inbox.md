@@ -16,6 +16,7 @@ Notes et items qui restent à traiter. Les clôtures récentes sont consignées 
 Ce que seul l'owner peut faire (OBS, regard humain, décision). **Claude rappelle cette liste à la clôture du projet**
 (fin de l'étape 6), avant de dire que tout est terminé. **Les étapes détaillées de chaque point sont dans [`procedures-owner.md`](procedures-owner.md)** (numéros entre parenthèses).
 
+- [ ] **Couche Shader dans OBS** (2026-11-02, §16) : WebGL2 disponible ? i/s tenus et coût GPU d'un shader plein écran ? gain du mode « Quart » ?
 - [ ] **Couche Code dans OBS** (2026-11-01, §15) : WebGL2 disponible dans la source navigateur ? i/s tenus avec un cube three.js ? coût d'une page isolée (processus en plus) ? l'animation rejoue à chaque arrivée de scène ?
 - [ ] **Brancher Twitch** (2026-10-31, §1) : créer l'application Twitch (type Public), saisir son identifiant client dans Réglages › Twitch, se connecter par code. Puis premier vrai follow / sub / raid / bits.
 - [ ] **Relier Twitchat** (2026-10-31, §2) : coller l'adresse de Réglages › Twitchat dans le paramètre WebSocket de Twitchat, créer un trigger par alerte avec le modèle de message. À confirmer : libellés de Twitchat, placeholders `{USER}` / `{BITS}`, demande d'accès au réseau local du navigateur.
@@ -78,7 +79,8 @@ Ordre = recommandation.
    réglages déclarés par le code → formulaire du Studio, son et alertes reçus par `postMessage`, fichiers `asset:<id>` (images, polices, scripts `.js`, modèles `.glb`), import confirmé par une case. À éprouver dans OBS (procédure §15).
    **Réglages animés : faits le 2026-11-02** (`specs/couche-code.md` §9) : la timeline et les liaisons pilotent les réglages numériques bornés (`param:<clé>`). Restent hors de cette étape les réglages couleur, texte, case et liste.
    Autres restes : éditeur de réglages en lignes plutôt qu'en JSON, éditeur de code (indentation, coloration), modèles de départ, `.gltf` à fichiers séparés.
-2. **Couche Shader** (GLSL en WebGL2 natif, uniformes `time`, `resolution`, `audio` et paramètres) — fonds premium plus légers que three.js.
+2. ~~**Couche Shader**~~ — **faite le 2026-11-02** (`specs/couche-shader.md`) : fragment GLSL en WebGL2 à la Shadertoy, uniformes `uResolution`, `uTime`, `uAudio`, `uAlert` et réglages en `u_<clé>`, qualité de rendu, dernier programme valide conservé en cas d'erreur, réglages numériques animables. À éprouver dans OBS (procédure §16).
+   **Reste** : textures (image de la médiathèque en `sampler2D`), passes multiples (fluides), vignette, coût GPU mesuré par couche.
 3. **Déclencheurs d'alerte → animation** (rejouer une timeline sur une alerte, piste 2 ci-dessus), qui sert aussi les couches Code et Shader.
 4. **Animations de texte et de forme sans code** : préréglages d'entrée, de boucle et de sortie (lettre par lettre, machine à écrire, glitch, rebond, masque).
 5. **Finitions** : groupes de couches, courbes de Bézier, copier-coller d'images clés, filtres par couche (flou, lueur, masque), bibliothèque de modèles.

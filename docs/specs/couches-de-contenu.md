@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-11-01
+updated: 2026-11-02
 ---
 
 # Spec — Couches de contenu (texte, forme, image)
@@ -149,6 +149,7 @@ différente, sélecteur filtré, export, suppression refusée). 11 mutations vue
 ## 8. Reste
 
 - La couche **Code** (HTML, CSS et JavaScript dans une page isolée) est un quatrième contenu, spécifié à part : `couche-code.md`. Elle n'est pas un canvas : pas de vignette, pas de photo de scène.
+- La couche **Shader** (un fragment GLSL en WebGL2) est un cinquième contenu, spécifié à part : `couche-shader.md`. Elle dessine sur un canvas WebGL mais n'a pas non plus de vignette (un contexte graphique ne se relit pas hors de son image).
 
 - Typographie fine : plusieurs graisses d'une même famille, variantes (gras / italique réels d'une police importée) ; aujourd'hui gras et
   italique sont ceux que le navigateur synthétise.

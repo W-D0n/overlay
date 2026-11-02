@@ -84,6 +84,21 @@ repart de zéro à chaque arrivée de scène** (une animation d'entrée se rejou
   case cochée avant d'être importée : n'importez que ce dont vous connaissez l'auteur. Détail et limites : `docs/security.md`.
 - **Aperçu** : une couche Code n'a pas de vignette (pictogramme à la place). Le reste de la scène est inchangé.
 
+### Écrire un shader : la couche Shader
+
+La couche **Shader** calcule chaque pixel de sa zone par la carte graphique, à partir d'un petit programme GLSL : plasma, vagues, grilles, champs de bruit, dégradés vivants.
+C'est le moyen le plus léger d'obtenir un fond génératif, bien plus qu'une couche Code qui ouvre une page entière. Elle s'ajoute comme les autres (« + Ajouter › Shader »).
+
+- **Le programme** est écrit comme sur Shadertoy : `void mainImage(out vec4 fragColor, in vec2 fragCoord)`. Un code copié de Shadertoy marche presque tel quel (`iResolution`, `iTime`, `iMouse` existent).
+  `fragCoord` et `uResolution` sont en pixels de la **source de référence** (1920×1080 pour une zone pleine), quelle que soit la résolution d'OBS. La couleur rendue n'est pas prémultipliée : écrivez `vec4(couleur, opacité)`.
+- **Ce que le shader reçoit** : `uTime` (secondes), `uAudio` (niveau, graves, médiums, aigus, si « Réagit au son » est coché), `uAlert` (secondes depuis la dernière alerte : `exp(-uAlert * 2.0)` donne un éclair à chaque alerte)
+  et un `u_<clé>` par réglage déclaré (nombre, case et liste en `float`, couleur en `vec3`). Les réglages se déclarent en JSON comme pour une couche Code ; un texte n'est pas transmis.
+- **Erreurs** : le compilateur les dit sous le champ, avec la ligne de **votre** code. Tant que le programme ne compile pas, **le dernier programme valide reste à l'antenne** : vous pouvez taper sans l'éteindre.
+- **Qualité de rendu** : « Moitié » et « Quart » calculent moins de pixels puis étirent le résultat, sans changer la composition. C'est le levier à tourner si la carte graphique peine en direct.
+- **Animer** : un réglage `number` qui déclare `min` et `max` s'anime comme pour une couche Code (timeline ou liaison, « Réglage : … »).
+- **Attention** : un shader trop lourd (une boucle sans fin, un calcul démesuré) peut figer l'affichage de tout l'ordinateur. Essayez-le en « Quart » d'abord. Une scène importée qui en contient demande une case cochée.
+  Pas de vignette pour cette couche (pictogramme à la place).
+
 ### Faire réagir une couche (liaisons)
 
 La section **Animation** de l'inspecteur lie une couche au **son** ou aux **alertes** (follow, sub, raid, bits, ou toute alerte). Une liaison

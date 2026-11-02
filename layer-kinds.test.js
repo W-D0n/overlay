@@ -156,6 +156,28 @@ describe('familles de types : effet, contenu, identité', () => {
   });
 });
 
+describe('couche Shader', () => {
+  test('c’est un contenu qu’une vignette ne photographie pas, qui reçoit le son et les alertes', async () => {
+    const { kindFamily, isPhotographable, kindCapabilities } = await import('./layer-kinds.js');
+    expect(kindFamily('shader')).toBe('content');
+    expect(CONTENT_KIND_IDS).toContain('shader');
+    expect(EFFECT_KIND_IDS).not.toContain('shader');
+    expect(isPhotographable('shader')).toBe(false);
+    expect(kindCapabilities('shader')).toEqual({ audio: true, reactions: 'overlay', events: true });
+  });
+
+  test('le texte du shader est borné', () => {
+    expect(validateOptions('shader', { glsl: 'x'.repeat(100_000), paramSpec: '[]', params: {}, quality: 'half', audioReactive: false })).toEqual([]);
+    expect(validateOptions('shader', { glsl: 'x'.repeat(100_001) })).toEqual(['glsl : 100000 caractères au plus']);
+    expect(validateOptions('shader', { glsl: 42 })).toEqual(['glsl : texte attendu']);
+  });
+
+  test('les erreurs du code s’affichent sous le champ du JavaScript et sous celui du shader, et nulle part ailleurs', () => {
+    const flagged = LAYER_KIND_IDS.flatMap((id) => LAYER_KINDS[id].fields.filter((field) => field.reports === true).map((field) => `${id}.${field.key}`));
+    expect(flagged).toEqual(['code.js', 'shader.glsl']);
+  });
+});
+
 describe('couche Code', () => {
   test('c’est un contenu qu’une vignette ne photographie pas, qui reçoit le son et les alertes', async () => {
     const { kindFamily, isPhotographable, kindCapabilities } = await import('./layer-kinds.js');
@@ -163,13 +185,13 @@ describe('couche Code', () => {
     expect(CONTENT_KIND_IDS).toContain('code');
     expect(EFFECT_KIND_IDS).not.toContain('code');
     expect(isPhotographable('code')).toBe(false);
-    for (const id of LAYER_KIND_IDS) if (id !== 'code') expect(isPhotographable(id)).toBe(true);
+    for (const id of LAYER_KIND_IDS) if (id !== 'code' && id !== 'shader') expect(isPhotographable(id)).toBe(true);
     expect(isPhotographable('inconnu')).toBe(true);
     expect(kindCapabilities('code')).toEqual({ audio: true, reactions: 'overlay', events: true });
   });
 
-  test('seul le code reçoit les alertes en plus de la surcouche', () => {
-    expect(LAYER_KIND_IDS.filter((id) => LAYER_KINDS[id].capabilities.events === true)).toEqual(['code']);
+  test('seuls le code et le shader reçoivent les alertes en plus de la surcouche', () => {
+    expect(LAYER_KIND_IDS.filter((id) => LAYER_KINDS[id].capabilities.events === true)).toEqual(['code', 'shader']);
   });
 
   test('le texte du code est borné, le reste est un texte ou un objet', () => {

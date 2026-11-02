@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-11-01
+updated: 2026-11-02
 ---
 
 # Procédures — ce que seul l'owner peut faire
@@ -216,6 +216,21 @@ Utilisez l'éditeur pour de vrais lives pendant quelque temps. Notez les moments
 5. Changez de scène OBS et revenez : l'animation d'entrée **rejoue** à chaque arrivée.
 
 **Me dire** : WebGL2 disponible ou non (et avec quelle case cochée), i/s tenus avec le cube, processus et mémoire en plus par couche Code, si l'animation rejoue.
+
+---
+
+## 16. Couche Shader dans OBS (WebGL2, carte graphique)
+
+**Pourquoi** : les essais prouvent le rendu et les erreurs dans Chrome avec une vraie carte graphique ; ils ne disent pas ce qu'accepte la source navigateur d'**OBS**, ni ce que coûte un shader plein écran à 1080p / 60 i/s sur votre machine.
+**Hypothèses non mesurées** : WebGL2 est disponible dans la source navigateur d'OBS (même réglage d'accélération matérielle que la couche Code, §15) ; un shader d'exemple tient 60 i/s.
+
+1. Studio → **+ Ajouter › Shader** : gardez les vagues d'exemple, publiez, regardez dans OBS : elles sont nettes, bougent, et un raid de test les éclaire un instant.
+2. Regardez le coût GPU d'OBS (Gestionnaire des tâches, onglet Performances → GPU) avec 0, puis 1, puis 3 couches Shader.
+3. Mettez la **Qualité de rendu** sur « Quart » : le rendu doit rester plausible et le coût GPU baisser.
+4. Collez un shader Shadertoy simple (sans texture) : il doit compiler après adaptation éventuelle ; une erreur doit s'afficher sous le champ avec la bonne ligne.
+5. Changez de scène OBS et revenez : le shader repart de zéro (l'animation rejoue).
+
+**Me dire** : WebGL2 disponible ou non, i/s tenus, coût GPU par couche et gain du mode « Quart », si une erreur de compilation montre la bonne ligne.
 
 ---
 

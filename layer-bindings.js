@@ -7,7 +7,7 @@ import { PARAM_KEY_PATTERN, parseParamSpec, normalizeParamValues } from './compo
  * l'évaluation, que le moteur (`scene-runtime.js`) appelle à chaque image. Voir docs/specs/liaisons-de-couche.md.
  *
  * Une **valeur** est pilotable par une liaison ou une timeline : les six valeurs communes à toutes les couches, et les réglages `param:<clé>` d'une
- * couche Code dont la déclaration est un nombre avec `min` et `max` (ses bornes sont celles de la déclaration : `layerTargets`, `targetRange`).
+ * couche Code ou Shader dont la déclaration est un nombre avec `min` et `max` (ses bornes sont celles de la déclaration : `layerTargets`, `targetRange`).
  *
  * Deux familles de source :
  *   - **continue** (`audio`, `bass`, `mid`, `treble`) : la valeur suit le niveau sonore de 0 à 1, lissé sur `durationMs` ;
@@ -70,7 +70,7 @@ function defaultStep(min, max) {
  * @returns {{ id: `param:${string}`, range: TargetRange }[]}
  */
 export function paramTargets(owner) {
-  const spec = owner?.kind === 'code' && typeof owner.options === 'object' && owner.options !== null ? /** @type {Record<string, unknown>} */ (owner.options).paramSpec : undefined;
+  const spec = (owner?.kind === 'code' || owner?.kind === 'shader') && typeof owner.options === 'object' && owner.options !== null ? /** @type {Record<string, unknown>} */ (owner.options).paramSpec : undefined;
   if (typeof spec !== 'string') return [];
   return parseParamSpec(spec).params.flatMap((definition) => {
     if (definition.type !== 'number' || definition.min === undefined || definition.max === undefined || definition.max <= definition.min) return [];

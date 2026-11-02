@@ -109,7 +109,7 @@ export function createBackgroundPresetTransferController(input) {
     renderImportDetails(pending?.plan.changes ?? []);
     const codeLayers = pending?.codeLayers ?? 0;
     elements.importCode.hidden = codeLayers === 0;
-    elements.importCodeText.textContent = codeLayers === 0 ? '' : `Ce fichier contient ${codeLayers === 1 ? 'une couche Code' : `${codeLayers} couches Code`} : du HTML, du CSS et du JavaScript qui s’exécuteront dans une page isolée (sans accès au Studio, à ses fichiers ni à Internet, seulement à la médiathèque) chaque fois que la scène sera affichée. Ne l’importez que si vous en connaissez l’auteur.`;
+    elements.importCodeText.textContent = codeLayers === 0 ? '' : `Ce fichier contient ${codeLayers === 1 ? 'une couche de code' : `${codeLayers} couches de code`} (Code ou Shader). Une couche Code exécute du HTML, du CSS et du JavaScript dans une page isolée (sans accès au Studio, à ses fichiers ni à Internet, seulement à la médiathèque) ; une couche Shader fait calculer un programme par la carte graphique, qui peut la saturer ou figer l’affichage. Cela se produit chaque fois que la scène est affichée. Ne l’importez que si vous en connaissez l’auteur.`;
     // Une couche Code se confirme par écrit : tant que la case n'est pas cochée, l'import ne part pas.
     elements.importConfirm.disabled = reviewState.importing || (codeLayers > 0 && !elements.importCodeAck.checked);
     elements.importCancel.disabled = reviewState.importing;

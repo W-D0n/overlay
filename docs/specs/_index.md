@@ -1,6 +1,6 @@
 ---
 created: 2026-06-07
-updated: 2026-10-31
+updated: 2026-11-02
 ---
 
 # Specs — Index
@@ -28,6 +28,7 @@ updated: 2026-10-31
 | [versions-de-scene](versions-de-scene.md) | Fait | 2026-10-31 | Points de restauration nommés d'une scène |
 | [liaisons-de-couche](liaisons-de-couche.md) | Fait | 2026-10-31 | Le son et les alertes pilotent une couche (opacité, échelle, rotation, flou, position) |
 | [couche-code](couche-code.md) | Fait (à éprouver dans OBS) | 2026-11-01 | Couche Code : HTML, CSS et JavaScript dans une page isolée, réglages déclarés, scripts et modèles 3D en médiathèque |
+| [couche-shader](couche-shader.md) | Fait (à éprouver dans OBS) | 2026-11-02 | Couche Shader : GLSL en WebGL2 (style Shadertoy), réglages animables, qualité de rendu, dernier programme valide conservé en cas d'erreur |
 | [connexions-et-alertes](connexions-et-alertes.md) | Fait | 2026-10-31 | Réglages OBS (mot de passe saisi), Twitchat et Twitch EventSub : les alertes réelles arrivent au Studio |
 | [controle-processus](controle-processus.md) | Draft | 2026-10-30 | Démarrer, redémarrer, arrêter les serveurs depuis le produit |
 

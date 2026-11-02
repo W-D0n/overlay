@@ -27,7 +27,8 @@
  * @property {string} label - Libellé affiché
  * @property {string} [description] - Aide courte affichée sous le champ
  * @property {'text'|'number'|'select'|'boolean'|'textarea'|'token'|'color'|'colors'|'asset'|'code'|'params'} type
- * @property {'html'|'css'|'javascript'|'json'} [language] - Langage du texte si `type === 'code'`
+ * @property {'html'|'css'|'javascript'|'json'|'glsl'} [language] - Langage du texte si `type === 'code'`
+ * @property {boolean} [reports] - Vrai : les erreurs que la couche remonte (`ComponentInstance.reports`) s'affichent sous ce champ
  * @property {string[]} [choices] - Valeurs possibles si `type === 'select'`
  * @property {'image'|'font'} [accept] - Famille d'asset proposée si `type === 'asset'` (images par défaut)
  * @property {'color'|'border'|'radius'} [tokenCategory] - Catégorie si `type === 'token'`
@@ -47,10 +48,10 @@
  * @property {FieldSchema[]} fields
  * @property {boolean} [identity] - Couche d'identité (branding), pas un effet de fond : absente du sélecteur d'effets,
  *   et dessinée au-dessus des transitions entre scènes (elle ne s'estompe pas d'une scène à l'autre)
- * @property {boolean} [content] - Couche de contenu (texte, forme, image, code) : posée dans la pile avec les effets, elle arrive et part
+ * @property {boolean} [content] - Couche de contenu (texte, forme, image, code, shader) : posée dans la pile avec les effets, elle arrive et part
  *   avec sa scène ; ce n'est pas un effet de fond (absente des listes d'effets, de la charge de test et du banc OBS)
- * @property {boolean} [snapshot] - Faux : la couche n'est pas un canvas, une vignette ne peut pas la photographier (une couche Code est un
- *   document isolé) ; ni les vignettes de scène ni l'aperçu de la galerie ne la montent
+ * @property {boolean} [snapshot] - Faux : une vignette ne peut pas photographier la couche (une couche Code est un document isolé, une couche Shader
+ *   un contexte WebGL qui ne se relit pas hors de son image) ; ni les vignettes de scène ni l'aperçu de la galerie ne la montent
  */
 
 /** Les identifiants d'asset : 32 caractères hexadécimaux (début de l'empreinte SHA-256 du contenu de l'image). */
@@ -58,6 +59,9 @@ export const ASSET_ID_PATTERN = /^[0-9a-f]{32}$/;
 
 /** Nombre de caractères au plus du HTML, du CSS et du JavaScript d'une couche Code : au-delà, une bibliothèque se range dans la médiathèque (script). */
 export const CODE_MAX_CHARS = 200_000;
+
+/** Nombre de caractères au plus du shader d'une couche Shader. */
+export const SHADER_MAX_CHARS = 100_000;
 
 /** Les réglages d'une couche Code : nombre et longueur de la déclaration. */
 export const CODE_PARAMS_MAX_CHARS = 20_000;
@@ -137,6 +141,26 @@ const DEFAULT_CODE_PARAMS = `[
   { "key": "taille", "label": "Taille (px)", "type": "number", "default": 120, "min": 20, "max": 400, "step": 1 },
   { "key": "duree", "label": "Durée du battement (s)", "type": "number", "default": 3, "min": 0.5, "max": 20, "step": 0.1 }
 ]`;
+
+/** Les réglages que propose une couche Shader neuve : un uniforme `u_<clé>` chacun (un nombre, une couleur en `vec3`). */
+const DEFAULT_SHADER_PARAMS = `[
+  { "key": "couleur", "label": "Couleur", "type": "color", "default": "#C8B97A" },
+  { "key": "vitesse", "label": "Vitesse", "type": "number", "default": 1, "min": 0, "max": 4, "step": 0.05 },
+  { "key": "echelle", "label": "Échelle des vagues", "type": "number", "default": 6, "min": 1, "max": 20, "step": 0.5 }
+]`;
+
+/** Le shader d'une couche Shader neuve : des vagues douces qui s'éclairent à chaque alerte et gonflent avec le son. */
+const DEFAULT_SHADER_CODE = `// mainImage comme sur Shadertoy. fragCoord et uResolution sont en pixels de la source de référence.
+// Reçus : uTime (s), uAudio (niveau, graves, médiums, aigus), uAlert (s depuis la dernière alerte) et u_<réglage>.
+void mainImage(out vec4 fragColor, in vec2 fragCoord) {
+  vec2 uv = fragCoord / uResolution;
+  float t = uTime * u_vitesse;
+  float wave = 0.5 + 0.5 * sin(uv.x * u_echelle + t) * cos(uv.y * u_echelle * 0.7 - t * 0.7);
+  float flash = exp(-uAlert * 2.0);
+  vec3 color = mix(u_couleur * 0.12, u_couleur, wave + uAudio.x * 0.4) + flash * 0.3;
+  fragColor = vec4(color, 0.9);
+}
+`;
 
 /**
  * Types de couche. Couleurs : `color`/`colors` utilisent `components/color-palette.json`, un picker
@@ -546,6 +570,7 @@ const KIND_DEFINITIONS = {
         description: 'Un module : import, await de premier niveau. L’objet overlay donne params, levels (son), size (en pixels de la source de référence), pixelRatio, on("params" | "levels" | "alert" | "resize", fonction) et assetUrl(id). Aucun réseau hors médiathèque.',
         type: 'code',
         language: 'javascript',
+        reports: true,
         max: CODE_MAX_CHARS,
         default: `// overlay.on('alert', (alerte) => { /* alerte.type, alerte.username, alerte.amount */ });
 `,
@@ -564,6 +589,50 @@ const KIND_DEFINITIONS = {
         key: 'audioReactive',
         label: 'Réagit au son',
         description: 'Le code reçoit le niveau sonore du micro (overlay.levels, --audio…). OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
+        type: 'boolean',
+        default: false,
+      },
+    ],
+  },
+  shader: {
+    legacyIds: [],
+    label: 'Shader',
+    content: true,
+    snapshot: false,
+    capabilities: { audio: true, reactions: 'overlay', events: true },
+    fields: [
+      {
+        key: 'glsl',
+        label: 'Shader (GLSL)',
+        description: 'void mainImage(out vec4 fragColor, in vec2 fragCoord), comme sur Shadertoy (iResolution, iTime et iMouse existent). Reçus : uResolution, uTime, uAudio (niveau, graves, médiums, aigus), uAlert (secondes depuis la dernière alerte) et u_<clé> pour chaque réglage déclaré. fragColor n’est pas prémultiplié.',
+        type: 'code',
+        language: 'glsl',
+        reports: true,
+        max: SHADER_MAX_CHARS,
+        default: DEFAULT_SHADER_CODE,
+      },
+      {
+        key: 'paramSpec',
+        label: 'Réglages exposés (JSON)',
+        description: 'Une liste de réglages que le Studio présente comme des champs : { "key", "label", "type": "number" | "color" | "boolean" | "select", "default", "min", "max", "step", "choices" }. Un nombre, une case et une liste sont un float, une couleur un vec3 ; un texte n’est pas transmis. 24 au plus.',
+        type: 'code',
+        language: 'json',
+        max: CODE_PARAMS_MAX_CHARS,
+        default: DEFAULT_SHADER_PARAMS,
+      },
+      { key: 'params', label: 'Réglages', type: 'params', default: {} },
+      {
+        key: 'quality',
+        label: 'Qualité de rendu',
+        description: 'Plein : un pixel de la source par pixel rendu ; Moitié et Quart : le shader est calculé sur moins de pixels puis étiré, pour soulager la carte graphique en direct.',
+        type: 'select',
+        choices: ['full', 'half', 'quarter'],
+        default: 'full',
+      },
+      {
+        key: 'audioReactive',
+        label: 'Réagit au son',
+        description: 'Le shader reçoit le niveau sonore du micro (uAudio). OBS doit être lancé avec --enable-media-stream ; l’entrée est celle par défaut de Windows.',
         type: 'boolean',
         default: false,
       },

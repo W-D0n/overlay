@@ -189,7 +189,7 @@ send('done', {});
     input.files = transfer.files;
     input.dispatchEvent(new Event('change', { bubbles: true }));
   })()`);
-  check('un lot qui contient du code l’annonce avant d’être confirmé', await page.waitFor("!document.getElementById('preset-import-code').hidden && document.getElementById('preset-import-code-text').textContent.includes('une couche Code')", 8000));
+  check('un lot qui contient du code l’annonce avant d’être confirmé', await page.waitFor("!document.getElementById('preset-import-code').hidden && document.getElementById('preset-import-code-text').textContent.includes('une couche de code')", 8000));
   check('l’import est bloqué tant que la case n’est pas cochée', await page.evaluate("document.getElementById('preset-import-confirm').disabled === true"));
   await page.click('#preset-import-code-ack');
   check('la case cochée débloque l’import', await page.evaluate("document.getElementById('preset-import-confirm').disabled === false"));

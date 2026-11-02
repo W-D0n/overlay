@@ -35,8 +35,8 @@ export function base64ToBytes(text) {
 }
 
 /**
- * Le nombre de couches Code que des presets et des scènes contiennent : un lot qui en porte exécute du code sur l'ordinateur de celui qui l'importe, et
- * le dit avant d'être confirmé.
+ * Le nombre de couches de code (Code et Shader) que des presets et des scènes contiennent : un lot qui en porte exécute du code sur l'ordinateur de
+ * celui qui l'importe (une page isolée, ou un programme de carte graphique qui peut la figer), et le dit avant d'être confirmé.
  * @param {unknown} presets
  * @param {unknown} scenes
  * @returns {number}
@@ -47,7 +47,7 @@ export function countCodeLayers(presets, scenes) {
     if (Array.isArray(value)) return value.reduce((/** @type {number} */ sum, item) => sum + count(item), 0);
     if (typeof value !== 'object' || value === null) return 0;
     const entry = /** @type {Record<string, unknown>} */ (value);
-    const own = entry.kind === 'code' && typeof entry.options === 'object' && entry.options !== null ? 1 : 0;
+    const own = (entry.kind === 'code' || entry.kind === 'shader') && typeof entry.options === 'object' && entry.options !== null ? 1 : 0;
     return own + Object.values(entry).reduce((/** @type {number} */ sum, nested) => sum + count(nested), 0);
   };
   return count([presets, scenes]);

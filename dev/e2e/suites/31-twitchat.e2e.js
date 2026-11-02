@@ -136,6 +136,8 @@ export async function run({ page, stack, check, errors }) {
   check('et ne change rien', (await copiedAddressOf(page)) === address.value && twitchat.state.closed === null);
   await page.click('#settings-twitchat-regenerate');
   check('le second appui coupe la connexion de Twitchat (code 4401)', await twitchat.until(() => twitchat.state.closed !== null) && twitchat.state.closed?.code === 4401);
+  // Le serveur coupe Twitchat avant que le Studio ait reçu la réponse : on attend que le champ change, au lieu de le lire dans cette course.
+  await page.waitFor(`document.getElementById('settings-twitchat-address').value !== ${JSON.stringify(address.value)}`, 6000);
   const fresh = (await addressField()).value;
   check('l’adresse affichée porte un jeton neuf', fresh !== address.value && fresh.includes('token=') && !fresh.includes(oldToken));
   const stale = connect(address.value, TWITCHAT_ORIGIN);

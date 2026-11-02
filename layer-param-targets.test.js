@@ -34,7 +34,11 @@ describe('cibles de réglage : quels réglages se pilotent', () => {
     for (const key of ['sansMin', 'sansMax', 'fige']) expect(targetRange(`param:${key}`, owner)).toBeNull();
   });
 
-  test('une couche qui n’est pas une couche Code, sans déclaration ou à déclaration invalide n’a aucun réglage pilotable', () => {
+  test('une couche Shader expose ses réglages bornés comme une couche Code', () => {
+    expect(paramTargets({ kind: 'shader', options: { paramSpec: SPEC } }).map(({ id }) => id)).toEqual(['param:taille', 'param:vitesse', 'param:large']);
+  });
+
+  test('une couche qui n’est pas une couche Code ni Shader, sans déclaration ou à déclaration invalide n’a aucun réglage pilotable', () => {
     expect(paramTargets({ kind: 'text', options: { paramSpec: SPEC } })).toEqual([]);
     expect(paramTargets({ kind: 'code', options: {} })).toEqual([]);
     expect(paramTargets({ kind: 'code', options: { paramSpec: '[ {' } })).toEqual([]);
