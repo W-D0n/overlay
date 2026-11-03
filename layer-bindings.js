@@ -1,5 +1,6 @@
 // @ts-check
 import { PARAM_KEY_PATTERN, parseParamSpec, normalizeParamValues } from './components/code-params.js';
+import { ADJUSTMENTS, ADJUST_KEYS, GLOW_LIMITS } from './layer-filters.js';
 
 /**
  * layer-bindings.js — Les liaisons d'une couche : une **source** (le son, une alerte) pilote une **valeur** de la couche (opacité,
@@ -17,7 +18,7 @@ import { PARAM_KEY_PATTERN, parseParamSpec, normalizeParamValues } from './compo
  * Une valeur liée **remplace** celle de la couche, sauf `scale`, `x` et `y`, qui s'y ajoutent (échelle 1, décalage 0 : neutres).
  *
  * @typedef {'opacity' | 'rotation' | 'blur' | 'scale' | 'x' | 'y'} CommonTarget
- * @typedef {CommonTarget | `param:${string}`} BindingTarget
+ * @typedef {CommonTarget | `filter:${string}` | `param:${string}`} BindingTarget
  * @typedef {{ label: string, unit: string, min: number, max: number, step: number, from: number, to: number }} TargetRange
  * @typedef {{ source: string, target: BindingTarget, from: number, to: number, durationMs: number }} Binding
  * @typedef {{ level: number, bass: number, mid: number, treble: number }} Levels
@@ -25,6 +26,7 @@ import { PARAM_KEY_PATTERN, parseParamSpec, normalizeParamValues } from './compo
  */
 
 export const PARAM_TARGET_PREFIX = 'param:';
+export const FILTER_TARGET_PREFIX = 'filter:';
 
 export const MAX_BINDINGS = 4;
 
@@ -51,10 +53,23 @@ export const BINDING_TARGETS = Object.freeze({
   y: Object.freeze({ label: 'Décalage vertical', unit: '%', min: -100, max: 100, step: 1, from: 0, to: -10 }),
 });
 
-/** Vrai si la valeur est une cible bien formée : une valeur commune, ou `param:` suivi d'une clé de réglage. @param {unknown} target @returns {target is BindingTarget} */
+/**
+ * The filter values a timeline or a binding can drive: the four color settings and the glow intensity (`filter:glow`). Each starts from its neutral value (no filter), so that a
+ * driven filter changes nothing until its source speaks. @type {Readonly<Record<`filter:${string}`, TargetRange>>}
+ */
+export const FILTER_TARGETS = Object.freeze({
+  ...Object.fromEntries(ADJUST_KEYS.map((key) => {
+    const { label, min, max, neutral, step, unit } = ADJUSTMENTS[key];
+    const to = key === 'hue' ? 90 : key === 'saturation' ? 2 : 1.5;
+    return [`${FILTER_TARGET_PREFIX}${key}`, Object.freeze({ label, unit, min, max, step, from: neutral, to })];
+  })),
+  [`${FILTER_TARGET_PREFIX}glow`]: Object.freeze({ label: 'Lueur (intensité)', unit: '', min: GLOW_LIMITS.intensity.min, max: GLOW_LIMITS.intensity.max, step: GLOW_LIMITS.intensity.step, from: 0, to: 1 }),
+});
+
+/** Vrai si la valeur est une cible bien formée : une valeur commune, un filtre, ou `param:` suivi d'une clé de réglage. @param {unknown} target @returns {target is BindingTarget} */
 export function isTargetId(target) {
   if (typeof target !== 'string') return false;
-  if (Object.hasOwn(BINDING_TARGETS, target)) return true;
+  if (Object.hasOwn(BINDING_TARGETS, target) || Object.hasOwn(FILTER_TARGETS, target)) return true;
   return target.startsWith(PARAM_TARGET_PREFIX) && PARAM_KEY_PATTERN.test(target.slice(PARAM_TARGET_PREFIX.length));
 }
 
@@ -92,6 +107,7 @@ export function paramTargets(owner) {
  */
 export function targetRange(target, owner) {
   if (Object.hasOwn(BINDING_TARGETS, target)) return BINDING_TARGETS[/** @type {CommonTarget} */ (target)];
+  if (Object.hasOwn(FILTER_TARGETS, target)) return FILTER_TARGETS[/** @type {`filter:${string}`} */ (target)];
   return paramTargets(owner).find(({ id }) => id === target)?.range ?? null;
 }
 
@@ -111,7 +127,7 @@ export function targetLabel(target, owner = null) {
  * @returns {{ id: BindingTarget, range: TargetRange }[]}
  */
 export function layerTargets(owner) {
-  return [...Object.entries(BINDING_TARGETS).map(([id, range]) => ({ id: /** @type {BindingTarget} */ (id), range })), ...paramTargets(owner)];
+  return [...Object.entries({ ...BINDING_TARGETS, ...FILTER_TARGETS }).map(([id, range]) => ({ id: /** @type {BindingTarget} */ (id), range })), ...paramTargets(owner)];
 }
 
 /**
@@ -126,6 +142,20 @@ export function paramBase(owner, target) {
   const { params } = parseParamSpec(options.paramSpec);
   const value = normalizeParamValues(params, options.params)[target.slice(PARAM_TARGET_PREFIX.length)];
   return typeof value === 'number' ? value : null;
+}
+
+/**
+ * The value a layer has for a filter target when nothing drives it: its own setting, or the neutral value.
+ * @param {{ filters?: import('./layer-filters.js').Filters }} owner
+ * @param {BindingTarget} target
+ * @returns {number | null} `null` if the target is not a filter
+ */
+export function filterBase(owner, target) {
+  if (!Object.hasOwn(FILTER_TARGETS, target)) return null;
+  const key = target.slice(FILTER_TARGET_PREFIX.length);
+  if (key === 'glow') return owner.filters?.glow?.intensity ?? 0;
+  const value = owner.filters?.[/** @type {import('./layer-filters.js').AdjustKey} */ (key)];
+  return value ?? ADJUSTMENTS[/** @type {import('./layer-filters.js').AdjustKey} */ (key)].neutral;
 }
 
 const SETTLE = 1e-4;

@@ -31,6 +31,12 @@ describe('temps', () => {
 describe('valeurs', () => {
   const layer = createLayer({ id: 'a', kind: 'text', opacity: 0.8, rotation: 12, blur: 3, timeline: [{ target: 'opacity', keys: [{ t: 0, v: 0, ease: 'linear' }, { t: 1000, v: 1, ease: 'linear' }] }] });
 
+  test('valueAt on a filter: the layer setting, or the neutral value, so a new key changes nothing', () => {
+    expect(valueAt({ id: 'a', kind: 'text', filters: { brightness: 1.4 } }, 'filter:brightness', 0)).toBe(1.4);
+    expect(valueAt({ id: 'a', kind: 'text' }, 'filter:brightness', 0)).toBe(1);
+    expect(valueAt({ id: 'a', kind: 'text' }, 'filter:hue', 0)).toBe(0);
+  });
+
   test('valueAt : la valeur de la piste au repère, sinon la valeur de base de la couche', () => {
     expect(valueAt(layer, 'opacity', 500)).toBe(0.5);
     expect(valueAt(layer, 'rotation', 500)).toBe(12);

@@ -79,6 +79,8 @@ survivantes.
 (-180° à 180°, neutre 0), et `glow = { color: '#rrggbb', size, intensity }` (portée de 0 à 60 px de la source de référence, intensité de 0 à 1). Absent = neutre : une valeur neutre, un halo sans portée ou sans intensité
 ne sont pas écrits (forme canonique : bornée, arrondie au centième, couleur en minuscules). Le moteur rend le tout en `filter` CSS sur le calque de la couche : luminosité, contraste, saturation, teinte, puis le halo
 (`drop-shadow` sans décalage, portée suivant `--reference-scale`), puis le flou, de sorte que le halo est flouté avec le reste. Inspecteur : section « Filtres » (une seule couche à la fois, annulable). « Réinitialiser » les
-retire. Les filtres suivent la couche dans le presse-papiers de style et dans le récapitulatif de publication (« filtres : aucun → luminosité, lueur »). Ils **ne sont pas encore animables** par la timeline ni les
-liaisons (cibles de `layer-bindings.js` : les six valeurs communes et les réglages de code). Preuves : `layer-filters.test.js`, `layer-filters-doc.test.js` (35 défauts réinjectés vus rouges) et
+retire. Les filtres suivent la couche dans le presse-papiers de style et dans le récapitulatif de publication (« filtres : aucun → luminosité, lueur »). Ils sont **animables** (2026-11-03) par la timeline et les liaisons : cibles `filter:brightness`, `filter:contrast`, `filter:saturation`, `filter:hue` et `filter:glow` (intensité du halo ; une
+couche sans halo prend le halo de départ, qui apparaît depuis rien). La valeur pilotée remplace celle de la couche, une valeur neutre ne laisse aucun filtre (`animatedFilters`, `layer-filters.js`) ; une
+image clé posée sans rien changer reprend le réglage de la couche (`filterBase`). Essais : `layer-filters-animated.test.js`, `scene-bindings-runtime.test.js`, `dev/e2e/suites/43-filtres-animes.e2e.js`.
+Restent hors de cette étape : la couleur et la portée du halo. Preuves : `layer-filters.test.js`, `layer-filters-doc.test.js` (35 défauts réinjectés vus rouges) et
 `dev/e2e/suites/40-filtres-couche.e2e.js` (le filtre CSS lu sur le calque réel ; 17 défauts de l'interface vus rouges).

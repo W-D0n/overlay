@@ -188,6 +188,10 @@ Le panneau **Timeline**, sous l'aperçu, fait **jouer** la scène : elle démarr
    et se remet à jouer, même si elle était arrivée à sa fin : un raid rejoue l'entrée du titre. Décochez tout pour que l'animation ne se joue qu'à l'arrivée de la scène.
    Cela vaut pour toute la scène (et donc aussi pour les réglages animés d'une couche Code ou Shader).
 
+### Animer les filtres
+
+La timeline (liste « valeur animée ») et les liaisons proposent la luminosité, le contraste, la saturation, la teinte et l'intensité de la lueur. Une image clé posée sans rien régler reprend le réglage de la couche ; une valeur neutre ne laisse aucun filtre. Exemple : une teinte qui tourne de 0° à 90° en une seconde, ou une lueur qui pulse avec les graves.
+
 ### Grouper des couches
 
 Sélectionnez deux couches ou plus (hors identité) puis **Grouper** (bouton du panneau ou `Ctrl+G`) : un groupe apparaît au-dessus de ses couches, qui s'indentent dessous. Un groupe se règle comme une couche — opacité, fusion, flou, filtres, rotation, animations, timeline, liaisons — et ces réglages valent pour **l'ensemble** : une opacité de 50 % sur le groupe est appliquée une fois au tout, pas à chaque couche.

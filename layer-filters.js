@@ -130,6 +130,23 @@ export function setGlow(filters, change) {
 }
 
 /**
+ * The filters of a layer at an instant, with the values driven by a timeline or a binding laid over them: a driven color setting replaces the layer's own, and a driven glow
+ * intensity sets the halo's (a layer without halo takes the starting halo, which then fades in from nothing). A driven neutral value is dropped, as in the canonical form.
+ * @param {Filters | undefined} filters
+ * @param {Partial<Record<AdjustKey | 'glow', number>>} driven
+ * @returns {Filters | undefined}
+ */
+export function animatedFilters(filters, driven) {
+  let result = filters;
+  for (const key of ADJUST_KEYS) {
+    const value = driven[key];
+    if (value !== undefined) result = setAdjustment(result, key, value);
+  }
+  if (driven.glow !== undefined) result = setGlow(result, { intensity: driven.glow });
+  return result;
+}
+
+/**
  * Le filtre CSS qui rend ces filtres : les réglages de couleur, puis le halo (une ombre sans décalage, dont la portée suit la hauteur de la source par `--reference-scale`).
  * @param {Filters | undefined} filters
  * @returns {string} vide quand il n'y a rien à rendre

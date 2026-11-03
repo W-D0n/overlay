@@ -350,3 +350,39 @@ describe('timeline dans le moteur : cas limites', () => {
     expect(runtime.timeline.state().timeMs).toBe(1999);
   });
 });
+
+describe('filtres animés dans le moteur', () => {
+  const ramp = (target, to) => ({ target, keys: [{ t: 0, v: target === 'filter:brightness' ? 1 : 0, ease: 'linear' }, { t: 1000, v: to, ease: 'linear' }] });
+
+  test('a timeline on the hue drives the CSS filter of the layer, on top of its own filters', () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(text({ filters: { brightness: 1.5 }, timeline: [ramp('filter:hue', 90)] })));
+    frame(0.5);
+    expect(calques[0].style.filter).toBe('brightness(1.5) hue-rotate(45deg)');
+  });
+
+  test('a driven value back at neutral leaves no filter at all', () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(text({ timeline: [ramp('filter:brightness', 0.5)] })));
+    frame(0);
+    expect(calques[0].style.filter).toBe('');
+    frame(1);
+    expect(calques[0].style.filter).toBe('brightness(0.5)');
+  });
+
+  test('a driven glow intensity makes a halo appear from nothing', () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(text({ timeline: [ramp('filter:glow', 1)] })));
+    frame(0);
+    expect(calques[0].style.filter).toBe('');
+    frame(1);
+    expect(calques[0].style.filter).toContain('drop-shadow(');
+  });
+
+  test('driven filters go before the blur', () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(text({ blur: 4, timeline: [ramp('filter:hue', 90)] })));
+    frame(1);
+    expect(calques[0].style.filter.startsWith('hue-rotate(90deg) blur(')).toBe(true);
+  });
+});

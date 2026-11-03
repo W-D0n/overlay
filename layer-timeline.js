@@ -1,6 +1,6 @@
 // @ts-check
 import { DEFAULT_BEZIER, bezierErrors, clampBezier, cubicBezier, isBezier } from './cubic-bezier.js';
-import { BINDING_SOURCES, BINDING_TARGETS, isTargetId, targetRange } from './layer-bindings.js';
+import { BINDING_SOURCES, BINDING_TARGETS, FILTER_TARGETS, isTargetId, targetRange } from './layer-bindings.js';
 
 /**
  * layer-timeline.js — La timeline à images clés d'une scène : des **pistes** par couche (une par valeur : opacité, rotation, flou, échelle, position),
@@ -165,8 +165,9 @@ export function canonicalTracks(tracks, owner = null) {
   });
 }
 
-/** Les bornes d'une des six valeurs communes ; `null` pour un réglage, dont les bornes viennent de la couche. @param {TimelineTarget} target @returns {{ min: number, max: number } | null} */
+/** Les bornes d'une des six valeurs communes ou d'un filtre ; `null` pour un réglage, dont les bornes viennent de la couche. @param {TimelineTarget} target @returns {{ min: number, max: number } | null} */
 function commonRange(target) {
+  if (Object.hasOwn(FILTER_TARGETS, target)) return FILTER_TARGETS[/** @type {`filter:${string}`} */ (target)];
   return Object.hasOwn(BINDING_TARGETS, target) ? BINDING_TARGETS[/** @type {keyof typeof BINDING_TARGETS} */ (target)] : null;
 }
 

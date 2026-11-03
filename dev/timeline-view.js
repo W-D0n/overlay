@@ -1,5 +1,5 @@
 // @ts-check
-import { paramBase, targetLabel, targetRange } from '../layer-bindings.js';
+import { filterBase, paramBase, targetLabel, targetRange } from '../layer-bindings.js';
 import { effectiveTimeline, sampleKeys } from '../layer-timeline.js';
 
 /**
@@ -53,7 +53,7 @@ export function valueAt(layer, target, timeMs) {
   const track = layer.timeline?.find((candidate) => candidate.target === target);
   const sampled = track === undefined ? null : sampleKeys(track.keys, timeMs);
   if (sampled !== null) return sampled;
-  const setting = paramBase(layer, target);
+  const setting = paramBase(layer, target) ?? filterBase(layer, target);
   return setting ?? (Object.hasOwn(BASES, target) ? BASES[/** @type {keyof typeof BASES} */ (target)](layer) : 0);
 }
 

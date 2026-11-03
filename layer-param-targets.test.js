@@ -53,13 +53,13 @@ describe('cibles de réglage : quels réglages se pilotent', () => {
   });
 
   test('les listes proposées : les six communes puis les réglages', () => {
-    expect(layerTargets(null).map(({ id }) => id)).toEqual(['opacity', 'rotation', 'blur', 'scale', 'x', 'y']);
-    expect(layerTargets(owner).map(({ id }) => id)).toEqual(['opacity', 'rotation', 'blur', 'scale', 'x', 'y', 'param:taille', 'param:vitesse', 'param:large']);
+    expect(layerTargets(null).map(({ id }) => id)).toEqual(['opacity', 'rotation', 'blur', 'scale', 'x', 'y', 'filter:brightness', 'filter:contrast', 'filter:saturation', 'filter:hue', 'filter:glow']);
+    expect(layerTargets(owner).map(({ id }) => id)).toEqual(['opacity', 'rotation', 'blur', 'scale', 'x', 'y', 'filter:brightness', 'filter:contrast', 'filter:saturation', 'filter:hue', 'filter:glow', 'param:taille', 'param:vitesse', 'param:large']);
   });
 
   test('forme d’un identifiant', () => {
-    for (const good of ['scale', 'param:taille', 'param:a', 'param:aB_9']) expect(isTargetId(good)).toBe(true);
-    for (const bad of ['param:', 'param:Taille', 'param:1a', 'param:a b', 'inconnue', 'param:' + 'a'.repeat(33), 3, null, undefined]) expect(isTargetId(bad)).toBe(false);
+    for (const good of ['scale', 'filter:hue', 'filter:glow', 'param:taille', 'param:a', 'param:aB_9']) expect(isTargetId(good)).toBe(true);
+    for (const bad of ['filter:', 'filter:size', 'filter:Hue', 'param:', 'param:Taille', 'param:1a', 'param:a b', 'inconnue', 'param:' + 'a'.repeat(33), 3, null, undefined]) expect(isTargetId(bad)).toBe(false);
   });
 
   test('noms : le libellé de la déclaration, sinon la clé', () => {

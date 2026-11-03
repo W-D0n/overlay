@@ -5,8 +5,8 @@ import { isAudioOn, isGroupKind, isIdentityKind, kindCapabilities } from './laye
 import { referenceScale } from './render-reference.js';
 import { applyPose, evaluateAnimation, leaveDelayMs, restartsAnimationOn } from './layer-animation.js';
 import { boundingBox } from './layer-group.js';
-import { filterCss } from './layer-filters.js';
-import { PARAM_TARGET_PREFIX, evaluateBindings, recordPulse, usesAudio } from './layer-bindings.js';
+import { animatedFilters, filterCss } from './layer-filters.js';
+import { FILTER_TARGET_PREFIX, PARAM_TARGET_PREFIX, evaluateBindings, recordPulse, usesAudio } from './layer-bindings.js';
 import { effectiveTimeline, evaluateTimeline, hasKeys, playbackTime, restartsOn } from './layer-timeline.js';
 import { getRenderClock } from './render-clock.js';
 import { CROP_SIDES } from './scene-doc.js';
@@ -656,8 +656,22 @@ function lookStyles(layer, bound = {}) {
     transform: [shift, turn, grow].filter((part) => part !== '').join(' '),
     clipPath: crop === undefined && !revealed ? '' : `inset(${CROP_SIDES.map((side) => percent(Math.min(1, (crop?.[side] ?? 0) + (reveal?.[side] ?? 0)))).join(' ')})`,
     // Les filtres de couleur et le halo d'abord, le flou ensuite : le halo est flouté avec le reste.
-    filter: [filterCss(layer.filters), blur === 0 ? '' : `blur(calc(var(--reference-scale, 1) * ${Number(blur.toFixed(3))}px))`].filter((part) => part !== '').join(' '),
+    filter: [filterCss(drivenFilters(layer, bound)), blur === 0 ? '' : `blur(calc(var(--reference-scale, 1) * ${Number(blur.toFixed(3))}px))`].filter((part) => part !== '').join(' '),
   };
+}
+
+/**
+ * The layer's filters with the filter values driven at this instant laid over them.
+ * @param {Layer} layer
+ * @param {Partial<Record<import('./layer-bindings.js').BindingTarget, number>>} bound
+ */
+function drivenFilters(layer, bound) {
+  /** @type {Partial<Record<import('./layer-filters.js').AdjustKey | 'glow', number>>} */
+  const driven = {};
+  for (const [target, value] of Object.entries(bound)) {
+    if (value !== undefined && target.startsWith(FILTER_TARGET_PREFIX)) driven[/** @type {'glow'} */ (target.slice(FILTER_TARGET_PREFIX.length))] = value;
+  }
+  return Object.keys(driven).length === 0 ? layer.filters : animatedFilters(layer.filters, driven);
 }
 
 /** @param {number} fraction @returns {string} */

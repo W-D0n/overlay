@@ -41,7 +41,7 @@ overlay.on('params', report);
   // ── Timeline : taille de 20 (0 s) à 400 (2 s) ──
   await page.click('#timeline-toggle');
   const options = await page.evaluate("[...document.querySelectorAll('#timeline-target option')].map((o) => o.value + '=' + o.textContent)");
-  check('la liste des valeurs animables propose les six communes puis les réglages bornés du code', options.length === 8 && options.slice(0, 6).join() === 'opacity=Opacité,rotation=Rotation,blur=Flou,scale=Échelle,x=Décalage horizontal,y=Décalage vertical' && options[6] === 'param:taille=Réglage : Taille (px)' ? true : options);
+  check('la liste des valeurs animables propose les six communes, les cinq filtres, puis les réglages bornés du code', options.length === 13 && options.slice(0, 6).join() === 'opacity=Opacité,rotation=Rotation,blur=Flou,scale=Échelle,x=Décalage horizontal,y=Décalage vertical' && options.slice(6, 11).map((o) => o.split('=')[0]).join() === 'filter:brightness,filter:contrast,filter:saturation,filter:hue,filter:glow' && options[11] === 'param:taille=Réglage : Taille (px)' ? true : options);
   await page.selectOption('#timeline-target', 'param:taille');
   await seek(0);
   await page.click('#timeline-add-key');
@@ -67,7 +67,7 @@ overlay.on('params', report);
   // ── Liaison : un réglage se choisit dans la liste de la liaison, et elle l'emporte sur la timeline ──
   await page.click('#bindings-add');
   const targets = await page.evaluate("[...document.querySelectorAll('#bindings-list .binding-row')[0].querySelectorAll('[data-field=target] option')].map((o) => o.value)");
-  check('la liaison propose aussi les réglages bornés', targets.join() === 'opacity,rotation,blur,scale,x,y,param:taille,param:duree' ? true : targets);
+  check('la liaison propose aussi les réglages bornés', targets.join() === 'opacity,rotation,blur,scale,x,y,filter:brightness,filter:contrast,filter:saturation,filter:hue,filter:glow,param:taille,param:duree' ? true : targets);
   await pick(0, 'target', 'param:taille');
   await page.sleep(200);
   const row = await page.evaluate("(() => { const r = document.querySelector('#bindings-list .binding-row'); return { target: r.querySelector('[data-field=target]').value, from: r.querySelector('[data-field=from]').value, to: r.querySelector('[data-field=to]').value }; })()");
