@@ -26,6 +26,7 @@ import { ShapeLayer } from './components/ShapeLayer.js';
 import { ImageLayer } from './components/ImageLayer.js';
 import { CodeLayer } from './components/CodeLayer.js';
 import { ShaderLayer } from './components/ShaderLayer.js';
+import { GroupLayer } from './components/GroupLayer.js';
 
 /**
  * Les factories ont des signatures hétérogènes ; le registry expose la vue unifiée
@@ -51,5 +52,6 @@ export const COMPONENT_REGISTRY = ({
   image: ImageLayer,
   code: CodeLayer,
   shader: ShaderLayer,
+  group: GroupLayer,
 });
 

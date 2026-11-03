@@ -5,7 +5,7 @@ updated: 2026-11-03
 
 # Spec — Groupes de couches
 
-Statut : **décidée, en cours** (aucune phase livrée). Décision de l'owner du 2026-11-03 : « groupes complets », pas un simple dossier. Un groupe se comporte comme **une couche** : il a son opacité, sa fusion,
+Statut : **décidée, en cours** (phase 1 livrée : le modèle pur, 44 défauts réinjectés tous vus rouges). Décision de l'owner du 2026-11-03 : « groupes complets », pas un simple dossier. Un groupe se comporte comme **une couche** : il a son opacité, sa fusion,
 sa rotation, son flou, ses filtres, sa timeline, ses liaisons et ses animations d'entrée, de boucle et de sortie, appliqués **à l'ensemble** de ses couches, rendues ensemble.
 
 ## 1. Le modèle
@@ -42,7 +42,7 @@ sa rotation, son flou, ses filtres, sa timeline, ses liaisons et ses animations 
 
 ## 4. Phases (un commit chacune, essais complets verts avant le commit)
 
-1. **Modèle pur** (`layer-group.js`, `layer-kinds.js`, `scene-doc.js`) : type `group`, champ `group`, validation du bloc contigu, bornes, placement dérivé en forme canonique, aides de structure
+1. ~~**Modèle pur**~~ — **fait** (`layer-group.js`, `layer-kinds.js`, `scene-doc.js`, `components/GroupLayer.js`) : type `group`, champ `group`, validation du bloc contigu, bornes, placement dérivé en forme canonique, aides de structure
    (couches d'un groupe, bloc, entrées de premier niveau, grouper, dégrouper). Tests et défauts réinjectés.
 2. **Moteur** (`scene-runtime.js`) : calques de groupe imbriqués, rendu du groupe, origine de transformation, masquage, routage, animation et sortie au départ. Tests avec monde factice.
 3. **Éditeur** (`dev/scene-editor.js`) : grouper, dégrouper, supprimer, dupliquer, déplacer, verrouiller, ajouter, placement d'un groupe par ses couches, historique. Tests et défauts réinjectés.

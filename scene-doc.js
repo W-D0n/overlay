@@ -4,6 +4,7 @@ import { animationErrors, canonicalAnimation } from './layer-animation.js';
 import { bindingErrors, canonicalBindings } from './layer-bindings.js';
 import { canonicalFilters, filterErrors } from './layer-filters.js';
 import { canonicalSceneTimeline, canonicalTracks, sceneTimelineErrors, trackErrors } from './layer-timeline.js';
+import { deriveGroupPlacements, groupErrors } from './layer-group.js';
 import { clampOptions, isIdentityKind, kindCapabilities, neutralizeOptions, resolveKindId, validateOptions } from './layer-kinds.js';
 
 /**
@@ -21,6 +22,7 @@ import { clampOptions, isIdentityKind, kindCapabilities, neutralizeOptions, reso
  *   id: string,
  *   kind: import('./layer-kinds.js').LayerKindId,
  *   name?: string,
+ *   group?: string,
  *   visible: boolean,
  *   locked?: boolean,
  *   opacity: number,
@@ -261,14 +263,14 @@ export function canonicalSceneDoc(scene) {
   return {
     ...scene,
     ...(scene.timeline === undefined ? {} : { timeline: /** @type {*} */ (canonicalSceneTimeline(scene.timeline)) }),
-    layers: /** @type {Layer[]} */ (scene.layers.map((layer) => {
+    layers: /** @type {Layer[]} */ (deriveGroupPlacements(/** @type {Layer[]} */ (scene.layers.map((layer) => {
       if (!isPlainObject(layer)) return layer;
       const kind = resolveKindId(layer.kind) ?? layer.kind;
       const options = isPlainObject(layer.options) ? clampOptions(kind, neutralizeOptions(layer.options)) : layer.options;
       const placement = isPlainObject(layer.placement) ? canonicalPlacement(layer.placement) : layer.placement;
       const opacity = isFraction(layer.opacity) ? clamp(layer.opacity, 0, 1) : layer.opacity;
       return canonicalLook(/** @type {Layer} */ ({ ...layer, kind, options, placement, opacity }));
-    })),
+    })))),
   };
 }
 
@@ -356,7 +358,8 @@ export function validateSceneDoc(raw, { allowEmpty = false } = {}) {
     return { ok: false, errors };
   }
   if (raw.layers.length < 1 && !allowEmpty) errors.push('layers : au moins une couche');
-  if (raw.layers.length > MAX_LAYERS) errors.push(`layers : ${MAX_LAYERS} couches au plus`);
+  // The load guard counts what draws: a group draws nothing, it has its own limit (`layer-group.js`).
+  if (raw.layers.filter((layer) => !(isPlainObject(layer) && layer.kind === 'group')).length > MAX_LAYERS) errors.push(`layers : ${MAX_LAYERS} couches au plus`);
 
   const seen = new Set();
   raw.layers.forEach((layer, index) => {
@@ -373,6 +376,7 @@ export function validateSceneDoc(raw, { allowEmpty = false } = {}) {
       seen.add(layer.id);
     }
     if (resolveKindId(layer.kind) === null) errors.push(`${where}.kind : type de couche inconnu`);
+    if (layer.group !== undefined && typeof layer.group !== 'string') errors.push(`${where}.group : identifiant de groupe attendu`);
     if (typeof layer.visible !== 'boolean') errors.push(`${where}.visible : booléen attendu`);
     if (layer.locked !== undefined && typeof layer.locked !== 'boolean') errors.push(`${where}.locked : booléen attendu`);
     if (!isFraction(layer.opacity)) errors.push(`${where}.opacity : nombre attendu`);
@@ -382,6 +386,7 @@ export function validateSceneDoc(raw, { allowEmpty = false } = {}) {
     else errors.push(...validateOptions(layer.kind, layer.options).map((message) => `${where}.options.${message}`));
   });
 
+  if (errors.length === 0) errors.push(...groupErrors(/** @type {Layer[]} */ (raw.layers)));
   return errors.length === 0 ? { ok: true } : { ok: false, errors };
 }
 

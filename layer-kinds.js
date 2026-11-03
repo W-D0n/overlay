@@ -50,6 +50,7 @@
  *   et dessinée au-dessus des transitions entre scènes (elle ne s'estompe pas d'une scène à l'autre)
  * @property {boolean} [content] - Couche de contenu (texte, forme, image, code, shader) : posée dans la pile avec les effets, elle arrive et part
  *   avec sa scène ; ce n'est pas un effet de fond (absente des listes d'effets, de la charge de test et du banc OBS)
+ * @property {boolean} [group] - Groupe de couches (`layer-group.js`) : une entrée de la liste qui en contient d'autres, sans réglages ni dessin propres ; absent de la galerie « Ajouter une couche »
  * @property {boolean} [snapshot] - Faux : une vignette ne peut pas photographier la couche (une couche Code est un document isolé, une couche Shader
  *   un contexte WebGL qui ne se relit pas hors de son image) ; ni les vignettes de scène ni l'aperçu de la galerie ne la montent
  */
@@ -661,6 +662,14 @@ const KIND_DEFINITIONS = {
     ],
   },
 
+  group: {
+    legacyIds: [],
+    label: 'Groupe',
+    group: true,
+    capabilities: { audio: false, reactions: 'overlay' },
+    fields: [],
+  },
+
 };
 
 /** @typedef {keyof typeof KIND_DEFINITIONS} LayerKindId */
@@ -713,14 +722,24 @@ export function isContentKind(id) {
 }
 
 /**
- * La famille d'un type de couche : `identity` (branding), `content` (texte, forme, image) ou `effect` (effet de fond).
+ * La famille d'un type de couche : `identity` (branding), `group` (groupe de couches), `content` (texte, forme, image) ou `effect` (effet de fond).
  * Un type inconnu est rangé parmi les effets, comme `isIdentityKind` le range hors des identités.
  * @param {unknown} id
- * @returns {'identity' | 'content' | 'effect'}
+ * @returns {'identity' | 'group' | 'content' | 'effect'}
  */
 export function kindFamily(id) {
   if (isIdentityKind(id)) return 'identity';
+  if (isGroupKind(id)) return 'group';
   return isContentKind(id) ? 'content' : 'effect';
+}
+
+/**
+ * Vrai pour un groupe de couches. Un type inconnu n'en est pas un.
+ * @param {unknown} id
+ */
+export function isGroupKind(id) {
+  const kind = resolveKindId(id);
+  return kind !== null && /** @type {Record<string, LayerKindDefinition>} */ (KIND_DEFINITIONS)[kind].group === true;
 }
 
 /**

@@ -42,7 +42,8 @@ describe('couche d’identité : le branding', () => {
     expect(isLayerKindId('branding')).toBe(true);
     expect(LAYER_KIND_IDS).toContain('branding');
     expect(EFFECT_KIND_IDS).not.toContain('branding');
-    expect(EFFECT_KIND_IDS.length).toBe(LAYER_KIND_IDS.length - 1 - CONTENT_KIND_IDS.length);
+    // The other families: the identity layer (branding) and the layer group.
+    expect(EFFECT_KIND_IDS.length).toBe(LAYER_KIND_IDS.length - 2 - CONTENT_KIND_IDS.length);
   });
 
   test('seul le branding est une couche d’identité ; un type inconnu n’en est pas une', () => {
@@ -135,7 +136,10 @@ describe('validation des valeurs d’options', () => {
 describe('familles de types : effet, contenu, identité', () => {
   test('chaque type est dans exactement une famille ; le texte est un contenu, ni un effet ni une identité', async () => {
     const { kindFamily, isContentKind } = await import('./layer-kinds.js');
-    for (const id of LAYER_KIND_IDS) expect(['effect', 'content', 'identity']).toContain(kindFamily(id));
+    for (const id of LAYER_KIND_IDS) expect(['effect', 'content', 'identity', 'group']).toContain(kindFamily(id));
+    expect(kindFamily('group')).toBe('group');
+    expect(EFFECT_KIND_IDS).not.toContain('group');
+    expect(CONTENT_KIND_IDS).not.toContain('group');
     expect(kindFamily('text')).toBe('content');
     expect(isContentKind('text')).toBe(true);
     expect(EFFECT_KIND_IDS).not.toContain('text');
@@ -151,8 +155,8 @@ describe('familles de types : effet, contenu, identité', () => {
     expect(kindFamily('inconnu')).toBe('effect');
   });
 
-  test('les trois familles ensemble couvrent tous les types', () => {
-    expect(EFFECT_KIND_IDS.length + CONTENT_KIND_IDS.length + 1).toBe(LAYER_KIND_IDS.length);
+  test('les quatre familles ensemble couvrent tous les types', () => {
+    expect(EFFECT_KIND_IDS.length + CONTENT_KIND_IDS.length + 2).toBe(LAYER_KIND_IDS.length);
   });
 });
 
