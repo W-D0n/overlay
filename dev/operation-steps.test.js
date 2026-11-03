@@ -186,7 +186,7 @@ describe('stepErrors : chaque valeur d\'un geste, ses deux bornes et ses mauvais
     [{ blend: 'inconnu' }, 'fusion'],
     [{ visible: 1 }, 'booléen'], [{ locked: 'oui' }, 'booléen'],
     [{ bindings: 'x' }, 'liaisons'], [{ timeline: 'x' }, 'animation'],
-    [{ filters: { hue: 3 } }, 'inconnue'],
+    [{ filters: { hue: 'x' } }, 'filtres'], [{ mask: { shape: 'star' } }, 'masque'], [{ animation: { enter: { preset: 'inconnu', durationMs: 5 } } }, 'animation'], [{ id: 'x' }, 'inconnue'],
   ];
 
   test('accepts the values inside the limits of a layer property', () => {
@@ -209,6 +209,43 @@ describe('stepErrors : chaque valeur d\'un geste, ses deux bornes et ses mauvais
 
   test('no setting at all is refused', () => {
     expect(layer({})).toEqual(['aucun réglage']);
+  });
+});
+
+describe('gestes sur les filtres, le masque et les animations de couche', () => {
+  const mask = { shape: 'ellipse', x: 0.1, y: 0.1, width: 0.5, height: 0.5, feather: 0.2 };
+  const stepFor = (patch) => operationToStep({ op: 'setLayers', ids: ['a'], args: { patch } }, { kindOf: () => 'text' });
+  const editorWith = () => createSceneEditor({ scene: { version: 1, id: 's', name: 's', layers: [{ id: 'a', kind: 'text', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {} }] } });
+
+  test('a gesture on the filters, the mask or the animation is recorded as a valid step', () => {
+    for (const patch of [{ filters: { hue: 30 } }, { mask }, { animation: { enter: { preset: 'fade', durationMs: 500 } } }]) {
+      const { step } = stepFor(patch);
+      expect(stepErrors(step)).toEqual([]);
+    }
+  });
+
+  test('taking one away is recorded as a null, which is valid for these properties only', () => {
+    for (const key of ['filters', 'mask', 'animation', 'timeline', 'bindings']) {
+      const { step } = stepFor({ [key]: undefined });
+      expect(step.args.patch).toEqual({ [key]: null });
+      expect(stepErrors(step)).toEqual([]);
+    }
+    expect(stepErrors({ op: 'layer', args: { patch: { opacity: null } } })[0]).toContain('opacité');
+    expect(stepErrors({ op: 'layer', args: { patch: { visible: null } } })[0]).toContain('booléen');
+  });
+
+  test('replayed, a recorded gesture sets the mask, and the recorded removal takes it away again', () => {
+    const editor = editorWith();
+    editor.select(['a']);
+    expect(applyStep({ op: 'layer', args: { patch: { mask } }, target: 'selection' }, editor)).toEqual({ ok: true });
+    expect(editor.state().scene.layers[0].mask).toEqual(mask);
+    expect(applyStep(stepFor({ mask: undefined }).step, editor)).toEqual({ ok: true });
+    expect('mask' in editor.state().scene.layers[0]).toBe(false);
+  });
+
+  test('an invalid value in such a step is refused with the wording of its property', () => {
+    expect(stepErrors({ op: 'layer', args: { patch: { mask: { shape: 'star' } } } })[0]).toContain('masque');
+    expect(stepErrors({ op: 'layer', args: { patch: { filters: { hue: 'x' } } } })[0]).toContain('filtres');
   });
 });
 

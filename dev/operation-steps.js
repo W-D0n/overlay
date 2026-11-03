@@ -22,11 +22,16 @@
 import { BLEND_MODES, CROP_LABELS, CROP_SIDES, LOOK_LIMITS } from '../scene-doc.js';
 import { BINDING_SOURCES, bindingErrors, targetLabel } from '../layer-bindings.js';
 import { trackErrors } from '../layer-timeline.js';
+import { animationErrors } from '../layer-animation.js';
+import { filterErrors } from '../layer-filters.js';
+import { maskErrors } from '../layer-mask.js';
 
 export const OPERATIONS = Object.freeze(['layer', 'placement', 'translate', 'options', 'addLayer', 'removeLayers', 'duplicateLayers', 'moveLayers', 'resetLayers', 'layerKind', 'sceneProps']);
 
 const PLACEMENT_KEYS = ['x', 'y', 'width', 'height'];
-const LAYER_KEYS = ['name', 'visible', 'locked', 'opacity', 'blend', 'rotation', 'crop', 'blur', 'bindings', 'timeline'];
+const LAYER_KEYS = ['name', 'visible', 'locked', 'opacity', 'blend', 'rotation', 'crop', 'blur', 'bindings', 'timeline', 'animation', 'filters', 'mask'];
+/** The properties a gesture can take away altogether: the editor gets `undefined`, a recorded step (JSON) keeps `null`. */
+const CLEARABLE_KEYS = ['bindings', 'timeline', 'animation', 'filters', 'mask'];
 const LAYER_LABELS = /** @type {Record<string, string>} */ ({ blend: 'Fusion', rotation: 'Rotation (°)', blur: 'Flou (px)' });
 const MOVES = ['up', 'down', 'top', 'bottom'];
 const PLACEMENT_LABELS = /** @type {Record<string, string>} */ ({ x: 'x', y: 'y', width: 'largeur', height: 'hauteur' });
@@ -54,7 +59,7 @@ export const isOperationStep = (step) => isRecord(step) && typeof step.op === 's
 export function operationToStep(operation, { kindOf }) {
   const { op, args } = operation;
   switch (op) {
-    case 'setLayers': return { step: { op: 'layer', args: { patch: structuredClone(args.patch) }, target: 'selection' } };
+    case 'setLayers': return { step: { op: 'layer', args: { patch: Object.fromEntries(Object.entries(/** @type {Record<string, unknown>} */ (args.patch)).map(([key, value]) => [key, value === undefined ? null : structuredClone(value)])) }, target: 'selection' } };
     case 'setPlacement': return { step: { op: 'placement', args: { patch: structuredClone(args.patch) }, target: 'selection' } };
     case 'setPlacements': return placementsStep(operation);
     case 'setOptions': {
@@ -136,7 +141,7 @@ export function applyStep(step, editor) {
   if (step.target === 'selection' && layers.length === 0) return { ok: false, message: 'aucune couche sélectionnée' };
   const patch = /** @type {Record<string, *>} */ (step.args.patch ?? {});
   switch (step.op) {
-    case 'layer': return settle(editor.setLayers(layers.map(({ id }) => id), patch));
+    case 'layer': return settle(editor.setLayers(layers.map(({ id }) => id), Object.fromEntries(Object.entries(patch).map(([key, value]) => [key, value === null && CLEARABLE_KEYS.includes(key) ? undefined : value]))));
     case 'placement': return settle(editor.setPlacement(layers.map(({ id }) => id), patch));
     case 'translate': {
       const dx = Number(step.args.dx);
@@ -290,12 +295,16 @@ const LAYER_CHECKS = Object.freeze({
   blur: (value) => (inRange(value, LOOK_LIMITS.blur) ? null : `flou : nombre entre 0 et ${LOOK_LIMITS.blur.max} attendu`),
   timeline: (value) => firstOf(trackErrors('animation', value)),
   bindings: (value) => firstOf(bindingErrors('liaisons', value)),
+  animation: (value) => firstOf(animationErrors('animation', value)),
+  filters: (value) => firstOf(filterErrors('filtres', value)),
+  mask: (value) => firstOf(maskErrors('masque', value)),
   crop: (value) => (isRecord(value) && Object.entries(value).every(([side, amount]) => CROP_SIDES.includes(/** @type {*} */ (side)) && inRange(amount, LOOK_LIMITS.crop)) ? null : 'rognage : parts entre 0 et 0,9 attendues'),
 });
 
 /** @param {string} key @param {unknown} value @returns {string | null} */
 function layerKeyError(key, value) {
   if (!LAYER_KEYS.includes(key)) return `propriété de couche inconnue : ${key}`;
+  if (value === null && CLEARABLE_KEYS.includes(key)) return null;
   const check = Object.hasOwn(LAYER_CHECKS, key) ? LAYER_CHECKS[key] : undefined;
   if (check !== undefined) return check(value);
   return typeof value === 'boolean' ? null : `${key} : booléen attendu`;
