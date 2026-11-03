@@ -5,7 +5,7 @@ updated: 2026-11-03
 
 # Spec — Animations de couche (entrée, boucle, sortie)
 
-Statut : **en cours** — étape 1 livrée (modèle pur `layer-animation.js`, 40 tests, 40 défauts réinjectés tous vus rouges), le moteur ne l'applique pas encore. Décision de l'owner du 2026-11-03 : une animation, de texte ou non, peut apparaître **n'importe quand** pour accompagner un
+Statut : **en cours** — étapes 1 et 2 livrées (modèle pur `layer-animation.js` ; moteur : horloge par couche, entrée, boucle, sortie à date fixe, relance par alerte couche par couche ; 59 défauts réinjectés tous vus rouges). Restent : la sortie au départ de la scène, le panneau du Studio, les préréglages de texte. Décision de l'owner du 2026-11-03 : une animation, de texte ou non, peut apparaître **n'importe quand** pour accompagner un
 moment du live ; chaque couche a donc **sa propre horloge** (choix B), et la sortie se règle à **date fixe** et **au départ de la scène** (options 2 et 3).
 Elle complète la timeline de scène (`timeline.md`), qui reste l'outil précis, image clé par image clé ; elle ne la remplace pas. Elle vaut pour **tous les types de couche**
 (texte, image, forme, code, shader) : les préréglages agissent sur le calque de la couche.
@@ -27,6 +27,7 @@ Formes canoniques comme les autres modèles : bornes (durées 50 ms à 60 s), pr
 
 - Démarre à 0 quand la couche est **montée** (la scène arrive ou la couche est rendue visible) ; repart à 0 à une alerte de `restartOn`.
 - Une couche à `exit.afterMs` reste **invisible** après sa sortie jusqu'à la relance ; sans relance, elle ne revient qu'à la prochaine arrivée de la scène.
+- Une couche dont la sortie est finie sort de l'affichage (`display: none`) : elle ne coûte plus rien jusqu'à sa relance.
 - Rien ne tourne pour une couche sans animation : l'horloge de rendu ne s'abonne que s'il existe une couche animée (comme pour les liaisons).
 
 ## 3. Composition avec la timeline et les liaisons

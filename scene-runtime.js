@@ -3,6 +3,7 @@ import { COMPONENT_REGISTRY } from './component-registry.js';
 import { cssEasing, normalizeTransition, transitionStyles } from './background-transition.js';
 import { isAudioOn, isIdentityKind, kindCapabilities } from './layer-kinds.js';
 import { referenceScale } from './render-reference.js';
+import { applyPose, evaluateAnimation, restartsAnimationOn } from './layer-animation.js';
 import { PARAM_TARGET_PREFIX, evaluateBindings, recordPulse, usesAudio } from './layer-bindings.js';
 import { effectiveTimeline, evaluateTimeline, hasKeys, playbackTime, restartsOn } from './layer-timeline.js';
 import { getRenderClock } from './render-clock.js';
@@ -46,7 +47,8 @@ import { CROP_SIDES } from './scene-doc.js';
  * @typedef {import('./scene-doc.js').SceneDoc} SceneDoc
  * @typedef {import('./scene-doc.js').Layer} Layer
  * @typedef {{ id: string, kind: string, instance: import('./types.js').ComponentInstance, visible: boolean }} MountedLayerInfo
- * @typedef {{ id: string, kind: string, instance: import('./types.js').ComponentInstance, calque: *, visible: boolean, options: Record<string, unknown>, layer: Layer, memory: number[], appliedKey: string }} MountedLayer
+ * @typedef {{ id: string, kind: string, instance: import('./types.js').ComponentInstance, calque: *, visible: boolean, options: Record<string, unknown>, layer: Layer, memory: number[], appliedKey: string, age: number }} MountedLayer
+ * L'`age` est l'horloge propre de la couche, en millisecondes : 0 au montage et à une alerte de relance (`layer-animation.js`).
  * @typedef {{ calque: *, layers: Map<string, MountedLayer> }} Stage
  */
 
@@ -178,7 +180,7 @@ export function createSceneRuntime(container, deps = {}) {
     const calque = createCalque();
     calque.appendChild(instance.el);
     stage.calque.appendChild(calque);
-    return { id: layer.id, kind: layer.kind, instance, calque, visible: layer.visible, options: layer.options, layer, memory: [], appliedKey: '' };
+    return { id: layer.id, kind: layer.kind, instance, calque, visible: layer.visible, options: layer.options, layer, memory: [], appliedKey: '', age: 0 };
   }
 
   /** @param {MountedLayer} entry @param {Layer} layer @param {number} index */
@@ -188,6 +190,8 @@ export function createSceneRuntime(container, deps = {}) {
     entry.options = layer.options;
     // Des liaisons nouvelles repartent de zéro (le niveau lissé d'une ancienne liaison n'a plus de sens).
     if (entry.layer.bindings !== layer.bindings) entry.memory = [];
+    // Une animation modifiée repart de zéro : celui qui la règle la voit jouer.
+    if (JSON.stringify(entry.layer.animation) !== JSON.stringify(layer.animation)) entry.age = 0;
     entry.layer = layer;
     entry.appliedKey = '';
     const animated = bindingValues(entry, clockTime, 0);
@@ -197,9 +201,8 @@ export function createSceneRuntime(container, deps = {}) {
       top: percent(y),
       width: percent(width),
       height: percent(height),
-      display: layer.visible ? '' : 'none',
       zIndex: String(index),
-      ...lookStyles(layer, animated),
+      ...lookStyles(layer, animatedLook(entry, animated)),
     });
     syncClock();
   }
@@ -234,6 +237,18 @@ export function createSceneRuntime(container, deps = {}) {
   }
 
   /**
+   * Les valeurs de base d'une couche (réglage, timeline, liaisons) avec son animation par-dessus, à l'instant de son horloge ; une couche qui a fini sa sortie est marquée `gone`
+   * (elle sort de l'affichage, donc ne coûte plus rien, jusqu'à sa relance).
+   * @param {MountedLayer} entry @param {Partial<Record<import('./layer-bindings.js').BindingTarget, number>>} bound
+   */
+  function animatedLook(entry, bound) {
+    const { animation } = entry.layer;
+    if (animation === undefined) return bound;
+    const { pose, gone } = evaluateAnimation(animation, entry.age);
+    return { ...bound, ...applyPose(entry.layer, bound, pose), gone };
+  }
+
+  /**
    * Les valeurs animées d'un réglage (`param:<clé>`) vont au composant, qui les applique à sa façon ; les autres sont du style du calque.
    * Appelé même sans réglage animé : `{}` rend au composant les valeurs réglées à la main.
    * @param {MountedLayer} entry @param {Partial<Record<import('./layer-bindings.js').BindingTarget, number>>} values
@@ -261,20 +276,22 @@ export function createSceneRuntime(container, deps = {}) {
     if (playback.playing) playback.elapsedMs += frame.dt * 1000;
     for (const entry of mountedEntries()) {
       if (!entry.visible || !isAnimated(entry.layer)) continue;
+      entry.age += frame.dt * 1000;
       const values = bindingValues(entry, frame.time, frame.dt);
+      const look = animatedLook(entry, values);
       // On n'écrit que ce qui a changé : une liaison au repos ne coûte aucune écriture de style.
-      const key = JSON.stringify(values);
+      const key = JSON.stringify(look);
       if (key === entry.appliedKey) continue;
       entry.appliedKey = key;
       driveParams(entry, values);
-      Object.assign(entry.calque.style, lookStyles(entry.layer, values));
+      Object.assign(entry.calque.style, lookStyles(entry.layer, look));
     }
     if (timelineListeners.size > 0) for (const listener of timelineListeners) listener(timelineState());
   }
 
-  /** Vrai si une couche a quelque chose à évaluer à chaque image : des liaisons ou des images clés. @param {Layer} layer */
+  /** Vrai si une couche a quelque chose à évaluer à chaque image : des liaisons, des images clés ou une animation. @param {Layer} layer */
   function isAnimated(layer) {
-    return layer.bindings !== undefined || hasKeys(layer.timeline);
+    return layer.bindings !== undefined || hasKeys(layer.timeline) || layer.animation !== undefined;
   }
 
   /** L'horloge tourne tant qu'une couche montée a des liaisons ou des images clés, et pas plus. */
@@ -441,6 +458,8 @@ export function createSceneRuntime(container, deps = {}) {
         recordPulse(pulses, event.type, clockTime);
         // Une alerte que la scène a choisie relance son animation (« un raid rejoue l'entrée »).
         if (restartsOn(sceneTimeline(), event.type)) restartPlayback();
+        // Une alerte que la couche a choisie rejoue sa propre animation, sans toucher aux autres couches.
+        for (const entry of mountedEntries()) if (restartsAnimationOn(entry.layer.animation, event.type)) entry.age = 0;
       }
       return native.length > 0;
     },
@@ -462,7 +481,7 @@ export function createSceneRuntime(container, deps = {}) {
         for (const entry of mountedEntries()) {
           if (!entry.visible || !isAnimated(entry.layer)) continue;
           entry.appliedKey = '';
-          Object.assign(entry.calque.style, lookStyles(entry.layer, bindingValues(entry, clockTime, 0)));
+          Object.assign(entry.calque.style, lookStyles(entry.layer, animatedLook(entry, bindingValues(entry, clockTime, 0))));
         }
         for (const listener of timelineListeners) listener(timelineState());
       },
@@ -524,23 +543,26 @@ export function createSceneRuntime(container, deps = {}) {
  * L'opacité et le rendu étendu d'une couche en styles du calque. Une valeur absente donne la chaîne vide : le style inline disparaît,
  * la couche se rend comme avant. Le flou se compte en pixels de la source de référence : `--reference-scale` (posée sur
  * le conteneur) l'adapte à la hauteur réelle de la source. Les valeurs liées (`layer-bindings.js`) remplacent l'opacité, la rotation
- * et le flou de la couche, et s'ajoutent à son échelle et à son décalage.
+ * et le flou de la couche, et s'ajoutent à son échelle et à son décalage ; la révélation d'une animation s'ajoute au rognage.
  * @param {Layer} layer
- * @param {Partial<Record<import('./layer-bindings.js').BindingTarget, number>>} [bound]
- * @returns {{ opacity: string, mixBlendMode: string, transform: string, clipPath: string, filter: string }}
+ * @param {Partial<Record<import('./layer-bindings.js').BindingTarget, number>> & { reveal?: import('./layer-animation.js').Reveal, gone?: boolean }} [bound]
+ * @returns {{ display: string, opacity: string, mixBlendMode: string, transform: string, clipPath: string, filter: string }}
  */
 function lookStyles(layer, bound = {}) {
   const { blend, crop } = layer;
+  const { reveal } = bound;
+  const revealed = reveal !== undefined && CROP_SIDES.some((side) => reveal[side] > 0);
   const rotation = bound.rotation ?? layer.rotation ?? 0;
   const blur = bound.blur ?? layer.blur ?? 0;
   const shift = (bound.x ?? 0) !== 0 || (bound.y ?? 0) !== 0 ? `translate(${Number((bound.x ?? 0).toFixed(3))}%, ${Number((bound.y ?? 0).toFixed(3))}%)` : '';
   const turn = rotation === 0 ? '' : `rotate(${Number(rotation.toFixed(3))}deg)`;
   const grow = bound.scale === undefined || bound.scale === 1 ? '' : `scale(${Number(bound.scale.toFixed(4))})`;
   return {
+    display: bound.gone === true ? 'none' : '',
     opacity: String(bound.opacity === undefined ? layer.opacity : Number(bound.opacity.toFixed(4))),
     mixBlendMode: blend === undefined || blend === 'normal' ? '' : blend,
     transform: [shift, turn, grow].filter((part) => part !== '').join(' '),
-    clipPath: crop === undefined ? '' : `inset(${CROP_SIDES.map((side) => percent(crop[side] ?? 0)).join(' ')})`,
+    clipPath: crop === undefined && !revealed ? '' : `inset(${CROP_SIDES.map((side) => percent(Math.min(1, (crop?.[side] ?? 0) + (reveal?.[side] ?? 0)))).join(' ')})`,
     filter: blur === 0 ? '' : `blur(calc(var(--reference-scale, 1) * ${Number(blur.toFixed(3))}px))`,
   };
 }
