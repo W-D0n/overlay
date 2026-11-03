@@ -172,51 +172,55 @@ export function moveRect(start, dx, dy, { lockAxis = false } = {}) {
  * @returns {Rect}
  */
 export function resizeRect(start, handle, dx, dy, { keepRatio = false, fromCenter = false, minSize = MIN_SIZE_PX } = {}) {
-  const movesWest = handle.includes('w');
-  const movesEast = handle.includes('e');
-  const movesNorth = handle.includes('n');
-  const movesSouth = handle.includes('s');
   const factor = fromCenter ? 2 : 1;
-
-  let width = start.width + (movesEast ? dx : movesWest ? -dx : 0) * factor;
-  let height = start.height + (movesSouth ? dy : movesNorth ? -dy : 0) * factor;
+  let width = start.width + (handle.includes('e') ? dx : handle.includes('w') ? -dx : 0) * factor;
+  let height = start.height + (handle.includes('s') ? dy : handle.includes('n') ? -dy : 0) * factor;
   width = Math.max(minSize, width);
   height = Math.max(minSize, height);
+  if (keepRatio && start.width > 0 && start.height > 0) ({ width, height } = lockRatio(start, handle, width, height, minSize));
+  return { ...anchoredOrigin(start, handle, width, height, { keepRatio, fromCenter }), width, height };
+}
 
-  if (keepRatio && start.width > 0 && start.height > 0) {
-    const ratio = start.width / start.height;
-    const horizontal = movesEast || movesWest;
-    const vertical = movesNorth || movesSouth;
-    if (horizontal && vertical) {
-      // Angle : on suit la dimension qui a le plus bougé, relativement à sa taille de départ.
-      const widthChange = Math.abs(width - start.width) / start.width;
-      const heightChange = Math.abs(height - start.height) / start.height;
-      if (widthChange >= heightChange) height = width / ratio;
-      else width = height * ratio;
-    } else if (horizontal) {
-      height = width / ratio;
-    } else {
-      width = height * ratio;
-    }
-    if (width < minSize) { width = minSize; height = width / ratio; }
-    if (height < minSize) { height = minSize; width = height * ratio; }
-  }
-
-  let x = start.x;
-  let y = start.y;
-  if (fromCenter) {
-    x = start.x + (start.width - width) / 2;
-    y = start.y + (start.height - height) / 2;
+/**
+ * Brings a size back to the starting ratio: a corner handle follows the dimension that moved most (relative to its starting size), an edge handle
+ * drives the other dimension; the minimum size wins over the ratio's other side.
+ * @param {Rect} start @param {Handle} handle @param {number} width @param {number} height @param {number} minSize
+ * @returns {{ width: number, height: number }}
+ */
+function lockRatio(start, handle, width, height, minSize) {
+  const ratio = start.width / start.height;
+  const horizontal = handle.includes('e') || handle.includes('w');
+  const vertical = handle.includes('n') || handle.includes('s');
+  if (horizontal && vertical) {
+    const widthChange = Math.abs(width - start.width) / start.width;
+    const heightChange = Math.abs(height - start.height) / start.height;
+    if (widthChange >= heightChange) height = width / ratio;
+    else width = height * ratio;
+  } else if (horizontal) {
+    height = width / ratio;
   } else {
-    if (movesWest) x = start.x + start.width - width;
-    if (movesNorth) y = start.y + start.height - height;
-    // Une poignée de bord avec proportions liées recentre l'autre dimension sur son milieu de départ.
-    if (keepRatio && !(handle.length === 2)) {
-      if (handle === 'n' || handle === 's') x = start.x + (start.width - width) / 2;
-      if (handle === 'e' || handle === 'w') y = start.y + (start.height - height) / 2;
-    }
+    width = height * ratio;
   }
-  return { x, y, width, height };
+  if (width < minSize) { width = minSize; height = width / ratio; }
+  if (height < minSize) { height = minSize; width = height * ratio; }
+  return { width, height };
+}
+
+/**
+ * Where the top-left corner goes once the size is known: around the centre with `fromCenter`, else the edge opposite to the handle stays put.
+ * An edge handle with a locked ratio recentres the other dimension on its starting middle.
+ * @param {Rect} start @param {Handle} handle @param {number} width @param {number} height @param {{ keepRatio: boolean, fromCenter: boolean }} mode
+ * @returns {{ x: number, y: number }}
+ */
+function anchoredOrigin(start, handle, width, height, { keepRatio, fromCenter }) {
+  if (fromCenter) return { x: start.x + (start.width - width) / 2, y: start.y + (start.height - height) / 2 };
+  let x = handle.includes('w') ? start.x + start.width - width : start.x;
+  let y = handle.includes('n') ? start.y + start.height - height : start.y;
+  if (keepRatio && handle.length !== 2) {
+    if (handle === 'n' || handle === 's') x = start.x + (start.width - width) / 2;
+    if (handle === 'e' || handle === 'w') y = start.y + (start.height - height) / 2;
+  }
+  return { x, y };
 }
 
 /**

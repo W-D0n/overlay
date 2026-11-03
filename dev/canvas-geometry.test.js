@@ -133,6 +133,34 @@ describe('redimensionner', () => {
     expect(Math.min(tiny.width, tiny.height)).toBeGreaterThanOrEqual(MIN_SIZE_PX - 1e-9);
   });
 
+  test('the minimum size holds on each dimension on its own', () => {
+    expect(resizeRect(start, 's', 0, -5000)).toEqual(R(100, 100, 400, MIN_SIZE_PX));
+    expect(resizeRect(start, 'e', -5000, 0)).toEqual(R(100, 100, MIN_SIZE_PX, 200));
+  });
+
+  test('a west or north edge with a locked ratio recentres the other dimension too', () => {
+    const west = resizeRect(start, 'w', -100, 0, { keepRatio: true });
+    expect(west).toEqual(R(0, 75, 500, 250));
+    const south = resizeRect(start, 's', 0, 60, { keepRatio: true });
+    expect(south).toEqual(R(40, 100, 520, 260));
+  });
+
+  test('a west corner with a locked ratio follows the dominant movement like an east one', () => {
+    const grown = resizeRect(start, 'nw', -100, -5, { keepRatio: true });
+    expect(grown).toEqual(R(0, 50, 500, 250));
+    const tall = resizeRect(R(100, 100, 100, 400), 'sw', -5, 5, { keepRatio: true });
+    expect(tall.width / tall.height).toBeCloseTo(0.25, 9);
+  });
+
+  test('a tall rectangle shrunk under a locked ratio keeps both sides above the minimum', () => {
+    expect(resizeRect(R(100, 100, 100, 400), 'se', -5000, -5000, { keepRatio: true })).toEqual(R(100, 100, MIN_SIZE_PX, 4 * MIN_SIZE_PX));
+  });
+
+  test('a rectangle with a width but no height does not divide by zero under a locked ratio', () => {
+    const result = resizeRect(R(0, 0, 100, 0), 'e', 10, 0, { keepRatio: true });
+    expect(Number.isFinite(result.width) && Number.isFinite(result.height)).toBe(true);
+  });
+
   test('un rectangle sans surface ne produit ni NaN ni division par zéro avec proportions liées', () => {
     const result = resizeRect(R(0, 0, 0, 0), 'se', 10, 10, { keepRatio: true });
     expect(Number.isFinite(result.width) && Number.isFinite(result.height)).toBe(true);
