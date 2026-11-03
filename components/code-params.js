@@ -63,42 +63,64 @@ export function parseParamSpec(text) {
 }
 
 /**
+ * What every kind of setting reads from its entry: the place in the list (for the messages), the key, the label to show, and the raw `default`.
+ * @typedef {{ at: string, key: string, name: string, fallback: unknown, entry: Record<string, unknown> }} Reading
+ */
+
+/** @param {Reading} reading @returns {ParamDefinition | string} */
+function readNumber({ at, key, name, fallback, entry }) {
+  const { min, max, step } = entry;
+  if (!isNumber(fallback)) return `${at} (${key}) : « default » doit être un nombre`;
+  const low = isNumber(min) ? min : undefined;
+  const high = isNumber(max) ? max : undefined;
+  if (low !== undefined && high !== undefined && low > high) return `${at} (${key}) : « min » dépasse « max »`;
+  return {
+    key, label: name, type: 'number', default: clampNumber(fallback, low, high),
+    ...(low === undefined ? {} : { min: low }),
+    ...(high === undefined ? {} : { max: high }),
+    ...(isNumber(step) && step > 0 ? { step } : {}),
+  };
+}
+
+/** @param {Reading} reading @returns {ParamDefinition | string} */
+function readBoolean({ at, key, name, fallback }) {
+  if (typeof fallback !== 'boolean') return `${at} (${key}) : « default » doit être true ou false`;
+  return { key, label: name, type: 'boolean', default: fallback };
+}
+
+/** @param {Reading} reading @returns {ParamDefinition | string} */
+function readSelect({ at, key, name, fallback, entry }) {
+  const { choices } = entry;
+  if (!Array.isArray(choices) || choices.length === 0 || choices.length > MAX_CHOICES || !choices.every((choice) => typeof choice === 'string' && choice !== '' && choice.length <= MAX_CHOICE)) {
+    return `${at} (${key}) : « choices » est une liste de 1 à ${MAX_CHOICES} textes non vides`;
+  }
+  if (typeof fallback !== 'string' || !choices.includes(fallback)) return `${at} (${key}) : « default » doit être l'un des choix`;
+  return { key, label: name, type: 'select', default: fallback, choices: [...choices] };
+}
+
+/** @param {Reading} reading @param {'text' | 'color'} type @returns {ParamDefinition | string} */
+function readText({ at, key, name, fallback }, type) {
+  if (typeof fallback !== 'string') return `${at} (${key}) : « default » doit être un texte`;
+  return { key, label: name, type, default: fallback.slice(0, MAX_TEXT_VALUE) };
+}
+
+/**
  * @param {unknown} entry
  * @param {string} at
  * @returns {ParamDefinition | string} la définition, ou le défaut
  */
 function readDefinition(entry, at) {
   if (typeof entry !== 'object' || entry === null || Array.isArray(entry)) return `${at} : un objet est attendu`;
-  const { key, label, type, min, max, step, choices } = /** @type {Record<string, unknown>} */ (entry);
-  const fallback = /** @type {Record<string, unknown>} */ (entry).default;
+  const fields = /** @type {Record<string, unknown>} */ (entry);
+  const { key, label, type } = fields;
   if (typeof key !== 'string' || !PARAM_KEY_PATTERN.test(key)) return `${at} : la clé doit commencer par une minuscule et ne porter que des lettres, chiffres et _ (32 au plus)`;
   if (typeof type !== 'string' || !PARAM_TYPES.includes(/** @type {*} */ (type))) return `${at} (${key}) : type inconnu — number, text, color, boolean ou select`;
   const name = typeof label === 'string' && label.trim() !== '' ? label.trim().slice(0, MAX_LABEL) : key;
-  if (type === 'number') {
-    if (!isNumber(fallback)) return `${at} (${key}) : « default » doit être un nombre`;
-    const low = isNumber(min) ? min : undefined;
-    const high = isNumber(max) ? max : undefined;
-    if (low !== undefined && high !== undefined && low > high) return `${at} (${key}) : « min » dépasse « max »`;
-    return {
-      key, label: name, type, default: clampNumber(fallback, low, high),
-      ...(low === undefined ? {} : { min: low }),
-      ...(high === undefined ? {} : { max: high }),
-      ...(isNumber(step) && step > 0 ? { step } : {}),
-    };
-  }
-  if (type === 'boolean') {
-    if (typeof fallback !== 'boolean') return `${at} (${key}) : « default » doit être true ou false`;
-    return { key, label: name, type, default: fallback };
-  }
-  if (type === 'select') {
-    if (!Array.isArray(choices) || choices.length === 0 || choices.length > MAX_CHOICES || !choices.every((choice) => typeof choice === 'string' && choice !== '' && choice.length <= MAX_CHOICE)) {
-      return `${at} (${key}) : « choices » est une liste de 1 à ${MAX_CHOICES} textes non vides`;
-    }
-    if (typeof fallback !== 'string' || !choices.includes(fallback)) return `${at} (${key}) : « default » doit être l'un des choix`;
-    return { key, label: name, type, default: fallback, choices: [...choices] };
-  }
-  if (typeof fallback !== 'string') return `${at} (${key}) : « default » doit être un texte`;
-  return { key, label: name, type: /** @type {'text' | 'color'} */ (type), default: fallback.slice(0, MAX_TEXT_VALUE) };
+  const reading = { at, key, name, fallback: fields.default, entry: fields };
+  if (type === 'number') return readNumber(reading);
+  if (type === 'boolean') return readBoolean(reading);
+  if (type === 'select') return readSelect(reading);
+  return readText(reading, /** @type {'text' | 'color'} */ (type));
 }
 
 /** @param {number} value @param {number | undefined} low @param {number | undefined} high */

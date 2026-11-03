@@ -9,6 +9,64 @@ const SPEC = JSON.stringify([
   { key: 'titre', type: 'text', default: 'Bonjour' },
 ]);
 
+describe('parseParamSpec : chaque type lit son entrée, et refuse ce qui ne lui convient pas', () => {
+  const one = (entry) => parseParamSpec(JSON.stringify([entry]));
+  const defect = (entry) => one(entry).errors[0];
+
+  test('an entry that is not an object (a list, a number, null) is refused as such', () => {
+    for (const entry of [[], 3, null, 'texte']) expect(defect(entry)).toContain('un objet est attendu');
+  });
+
+  test('the label is trimmed and cut to 60 characters; a blank or missing one is the key', () => {
+    expect(one({ key: 'a', label: '  Vitesse  ', type: 'boolean', default: true }).params[0].label).toBe('Vitesse');
+    expect(one({ key: 'a', label: 'x'.repeat(100), type: 'boolean', default: true }).params[0].label).toBe('x'.repeat(60));
+    expect(one({ key: 'a', label: '   ', type: 'boolean', default: true }).params[0].label).toBe('a');
+    expect(one({ key: 'a', type: 'boolean', default: true }).params[0].label).toBe('a');
+  });
+
+  test('a number: a default that is a number, bounds that agree, a positive step only', () => {
+    expect(defect({ key: 'n', type: 'number', default: '3' })).toContain('doit être un nombre');
+    expect(defect({ key: 'n', type: 'number', default: 3, min: 5, max: 1 })).toContain('« min » dépasse « max »');
+    expect(one({ key: 'n', type: 'number', default: 3, step: 0 }).params[0]).not.toHaveProperty('step');
+    expect(one({ key: 'n', type: 'number', default: 3, step: -1 }).params[0]).not.toHaveProperty('step');
+    expect(one({ key: 'n', type: 'number', default: 3, step: 0.5 }).params[0].step).toBe(0.5);
+    expect(one({ key: 'n', type: 'number', default: 3, min: 'a', max: null }).params[0]).toEqual({ key: 'n', label: 'n', type: 'number', default: 3 });
+  });
+
+  test('a number default is brought into its bounds', () => {
+    expect(one({ key: 'n', type: 'number', default: 500, min: 0, max: 100 }).params[0].default).toBe(100);
+    expect(one({ key: 'n', type: 'number', default: -5, min: 0, max: 100 }).params[0].default).toBe(0);
+  });
+
+  test('a boolean needs a boolean default', () => {
+    for (const fallback of [1, 'true', null]) expect(defect({ key: 'b', type: 'boolean', default: fallback })).toContain('true ou false');
+    expect(one({ key: 'b', type: 'boolean', default: false }).errors).toEqual([]);
+  });
+
+  test('a select: 1 to 24 non-empty texts of at most 60 characters, and a default among them', () => {
+    const select = (choices, fallback = 'a') => ({ key: 's', type: 'select', choices, default: fallback });
+    expect(defect(select([]))).toContain('« choices »');
+    expect(defect(select('a'))).toContain('« choices »');
+    expect(defect(select(Array.from({ length: 25 }, (_, i) => `c${i}`), 'c0'))).toContain('« choices »');
+    expect(one(select(Array.from({ length: 24 }, (_, i) => `c${i}`), 'c0')).errors).toEqual([]);
+    expect(defect(select(['a', ''], 'a'))).toContain('« choices »');
+    expect(defect(select(['a', 3], 'a'))).toContain('« choices »');
+    expect(defect(select(['a', 'x'.repeat(61)], 'a'))).toContain('« choices »');
+    expect(one(select(['a', 'x'.repeat(60)], 'a')).errors).toEqual([]);
+    expect(defect(select(['a', 'b'], 'c'))).toContain('l\'un des choix');
+    expect(defect(select(['a', 'b'], 3))).toContain('l\'un des choix');
+    expect(one(select(['a', 'b'], 'b')).params[0].choices).toEqual(['a', 'b']);
+  });
+
+  test('a text or a color needs a text default, cut to 500 characters', () => {
+    for (const type of ['text', 'color']) {
+      expect(defect({ key: 't', type, default: 3 })).toContain('doit être un texte');
+      expect(one({ key: 't', type, default: 'x'.repeat(600) }).params[0].default).toBe('x'.repeat(500));
+      expect(one({ key: 't', type, default: 'ok' }).params[0].type).toBe(type);
+    }
+  });
+});
+
 describe('parseParamSpec', () => {
   test('une déclaration valide donne ses réglages, sans défaut', () => {
     const { params, errors } = parseParamSpec(SPEC);
