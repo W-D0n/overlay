@@ -181,7 +181,10 @@ Le panneau **Timeline**, sous l'aperçu, fait **jouer** la scène : elle démarr
 6. **Copier-coller** : le ⧉ d'une piste copie toutes ses images clés ; « Copier » dans le détail d'une image clé copie celle-là. Placez le repère de lecture et cliquez « Coller » : les images arrivent à cet instant,
    sur la même valeur de la couche sélectionnée (la même ou une autre). Une image déjà posée à l'un de ces instants est remplacée. `Ctrl+C` et `Ctrl+V` marchent sur une image clé sélectionnée. Une couche qui n'a pas la
    valeur copiée (un réglage de code sur un texte) refuse et le dit.
-7. **Rejouer sur une alerte** : cochez, dans le panneau de la timeline, les alertes qui relancent l'animation (« Alerte raid », « Alerte follow »… ou « Toute alerte »). À leur arrivée, la scène repart du début
+7. **Courbes** : dans le détail d'une image clé, la liste « Courbe » règle le trajet vers l'image suivante. « Courbe personnalisée » ouvre un dessin avec deux poignées à glisser (ou à déplacer aux flèches,
+   `Maj` pour aller plus finement) et les quatre nombres de la courbe ; un préréglage fait un rebond, une anticipation ou un freinage fort. Une poignée au-dessus de la ligne du haut fait **dépasser** la valeur
+   d'arrivée avant de s'y poser ; sous la ligne du bas, elle fait **reculer** avant de partir.
+8. **Rejouer sur une alerte** : cochez, dans le panneau de la timeline, les alertes qui relancent l'animation (« Alerte raid », « Alerte follow »… ou « Toute alerte »). À leur arrivée, la scène repart du début
    et se remet à jouer, même si elle était arrivée à sa fin : un raid rejoue l'entrée du titre. Décochez tout pour que l'animation ne se joue qu'à l'arrivée de la scène.
    Cela vaut pour toute la scène (et donc aussi pour les réglages animés d'une couche Code ou Shader).
 

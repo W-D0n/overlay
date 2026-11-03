@@ -308,6 +308,7 @@ export async function startBackgroundTuner(environment = {}) {
       detailValue: /** @type {HTMLInputElement} */ (byId('timeline-key-value')),
       detailEase: /** @type {HTMLSelectElement} */ (byId('timeline-key-ease')),
       detailCopy: /** @type {HTMLButtonElement} */ (byId('timeline-key-copy')),
+      curve: byId('timeline-curve'),
       detailRemove: /** @type {HTMLButtonElement} */ (byId('timeline-key-remove')),
     },
     studio: preview.document,

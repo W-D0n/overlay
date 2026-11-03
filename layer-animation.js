@@ -32,8 +32,8 @@ export const AFTER_LIMITS = Object.freeze({ min: 0, max: 3_600_000 });
 export const AMOUNT_LIMITS = Object.freeze({ min: 0.1, max: 2 });
 export const DEFAULT_AMOUNT = 1;
 
-/** Les courbes d'une entrée ou d'une sortie : celles de la timeline, sans le palier (qui laisserait la couche invisible). */
-export const ANIMATION_EASES = Object.freeze(EASES.filter(({ id }) => id !== 'hold'));
+/** Les courbes d'une entrée ou d'une sortie : celles de la timeline, sans le palier (qui laisserait la couche invisible) ni la courbe personnalisée (qui a ses propres réglages, par image clé). */
+export const ANIMATION_EASES = Object.freeze(EASES.filter(({ id }) => id !== 'hold' && id !== 'bezier'));
 
 /** @returns {Pose} */
 function rest() {

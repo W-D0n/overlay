@@ -1,4 +1,5 @@
 // @ts-check
+import { DEFAULT_BEZIER, bezierErrors, clampBezier, cubicBezier, isBezier } from './cubic-bezier.js';
 import { BINDING_SOURCES, BINDING_TARGETS, isTargetId, targetRange } from './layer-bindings.js';
 
 /**
@@ -11,10 +12,11 @@ import { BINDING_SOURCES, BINDING_TARGETS, isTargetId, targetRange } from './lay
  * à date fixe) ou par une liaison (par le son, une alerte) ; **la liaison l'emporte** quand les deux visent la même valeur.
  *
  * @typedef {import('./layer-bindings.js').BindingTarget} TimelineTarget
- * @typedef {'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'hold'} Ease
- * @typedef {{ t: number, v: number, ease: Ease }} Keyframe
+ * @typedef {import('./cubic-bezier.js').Bezier} Bezier
+ * @typedef {'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'bezier' | 'hold'} Ease `bezier` : la courbe personnalisée de l'image clé (`Keyframe.bezier`, `cubic-bezier.js`)
+ * @typedef {{ t: number, v: number, ease: Ease, bezier?: Bezier }} Keyframe
  * @typedef {{ target: TimelineTarget, keys: Keyframe[] }} Track
- * @typedef {{ target: TimelineTarget, keys: { dt: number, v: number, ease: Ease }[] }} KeyClip des images clés copiées d'une piste, leurs instants comptés depuis la première
+ * @typedef {{ target: TimelineTarget, keys: { dt: number, v: number, ease: Ease, bezier?: Bezier }[] }} KeyClip des images clés copiées d'une piste, leurs instants comptés depuis la première
  * @typedef {{ durationMs: number, loop: 'once' | 'loop', restartOn?: string[] }} SceneTimeline
  */
 
@@ -32,6 +34,7 @@ export const EASES = /** @type {readonly { id: Ease, label: string }[]} */ (Obje
   { id: 'easeIn', label: 'Départ lent' },
   { id: 'easeOut', label: 'Arrivée lente' },
   { id: 'easeInOut', label: 'Départ et arrivée lents' },
+  { id: 'bezier', label: 'Courbe personnalisée' },
   { id: 'hold', label: 'Palier (saute à la clé suivante)' },
 ].map((ease) => Object.freeze(ease))));
 
@@ -90,12 +93,14 @@ export function trackErrors(where, tracks) {
     keys.forEach((key, position) => {
       const where = `${at}.keys[${position}]`;
       if (typeof key !== 'object' || key === null) { errors.push(`${where} : objet attendu`); return; }
-      const { t, v, ease } = /** @type {Record<string, unknown>} */ (key);
+      const { t, v, ease, bezier } = /** @type {Record<string, unknown>} */ (key);
       if (!isNumber(t)) errors.push(`${where}.t : nombre attendu`);
       else if (t <= previous) errors.push(`${where}.t : les images clés se suivent dans le temps, sans doublon`);
       else previous = t;
       if (!isNumber(v)) errors.push(`${where}.v : nombre attendu`);
       if (!EASES.some(({ id }) => id === ease)) errors.push(`${where}.ease : courbe inconnue`);
+      if (ease === 'bezier') errors.push(...bezierErrors(`${where}.bezier`, bezier));
+      else if (bezier !== undefined) errors.push(`${where}.bezier : réservé à la courbe personnalisée`);
     });
   });
   return errors;
@@ -146,10 +151,13 @@ export function canonicalTracks(tracks, owner = null) {
     const range = isTarget(/** @type {*} */ (track).target) ? targetRange(/** @type {*} */ (track).target, owner) : null;
     const keys = track.keys.map((/** @type {*} */ key) => {
       if (typeof key !== 'object' || key === null) return key;
+      const { bezier, ...plain } = key;
       return {
-        ...key,
+        ...plain,
         ...(isNumber(key.t) ? { t: clamp(Math.round(key.t), TIME_LIMITS.min, TIME_LIMITS.max) } : {}),
         ...(range !== null && isNumber(key.v) ? { v: clamp(key.v, range.min, range.max) } : {}),
+        // La courbe personnalisée n'existe que pour la courbe « personnalisée » ; une valeur qui n'en est pas une reste telle quelle, la validation la refuse.
+        ...(key.ease === 'bezier' && bezier !== undefined ? { bezier: isBezier(bezier) ? clampBezier(bezier) : bezier } : {}),
       };
     });
     const sorted = keys.every((/** @type {*} */ key) => isNumber(key?.t)) ? [...keys].sort((a, b) => a.t - b.t) : keys;
@@ -167,9 +175,10 @@ function bounded(value, range) {
   return range === null ? value : clamp(value, range.min, range.max);
 }
 
-/** @param {Ease} ease @param {number} x 0..1 @returns {number} */
-export function easeValue(ease, x) {
+/** @param {Ease} ease @param {number} x 0..1 @param {Bezier} [bezier] la courbe d'une image clé « personnalisée » @returns {number} */
+export function easeValue(ease, x, bezier) {
   switch (ease) {
+    case 'bezier': return cubicBezier(isBezier(bezier) ? bezier : DEFAULT_BEZIER, x);
     case 'easeIn': return x * x;
     case 'easeOut': return 1 - (1 - x) * (1 - x);
     case 'easeInOut': return x < 0.5 ? 2 * x * x : 1 - ((-2 * x + 2) ** 2) / 2;
@@ -194,7 +203,7 @@ export function sampleKeys(keys, time) {
   const from = keys[at];
   const to = keys[at + 1];
   const x = (time - from.t) / (to.t - from.t);
-  return from.v + (to.v - from.v) * easeValue(from.ease, x);
+  return from.v + (to.v - from.v) * easeValue(from.ease, x, from.bezier);
 }
 
 /**
@@ -262,7 +271,7 @@ export function setKey(tracks, target, t, v, ease = 'easeInOut', range = commonR
   }
   const replaced = existing.keys.some((candidate) => candidate.t === time);
   if (!replaced && existing.keys.length >= MAX_KEYS) return null;
-  const keys = (replaced ? existing.keys.map((candidate) => (candidate.t === time ? { ...key, ease: candidate.ease } : candidate)) : [...existing.keys, key]).sort((a, b) => a.t - b.t);
+  const keys = (replaced ? existing.keys.map((candidate) => (candidate.t === time ? { ...key, ease: candidate.ease, ...(candidate.bezier === undefined ? {} : { bezier: candidate.bezier }) } : candidate)) : [...existing.keys, key]).sort((a, b) => a.t - b.t);
   return tracks.map((track) => (track === existing ? { ...track, keys } : track));
 }
 
@@ -285,7 +294,7 @@ export function removeKey(tracks, target, index) {
  * @param {readonly Track[]} tracks
  * @param {TimelineTarget} target
  * @param {number} index
- * @param {{ t?: number, v?: number, ease?: Ease }} change
+ * @param {{ t?: number, v?: number, ease?: Ease, bezier?: Bezier }} change régler `bezier` choisit la courbe personnalisée ; choisir une autre courbe efface la personnalisée
  * @param {{ min: number, max: number } | null} [range] les bornes de la valeur (celles des six valeurs communes par défaut ; `null` : sans borne)
  * @returns {{ tracks: Track[], index: number, refused: boolean }}
  */
@@ -296,11 +305,13 @@ export function changeKey(tracks, target, index, change, range = commonRange(tar
   const next = {
     t: change.t === undefined ? key.t : clamp(Math.round(change.t), TIME_LIMITS.min, TIME_LIMITS.max),
     v: change.v === undefined ? key.v : bounded(change.v, range),
-    ease: change.ease ?? key.ease,
+    ease: change.bezier === undefined ? change.ease ?? key.ease : 'bezier',
   };
+  // Une image clé « personnalisée » porte sa courbe : celle qu'on règle, sinon celle qu'elle avait, sinon la courbe de départ.
+  const curved = next.ease === 'bezier' ? { ...next, bezier: clampBezier(change.bezier ?? key.bezier ?? [...DEFAULT_BEZIER]) } : next;
   if (track.keys.some((other, at) => at !== index && other.t === next.t)) return { tracks: [...tracks], index, refused: true };
-  const keys = track.keys.map((other, at) => (at === index ? next : other)).sort((a, b) => a.t - b.t);
-  return { tracks: tracks.map((candidate) => (candidate === track ? { ...candidate, keys } : candidate)), index: keys.findIndex((other) => other === next), refused: false };
+  const keys = track.keys.map((other, at) => (at === index ? curved : other)).sort((a, b) => a.t - b.t);
+  return { tracks: tracks.map((candidate) => (candidate === track ? { ...candidate, keys } : candidate)), index: keys.findIndex((other) => other === curved), refused: false };
 }
 
 /**
@@ -314,7 +325,7 @@ export function changeKey(tracks, target, index, change, range = commonRange(tar
 export function copyKeys(tracks, target, indexes) {
   const keys = (tracks.find((candidate) => candidate.target === target)?.keys ?? []).filter((_key, at) => indexes === undefined || indexes.includes(at));
   if (keys.length === 0) return null;
-  return { target, keys: keys.map((key) => ({ dt: key.t - keys[0].t, v: key.v, ease: key.ease })) };
+  return { target, keys: keys.map((key) => ({ dt: key.t - keys[0].t, v: key.v, ease: key.ease, ...(key.bezier === undefined ? {} : { bezier: [...key.bezier] }) })) };
 }
 
 /**
@@ -332,7 +343,7 @@ export function pasteKeys(tracks, clip, at, range = commonRange(clip.target)) {
   const pasted = new Map();
   for (const key of clip.keys) {
     const t = clamp(Math.round(at + key.dt), TIME_LIMITS.min, TIME_LIMITS.max);
-    pasted.set(t, { t, v: bounded(key.v, range), ease: key.ease });
+    pasted.set(t, { t, v: bounded(key.v, range), ease: key.ease, ...(key.bezier === undefined ? {} : { bezier: [...key.bezier] }) });
   }
   const existing = tracks.find((track) => track.target === clip.target);
   if (existing === undefined && tracks.length >= MAX_TRACKS) return null;

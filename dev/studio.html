@@ -362,6 +362,18 @@
     .tl-title { color: var(--color-text-mid); margin-right: auto; }
     .tl-track { display: grid; grid-template-columns: 96px 1fr; gap: var(--space-sm); align-items: center; margin: 2px 0; }
     .tl-label { color: var(--color-text-mid); font-size: var(--text-xs); }
+    .tl-curve { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: var(--space-md); align-items: flex-start; }
+    .tl-curve-svg { flex: none; background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
+    .tl-curve-unit { fill: none; stroke: var(--color-rule); }
+    .tl-curve-guide { stroke: var(--color-rule); stroke-dasharray: 3 3; }
+    .tl-curve-arm { stroke: var(--color-text-mid); stroke-width: 1; }
+    .tl-curve-line { stroke: var(--color-gold); stroke-width: 2; }
+    .tl-curve-handle { fill: var(--color-gold); stroke: var(--color-bg-panel); stroke-width: 2; cursor: grab; touch-action: none; }
+    .tl-curve-handle:focus-visible { outline: 2px solid var(--color-text-primary); outline-offset: 2px; }
+    .tl-curve-controls { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xs) var(--space-sm); align-content: start; min-width: 200px; }
+    .tl-curve-controls[hidden] { display: none; }
+    .tl-curve-controls select { grid-column: 1 / -1; }
+    .tl-curve-controls input[type="number"] { width: 64px; }
     .tl-copy { margin-left: var(--space-xs); padding: 0 var(--space-xs); font-size: var(--text-xs); line-height: 1.4; }
     .tl-copy::before { content: '⧉'; }
     .tl-lane { position: relative; height: 26px; background: var(--color-bg); border: 1px solid var(--color-rule); cursor: col-resize; touch-action: none; }
@@ -1238,6 +1250,7 @@
             <label class="tl-field">Courbe <select id="timeline-key-ease" aria-label="Courbe vers l’image clé suivante"></select></label>
             <button id="timeline-key-copy" type="button">Copier</button>
             <button id="timeline-key-remove" type="button">Supprimer</button>
+            <div id="timeline-curve" class="tl-curve"></div>
           </div>
         </div>
       </section>

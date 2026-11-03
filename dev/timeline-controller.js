@@ -1,5 +1,6 @@
 // @ts-check
 import { layerTargets, targetLabel, targetRange } from '../layer-bindings.js';
+import { createCurveEditor } from './curve-editor.js';
 import { DURATION_BOUNDS, EASES, MAX_KEYS, RESTART_SOURCES, changeKey, copyKeys, pasteKeys, removeKey, setKey } from '../layer-timeline.js';
 import { describeKey, formatSeconds, percentOf, timeFromPointer, timelineOf, valueAt } from './timeline-view.js';
 
@@ -17,7 +18,7 @@ import { describeKey, formatSeconds, percentOf, timeFromPointer, timelineOf, val
  *   elements: {
  *     panel: HTMLElement, toggle: HTMLButtonElement, play: HTMLButtonElement, restart: HTMLButtonElement, readout: HTMLElement, scrub: HTMLInputElement,
  *     duration: HTMLInputElement, loop: HTMLInputElement, restartOn: HTMLElement, title: HTMLElement, target: HTMLSelectElement, addKey: HTMLButtonElement, paste: HTMLButtonElement, tracks: HTMLElement,
- *     detail: HTMLElement, detailTime: HTMLInputElement, detailValue: HTMLInputElement, detailEase: HTMLSelectElement, detailCopy: HTMLButtonElement, detailRemove: HTMLButtonElement,
+ *     detail: HTMLElement, detailTime: HTMLInputElement, detailValue: HTMLInputElement, detailEase: HTMLSelectElement, detailCopy: HTMLButtonElement, curve: HTMLElement, detailRemove: HTMLButtonElement,
  *   },
  *   studio: ReturnType<typeof import('./studio-document.js').createStudioDocument>,
  *   timeline: { state(): { playing: boolean, timeMs: number, durationMs: number, loop: 'once' | 'loop' }, play(): void, pause(): void, restart(): void, seek(ms: number): void, subscribe(listener: (state: *) => void): () => void },
@@ -182,6 +183,9 @@ export function createTimelineController(input) {
     renderDetail();
   }
 
+  /** La courbe de l'image clé choisie : un dessin, et pour une courbe personnalisée ses poignées et ses nombres. */
+  const curve = createCurveEditor({ root: elements.curve, documentRef, onChange: (bezier) => changeSelected({ bezier }, 'bezier') });
+
   function renderDetail() {
     const target = layer();
     const track = selected === null ? undefined : target?.timeline?.find((candidate) => candidate.target === selected?.target);
@@ -204,6 +208,7 @@ export function createTimelineController(input) {
     }
     elements.detailValue.setAttribute('aria-label', `Valeur de l’image clé (${targetLabel(selected.target, target).toLowerCase()}${range === null || range.unit === '' ? '' : `, ${range.unit}`})`);
     show(elements.detailEase, key.ease);
+    curve.show(key);
   }
 
   // ── Images clés ─────────────────────────────────────────────────────────
@@ -320,7 +325,7 @@ export function createTimelineController(input) {
     select(target, index);
   });
 
-  /** Le détail de l'image clé choisie : instant, valeur, courbe. @param {{ t?: number, v?: number, ease?: import('../layer-timeline.js').Ease }} change @param {string} key */
+  /** Le détail de l'image clé choisie : instant, valeur, courbe. @param {{ t?: number, v?: number, ease?: import('../layer-timeline.js').Ease, bezier?: import('../cubic-bezier.js').Bezier }} change @param {string} key */
   function changeSelected(change, key) {
     const live = layer();
     if (live === null || selected === null) return;

@@ -15,6 +15,13 @@ images clés ») et la raison d'être des **chemins adressables** de `scene-doc.
   `linear`, `easeIn`, `easeOut`, `easeInOut`, ou `hold` (palier : la valeur saute à la clé suivante).
 - La scène porte sa **durée** (0,5 à 60 s) et son **mode** (`once` : s'arrête à la dernière image ; `loop` : recommence) : `SceneDoc.timeline`. Absente, la
   scène a la timeline par défaut : 4 s (ou la dernière clé si elle est plus tardive), une seule fois.
+- **Courbe de Bézier** (2026-11-03) : la courbe d'une image clé peut être « personnalisée » : `Keyframe.bezier = [x1, y1, x2, y2]` (`cubic-bezier.js`), la même que `cubic-bezier()` de CSS, de (0, 0) à (1, 1).
+  Les abscisses restent dans 0 à 1 (le temps entre deux images clés), les ordonnées vont de -2 à 3 : au-delà de 0 à 1, la valeur **dépasse** (rebond) ou **recule** (anticipation). Elle n'existe que pour la courbe `bezier`
+  (validation : exigée avec elle, refusée avec les autres ; forme canonique : arrondie au millième, bornée, retirée des autres courbes). Choisir « Courbe personnalisée » part de la courbe douce de CSS ; régler la courbe
+  choisit « personnalisée » ; choisir une autre courbe l'efface. Elle suit l'image clé quand on la déplace, se copie et se colle avec elle. Six préréglages (douce, freine fort, démarre fort, dépasse, recule puis part,
+  recule-dépasse-se pose). Dans le panneau : le détail d'une image clé dessine sa courbe (toutes les courbes), et pour une courbe personnalisée montre deux poignées qu'on glisse à la souris (flèches du clavier : 0,05 ;
+  `Maj` : 0,01), les quatre nombres et la liste des préréglages (`dev/curve-editor.js`). Les entrées et sorties d'animation de couche gardent leurs courbes fixes. Preuves : `cubic-bezier.test.js` (calcul vérifié contre un
+  balayage indépendant), `layer-timeline-bezier.test.js`, `dev/e2e/suites/39-courbe-personnalisee.e2e.js` (valeur lue sur le calque réel, poignée à la souris et au clavier ; défauts réinjectés vus rouges).
 - **Copier-coller d'images clés** (2026-11-03) : `copyKeys(tracks, target, indexes?)` copie une image clé ou toute une piste (instants relatifs à la première) ; `pasteKeys(tracks, clip, at, range)` les pose
   à l'instant voulu, sur la même valeur, d'une couche ou d'une autre. Une image déjà posée à un instant collé est remplacée (valeur et courbe de la copie), les autres restent ; les instants sont arrondis et ramenés dans la
   durée possible, les valeurs dans les bornes ; **tout ou rien** si la piste dépasserait 24 images ou si 6 pistes existent déjà. Dans le panneau : ⧉ sur une piste la copie, « Copier » dans le détail copie l'image choisie,
