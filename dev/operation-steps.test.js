@@ -169,6 +169,49 @@ describe('montrer et corriger', () => {
   });
 });
 
+describe('stepErrors : chaque valeur d\'un geste, ses deux bornes et ses mauvais types', () => {
+  const layer = (patch) => stepErrors({ op: 'layer', args: { patch }, target: 'selection' });
+  const placement = (patch) => stepErrors({ op: 'placement', args: { patch }, target: 'selection' });
+
+  const ACCEPTED = [
+    { opacity: 0 }, { opacity: 1 }, { rotation: -180 }, { rotation: 180 }, { blur: 0 }, { blur: 12 }, { crop: { left: 0.9, top: 0 } },
+    { name: 'Titre' }, { name: 'x'.repeat(80) }, { blend: 'screen' }, { visible: false }, { locked: true },
+  ];
+  const REFUSED = [
+    [{ opacity: -0.1 }, 'opacité'], [{ opacity: 1.1 }, 'opacité'], [{ opacity: '0.5' }, 'opacité'], [{ opacity: Number.NaN }, 'opacité'],
+    [{ rotation: -181 }, 'rotation'], [{ rotation: 181 }, 'rotation'], [{ rotation: '90' }, 'rotation'],
+    [{ blur: -1 }, 'flou'], [{ blur: 13 }, 'flou'], [{ blur: '2' }, 'flou'],
+    [{ crop: { left: -0.1 } }, 'rognage'], [{ crop: { left: 0.95 } }, 'rognage'], [{ crop: { milieu: 0.1 } }, 'rognage'], [{ crop: { left: '0.1' } }, 'rognage'], [{ crop: 'x' }, 'rognage'],
+    [{ name: 5 }, 'nom'], [{ name: 'x'.repeat(81) }, 'nom'],
+    [{ blend: 'inconnu' }, 'fusion'],
+    [{ visible: 1 }, 'booléen'], [{ locked: 'oui' }, 'booléen'],
+    [{ bindings: 'x' }, 'liaisons'], [{ timeline: 'x' }, 'animation'],
+    [{ filters: { hue: 3 } }, 'inconnue'],
+  ];
+
+  test('accepts the values inside the limits of a layer property', () => {
+    for (const patch of ACCEPTED) expect([patch, layer(patch)]).toEqual([patch, []]);
+  });
+
+  test('refuses what is outside a limit, of the wrong type, or unknown, each with its own wording', () => {
+    for (const [patch, wording] of REFUSED) {
+      const errors = layer(patch);
+      expect([patch, errors.length]).toEqual([patch, 1]);
+      expect(errors[0]).toContain(wording);
+    }
+  });
+
+  test('a placement is a fraction of the canvas between -1 and 2', () => {
+    for (const value of [-1, 0, 0.5, 2]) expect(placement({ x: value })).toEqual([]);
+    for (const value of [-1.1, 2.1, '0.5', Number.NaN, true]) expect(placement({ width: value })[0]).toContain('fraction');
+    expect(placement({ rotation: 1 })[0]).toContain('inconnue');
+  });
+
+  test('no setting at all is refused', () => {
+    expect(layer({})).toEqual(['aucun réglage']);
+  });
+});
+
 describe('commande personnalisée avec gestes', () => {
   test('validateCustomCommand accepte une étape geste valide et refuse une invalide', () => {
     const known = new Set(['edit.copy']);

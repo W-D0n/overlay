@@ -273,6 +273,40 @@ function patchErrors(patch, check) {
   });
 }
 
+/** @param {unknown} value @param {{ min: number, max: number }} limits */
+const inRange = (value, limits) => isNumber(value) && value >= limits.min && value <= limits.max;
+/** @param {unknown} problems @returns {string | null} the first defect of a list, or null */
+const firstOf = (problems) => (Array.isArray(problems) && problems.length > 0 ? problems[0] : null);
+
+/**
+ * The check of each property a `layer` step may set: the defect of a value, or null.
+ * @type {Readonly<Record<string, (value: unknown) => string | null>>}
+ */
+const LAYER_CHECKS = Object.freeze({
+  opacity: (value) => (inRange(value, { min: 0, max: 1 }) ? null : 'opacité : nombre entre 0 et 1 attendu'),
+  name: (value) => (typeof value === 'string' && value.length <= 80 ? null : 'nom : texte attendu'),
+  blend: (value) => (BLEND_MODES.some(({ id }) => id === value) ? null : 'fusion : mode connu attendu'),
+  rotation: (value) => (inRange(value, LOOK_LIMITS.rotation) ? null : 'rotation : angle entre -180 et 180 attendu'),
+  blur: (value) => (inRange(value, LOOK_LIMITS.blur) ? null : `flou : nombre entre 0 et ${LOOK_LIMITS.blur.max} attendu`),
+  timeline: (value) => firstOf(trackErrors('animation', value)),
+  bindings: (value) => firstOf(bindingErrors('liaisons', value)),
+  crop: (value) => (isRecord(value) && Object.entries(value).every(([side, amount]) => CROP_SIDES.includes(/** @type {*} */ (side)) && inRange(amount, LOOK_LIMITS.crop)) ? null : 'rognage : parts entre 0 et 0,9 attendues'),
+});
+
+/** @param {string} key @param {unknown} value @returns {string | null} */
+function layerKeyError(key, value) {
+  if (!LAYER_KEYS.includes(key)) return `propriété de couche inconnue : ${key}`;
+  const check = Object.hasOwn(LAYER_CHECKS, key) ? LAYER_CHECKS[key] : undefined;
+  if (check !== undefined) return check(value);
+  return typeof value === 'boolean' ? null : `${key} : booléen attendu`;
+}
+
+/** @param {string} key @param {unknown} value @returns {string | null} */
+function placementKeyError(key, value) {
+  if (!PLACEMENT_KEYS.includes(key)) return `clé de placement inconnue : ${key}`;
+  return inRange(value, { min: -1, max: 2 }) ? null : `${key} : fraction du canvas attendue`;
+}
+
 /**
  * Les défauts d'une étape geste (liste vide = valide).
  * @param {unknown} step
@@ -286,22 +320,8 @@ export function stepErrors(step) {
   const args = step.args;
   const patch = isRecord(args.patch) ? args.patch : null;
   switch (step.op) {
-    case 'layer': return patch === null ? ['layer : réglages attendus'] : patchErrors(patch, (key, value) => {
-      if (!LAYER_KEYS.includes(key)) return `propriété de couche inconnue : ${key}`;
-      if (key === 'opacity') return isNumber(value) && value >= 0 && value <= 1 ? null : 'opacité : nombre entre 0 et 1 attendu';
-      if (key === 'name') return typeof value === 'string' && value.length <= 80 ? null : 'nom : texte attendu';
-      if (key === 'blend') return BLEND_MODES.some(({ id }) => id === value) ? null : 'fusion : mode connu attendu';
-      if (key === 'rotation') return isNumber(value) && value >= LOOK_LIMITS.rotation.min && value <= LOOK_LIMITS.rotation.max ? null : 'rotation : angle entre -180 et 180 attendu';
-      if (key === 'blur') return isNumber(value) && value >= LOOK_LIMITS.blur.min && value <= LOOK_LIMITS.blur.max ? null : `flou : nombre entre 0 et ${LOOK_LIMITS.blur.max} attendu`;
-      if (key === 'timeline') { const problems = trackErrors('animation', value); return problems.length === 0 ? null : problems[0]; }
-      if (key === 'bindings') { const problems = bindingErrors('liaisons', value); return problems.length === 0 ? null : problems[0]; }
-      if (key === 'crop') return isRecord(value) && Object.entries(value).every(([side, amount]) => CROP_SIDES.includes(/** @type {*} */ (side)) && isNumber(amount) && amount >= LOOK_LIMITS.crop.min && amount <= LOOK_LIMITS.crop.max) ? null : 'rognage : parts entre 0 et 0,9 attendues';
-      return typeof value === 'boolean' ? null : `${key} : booléen attendu`;
-    });
-    case 'placement': return patch === null ? ['placement : réglages attendus'] : patchErrors(patch, (key, value) => {
-      if (!PLACEMENT_KEYS.includes(key)) return `clé de placement inconnue : ${key}`;
-      return isNumber(value) && value >= -1 && value <= 2 ? null : `${key} : fraction du canvas attendue`;
-    });
+    case 'layer': return patch === null ? ['layer : réglages attendus'] : patchErrors(patch, layerKeyError);
+    case 'placement': return patch === null ? ['placement : réglages attendus'] : patchErrors(patch, placementKeyError);
     case 'translate': return isNumber(args.dx) && isNumber(args.dy) && Math.abs(args.dx) <= 2 && Math.abs(args.dy) <= 2 ? [] : ['déplacement : deux fractions attendues'];
     case 'options': return [
       ...(step.kind === undefined || typeof step.kind !== 'string' ? ['options : type d’effet attendu'] : []),

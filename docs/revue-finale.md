@@ -17,8 +17,8 @@ Mesures reproductibles. Complexité et longueur : `dev/tools/complexity.cjs` (an
 | Fichiers de test unitaire | 177 (2591 tests) |
 | Dette de typage (`dev/typecheck-baseline.json`) | **0** |
 | Fonctions analysées | 3 305 |
-| Complexité cyclomatique > 15 | 53 → **51** après le lot 1 |
-| Complexité cyclomatique > 25 | 14 → **12** après le lot 1 |
+| Complexité cyclomatique > 15 | 53 → 51 (lot 1) → **49** (lot 2, en cours) |
+| Complexité cyclomatique > 25 | 14 → 12 (lot 1) → **9** (lot 2, en cours) |
 | Fonctions de plus de 100 lignes | 60 (dont 22 de plus de 200 : des fabriques de contrôleurs) |
 | Exports jamais utilisés, nulle part | 1 → **0** (supprimé, gardé par un test) |
 | Plus gros fichiers | `dev/studio.html` 1 465 l (CSS en ligne compris), `layer-kinds.js` 888 l (données), `dev/scene-editor.js` 839 l, `dev/background-tuner-runtime.js` 822 l, `scene-runtime.js` 723 l |
@@ -32,9 +32,11 @@ Lecture : le code est **typé sans dette** et bien couvert ; le risque est aille
 - Outil de mesure `dev/tools/complexity.cjs` ; garde du code mort `dev/dead-exports.test.js` (vue rouge sur un cas réel, `BUILTIN_UNIFORMS` de `components/shader-source.js`, supprimé).
 - `describePatch` (`dev/scene-editor.js`, complexité 28) devient une table `PATCH_LABELS` ; `layerDetails` (`dev/scene-diff.js`, 34) se découpe en cinq fonctions nommées qui gardent l'ordre des détails. Comportement figé **avant** par `dev/scene-editor-labels.test.js` (14 tests, un par libellé d'historique) et un test d'ordre dans `dev/scene-diff.test.js`, **puis** 12 défauts réinjectés tous vus rouges (trois survivants d'abord : l'ordre entre catégories n'était pas testé).
 
-### Lot 2 — fonctions les plus ramifiées (à faire)
+### Lot 2 — fonctions les plus ramifiées (en cours)
 
-Les 12 fonctions de complexité > 25, dans cet ordre de risque (une fonction à la fois, comportement figé par un test **avant** de toucher, défauts réinjectés **après**) : `DotGridAnimated.update` (34), `host.js fetch` (32), `operation-steps.stepErrors` (32), `code-params.readDefinition` (31), `layer-animation.evaluateAnimation` (30), le gestionnaire de clavier de `layers-panel-controller` (29), `layer-animation.animationErrors` (29), `asset-format.sniffAssetType` (28), `canvas-overlay-controller.onKeyDown` (27), `canvas-geometry.resizeRect` (26), `layer-animation.canonicalAnimation` (26). Cible : aucune fonction au-dessus de 25, puis au-dessus de 20.
+**Fait** : `animationErrors` et `canonicalAnimation` (`layer-animation.js`) découpées par phase (entrée, boucle, sortie, relance) ; `stepErrors` (`dev/operation-steps.js`) s'appuie sur une table de contrôles par propriété. Comportement figé par 22 + 16 défauts réinjectés ; deux survivants ont fait ajouter les tests de bornes des gestes (`stepErrors : chaque valeur…`). Complexité > 25 : 12 → **9** ; > 15 : 51 → **49**. Constat à traiter à part : les gestes enregistrés (`LAYER_KEYS`) ne connaissent pas encore `filters`, `mask` ni `animation` — un geste sur ces réglages ne se rejoue pas dans une commande personnalisée.
+
+Les fonctions de complexité > 25 restantes, dans cet ordre de risque (une fonction à la fois, comportement figé par un test **avant** de toucher, défauts réinjectés **après**) : `DotGridAnimated.update` (34), `host.js fetch` (32), `operation-steps.stepErrors` (32), `code-params.readDefinition` (31), `layer-animation.evaluateAnimation` (30), le gestionnaire de clavier de `layers-panel-controller` (29), `layer-animation.animationErrors` (29), `asset-format.sniffAssetType` (28), `canvas-overlay-controller.onKeyDown` (27), `canvas-geometry.resizeRect` (26), `layer-animation.canonicalAnimation` (26). Cible : aucune fonction au-dessus de 25, puis au-dessus de 20.
 
 ### Lot 3 — découper les grosses fabriques (à faire)
 

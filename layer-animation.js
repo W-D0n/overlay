@@ -120,6 +120,62 @@ function checkNumber(where, value, key, limits, errors) {
 }
 
 /**
+ * @param {string} where @param {Record<string, unknown>} enter @param {'text' | 'shape' | undefined} content
+ * @returns {string[]}
+ */
+function enterErrors(where, enter, content) {
+  /** @type {string[]} */
+  const errors = [];
+  if (presetOf(enter.preset) === undefined) errors.push(`${where}.enter.preset : préréglage inconnu`);
+  else if (!fits(presetOf(enter.preset), content)) errors.push(`${where}.enter.preset : ${reserved(presetOf(enter.preset))}`);
+  checkNumber(`${where}.enter`, enter.durationMs, 'durationMs', DURATION_LIMITS, errors);
+  if (enter.delayMs !== undefined) checkNumber(`${where}.enter`, enter.delayMs, 'delayMs', DELAY_LIMITS, errors);
+  if (enter.ease !== undefined && !ANIMATION_EASES.some(({ id }) => id === enter.ease)) errors.push(`${where}.enter.ease : courbe inconnue`);
+  return errors;
+}
+
+/**
+ * @param {string} where @param {Record<string, unknown>} loop
+ * @returns {string[]}
+ */
+function loopErrors(where, loop) {
+  /** @type {string[]} */
+  const errors = [];
+  if (loopOf(loop.preset) === undefined) errors.push(`${where}.loop.preset : boucle inconnue`);
+  checkNumber(`${where}.loop`, loop.periodMs, 'periodMs', PERIOD_LIMITS, errors);
+  if (loop.amount !== undefined) checkNumber(`${where}.loop`, loop.amount, 'amount', AMOUNT_LIMITS, errors);
+  return errors;
+}
+
+/**
+ * @param {string} where @param {Record<string, unknown>} exit @param {'text' | 'shape' | undefined} content
+ * @returns {string[]}
+ */
+function exitErrors(where, exit, content) {
+  /** @type {string[]} */
+  const errors = [];
+  if (presetOf(exit.preset) === undefined) errors.push(`${where}.exit.preset : préréglage inconnu`);
+  else if (!fits(presetOf(exit.preset), content)) errors.push(`${where}.exit.preset : ${reserved(presetOf(exit.preset))}`);
+  checkNumber(`${where}.exit`, exit.durationMs, 'durationMs', DURATION_LIMITS, errors);
+  if (exit.afterMs !== undefined) checkNumber(`${where}.exit`, exit.afterMs, 'afterMs', AFTER_LIMITS, errors);
+  if (exit.onLeave !== undefined && typeof exit.onLeave !== 'boolean') errors.push(`${where}.exit.onLeave : booléen attendu`);
+  if (exit.ease !== undefined && !ANIMATION_EASES.some(({ id }) => id === exit.ease)) errors.push(`${where}.exit.ease : courbe inconnue`);
+  if (exit.afterMs === undefined && exit.onLeave !== true) errors.push(`${where}.exit : un instant (afterMs) ou le départ de la scène (onLeave) est attendu`);
+  return errors;
+}
+
+/**
+ * @param {string} where @param {unknown} restartOn
+ * @returns {string[]}
+ */
+function restartErrors(where, restartOn) {
+  if (!Array.isArray(restartOn)) return [`${where}.restartOn : liste attendue`];
+  if (restartOn.some((id) => !RESTART_SOURCES.some((source) => source.id === id))) return [`${where}.restartOn : alerte inconnue`];
+  if (new Set(restartOn).size !== restartOn.length) return [`${where}.restartOn : une alerte ne figure qu'une fois`];
+  return [];
+}
+
+/**
  * Les défauts de l'animation d'une couche (vide = valide).
  * @param {string} where
  * @param {unknown} animation
@@ -129,45 +185,13 @@ function checkNumber(where, value, key, limits, errors) {
 export function animationErrors(where, animation, { content } = {}) {
   if (animation === undefined) return [];
   if (!isObject(animation)) return [`${where} : objet attendu`];
-  /** @type {string[]} */
-  const errors = [];
   const { enter, loop, exit, restartOn } = animation;
-  if (enter !== undefined) {
-    if (!isObject(enter)) errors.push(`${where}.enter : objet attendu`);
-    else {
-      if (presetOf(enter.preset) === undefined) errors.push(`${where}.enter.preset : préréglage inconnu`);
-      else if (!fits(presetOf(enter.preset), content)) errors.push(`${where}.enter.preset : ${reserved(presetOf(enter.preset))}`);
-      checkNumber(`${where}.enter`, enter.durationMs, 'durationMs', DURATION_LIMITS, errors);
-      if (enter.delayMs !== undefined) checkNumber(`${where}.enter`, enter.delayMs, 'delayMs', DELAY_LIMITS, errors);
-      if (enter.ease !== undefined && !ANIMATION_EASES.some(({ id }) => id === enter.ease)) errors.push(`${where}.enter.ease : courbe inconnue`);
-    }
-  }
-  if (loop !== undefined) {
-    if (!isObject(loop)) errors.push(`${where}.loop : objet attendu`);
-    else {
-      if (loopOf(loop.preset) === undefined) errors.push(`${where}.loop.preset : boucle inconnue`);
-      checkNumber(`${where}.loop`, loop.periodMs, 'periodMs', PERIOD_LIMITS, errors);
-      if (loop.amount !== undefined) checkNumber(`${where}.loop`, loop.amount, 'amount', AMOUNT_LIMITS, errors);
-    }
-  }
-  if (exit !== undefined) {
-    if (!isObject(exit)) errors.push(`${where}.exit : objet attendu`);
-    else {
-      if (presetOf(exit.preset) === undefined) errors.push(`${where}.exit.preset : préréglage inconnu`);
-      else if (!fits(presetOf(exit.preset), content)) errors.push(`${where}.exit.preset : ${reserved(presetOf(exit.preset))}`);
-      checkNumber(`${where}.exit`, exit.durationMs, 'durationMs', DURATION_LIMITS, errors);
-      if (exit.afterMs !== undefined) checkNumber(`${where}.exit`, exit.afterMs, 'afterMs', AFTER_LIMITS, errors);
-      if (exit.onLeave !== undefined && typeof exit.onLeave !== 'boolean') errors.push(`${where}.exit.onLeave : booléen attendu`);
-      if (exit.ease !== undefined && !ANIMATION_EASES.some(({ id }) => id === exit.ease)) errors.push(`${where}.exit.ease : courbe inconnue`);
-      if (exit.afterMs === undefined && exit.onLeave !== true) errors.push(`${where}.exit : un instant (afterMs) ou le départ de la scène (onLeave) est attendu`);
-    }
-  }
-  if (restartOn !== undefined) {
-    if (!Array.isArray(restartOn)) errors.push(`${where}.restartOn : liste attendue`);
-    else if (restartOn.some((id) => !RESTART_SOURCES.some((source) => source.id === id))) errors.push(`${where}.restartOn : alerte inconnue`);
-    else if (new Set(restartOn).size !== restartOn.length) errors.push(`${where}.restartOn : une alerte ne figure qu'une fois`);
-  }
-  return errors;
+  return [
+    ...(enter === undefined ? [] : isObject(enter) ? enterErrors(where, enter, content) : [`${where}.enter : objet attendu`]),
+    ...(loop === undefined ? [] : isObject(loop) ? loopErrors(where, loop) : [`${where}.loop : objet attendu`]),
+    ...(exit === undefined ? [] : isObject(exit) ? exitErrors(where, exit, content) : [`${where}.exit : objet attendu`]),
+    ...(restartOn === undefined ? [] : restartErrors(where, restartOn)),
+  ];
 }
 
 /**
@@ -183,6 +207,39 @@ function numberField(key, value, limits, neutral, precision = 0) {
   return bounded === neutral ? {} : { [key]: bounded };
 }
 
+/** @param {Record<string, unknown>} enter @returns {Record<string, unknown>} */
+function canonicalEnter(enter) {
+  const { durationMs, delayMs, ease, ...entry } = enter;
+  return {
+    ...entry,
+    ...numberField('durationMs', durationMs, DURATION_LIMITS, null),
+    ...numberField('delayMs', delayMs, DELAY_LIMITS, 0),
+    ...(ease === undefined || ease === presetOf(entry.preset)?.ease ? {} : { ease }),
+  };
+}
+
+/** @param {Record<string, unknown>} loop @returns {Record<string, unknown>} */
+function canonicalLoop(loop) {
+  const { periodMs, amount, ...entry } = loop;
+  return {
+    ...entry,
+    ...numberField('periodMs', periodMs, PERIOD_LIMITS, null),
+    ...numberField('amount', amount, AMOUNT_LIMITS, DEFAULT_AMOUNT, 2),
+  };
+}
+
+/** @param {Record<string, unknown>} exit @returns {Record<string, unknown>} */
+function canonicalExit(exit) {
+  const { durationMs, afterMs, onLeave, ease, ...entry } = exit;
+  return {
+    ...entry,
+    ...numberField('durationMs', durationMs, DURATION_LIMITS, null),
+    ...(isNumber(afterMs) ? { afterMs: clamp(Math.round(afterMs), AFTER_LIMITS.min, AFTER_LIMITS.max) } : afterMs === undefined ? {} : { afterMs }),
+    ...(onLeave === false || onLeave === undefined ? {} : { onLeave }),
+    ...(ease === undefined || ease === presetOf(entry.preset)?.ease ? {} : { ease }),
+  };
+}
+
 /**
  * La forme canonique : durées et amplitudes dans leurs bornes, alertes de relance dans l'ordre des sources sans doublon, une valeur par défaut non écrite (amplitude 1, sortie
  * « au départ » à faux, courbe propre au préréglage), les alertes de relance retirées quand il n'y a rien à relancer, et rien du tout quand l'animation est vide.
@@ -195,36 +252,9 @@ export function canonicalAnimation(animation) {
   const { enter, loop, exit, restartOn, ...others } = animation;
   /** @type {Record<string, unknown>} */
   const result = { ...others };
-
-  if (isObject(enter)) {
-    const { durationMs, delayMs, ease, ...entry } = enter;
-    result.enter = {
-      ...entry,
-      ...numberField('durationMs', durationMs, DURATION_LIMITS, null),
-      ...numberField('delayMs', delayMs, DELAY_LIMITS, 0),
-      ...(ease === undefined || ease === presetOf(entry.preset)?.ease ? {} : { ease }),
-    };
-  } else if (enter !== undefined) result.enter = enter;
-
-  if (isObject(loop)) {
-    const { periodMs, amount, ...entry } = loop;
-    result.loop = {
-      ...entry,
-      ...numberField('periodMs', periodMs, PERIOD_LIMITS, null),
-      ...numberField('amount', amount, AMOUNT_LIMITS, DEFAULT_AMOUNT, 2),
-    };
-  } else if (loop !== undefined) result.loop = loop;
-
-  if (isObject(exit)) {
-    const { durationMs, afterMs, onLeave, ease, ...entry } = exit;
-    result.exit = {
-      ...entry,
-      ...numberField('durationMs', durationMs, DURATION_LIMITS, null),
-      ...(isNumber(afterMs) ? { afterMs: clamp(Math.round(afterMs), AFTER_LIMITS.min, AFTER_LIMITS.max) } : afterMs === undefined ? {} : { afterMs }),
-      ...(onLeave === false || onLeave === undefined ? {} : { onLeave }),
-      ...(ease === undefined || ease === presetOf(entry.preset)?.ease ? {} : { ease }),
-    };
-  } else if (exit !== undefined) result.exit = exit;
+  if (enter !== undefined) result.enter = isObject(enter) ? canonicalEnter(enter) : enter;
+  if (loop !== undefined) result.loop = isObject(loop) ? canonicalLoop(loop) : loop;
+  if (exit !== undefined) result.exit = isObject(exit) ? canonicalExit(exit) : exit;
 
   const known = Array.isArray(restartOn) && restartOn.every((id) => RESTART_SOURCES.some((source) => source.id === id));
   const ordered = known ? RESTART_SOURCES.map(({ id }) => id).filter((id) => /** @type {unknown[]} */ (restartOn).includes(id)) : [];
