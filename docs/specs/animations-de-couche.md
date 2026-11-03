@@ -5,7 +5,7 @@ updated: 2026-11-03
 
 # Spec — Animations de couche (entrée, boucle, sortie)
 
-Statut : **décidée, en cours** (pas encore codée). Décision de l'owner du 2026-11-03 : une animation, de texte ou non, peut apparaître **n'importe quand** pour accompagner un
+Statut : **en cours** — étape 1 livrée (modèle pur `layer-animation.js`, 40 tests, 40 défauts réinjectés tous vus rouges), le moteur ne l'applique pas encore. Décision de l'owner du 2026-11-03 : une animation, de texte ou non, peut apparaître **n'importe quand** pour accompagner un
 moment du live ; chaque couche a donc **sa propre horloge** (choix B), et la sortie se règle à **date fixe** et **au départ de la scène** (options 2 et 3).
 Elle complète la timeline de scène (`timeline.md`), qui reste l'outil précis, image clé par image clé ; elle ne la remplace pas. Elle vaut pour **tous les types de couche**
 (texte, image, forme, code, shader) : les préréglages agissent sur le calque de la couche.
@@ -20,6 +20,7 @@ Elle complète la timeline de scène (`timeline.md`), qui reste l'outil précis,
   est remplacée (**option 3**). Les deux peuvent coexister : la première qui arrive joue, l'autre est sans effet.
 - `restartOn` : les mêmes alertes que la relance de la timeline (`RESTART_SOURCES`), mais **pour cette seule couche** : c'est la relance par couche qui manquait à la timeline.
 
+Une liste `restartOn` sans entrée, boucle ni sortie n'est pas écrite (rien à relancer).
 Formes canoniques comme les autres modèles : bornes (durées 50 ms à 60 s), préréglage connu, pas de liste vide ni de doublon, objet vide non écrit.
 
 ## 2. L'horloge d'une couche

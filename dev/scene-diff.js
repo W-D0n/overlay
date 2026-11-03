@@ -11,6 +11,7 @@
  * @typedef {import('../scene-doc.js').Layer} Layer
  * @typedef {{ layerId: string | null, kind: 'added' | 'removed' | 'changed' | 'order', title: string, details: string[] }} Change
  */
+import { LOOPS, PRESETS } from '../layer-animation.js';
 import { BLEND_MODES, CROP_LABELS, CROP_SIDES } from '../scene-doc.js';
 import { toDisplay } from './placement-math.js';
 
@@ -19,6 +20,17 @@ function stable(value) {
   return JSON.stringify(value, (_key, nested) => (nested !== null && typeof nested === 'object' && !Array.isArray(nested)
     ? Object.fromEntries(Object.keys(nested).sort().map((key) => [key, nested[key]]))
     : nested));
+}
+
+/** « entrée Fondu · boucle Flottement · sortie Zoom », ou « aucune ». @param {Layer['animation']} animation @returns {string} */
+function animationSummary(animation) {
+  if (animation === undefined) return 'aucun';
+  const parts = [
+    animation.enter === undefined ? null : `entrée ${PRESETS.find(({ id }) => id === animation.enter?.preset)?.label ?? animation.enter.preset}`,
+    animation.loop === undefined ? null : `boucle ${LOOPS.find(({ id }) => id === animation.loop?.preset)?.label ?? animation.loop.preset}`,
+    animation.exit === undefined ? null : `sortie ${PRESETS.find(({ id }) => id === animation.exit?.preset)?.label ?? animation.exit.preset}`,
+  ].filter((part) => part !== null);
+  return parts.length === 0 ? 'aucun' : parts.join(' · ');
 }
 
 /** @param {unknown} value @returns {string} */
@@ -59,6 +71,7 @@ function layerDetails(before, after, labelOf, optionLabel) {
     const keys = (/** @type {Layer} */ layer) => (layer.timeline ?? []).reduce((total, track) => total + track.keys.length, 0);
     details.push(`animation : ${keys(before)} → ${keys(after)} images clés`);
   }
+  if (stable(before.animation) !== stable(after.animation)) details.push(`préréglages : ${animationSummary(before.animation)} → ${animationSummary(after.animation)}`);
   if (stable(before.bindings) !== stable(after.bindings)) {
     const count = (/** @type {Layer} */ layer) => layer.bindings?.length ?? 0;
     details.push(`liaisons : ${count(before)} → ${count(after)}`);
