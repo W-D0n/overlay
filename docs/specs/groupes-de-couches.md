@@ -5,7 +5,7 @@ updated: 2026-11-03
 
 # Spec — Groupes de couches
 
-Statut : **décidée, en cours** (phase 1 livrée : le modèle pur, 44 défauts réinjectés tous vus rouges). Décision de l'owner du 2026-11-03 : « groupes complets », pas un simple dossier. Un groupe se comporte comme **une couche** : il a son opacité, sa fusion,
+Statut : **décidée, en cours** (phases 1 et 2 livrées : le modèle pur et le moteur ; 62 défauts réinjectés tous vus rouges). Décision de l'owner du 2026-11-03 : « groupes complets », pas un simple dossier. Un groupe se comporte comme **une couche** : il a son opacité, sa fusion,
 sa rotation, son flou, ses filtres, sa timeline, ses liaisons et ses animations d'entrée, de boucle et de sortie, appliqués **à l'ensemble** de ses couches, rendues ensemble.
 
 ## 1. Le modèle
@@ -44,7 +44,7 @@ sa rotation, son flou, ses filtres, sa timeline, ses liaisons et ses animations 
 
 1. ~~**Modèle pur**~~ — **fait** (`layer-group.js`, `layer-kinds.js`, `scene-doc.js`, `components/GroupLayer.js`) : type `group`, champ `group`, validation du bloc contigu, bornes, placement dérivé en forme canonique, aides de structure
    (couches d'un groupe, bloc, entrées de premier niveau, grouper, dégrouper). Tests et défauts réinjectés.
-2. **Moteur** (`scene-runtime.js`) : calques de groupe imbriqués, rendu du groupe, origine de transformation, masquage, routage, animation et sortie au départ. Tests avec monde factice.
+2. ~~**Moteur**~~ — **fait** (`scene-runtime.js`) : les groupes se montent d'abord, leurs couches dans l'élément du groupe ; une couche qui change de groupe change de parent sans être recréée (une page de code isolée se recharge) ; le centre de rotation vient des couches du groupe (pas du placement stocké) ; un groupe masqué ou qui n'a pas pu se monter ne monte pas ses couches. Essais : `scene-group-runtime.test.js` (monde factice imbriqué) et `dev/e2e/suites/41-groupes-antenne.e2e.js` (la vraie page de rendu d'OBS).
 3. **Éditeur** (`dev/scene-editor.js`) : grouper, dégrouper, supprimer, dupliquer, déplacer, verrouiller, ajouter, placement d'un groupe par ses couches, historique. Tests et défauts réinjectés.
 4. **Panneau, canevas, inspecteur** : arbre repliable, glisser-déposer, `Ctrl+G`, poignées sur la boîte du groupe, champs de placement ; essais de bout en bout dans le vrai Studio.
 5. **Finitions** : récapitulatif de publication, presse-papiers, vignettes, import et export, guide, procédure d'essai dans OBS.

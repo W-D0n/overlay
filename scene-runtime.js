@@ -1,9 +1,10 @@
 // @ts-check
 import { COMPONENT_REGISTRY } from './component-registry.js';
 import { cssEasing, normalizeTransition, transitionStyles } from './background-transition.js';
-import { isAudioOn, isIdentityKind, kindCapabilities } from './layer-kinds.js';
+import { isAudioOn, isGroupKind, isIdentityKind, kindCapabilities } from './layer-kinds.js';
 import { referenceScale } from './render-reference.js';
 import { applyPose, evaluateAnimation, leaveDelayMs, restartsAnimationOn } from './layer-animation.js';
+import { boundingBox } from './layer-group.js';
 import { filterCss } from './layer-filters.js';
 import { PARAM_TARGET_PREFIX, evaluateBindings, recordPulse, usesAudio } from './layer-bindings.js';
 import { effectiveTimeline, evaluateTimeline, hasKeys, playbackTime, restartsOn } from './layer-timeline.js';
@@ -37,6 +38,10 @@ import { CROP_SIDES } from './scene-doc.js';
  * (type inconnu sur un fond d'une seule couche, par exemple un état plus récent que le code chargé par OBS)
  * laisse la scène en place plutôt que de vider l'écran en direct.
  *
+ * Un **groupe** (`layer-group.js`) est une couche dont le calque contient ceux de ses couches : son opacité, sa fusion, son flou, ses filtres, sa transformation et ses animations
+ * s'appliquent à l'ensemble composé. Son calque est plein cadre (les couches gardent leurs placements en fractions de la scène) et tourne ou s'agrandit autour du centre de sa boîte.
+ * Un groupe masqué masque ses couches ; une couche qui change de groupe change de calque parent (une page de code isolée se recharge alors).
+ *
  * Les couches d'**identité** (le branding, `layer-kinds.js`) ne sont pas des effets de fond : elles vivent dans un calque à
  * part, au-dessus des scènes, réconcilié en place à chaque scène et jamais animé par une arrivée. Sans cela, le branding
  * s'estomperait et se refondrait à chaque changement de scène alors qu'il doit rester fixe.
@@ -48,7 +53,7 @@ import { CROP_SIDES } from './scene-doc.js';
  * @typedef {import('./scene-doc.js').SceneDoc} SceneDoc
  * @typedef {import('./scene-doc.js').Layer} Layer
  * @typedef {{ id: string, kind: string, instance: import('./types.js').ComponentInstance, visible: boolean }} MountedLayerInfo
- * @typedef {{ id: string, kind: string, instance: import('./types.js').ComponentInstance, calque: *, visible: boolean, options: Record<string, unknown>, layer: Layer, memory: number[], appliedKey: string, age: number, leftAt: number | null, frozen: Partial<Record<import('./layer-bindings.js').BindingTarget, number>> | null }} MountedLayer
+ * @typedef {{ id: string, kind: string, instance: import('./types.js').ComponentInstance, calque: *, visible: boolean, options: Record<string, unknown>, layer: Layer, memory: number[], appliedKey: string, parent: string | null, age: number, leftAt: number | null, frozen: Partial<Record<import('./layer-bindings.js').BindingTarget, number>> | null }} MountedLayer
  * L'`age` est l'horloge propre de la couche, en millisecondes : 0 au montage et à une alerte de relance (`layer-animation.js`). `leftAt` : l'âge où sa scène a été
  * remplacée (la couche joue alors sa sortie « au départ »), `frozen` : ses valeurs de base figées à ce moment, la timeline de la scène ayant repris au début pour la suivante.
  * @typedef {{ calque: *, layers: Map<string, MountedLayer> }} Stage
@@ -172,22 +177,28 @@ export function createSceneRuntime(container, deps = {}) {
   }
 
   /**
-   * Monte une couche dans une scène. Lève si le type est inconnu ou si la fabrique échoue.
-   * @param {Stage} stage @param {Layer} layer @returns {MountedLayer}
+   * Monte une couche dans une scène, dans le calque de son groupe si elle en a un. Lève si le type est inconnu ou si la fabrique échoue.
+   * @param {Stage} stage @param {Layer} layer @param {*} host le calque qui reçoit celui de la couche : celui de la scène, ou le contenant de son groupe
+   * @returns {MountedLayer}
    */
-  function mountLayer(stage, layer) {
+  function mountLayer(stage, layer, host) {
     const factory = Object.hasOwn(registry, layer.kind) ? registry[layer.kind] : undefined;
     if (factory === undefined) throw new Error(`type de couche inconnu : ${layer.kind}`);
     const instance = factory(layer.options, { sceneHeight: () => container.clientHeight });
     const calque = createCalque();
     calque.appendChild(instance.el);
-    stage.calque.appendChild(calque);
-    return { id: layer.id, kind: layer.kind, instance, calque, visible: layer.visible, options: layer.options, layer, memory: [], appliedKey: '', age: 0, leftAt: null, frozen: null };
+    host.appendChild(calque);
+    return { id: layer.id, kind: layer.kind, instance, calque, visible: layer.visible, options: layer.options, layer, memory: [], appliedKey: '', parent: layer.group ?? null, age: 0, leftAt: null, frozen: null };
   }
 
-  /** @param {MountedLayer} entry @param {Layer} layer @param {number} index */
-  function styleLayer(entry, layer, index) {
-    const { x, y, width, height } = layer.placement;
+  /**
+   * @param {MountedLayer} entry @param {Layer} layer @param {number} index
+   * @param {import('./scene-doc.js').Placement} [box] for a group: the box of its members, the center its transformations turn around
+   */
+  function styleLayer(entry, layer, index, box = layer.placement) {
+    // A group covers the whole frame (its members keep their placements in fractions of the scene) and turns around the center of its box.
+    const grouped = isGroupKind(layer.kind);
+    const { x, y, width, height } = grouped ? { x: 0, y: 0, width: 1, height: 1 } : layer.placement;
     entry.visible = layer.visible;
     entry.options = layer.options;
     // Des liaisons nouvelles repartent de zéro (le niveau lissé d'une ancienne liaison n'a plus de sens).
@@ -206,6 +217,7 @@ export function createSceneRuntime(container, deps = {}) {
       width: percent(width),
       height: percent(height),
       zIndex: String(index),
+      ...(grouped ? { transformOrigin: `${percent(box.x + box.width / 2)} ${percent(box.y + box.height / 2)}` } : {}),
       ...lookStyles(layer, look),
     });
     syncClock();
@@ -328,7 +340,7 @@ export function createSceneRuntime(container, deps = {}) {
   }
 
   /**
-   * Réconcilie une scène avec une pile existante (ou neuve).
+   * Réconcilie une scène avec une pile existante (ou neuve). Les groupes se placent d'abord : leurs couches se montent dans leur calque.
    * @param {Stage} stage @param {{ layers: Layer[] }} scene
    */
   function reconcile(stage, scene) {
@@ -340,34 +352,59 @@ export function createSceneRuntime(container, deps = {}) {
       }
     }
 
+    // The box of each group comes from its members, not from the placement the document carries (which the canonical form keeps in step, but a stale one must not misplace the center).
+    const boxes = new Map(scene.layers.filter((layer) => isGroupKind(layer.kind)).map((group) => {
+      const members = scene.layers.filter((layer) => layer.group === group.id);
+      return [group.id, members.length === 0 ? group.placement : boundingBox(members.map((member) => member.placement))];
+    }));
     /** @type {Map<string, MountedLayer>} */
     const next = new Map();
-    scene.layers.forEach((layer, index) => {
+
+    /** @param {Layer} layer @param {number} index */
+    function place(layer, index) {
       let entry = stage.layers.get(layer.id);
+      // A hidden layer draws nothing: we do not keep it mounted for nothing.
       if (!layer.visible) {
-        // Une couche masquée ne dessine rien : on ne la garde pas montée pour rien.
         if (entry !== undefined) disposeLayer(entry);
         return;
       }
+      const owner = layer.group === undefined ? undefined : next.get(layer.group);
+      // The group is hidden or failed to mount (reported): its layers have nowhere to go, they draw nothing.
+      if (layer.group !== undefined && owner === undefined) {
+        if (entry !== undefined) disposeLayer(entry);
+        return;
+      }
+      const container = owner === undefined ? stage.calque : owner.instance.el;
       try {
         if (entry === undefined) {
-          entry = mountLayer(stage, layer);
+          entry = mountLayer(stage, layer, container);
         } else if (entry.kind !== layer.kind) {
           // Le nouveau est monté avant que l'ancien ne parte : s'il échoue, l'ancien reste affiché.
-          const replacement = mountLayer(stage, layer);
+          const replacement = mountLayer(stage, layer, container);
           disposeLayer(entry);
           entry = replacement;
         } else {
           entry.instance.update?.(layer.options);
+          if (entry.parent !== (layer.group ?? null)) {
+            container.appendChild(entry.calque);
+            entry.parent = layer.group ?? null;
+          }
         }
       } catch (error) {
         onLayerError({ layerId: layer.id, error });
       }
       if (entry === undefined) return;
-      styleLayer(entry, layer, index);
+      styleLayer(entry, layer, index, boxes.get(layer.id));
       next.set(layer.id, entry);
-    });
-    stage.layers = next;
+    }
+
+    scene.layers.forEach((layer, index) => { if (isGroupKind(layer.kind)) place(layer, index); });
+    scene.layers.forEach((layer, index) => { if (!isGroupKind(layer.kind)) place(layer, index); });
+    // The table keeps the order of the scene: it is what `layers()` lists.
+    stage.layers = new Map(scene.layers.flatMap(({ id }) => {
+      const entry = next.get(id);
+      return entry === undefined ? [] : [[id, entry]];
+    }));
   }
 
   /**
