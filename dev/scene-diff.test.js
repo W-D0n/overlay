@@ -29,6 +29,13 @@ describe('couche modifiée', () => {
     expect(change.details).toEqual(['masquée', 'verrouillée', 'opacité : 100 % → 40 %']);
   });
 
+  test('le masque : ajouté, changé de forme, inversé, retiré', () => {
+    const ellipse = { shape: 'ellipse', x: 0.1, y: 0.1, width: 0.5, height: 0.5, feather: 0.2 };
+    expect(diff([L('a')], [L('a', 'rain', { mask: ellipse })])[0].details).toEqual(['masque : aucun → ellipse']);
+    expect(diff([L('a', 'rain', { mask: ellipse })], [L('a', 'rain', { mask: { shape: 'linear', angle: 90, start: 0.4, end: 0.6, invert: true } })])[0].details).toEqual(['masque : ellipse → dégradé linéaire inversé']);
+    expect(diff([L('a', 'rain', { mask: ellipse })], [L('a')])[0].details).toEqual(['masque : ellipse → aucun']);
+  });
+
   test('position et taille, en pourcentage de la toile', () => {
     const [change] = diff([L('a')], [L('a', 'rain', { placement: { x: 0.25, y: 0, width: 0.5, height: 1 } })]);
     expect(change.details).toEqual(['X : 0 % → 25 %', 'largeur : 100 % → 50 %']);

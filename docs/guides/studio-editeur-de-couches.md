@@ -188,6 +188,10 @@ Le panneau **Timeline**, sous l'aperçu, fait **jouer** la scène : elle démarr
    et se remet à jouer, même si elle était arrivée à sa fin : un raid rejoue l'entrée du titre. Décochez tout pour que l'animation ne se joue qu'à l'arrivée de la scène.
    Cela vaut pour toute la scène (et donc aussi pour les réglages animés d'une couche Code ou Shader).
 
+### Masquer une partie d'une couche
+
+La section **Masque** de l'inspecteur découpe ce que la couche montre — ou ce qu'un groupe entier montre : un rectangle, une ellipse (position, taille et bords adoucis en pourcentage de la couche) ou un dégradé linéaire (angle, début et fin du fondu). **Inverser** montre l'extérieur à la place. « Aucun masque » le retire. Le masque découpe aussi le halo et le flou de la couche. Exemple : une image qui s'efface vers la droite, ou un titre vu par un hublot ovale.
+
 ### Animer les filtres
 
 La timeline (liste « valeur animée ») et les liaisons proposent la luminosité, le contraste, la saturation, la teinte et l'intensité de la lueur. Une image clé posée sans rien régler reprend le réglage de la couche ; une valeur neutre ne laisse aucun filtre. Exemple : une teinte qui tourne de 0° à 90° en une seconde, ou une lueur qui pulse avec les graves.

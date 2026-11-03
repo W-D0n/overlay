@@ -6,6 +6,7 @@ import { referenceScale } from './render-reference.js';
 import { applyPose, evaluateAnimation, leaveDelayMs, restartsAnimationOn } from './layer-animation.js';
 import { boundingBox } from './layer-group.js';
 import { animatedFilters, filterCss } from './layer-filters.js';
+import { maskCss } from './layer-mask.js';
 import { FILTER_TARGET_PREFIX, PARAM_TARGET_PREFIX, evaluateBindings, recordPulse, usesAudio } from './layer-bindings.js';
 import { effectiveTimeline, evaluateTimeline, hasKeys, playbackTime, restartsOn } from './layer-timeline.js';
 import { getRenderClock } from './render-clock.js';
@@ -638,7 +639,7 @@ export function createSceneRuntime(container, deps = {}) {
  * et le flou de la couche, et s'ajoutent à son échelle et à son décalage ; la révélation d'une animation s'ajoute au rognage.
  * @param {Layer} layer
  * @param {Partial<Record<import('./layer-bindings.js').BindingTarget, number>> & { reveal?: import('./layer-animation.js').Reveal, gone?: boolean }} [bound]
- * @returns {{ display: string, opacity: string, mixBlendMode: string, transform: string, clipPath: string, filter: string }}
+ * @returns {{ display: string, opacity: string, mixBlendMode: string, transform: string, clipPath: string, filter: string, maskImage: string, maskComposite: string }}
  */
 function lookStyles(layer, bound = {}) {
   const { blend, crop } = layer;
@@ -646,6 +647,7 @@ function lookStyles(layer, bound = {}) {
   const revealed = reveal !== undefined && CROP_SIDES.some((side) => reveal[side] > 0);
   const rotation = bound.rotation ?? layer.rotation ?? 0;
   const blur = bound.blur ?? layer.blur ?? 0;
+  const mask = maskCss(layer.mask);
   const shift = (bound.x ?? 0) !== 0 || (bound.y ?? 0) !== 0 ? `translate(${Number((bound.x ?? 0).toFixed(3))}%, ${Number((bound.y ?? 0).toFixed(3))}%)` : '';
   const turn = rotation === 0 ? '' : `rotate(${Number(rotation.toFixed(3))}deg)`;
   const grow = bound.scale === undefined || bound.scale === 1 ? '' : `scale(${Number(bound.scale.toFixed(4))})`;
@@ -656,6 +658,9 @@ function lookStyles(layer, bound = {}) {
     transform: [shift, turn, grow].filter((part) => part !== '').join(' '),
     clipPath: crop === undefined && !revealed ? '' : `inset(${CROP_SIDES.map((side) => percent(Math.min(1, (crop?.[side] ?? 0) + (reveal?.[side] ?? 0)))).join(' ')})`,
     // Les filtres de couleur et le halo d'abord, le flou ensuite : le halo est flouté avec le reste.
+    // The mask comes last in the pipeline: it cuts what the filters and the blur have drawn, halo included.
+    maskImage: mask.image,
+    maskComposite: mask.composite,
     filter: [filterCss(drivenFilters(layer, bound)), blur === 0 ? '' : `blur(calc(var(--reference-scale, 1) * ${Number(blur.toFixed(3))}px))`].filter((part) => part !== '').join(' '),
   };
 }

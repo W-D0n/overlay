@@ -1,4 +1,5 @@
 // @ts-check
+import { createSliderRow } from './slider-row.js';
 import { ADJUSTMENTS, ADJUST_KEYS, DEFAULT_GLOW, GLOW_LIMITS, setAdjustment, setGlow } from '../layer-filters.js';
 
 /**
@@ -51,35 +52,8 @@ export function createFiltersController(input) {
     if (documentRef.activeElement !== field) field.value = value;
   }
 
-  /**
-   * Un réglage : son nom, un curseur et un nombre qui se suivent.
-   * @param {{ label: string, aria: string, min: number, max: number, step: number, unit: string, onInput: (value: number) => void }} spec
-   * @returns {{ row: HTMLElement, range: HTMLInputElement, number: HTMLInputElement }}
-   */
-  function slider({ label, aria, min, max, step, unit, onInput }) {
-    const row = node('div', 'filter-row');
-    const caption = node('span', 'filter-label', label);
-    const range = /** @type {HTMLInputElement} */ (node('input'));
-    range.type = 'range';
-    const number = /** @type {HTMLInputElement} */ (node('input'));
-    number.type = 'number';
-    for (const field of [range, number]) {
-      field.min = String(min);
-      field.max = String(max);
-      field.step = String(step);
-    }
-    range.setAttribute('aria-label', `${aria} (curseur)`);
-    number.setAttribute('aria-label', `${aria}${unit === '' ? '' : ` en ${unit}`}`);
-    for (const field of [range, number]) {
-      field.addEventListener('input', () => {
-        const typed = Number.parseFloat(field.value.replace(',', '.'));
-        if (Number.isFinite(typed)) onInput(typed);
-      });
-    }
-    number.addEventListener('blur', render);
-    row.append(caption, range, number);
-    return { row, range, number };
-  }
+  /** @param {Omit<Parameters<typeof createSliderRow>[1], 'onBlur'>} spec */
+  const slider = (spec) => createSliderRow(documentRef, { ...spec, onBlur: render });
 
   /** @type {Record<string, { range: HTMLInputElement, number: HTMLInputElement }>} */
   const adjustFields = {};

@@ -259,6 +259,18 @@ Utilisez l'éditeur pour de vrais lives pendant quelque temps. Notez les moments
 
 **Me dire** : si l'opacité du groupe se voit « en bloc », et si le groupe filtré tient 60 i/s.
 
+## 19. Masques de couche dans OBS
+
+**Pourquoi** : les essais prouvent le CSS posé sur le calque dans Chrome ; ils ne disent pas si la source navigateur d'**OBS** de votre version rend `mask-image` et `mask-composite`.
+**Hypothèse non mesurée** : OBS 30 ou plus (Chromium 120 ou plus) rend les trois formes, inversées comprises.
+
+1. Studio → ajoutez un **Texte** ou une **Forme** pleine, puis dans « Masque » choisissez **Ellipse** : seule l'ellipse est visible, les bords sont adoucis. Publiez.
+2. Dans OBS, la même découpe apparaît. Essayez **Rectangle** puis **Inverser** : l'extérieur du rectangle est visible, l'intérieur caché.
+3. Essayez **Dégradé linéaire** (angle 90°) : la couche s'efface vers la droite.
+4. Groupez deux couches, masquez le groupe : le masque coupe les deux ensemble.
+
+**Me dire** : si les trois formes (et l'inversion du rectangle) s'affichent comme dans le Studio, et la version d'OBS.
+
 ---
 
 ## En cas de problème pendant ces essais

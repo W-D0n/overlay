@@ -19,6 +19,13 @@ describe('contenu', () => {
     expect(styleOf(L('b', 'bubble', { opacity: 0.7, options: { count: 5 } }))).toEqual({ kind: 'bubble', opacity: 0.7, options: { count: 5 }, look: {} });
   });
 
+  test('the style copied with a layer carries its mask, as a copy', () => {
+    const mask = { shape: 'ellipse', x: 0.1, y: 0.1, width: 0.5, height: 0.5, feather: 0.2 };
+    const style = styleOf(L('a', 'rain', { mask }));
+    expect(style.look.mask).toEqual(mask);
+    expect(style.look.mask).not.toBe(mask);
+  });
+
   test('parsePayload accepte un contenu valide, texte ou objet', () => {
     const payload = layersPayload([L('a')]);
     expect(parsePayload(payload).ok).toBe(true);

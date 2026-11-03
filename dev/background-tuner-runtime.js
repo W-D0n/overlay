@@ -36,6 +36,7 @@ import { createAssetClient } from './asset-client.js';
 import { createAnimationController } from './animation-controller.js';
 import { createBindingsController } from './bindings-controller.js';
 import { createFiltersController } from './filters-controller.js';
+import { createMaskController } from './mask-controller.js';
 import { createVersionClient } from './version-client.js';
 import { createConnectionClient } from './connection-client.js';
 import { createSettingsController } from './settings-controller.js';
@@ -323,6 +324,13 @@ export async function startBackgroundTuner(environment = {}) {
 
   const filters = createFiltersController({
     elements: { body: byId('filters-body'), hint: byId('filters-hint') },
+    studio: preview.document,
+    report,
+    documentRef,
+  });
+
+  const mask = createMaskController({
+    elements: { body: byId('mask-body'), hint: byId('mask-hint') },
     studio: preview.document,
     report,
     documentRef,

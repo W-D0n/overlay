@@ -13,6 +13,7 @@
  */
 import { LOOPS, PRESETS } from '../layer-animation.js';
 import { ADJUSTMENTS, ADJUST_KEYS } from '../layer-filters.js';
+import { MASK_SHAPES } from '../layer-mask.js';
 import { BLEND_MODES, CROP_LABELS, CROP_SIDES } from '../scene-doc.js';
 import { toDisplay } from './placement-math.js';
 
@@ -21,6 +22,13 @@ function stable(value) {
   return JSON.stringify(value, (_key, nested) => (nested !== null && typeof nested === 'object' && !Array.isArray(nested)
     ? Object.fromEntries(Object.keys(nested).sort().map((key) => [key, nested[key]]))
     : nested));
+}
+
+/** « ellipse », « dégradé linéaire inversé », ou « aucun ». @param {Layer['mask']} mask @returns {string} */
+function maskSummary(mask) {
+  if (mask === undefined) return 'aucun';
+  const label = (MASK_SHAPES.find(({ id }) => id === mask.shape)?.label ?? mask.shape).toLowerCase();
+  return mask.invert === true ? `${label} inversé` : label;
 }
 
 /** « luminosité, lueur », ou « aucun ». @param {Layer['filters']} filters @returns {string} */
@@ -81,6 +89,7 @@ function layerDetails(before, after, labelOf, optionLabel) {
   }
   if (stable(before.animation) !== stable(after.animation)) details.push(`préréglages : ${animationSummary(before.animation)} → ${animationSummary(after.animation)}`);
   if (stable(before.filters) !== stable(after.filters)) details.push(`filtres : ${filtersSummary(before.filters)} → ${filtersSummary(after.filters)}`);
+  if (stable(before.mask) !== stable(after.mask)) details.push(`masque : ${maskSummary(before.mask)} → ${maskSummary(after.mask)}`);
   if (stable(before.bindings) !== stable(after.bindings)) {
     const count = (/** @type {Layer} */ layer) => layer.bindings?.length ?? 0;
     details.push(`liaisons : ${count(before)} → ${count(after)}`);
