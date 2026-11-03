@@ -48,3 +48,40 @@ export function gradientLine(angle, width, height) {
   const cy = height / 2;
   return { x0: cx - dx * half, y0: cy - dy * half, x1: cx + dx * half, y1: cy + dy * half };
 }
+
+/**
+ * La longueur du contour d'une forme, en unités de la zone : ce qu'il faut pour le tracer progressivement (`strokeDash`). L'ellipse suit l'approximation de Ramanujan (juste à quelques dix-millièmes).
+ * @param {ShapePath} path
+ * @returns {number}
+ */
+export function pathLength(path) {
+  switch (path.type) {
+    case 'rect': return 2 * (path.width + path.height) - (8 - 2 * Math.PI) * path.radius;
+    case 'ellipse': {
+      const a = path.rx;
+      const b = path.ry;
+      return Math.PI * (3 * (a + b) - Math.sqrt((3 * a + b) * (a + 3 * b)));
+    }
+    case 'polygon': return path.points.reduce((total, [x, y], index) => {
+      const [nextX, nextY] = path.points[(index + 1) % path.points.length];
+      return total + Math.hypot(nextX - x, nextY - y);
+    }, 0);
+    default: return Math.hypot(path.x2 - path.x1, path.y2 - path.y1);
+  }
+}
+
+/** Part de la durée pendant laquelle le contour se trace ; le remplissage apparaît ensuite, en fondu, sur la seconde moitié. */
+export const TRACE_STROKE_PART = 0.7;
+export const TRACE_FILL_FROM = 0.5;
+
+/**
+ * Ce qu'une présence de la forme de 0 (rien) à 1 (entière) donne à voir : la part du contour tracée et l'opacité du remplissage.
+ * @param {number} presence
+ * @returns {{ stroke: number, fill: number }}
+ */
+export function traceParts(presence) {
+  return {
+    stroke: Math.min(1, Math.max(0, presence / TRACE_STROKE_PART)),
+    fill: Math.min(1, Math.max(0, (presence - TRACE_FILL_FROM) / (1 - TRACE_FILL_FROM))),
+  };
+}

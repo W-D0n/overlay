@@ -241,7 +241,7 @@ Utilisez l'éditeur pour de vrais lives pendant quelque temps. Notez les moments
 2. Dans OBS, changez de scène puis revenez : l'entrée se joue à chaque arrivée.
 3. Changez de scène : le titre sort en fondu avant que la nouvelle scène ne finisse d'arriver.
 4. Cochez « Raid » dans « Rejouer quand arrive », puis déclenchez un raid de test : le titre réentre, sans toucher aux autres couches.
-5. Sur un **Texte** de plusieurs mots, essayez l'entrée « Machine à écrire », puis « Lettre par lettre » : les lettres arrivent dans l'ordre, nettes, sans scintillement, avec le contour et l'ombre.
+5. Sur un **Texte** de plusieurs mots, essayez l'entrée « Machine à écrire », puis « Lettre par lettre » : les lettres arrivent dans l'ordre, nettes, sans scintillement, avec le contour et l'ombre. Sur une **Forme** avec un contour, essayez « Tracé du contour » : le contour se dessine sans saccade, puis le remplissage apparaît.
 6. Posez trois à cinq couches avec une boucle chacune : l'affichage reste fluide (Statistiques d'OBS : pas d'images ratées).
 
 **Me dire** : si les boucles tiennent 60 i/s, si la sortie au départ de la scène se voit en entier, si la relance par raid marche avec une vraie alerte.

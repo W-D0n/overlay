@@ -35,7 +35,7 @@ import { smooth } from '../layer-cost.js';
  *   update?: (options: unknown) => void,
  *   setAudioLevel?: (levels: import('../audio-levels.js').AudioLevels) => void,
  *   trigger?: (event: any) => void,
- *   animate?: (state: import('../layer-animation.js').GlyphState | null) => void,
+ *   animate?: (state: import('../layer-animation.js').ContentState | null) => void,
  *   destroy?: () => void,
  *   extend?: Record<string, (...args: any[]) => any>,
  * }} CanvasLayer

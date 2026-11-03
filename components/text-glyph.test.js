@@ -100,7 +100,7 @@ describe('TextLayer : le texte qui se dévoile', () => {
     const { harness, instance } = await mounted({ text: ['abc'], align: 'left' });
     const whole = drawn(harness.tick(16));
     expect(whole.map(({ text }) => text)).toEqual(['abc']);
-    instance.animate({ unit: 'chars', reveal: 'hard', presence: 0.5 });
+    instance.animate({ kind: 'text', unit: 'chars', reveal: 'hard', presence: 0.5 });
     const half = drawn(harness.tick(32));
     expect(half.map(({ text }) => text)).toEqual(['a', 'b']);
     // La mesure factice donne 8 par caractère : « b » est à 8 de « a », comme dans la ligne entière.
@@ -111,7 +111,7 @@ describe('TextLayer : le texte qui se dévoile', () => {
   test('l\'alignement est respecté : centré, la ligne entière est centrée et chaque lettre garde sa place', async () => {
     const { harness, instance } = await mounted({ text: ['abcd'], align: 'center' });
     const whole = drawn(harness.tick(16))[0];
-    instance.animate({ unit: 'chars', reveal: 'hard', presence: 1 / 4 + 0.01 });
+    instance.animate({ kind: 'text', unit: 'chars', reveal: 'hard', presence: 1 / 4 + 0.01 });
     const first = drawn(harness.tick(32))[0];
     // Centré, la ligne entière commence à x - largeur / 2 : la première lettre y reste, même seule.
     expect(first.x).toBe(whole.x - (4 * 8) / 2);
@@ -120,7 +120,7 @@ describe('TextLayer : le texte qui se dévoile', () => {
   test('à droite, la ligne se termine au bord droit', async () => {
     const { harness, instance } = await mounted({ text: ['abcd'], align: 'right' });
     const whole = drawn(harness.tick(16))[0];
-    instance.animate({ unit: 'chars', reveal: 'hard', presence: 0.99 });
+    instance.animate({ kind: 'text', unit: 'chars', reveal: 'hard', presence: 0.99 });
     const letters = drawn(harness.tick(32));
     expect(letters.at(-1).x + 8).toBe(whole.x);
   });
@@ -128,16 +128,16 @@ describe('TextLayer : le texte qui se dévoile', () => {
   test('mot par mot : les mots arrivent entiers, dans l\'ordre', async () => {
     const { harness, instance } = await mounted({ text: ['un deux trois'], align: 'left', wrap: false });
     harness.tick(16);
-    instance.animate({ unit: 'words', reveal: 'hard', presence: 0.3 });
+    instance.animate({ kind: 'text', unit: 'words', reveal: 'hard', presence: 0.3 });
     expect(drawn(harness.tick(32)).map(({ text }) => text)).toEqual(['un']);
-    instance.animate({ unit: 'words', reveal: 'hard', presence: 0.6 });
+    instance.animate({ kind: 'text', unit: 'words', reveal: 'hard', presence: 0.6 });
     expect(drawn(harness.tick(48)).map(({ text }) => text)).toEqual(['un', 'deux']);
   });
 
   test('plusieurs lignes : les unités se suivent d\'une ligne à l\'autre', async () => {
     const { harness, instance } = await mounted({ text: ['ab', 'cd'], align: 'left' });
     harness.tick(16);
-    instance.animate({ unit: 'chars', reveal: 'hard', presence: 0.6 });
+    instance.animate({ kind: 'text', unit: 'chars', reveal: 'hard', presence: 0.6 });
     const letters = drawn(harness.tick(32));
     expect(letters.map(({ text }) => text)).toEqual(['a', 'b', 'c']);
     expect(letters[2].y).toBeGreaterThan(letters[0].y);
@@ -146,7 +146,7 @@ describe('TextLayer : le texte qui se dévoile', () => {
   test('en douceur : chaque unité est dessinée avec sa transparence et sa hauteur, le contexte étant restauré', async () => {
     const { harness, instance } = await mounted({ text: ['abc'], align: 'left' });
     const whole = drawn(harness.tick(16))[0];
-    instance.animate({ unit: 'chars', reveal: 'soft', presence: 0.5 });
+    instance.animate({ kind: 'text', unit: 'chars', reveal: 'soft', presence: 0.5 });
     const calls = harness.tick(32);
     const letters = drawn(calls);
     expect(letters.length).toBeGreaterThan(0);
@@ -160,7 +160,7 @@ describe('TextLayer : le texte qui se dévoile', () => {
   test('le contour et l\'ombre suivent chaque unité', async () => {
     const { harness, instance } = await mounted({ text: ['ab'], align: 'left', outlineWidth: 4, shadowBlur: 8 });
     harness.tick(16);
-    instance.animate({ unit: 'chars', reveal: 'hard', presence: 1 / 2 + 0.01 });
+    instance.animate({ kind: 'text', unit: 'chars', reveal: 'hard', presence: 1 / 2 + 0.01 });
     const names = harness.tick(32).filter(([kind]) => kind === 'strokeText' || kind === 'fillText').map(([kind]) => kind);
     expect(names).toEqual(['strokeText', 'fillText', 'strokeText', 'fillText']);
   });
@@ -168,18 +168,18 @@ describe('TextLayer : le texte qui se dévoile', () => {
   test('la présence pleine redessine le texte d\'un seul trait, comme sans animation', async () => {
     const { harness, instance } = await mounted({ text: ['abc'], align: 'left' });
     harness.tick(16);
-    instance.animate({ unit: 'chars', reveal: 'hard', presence: 0.4 });
+    instance.animate({ kind: 'text', unit: 'chars', reveal: 'hard', presence: 0.4 });
     harness.tick(32);
-    instance.animate({ unit: 'chars', reveal: 'hard', presence: 1 });
+    instance.animate({ kind: 'text', unit: 'chars', reveal: 'hard', presence: 1 });
     expect(drawn(harness.tick(48)).map(({ text }) => text)).toEqual(['abc']);
   });
 
   test('null rend le texte entier ; le même état ne redessine pas', async () => {
     const { harness, instance } = await mounted({ text: ['abc'], align: 'left' });
     harness.tick(16);
-    instance.animate({ unit: 'chars', reveal: 'hard', presence: 0.4 });
+    instance.animate({ kind: 'text', unit: 'chars', reveal: 'hard', presence: 0.4 });
     expect(harness.tick(32).length).toBeGreaterThan(0);
-    instance.animate({ unit: 'chars', reveal: 'hard', presence: 0.4 });
+    instance.animate({ kind: 'text', unit: 'chars', reveal: 'hard', presence: 0.4 });
     expect(harness.tick(48)).toEqual([]);
     instance.animate(null);
     expect(drawn(harness.tick(64)).map(({ text }) => text)).toEqual(['abc']);
@@ -191,7 +191,14 @@ describe('TextLayer : le texte qui se dévoile', () => {
     const { harness, instance } = await mounted({ text: ['abc'] });
     harness.tick(16);
     instance.animate(null);
-    instance.animate({ unit: 'chars', reveal: 'soft', presence: 1 });
+    instance.animate({ kind: 'text', unit: 'chars', reveal: 'soft', presence: 1 });
+    expect(harness.tick(32)).toEqual([]);
+  });
+
+  test("un état destiné à une forme est ignoré : le texte reste entier", async () => {
+    const { harness, instance } = await mounted({ text: ['abc'], align: 'left' });
+    harness.tick(16);
+    instance.animate({ kind: 'shape', presence: 0.2 });
     expect(harness.tick(32)).toEqual([]);
   });
 });

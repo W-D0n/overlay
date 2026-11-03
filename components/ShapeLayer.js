@@ -2,13 +2,14 @@
 import { defineCanvasLayer } from './canvas-layer.js';
 import { resolveColor } from './color-utils.js';
 import { normalizeKindOptions } from './kind-options.js';
-import { gradientLine, shapePath } from './shape-geometry.js';
+import { gradientLine, pathLength, shapePath, traceParts } from './shape-geometry.js';
 
 /**
  * components/ShapeLayer.js — Couche de contenu « forme » : un cadre, un bandeau, un cercle, un trait, dans la zone de la couche.
  *
  * Dessinée sur un canvas comme les effets et **statique** (`canvas-layer.js`) : elle ne se redessine que si ses options ou sa taille
  * changent. La géométrie est dans `shape-geometry.js`. Redimensionner la couche redimensionne la forme.
+ * Une animation de tracé (`animate`) la redessine à chaque changement de présence, et seulement pendant l'animation : le contour se trace, puis le remplissage apparaît en fondu.
  * Voir docs/specs/couches-de-contenu.md.
  *
  * @typedef {{
@@ -39,6 +40,9 @@ export const ShapeLayer = defineCanvasLayer((/** @type {Record<string, unknown>}
     colors = { color: rgbOf(options.color), color2: rgbOf(options.color2), stroke: rgbOf(options.strokeColor), shadow: rgbOf(options.shadowColor) };
   }
   resolveColors();
+
+  /** Le tracé en cours (`layer-animation.js`) ; `null` : la forme est entière. @type {Extract<import('../layer-animation.js').ContentState, { kind: 'shape' }> | null} */
+  let tracing = null;
 
   /** @param {CanvasRenderingContext2D} ctx @param {NonNullable<ReturnType<typeof shapePath>>} path */
   function trace(ctx, path) {
@@ -76,10 +80,17 @@ export const ShapeLayer = defineCanvasLayer((/** @type {Record<string, unknown>}
         ctx.shadowOffsetY = options.shadowOffsetY;
       }
       trace(ctx, path);
+      // Un tracé en cours : une part du contour seulement, et un remplissage encore transparent.
+      const parts = tracing === null ? null : traceParts(tracing.presence);
+      const stroke = () => {
+        if (parts !== null) ctx.setLineDash([pathLength(path) * parts.stroke, pathLength(path)]);
+        ctx.stroke();
+        if (parts !== null) ctx.setLineDash([]);
+      };
       if (path.type === 'line') {
         ctx.lineWidth = Math.max(1, options.strokeWidth);
         ctx.strokeStyle = colors.stroke;
-        ctx.stroke();
+        stroke();
         return;
       }
       if (options.fill !== 'none') {
@@ -92,16 +103,32 @@ export const ShapeLayer = defineCanvasLayer((/** @type {Record<string, unknown>}
         } else {
           ctx.fillStyle = colors.color;
         }
-        ctx.fill();
+        if (parts === null) {
+          ctx.fill();
+        } else {
+          ctx.save();
+          ctx.globalAlpha = parts.fill;
+          ctx.fill();
+          ctx.restore();
+        }
       }
       if (options.strokeWidth > 0) {
         // Le contour est tracé sans ombre quand le remplissage en a déjà posé une.
         if (options.fill !== 'none') ctx.shadowColor = 'transparent';
         ctx.lineWidth = options.strokeWidth;
         ctx.strokeStyle = colors.stroke;
-        ctx.stroke();
+        stroke();
       }
       ctx.shadowColor = 'transparent';
+    },
+
+    /** @param {import('../layer-animation.js').ContentState | null} next */
+    animate(next) {
+      // La forme entière se dessine d'un seul trait, comme sans animation.
+      const wanted = next === null || next.kind !== 'shape' || next.presence >= 1 ? null : next;
+      if (JSON.stringify(wanted) === JSON.stringify(tracing)) return;
+      tracing = wanted;
+      host.invalidate();
     },
 
     /** @param {unknown} next */

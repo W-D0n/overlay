@@ -43,8 +43,9 @@
  *   Les erreurs que le code de la couche a remontées (couche Code) ; le Studio les montre sous le champ.
  * @property {(values: Readonly<Record<string, number>>) => void} [drive] - Reçoit les valeurs que la timeline ou une liaison impose
  *   aux réglages de la couche (clé de réglage → nombre) ; elles passent avant les valeurs réglées à la main, et `{}` les retire.
- * @property {(state: import('./layer-animation.js').GlyphState | null) => void} [animate] - Reçoit l'apparition du texte quand l'entrée ou la sortie de la couche est un
- *   préréglage de texte (lettre par lettre, mot par mot) ; `null` : le texte est entier. Présent sur la couche de texte (`layer-kinds.js`, capacité `glyphs`).
+ * @property {(state: import('./layer-animation.js').ContentState | null) => void} [animate] - Reçoit l'apparition du contenu quand l'entrée ou la sortie de la couche est un
+ *   préréglage de contenu (le texte lettre par lettre ou mot par mot, le tracé du contour d'une forme) ; `null` : le contenu est entier. Présent sur les couches de texte et de forme
+ *   (`layer-kinds.js`, capacité `content`).
  * @property {() => void} [destroy]                 - Libère les ressources (observers, timers)
  * @property {(payload: unknown) => void} [trigger] - Réaction impérative à un événement discret
  *   (alerte stream). Optionnel : un effet sans `trigger` est couvert par `ReactionOverlay`

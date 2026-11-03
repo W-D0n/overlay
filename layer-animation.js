@@ -9,9 +9,10 @@ import { EASES, RESTART_SOURCES, easeValue, restartsOn } from './layer-timeline.
  * Une animation s'applique **par-dessus** les valeurs de base de la couche (réglage manuel, timeline, liaisons) : opacité et échelle se multiplient, décalages, rotation et flou s'ajoutent,
  * la révélation par masque s'ajoute au rognage.
  *
- * @typedef {'fade' | 'slide-bottom' | 'slide-top' | 'slide-right' | 'slide-left' | 'zoom' | 'bounce' | 'blur' | 'spin' | 'wipe-right' | 'wipe-left' | 'wipe-down' | 'wipe-up' | 'glitch' | 'type' | 'letters' | 'words'} PresetId
- * @typedef {{ unit: 'chars' | 'words', reveal: 'hard' | 'soft' }} Glyph comment un texte se dévoile : par lettre ou par mot, d'un coup (`hard`) ou en fondu avec une montée (`soft`)
- * @typedef {Glyph & { presence: number }} GlyphState ce que reçoit la couche de texte : la manière et la présence de 0 (rien) à 1 (tout)
+ * @typedef {'fade' | 'slide-bottom' | 'slide-top' | 'slide-right' | 'slide-left' | 'zoom' | 'bounce' | 'blur' | 'spin' | 'wipe-right' | 'wipe-left' | 'wipe-down' | 'wipe-up' | 'glitch' | 'type' | 'letters' | 'words' | 'draw'} PresetId
+ * @typedef {{ kind: 'text', unit: 'chars' | 'words', reveal: 'hard' | 'soft' } | { kind: 'shape' }} Content comment le contenu de la couche se dévoile : un texte par lettre ou par mot, d'un coup (`hard`) ou en fondu
+ *   avec une montée (`soft`) ; une forme par le tracé de son contour
+ * @typedef {Content & { presence: number }} ContentState ce que reçoit la couche : la manière et la présence de 0 (rien) à 1 (tout)
  * @typedef {'float' | 'pulse' | 'sway' | 'blink' | 'shake'} LoopId
  * @typedef {'linear' | 'easeIn' | 'easeOut' | 'easeInOut'} AnimationEase
  * @typedef {{ preset: PresetId, durationMs: number, delayMs?: number, ease?: AnimationEase }} Enter
@@ -20,7 +21,7 @@ import { EASES, RESTART_SOURCES, easeValue, restartsOn } from './layer-timeline.
  * @typedef {{ enter?: Enter, loop?: Loop, exit?: Exit, restartOn?: string[] }} Animation
  * @typedef {{ top: number, right: number, bottom: number, left: number }} Reveal part de la couche masquée par côté (0 = tout visible, 1 = tout masqué)
  * @typedef {{ opacity: number, x: number, y: number, scale: number, rotation: number, blur: number, reveal: Reveal }} Pose l'écart au repos d'une couche à un instant
- * @typedef {{ id: PresetId, label: string, ease: AnimationEase, pose: (p: number) => Pose, glyph?: Glyph }} Preset un préréglage `glyph` agit sur le texte lui-même : le calque reste au repos
+ * @typedef {{ id: PresetId, label: string, ease: AnimationEase, pose: (p: number) => Pose, content?: Content }} Preset un préréglage `content` agit sur le contenu lui-même (le texte, le contour d'une forme) : le calque reste au repos
  * @typedef {{ id: LoopId, label: string, pose: (phase: number, amount: number) => Pose }} LoopPreset
  */
 
@@ -69,9 +70,10 @@ export const PRESETS = Object.freeze(/** @type {Preset[]} */ ([
   { id: 'wipe-left', label: 'Révélation vers la gauche', ease: 'easeInOut', pose: (p) => pose({ reveal: { left: 1 - p } }) },
   { id: 'wipe-down', label: 'Révélation vers le bas', ease: 'easeInOut', pose: (p) => pose({ reveal: { bottom: 1 - p } }) },
   { id: 'wipe-up', label: 'Révélation vers le haut', ease: 'easeInOut', pose: (p) => pose({ reveal: { top: 1 - p } }) },
-  { id: 'type', label: 'Machine à écrire (texte)', ease: 'linear', glyph: { unit: 'chars', reveal: 'hard' }, pose: () => rest() },
-  { id: 'letters', label: 'Lettre par lettre (texte)', ease: 'linear', glyph: { unit: 'chars', reveal: 'soft' }, pose: () => rest() },
-  { id: 'words', label: 'Mot par mot (texte)', ease: 'linear', glyph: { unit: 'words', reveal: 'soft' }, pose: () => rest() },
+  { id: 'type', label: 'Machine à écrire (texte)', ease: 'linear', content: { kind: 'text', unit: 'chars', reveal: 'hard' }, pose: () => rest() },
+  { id: 'letters', label: 'Lettre par lettre (texte)', ease: 'linear', content: { kind: 'text', unit: 'chars', reveal: 'soft' }, pose: () => rest() },
+  { id: 'words', label: 'Mot par mot (texte)', ease: 'linear', content: { kind: 'text', unit: 'words', reveal: 'soft' }, pose: () => rest() },
+  { id: 'draw', label: 'Tracé du contour (forme)', ease: 'easeInOut', content: { kind: 'shape' }, pose: () => rest() },
   {
     id: 'glitch',
     label: 'Glitch',
@@ -101,6 +103,10 @@ const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 
 /** @param {unknown} id @returns {Preset | undefined} */
 const presetOf = (id) => PRESETS.find((preset) => preset.id === id);
+/** Vrai si une couche qui dévoile ce contenu (`undefined` : aucun) peut jouer ce préréglage. @param {Preset | undefined} preset @param {'text' | 'shape' | undefined} content */
+const fits = (preset, content) => preset?.content === undefined || preset.content.kind === content;
+/** @param {Preset | undefined} preset @returns {string} */
+const reserved = (preset) => (preset?.content?.kind === 'shape' ? 'réservé aux couches de forme' : 'réservé aux couches de texte');
 /** @param {unknown} id @returns {LoopPreset | undefined} */
 const loopOf = (id) => LOOPS.find((loop) => loop.id === id);
 
@@ -117,10 +123,10 @@ function checkNumber(where, value, key, limits, errors) {
  * Les défauts de l'animation d'une couche (vide = valide).
  * @param {string} where
  * @param {unknown} animation
- * @param {{ glyphs?: boolean }} [layer] ce que la couche accepte : les préréglages de texte ne conviennent qu'à une couche de texte
+ * @param {{ content?: 'text' | 'shape' }} [layer] le contenu que la couche sait dévoiler : un préréglage de texte ne convient qu'à une couche de texte, le tracé qu'à une forme
  * @returns {string[]}
  */
-export function animationErrors(where, animation, { glyphs = false } = {}) {
+export function animationErrors(where, animation, { content } = {}) {
   if (animation === undefined) return [];
   if (!isObject(animation)) return [`${where} : objet attendu`];
   /** @type {string[]} */
@@ -130,7 +136,7 @@ export function animationErrors(where, animation, { glyphs = false } = {}) {
     if (!isObject(enter)) errors.push(`${where}.enter : objet attendu`);
     else {
       if (presetOf(enter.preset) === undefined) errors.push(`${where}.enter.preset : préréglage inconnu`);
-      else if (!glyphs && presetOf(enter.preset)?.glyph !== undefined) errors.push(`${where}.enter.preset : réservé aux couches de texte`);
+      else if (!fits(presetOf(enter.preset), content)) errors.push(`${where}.enter.preset : ${reserved(presetOf(enter.preset))}`);
       checkNumber(`${where}.enter`, enter.durationMs, 'durationMs', DURATION_LIMITS, errors);
       if (enter.delayMs !== undefined) checkNumber(`${where}.enter`, enter.delayMs, 'delayMs', DELAY_LIMITS, errors);
       if (enter.ease !== undefined && !ANIMATION_EASES.some(({ id }) => id === enter.ease)) errors.push(`${where}.enter.ease : courbe inconnue`);
@@ -148,7 +154,7 @@ export function animationErrors(where, animation, { glyphs = false } = {}) {
     if (!isObject(exit)) errors.push(`${where}.exit : objet attendu`);
     else {
       if (presetOf(exit.preset) === undefined) errors.push(`${where}.exit.preset : préréglage inconnu`);
-      else if (!glyphs && presetOf(exit.preset)?.glyph !== undefined) errors.push(`${where}.exit.preset : réservé aux couches de texte`);
+      else if (!fits(presetOf(exit.preset), content)) errors.push(`${where}.exit.preset : ${reserved(presetOf(exit.preset))}`);
       checkNumber(`${where}.exit`, exit.durationMs, 'durationMs', DURATION_LIMITS, errors);
       if (exit.afterMs !== undefined) checkNumber(`${where}.exit`, exit.afterMs, 'afterMs', AFTER_LIMITS, errors);
       if (exit.onLeave !== undefined && typeof exit.onLeave !== 'boolean') errors.push(`${where}.exit.onLeave : booléen attendu`);
@@ -279,11 +285,11 @@ function exitStart(exit, leftAtMs) {
  * @param {Animation | undefined} animation
  * @param {number} elapsedMs le temps écoulé depuis le démarrage (ou la relance) de l'horloge de la couche
  * @param {number | null} [leftAtMs] l'instant où la scène a été remplacée (sortie « au départ »), `null` tant qu'elle est en place
- * @returns {{ pose: Pose, gone: boolean, glyph: GlyphState | null }} `gone` : la sortie est finie, la couche est invisible jusqu'à la relance ; `glyph` : l'état à donner à la couche de texte
- *   quand l'entrée ou la sortie est un préréglage de texte (`null` sinon : le texte est entier)
+ * @returns {{ pose: Pose, gone: boolean, content: ContentState | null }} `gone` : la sortie est finie, la couche est invisible jusqu'à la relance ; `content` : l'état à donner à la couche
+ *   quand l'entrée ou la sortie est un préréglage de contenu (texte, tracé) ; `null` sinon : le contenu est entier
  */
 export function evaluateAnimation(animation, elapsedMs, leftAtMs = null) {
-  if (animation === undefined) return { pose: rest(), gone: false, glyph: null };
+  if (animation === undefined) return { pose: rest(), gone: false, content: null };
   const { enter, loop, exit } = animation;
   const entering = enter === undefined ? undefined : presetOf(enter.preset);
   const leaving = exit === undefined ? undefined : presetOf(exit.preset);
@@ -301,17 +307,17 @@ export function evaluateAnimation(animation, elapsedMs, leftAtMs = null) {
   const gone = leavingNow && departure >= 1;
   const base = leavingNow ? leaving.pose(presence) : entering === undefined ? rest() : entering.pose(presence);
 
-  // Le texte se dévoile à l'entrée et se retire à la sortie quand l'un des deux est un préréglage de texte ; l'autre phase le laisse entier.
-  const glyphEntering = entering?.glyph !== undefined;
-  const glyphLeaving = leavingNow && leaving?.glyph !== undefined;
-  const style = glyphLeaving ? leaving?.glyph : glyphEntering ? entering?.glyph : leaving?.glyph;
-  /** @type {GlyphState | null} */
-  const glyph = style === undefined ? null : { ...style, presence: (glyphEntering ? arrival : 1) * (glyphLeaving ? 1 - departure : 1) };
+  // Le contenu se dévoile à l'entrée et se retire à la sortie quand l'un des deux est un préréglage de contenu ; l'autre phase le laisse entier.
+  const contentEntering = entering?.content !== undefined;
+  const contentLeaving = leavingNow && leaving?.content !== undefined;
+  const style = contentLeaving ? leaving?.content : contentEntering ? entering?.content : leaving?.content;
+  /** @type {ContentState | null} */
+  const content = style === undefined ? null : { ...style, presence: (contentEntering ? arrival : 1) * (contentLeaving ? 1 - departure : 1) };
 
   const spinner = loop === undefined ? undefined : loopOf(loop.preset);
-  if (loop === undefined || spinner === undefined || elapsedMs < enterEnd) return { pose: base, gone, glyph };
+  if (loop === undefined || spinner === undefined || elapsedMs < enterEnd) return { pose: base, gone, content };
   const looping = spinner.pose((elapsedMs - enterEnd) / loop.periodMs, loop.amount ?? DEFAULT_AMOUNT);
-  return { pose: combine(base, blendToRest(looping, 1 - departure)), gone, glyph };
+  return { pose: combine(base, blendToRest(looping, 1 - departure)), gone, content };
 }
 
 /**
@@ -334,12 +340,13 @@ export function applyPose(layer, bound, animated) {
 }
 
 /**
- * Vrai si l'entrée ou la sortie est un préréglage de texte : l'animation ne convient alors qu'à une couche de texte.
+ * Vrai si l'animation convient à une couche qui dévoile ce contenu : ses préréglages de texte ou de tracé ne se jouent que sur le contenu qui leur correspond.
  * @param {Animation | undefined} animation
+ * @param {'text' | 'shape' | undefined} content
  * @returns {boolean}
  */
-export function usesGlyphs(animation) {
-  return [animation?.enter, animation?.exit].some((phase) => phase !== undefined && presetOf(phase.preset)?.glyph !== undefined);
+export function animationFits(animation, content) {
+  return [animation?.enter, animation?.exit].every((phase) => phase === undefined || fits(presetOf(phase.preset), content));
 }
 
 /**
@@ -370,7 +377,7 @@ const PHASE_DEFAULTS = Object.freeze({
   exit: Object.freeze({ durationMs: 600, onLeave: true }),
 });
 
-const GLYPH_DURATION_MS = 1500;
+const CONTENT_DURATION_MS = 1500;
 
 /** Les champs numériques facultatifs de chaque phase : vide dans l'interface = retirés du document. */
 const OPTIONAL_FIELDS = Object.freeze({ enter: ['delayMs', 'ease'], loop: ['amount'], exit: ['afterMs', 'ease'] });
@@ -386,8 +393,8 @@ const OPTIONAL_FIELDS = Object.freeze({ enter: ['delayMs', 'ease'], loop: ['amou
 export function setPhase(animation, phase, preset) {
   const { [phase]: current, ...others } = animation ?? {};
   if (preset === null) return /** @type {Animation | undefined} */ (canonicalAnimation(others));
-  // Un texte se dévoile plus lentement qu'un calque ne paraît : une phrase en 600 ms ne se lit pas.
-  const started = presetOf(preset)?.glyph !== undefined ? { ...PHASE_DEFAULTS[phase], durationMs: GLYPH_DURATION_MS } : PHASE_DEFAULTS[phase];
+  // Un texte ou un tracé se dévoile plus lentement qu'un calque ne paraît : une phrase en 600 ms ne se lit pas.
+  const started = presetOf(preset)?.content !== undefined ? { ...PHASE_DEFAULTS[phase], durationMs: CONTENT_DURATION_MS } : PHASE_DEFAULTS[phase];
   const next = { ...(current === undefined ? started : current), preset };
   return /** @type {Animation | undefined} */ (canonicalAnimation({ ...others, [phase]: next }));
 }

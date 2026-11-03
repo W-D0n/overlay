@@ -106,14 +106,19 @@ export async function run({ page, stack, check, errors }) {
   check('et la couche est de nouveau visible, opaque', rest.display !== 'none' && rest.opacity === 1 ? true : rest);
 
   // Le texte qui se dévoile : on lit l'encre réellement dessinée dans le canvas du texte, pendant que la machine à écrire joue.
-  const ink = () => page.evaluate(`(() => { const canvas = ${CALQUE}.querySelector('canvas'); const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data; let count = 0; for (let i = 3; i < data.length; i += 16) if (data[i] > 0) count += 1; return count; })()`);
+  const INK = `(() => { const canvas = ${CALQUE}.querySelector('canvas'); const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data; let total = 0; for (let i = 3; i < data.length; i += 16) total += data[i] / 255; return total; })()`;
+  const ink = () => page.evaluate(INK);
+  /** L'encre toutes les 60 ms pendant `ms` millisecondes. */
+  const recordInk = async (/** @type {number} */ ms) => {
+    await page.evaluate(`window.__ink = []; window.__tick = setInterval(() => { window.__ink.push(${INK}); }, 60)`);
+    await page.sleep(ms);
+    await page.evaluate('clearInterval(window.__tick)');
+    return /** @type {number[]} */ (await page.evaluate('window.__ink'));
+  };
   const baseline = await ink();
   check('le texte posé dessine de l’encre', baseline > 200 ? true : baseline);
   await pick(PHASE('enter', 'preset'), 'type');
-  await page.evaluate(`window.__ink = []; window.__tick = setInterval(() => { const canvas = ${CALQUE}.querySelector('canvas'); const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data; let count = 0; for (let i = 3; i < data.length; i += 16) if (data[i] > 0) count += 1; window.__ink.push(count); }, 60)`);
-  await page.sleep(2400);
-  await page.evaluate('clearInterval(window.__tick)');
-  const inked = /** @type {number[]} */ (await page.evaluate('window.__ink'));
+  const inked = await recordInk(2400);
   check('la durée de départ d’un préréglage de texte est plus longue (1,5 s)', (await page.evaluate(`document.querySelector(${JSON.stringify(PHASE('enter', 'durationMs'))}).value`)) === '1500');
   check('la machine à écrire part d’un texte presque vide', inked[0] < baseline * 0.3 ? true : [inked[0], baseline]);
   check('l’encre ne fait que croître, lettre après lettre', inked.every((value, at) => at === 0 || value >= inked[at - 1] - baseline * 0.02) ? true : inked);
@@ -128,15 +133,35 @@ export async function run({ page, stack, check, errors }) {
   await page.click('#gallery-grid [data-kind="shape"]');
   await page.waitFor("[...document.querySelectorAll('#layers-list .layer-title')].length >= 3", 8000);
   await page.sleep(300);
+
+  // Le tracé du contour : l'encre d'une forme pleine vient d'abord d'un contour qui se trace, puis du remplissage qui apparaît en fondu.
+  const shapeBaseline = await ink();
+  check('la forme posée dessine de l’encre', shapeBaseline > 200 ? true : shapeBaseline);
+  check('le tracé du contour est proposé sur une forme, pas sur un texte', await page.evaluate(`(() => {
+    const options = [...document.querySelectorAll(${JSON.stringify(PHASE('enter', 'preset'))} + ' option')];
+    const draw = options.find((option) => option.value === 'draw');
+    return !draw.disabled;
+  })()`));
+  await pick(PHASE('enter', 'preset'), 'draw');
+  const traced = await recordInk(2400);
+  check('le tracé part d’une forme presque vide', traced[0] < shapeBaseline * 0.3 ? true : [traced[0], shapeBaseline]);
+  check('l’encre ne fait que croître : le contour se trace, le remplissage apparaît', traced.every((value, at) => at === 0 || value >= traced[at - 1] - shapeBaseline * 0.02) ? true : traced);
+  check('des états intermédiaires passent à l’écran', traced.filter((value) => value > shapeBaseline * 0.05 && value < shapeBaseline * 0.9).length >= 4 ? true : traced);
+  check('et la forme finit entière, identique à celle qui n’est pas animée', Math.abs(traced.at(-1) - shapeBaseline) <= shapeBaseline * 0.02 ? true : [traced.at(-1), shapeBaseline]);
+  await pick(PHASE('enter', 'preset'), '');
+  await page.sleep(300);
   check('sur une forme, les préréglages de texte sont grisés et ceux de calque restent permis', await page.evaluate(`(() => {
     const options = [...document.querySelectorAll(${JSON.stringify(PHASE('enter', 'preset'))} + ' option')];
     const byValue = (value) => options.find((option) => option.value === value);
-    return byValue('type').disabled && byValue('letters').disabled && byValue('words').disabled && !byValue('fade').disabled && !byValue('zoom').disabled;
+    return byValue('type').disabled && byValue('letters').disabled && byValue('words').disabled && !byValue('draw').disabled && !byValue('fade').disabled && !byValue('zoom').disabled;
   })()`));
   const textRow = await page.evaluate("[...document.querySelectorAll('#layers-list .layer-row')].findIndex((row) => row.querySelector('.layer-title')?.textContent === 'Texte')");
   await page.click(layerRow(textRow));
   await page.sleep(300);
-  check('sur le texte, ils sont permis', await page.evaluate(`[...document.querySelectorAll(${JSON.stringify(PHASE('enter', 'preset'))} + ' option')].filter((option) => ['type', 'letters', 'words'].includes(option.value)).every((option) => !option.disabled)`));
+  check('sur le texte, ils sont permis et le tracé du contour est grisé', await page.evaluate(`(() => {
+    const options = [...document.querySelectorAll(${JSON.stringify(PHASE('enter', 'preset'))} + ' option')];
+    return options.filter((option) => ['type', 'letters', 'words'].includes(option.value)).every((option) => !option.disabled) && options.find((option) => option.value === 'draw').disabled;
+  })()`));
 
   // Plusieurs couches : le panneau se tait.
   const otherRow = await page.evaluate("[...document.querySelectorAll('#layers-list .layer-row')].findIndex((row) => row.querySelector('.layer-title')?.textContent !== 'Texte')");

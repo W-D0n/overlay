@@ -406,7 +406,7 @@ function lookErrors(where, layer) {
   if (layer.blur !== undefined && !isFraction(layer.blur)) errors.push(`${where}.blur : nombre attendu`);
   errors.push(...bindingErrors(`${where}.bindings`, layer.bindings));
   errors.push(...trackErrors(`${where}.timeline`, layer.timeline));
-  errors.push(...animationErrors(`${where}.animation`, layer.animation, { glyphs: kindCapabilities(layer.kind).glyphs === true }));
+  errors.push(...animationErrors(`${where}.animation`, layer.animation, { content: kindCapabilities(layer.kind).content }));
   if (layer.crop === undefined) return errors;
   const { crop } = layer;
   if (!isPlainObject(crop)) return [...errors, `${where}.crop : objet attendu`];

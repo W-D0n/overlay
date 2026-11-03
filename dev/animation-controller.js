@@ -24,7 +24,7 @@ export function createAnimationController(input) {
   const { editor } = studio;
 
   /** @typedef {'enter' | 'loop' | 'exit'} Phase */
-  /** @type {readonly { phase: Phase, label: string, presets: readonly { id: string, label: string, glyph?: unknown }[] }[]} */
+  /** @type {readonly { phase: Phase, label: string, presets: readonly { id: string, label: string, content?: { kind: string } }[] }[]} */
   const PHASES = [
     { phase: 'enter', label: 'Entrée', presets: PRESETS },
     { phase: 'loop', label: 'Boucle', presets: LOOPS },
@@ -105,8 +105,8 @@ export function createAnimationController(input) {
     for (const option of presets) {
       const el = /** @type {HTMLOptionElement} */ (node('option', undefined, option.label));
       el.value = option.id;
-      // Les préréglages de texte ne conviennent qu'à une couche de texte : `render` les grise sur les autres.
-      if (option.glyph !== undefined) el.dataset.glyph = 'true';
+      // Un préréglage de texte ou de tracé ne convient qu'à une couche qui dévoile ce contenu : `render` le grise sur les autres.
+      if (option.content !== undefined) el.dataset.content = option.content.kind;
       preset.appendChild(el);
     }
     preset.addEventListener('change', () => {
@@ -221,10 +221,10 @@ export function createAnimationController(input) {
         : 'L’entrée joue une fois, la boucle ensuite sans fin, la sortie à l’instant voulu ou quand la scène part.';
     if (layer === undefined) return;
     const { animation } = layer;
-    const textual = kindCapabilities(layer.kind).glyphs === true;
+    const revealed = kindCapabilities(layer.kind).content;
     for (const { phase } of PHASES) {
       const state = phases[phase];
-      for (const option of state.preset.options) if (option.dataset.glyph === 'true') option.disabled = !textual;
+      for (const option of state.preset.options) if (option.dataset.content !== undefined) option.disabled = option.dataset.content !== revealed;
       const current = animation?.[phase];
       show(state.preset, current === undefined ? '' : current.preset);
       state.fields.hidden = current === undefined;

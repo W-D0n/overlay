@@ -12,7 +12,7 @@ const invisible = (pose) => pose.opacity === 0 || Object.values(pose.reveal).som
 
 describe('préréglages', () => {
   test('chaque préréglage de calque part de la couche invisible et arrive au repos exact', () => {
-    const layerPresets = PRESETS.filter(({ glyph }) => glyph === undefined);
+    const layerPresets = PRESETS.filter(({ content }) => content === undefined);
     expect(layerPresets.length).toBe(14);
     for (const preset of layerPresets) {
       expect(invisible(preset.pose(0))).toBe(true);
@@ -21,13 +21,13 @@ describe('préréglages', () => {
   });
 
   test('les préréglages de texte laissent le calque au repos : c\'est le texte qui se dévoile', () => {
-    const glyphPresets = PRESETS.filter(({ glyph }) => glyph !== undefined);
-    expect(glyphPresets.map(({ id }) => id)).toEqual(['type', 'letters', 'words']);
-    for (const preset of glyphPresets) {
+    const contentPresets = PRESETS.filter(({ content }) => content !== undefined);
+    expect(contentPresets.map(({ id }) => id)).toEqual(['type', 'letters', 'words', 'draw']);
+    for (const preset of contentPresets) {
       expect(preset.pose(0)).toEqual(REST);
       expect(preset.pose(0.5)).toEqual(REST);
     }
-    expect(glyphPresets.map(({ glyph }) => glyph)).toEqual([{ unit: 'chars', reveal: 'hard' }, { unit: 'chars', reveal: 'soft' }, { unit: 'words', reveal: 'soft' }]);
+    expect(contentPresets.map(({ content }) => content)).toEqual([{ kind: 'text', unit: 'chars', reveal: 'hard' }, { kind: 'text', unit: 'chars', reveal: 'soft' }, { kind: 'text', unit: 'words', reveal: 'soft' }, { kind: 'shape' }]);
   });
 
   test('chaque préréglage a un identifiant et un libellé uniques, une courbe permise', () => {
@@ -185,8 +185,8 @@ describe('forme canonique', () => {
 
 describe('évaluation : l\'entrée', () => {
   test('sans animation, la couche est au repos et ne disparaît jamais', () => {
-    expect(at(undefined, 5000)).toEqual({ pose: REST, gone: false, glyph: null });
-    expect(at({}, 5000)).toEqual({ pose: REST, gone: false, glyph: null });
+    expect(at(undefined, 5000)).toEqual({ pose: REST, gone: false, content: null });
+    expect(at({}, 5000)).toEqual({ pose: REST, gone: false, content: null });
   });
 
   test('avant le délai la couche est invisible, puis l\'entrée avance jusqu\'au repos', () => {
@@ -232,7 +232,7 @@ describe('évaluation : la boucle', () => {
 describe('évaluation : la sortie', () => {
   test('à date fixe : elle démarre à l\'instant demandé, finit invisible et reste invisible', () => {
     const animation = { exit: exit('fade', 1000, { afterMs: 2000, ease: 'linear' }) };
-    expect(at(animation, 1999)).toEqual({ pose: REST, gone: false, glyph: null });
+    expect(at(animation, 1999)).toEqual({ pose: REST, gone: false, content: null });
     expect(at(animation, 2500).pose.opacity).toBeCloseTo(0.5, 9);
     expect(at(animation, 2500).gone).toBe(false);
     expect(at(animation, 3000)).toMatchObject({ gone: true });
@@ -242,14 +242,14 @@ describe('évaluation : la sortie', () => {
 
   test('au départ de la scène : sans départ elle ne joue pas, avec elle démarre à l\'instant du départ', () => {
     const animation = { exit: exit('fade', 1000, { onLeave: true, ease: 'linear' }) };
-    expect(at(animation, 60_000, null)).toEqual({ pose: REST, gone: false, glyph: null });
+    expect(at(animation, 60_000, null)).toEqual({ pose: REST, gone: false, content: null });
     expect(at(animation, 5000, 5000).pose.opacity).toBe(1);
     expect(at(animation, 5500, 5000).pose.opacity).toBeCloseTo(0.5, 9);
     expect(at(animation, 6000, 5000).gone).toBe(true);
   });
 
   test('un départ de scène ne déclenche rien quand la sortie ne le demande pas', () => {
-    expect(at({ exit: exit('fade', 1000, { afterMs: 9000 }) }, 5500, 5000)).toEqual({ pose: REST, gone: false, glyph: null });
+    expect(at({ exit: exit('fade', 1000, { afterMs: 9000 }) }, 5500, 5000)).toEqual({ pose: REST, gone: false, content: null });
   });
 
   test('les deux ensemble : la première qui arrive joue', () => {

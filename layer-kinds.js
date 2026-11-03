@@ -15,7 +15,7 @@
  * que le code d'une couche Code déclare lui-même : un objet, présenté par un formulaire tiré de sa déclaration).
  * Aucune logique ici (pattern « configuration hors composant », CLAUDE.md).
  *
- * @typedef {{ audio: boolean, reactions: 'native' | 'overlay', events?: boolean, glyphs?: boolean }} LayerCapabilities `glyphs` : la couche dessine du texte que ses animations peuvent dévoiler lettre par lettre ou mot par mot
+ * @typedef {{ audio: boolean, reactions: 'native' | 'overlay', events?: boolean, content?: 'text' | 'shape' }} LayerCapabilities `content` : ce que les animations de la couche peuvent dévoiler (le texte lettre par lettre ou mot par mot, le contour d'une forme)
  *   `audio` : l'effet reçoit les niveaux audio (`setAudioLevel`). `reactions` : `native` si l'effet dessine
  *   lui-même les réactions d'alerte (`trigger`), `overlay` si `ReactionOverlay` les dessine par-dessus. `events` : la couche reçoit
  *   aussi chaque alerte (`trigger`) **sans** empêcher la surcouche de la dessiner (le code d'une couche Code décide seul de ce qu'il en fait).
@@ -429,7 +429,7 @@ const KIND_DEFINITIONS = {
     legacyIds: [],
     label: 'Texte',
     content: true,
-    capabilities: { audio: false, reactions: 'overlay', glyphs: true },
+    capabilities: { audio: false, reactions: 'overlay', content: 'text' },
     fields: [
       { key: 'text', label: 'Texte (une ligne par ligne)', type: 'textarea', default: ['Titre'] },
       { key: 'font', label: 'Police', type: 'select', choices: [...TEXT_FONTS], default: 'serif' },
@@ -478,7 +478,7 @@ const KIND_DEFINITIONS = {
     legacyIds: [],
     label: 'Forme',
     content: true,
-    capabilities: { audio: false, reactions: 'overlay' },
+    capabilities: { audio: false, reactions: 'overlay', content: 'shape' },
     fields: [
       { key: 'shape', label: 'Forme', type: 'select', choices: [...SHAPE_KINDS], default: 'rectangle' },
       {

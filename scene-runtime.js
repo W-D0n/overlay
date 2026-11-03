@@ -198,7 +198,7 @@ export function createSceneRuntime(container, deps = {}) {
     const animated = bindingValues(entry, clockTime, 0);
     const look = animatedLook(entry, animated);
     driveParams(entry, animated);
-    entry.instance.animate?.(look.glyph ?? null);
+    entry.instance.animate?.(look.content ?? null);
     Object.assign(entry.calque.style, {
       left: percent(x),
       top: percent(y),
@@ -248,13 +248,13 @@ export function createSceneRuntime(container, deps = {}) {
    * Les valeurs de base d'une couche (réglage, timeline, liaisons) avec son animation par-dessus, à l'instant de son horloge ; une couche qui a fini sa sortie est marquée `gone`
    * (elle sort de l'affichage, donc ne coûte plus rien, jusqu'à sa relance).
    * @param {MountedLayer} entry @param {Partial<Record<import('./layer-bindings.js').BindingTarget, number>>} bound
-   * @returns {Partial<Record<import('./layer-bindings.js').BindingTarget, number>> & { reveal?: import('./layer-animation.js').Reveal, gone?: boolean, glyph?: import('./layer-animation.js').GlyphState | null }}
+   * @returns {Partial<Record<import('./layer-bindings.js').BindingTarget, number>> & { reveal?: import('./layer-animation.js').Reveal, gone?: boolean, content?: import('./layer-animation.js').ContentState | null }}
    */
   function animatedLook(entry, bound) {
     const { animation } = entry.layer;
     if (animation === undefined) return bound;
-    const { pose, gone, glyph } = evaluateAnimation(animation, entry.age, entry.leftAt);
-    return { ...bound, ...applyPose(entry.layer, bound, pose), gone, glyph };
+    const { pose, gone, content } = evaluateAnimation(animation, entry.age, entry.leftAt);
+    return { ...bound, ...applyPose(entry.layer, bound, pose), gone, content };
   }
 
   /**
@@ -310,7 +310,7 @@ export function createSceneRuntime(container, deps = {}) {
     if (key === entry.appliedKey) return;
     entry.appliedKey = key;
     driveParams(entry, values);
-    entry.instance.animate?.(look.glyph ?? null);
+    entry.instance.animate?.(look.content ?? null);
     Object.assign(entry.calque.style, lookStyles(entry.layer, look));
   }
 

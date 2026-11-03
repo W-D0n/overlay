@@ -78,7 +78,7 @@ export function createTextLayer({ fonts = assetFonts, warn = (message) => consol
       ctx.letterSpacing = `${options.letterSpacing}px`;
     }
 
-    /** L'apparition du texte en cours (`layer-animation.js`) ; `null` : le texte est entier. @type {import('../layer-animation.js').GlyphState | null} */
+    /** L'apparition du texte en cours (`layer-animation.js`) ; `null` : le texte est entier. @type {Extract<import('../layer-animation.js').ContentState, { kind: 'text' }> | null} */
     let glyph = null;
 
     /**
@@ -106,7 +106,7 @@ export function createTextLayer({ fonts = assetFonts, warn = (message) => consol
 
     /**
      * Le texte qui se dévoile : chaque unité (lettre ou mot) est placée là où elle serait dans la ligne entière, puis dessinée selon sa présence.
-     * @param {CanvasRenderingContext2D} ctx @param {import('./text-layout.js').TextLayout} layout @param {import('../layer-animation.js').GlyphState} state
+     * @param {CanvasRenderingContext2D} ctx @param {import('./text-layout.js').TextLayout} layout @param {Extract<import('../layer-animation.js').ContentState, { kind: 'text' }>} state
      */
     function drawRevealed(ctx, layout, state) {
       ctx.textAlign = 'left';
@@ -176,10 +176,10 @@ export function createTextLayer({ fonts = assetFonts, warn = (message) => consol
         layout.lines.forEach((line, index) => paintRun(ctx, line, x, layout.top + (index + 0.5) * layout.lineHeightPx));
       },
 
-      /** @param {import('../layer-animation.js').GlyphState | null} next */
+      /** @param {import('../layer-animation.js').ContentState | null} next */
       animate(next) {
         // Le texte entier se dessine d'un seul trait, comme sans animation.
-        const wanted = next === null || next.presence >= 1 ? null : next;
+        const wanted = next === null || next.kind !== 'text' || next.presence >= 1 ? null : next;
         if (JSON.stringify(wanted) === JSON.stringify(glyph)) return;
         glyph = wanted;
         host.invalidate();
