@@ -1,6 +1,6 @@
 // @ts-check
 import { createSceneRuntime } from '../scene-runtime.js';
-import { isIdentityKind, kindFamily } from '../layer-kinds.js';
+import { isGroupKind, isIdentityKind, kindFamily } from '../layer-kinds.js';
 import { ReactionOverlay } from '../components/ReactionOverlay.js';
 import { createReactionCoordinator } from '../background-reactions.js';
 import { createBrowserAudioSession } from '../background-audio.js';
@@ -27,7 +27,8 @@ const NONE_VALUE = '__none__';
  * @returns {import('../scene-doc.js').Layer | null}
  */
 export function targetLayer(scene, selection) {
-  const effects = scene.layers.filter((layer) => !isIdentityKind(layer.kind));
+  // A group has no effect settings of its own: it is a container, set from the inspector.
+  const effects = scene.layers.filter((layer) => !isIdentityKind(layer.kind) && !isGroupKind(layer.kind));
   const selected = [...selection].reverse().map((id) => effects.find((layer) => layer.id === id)).find((layer) => layer !== undefined);
   return selected ?? effects[0] ?? null;
 }

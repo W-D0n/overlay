@@ -9,17 +9,19 @@
  *
  * Gestes : clic (remplace la sélection), Ctrl/Cmd+clic (bascule), Maj+clic (plage), double-clic sur le nom ou F2
  * (renommer), œil et cadenas sur la ligne, barre d'outils de la sélection (isoler, dupliquer, supprimer, monter, descendre),
- * glisser-déposer pour réordonner, flèches (sélection), Alt+flèches (réordonner),
+ * glisser-déposer pour réordonner (et pour ranger dans un groupe ou en sortir), flèches (sélection ; gauche et droite replient et déplient un groupe), Alt+flèches (réordonner),
+ * grouper et dégrouper (barre d'outils, Ctrl+G, Ctrl+Maj+G),
  * Suppr, Ctrl+D (dupliquer), Ctrl+A, Ctrl+Z / Ctrl+Maj+Z / Ctrl+Y (annuler, rétablir, partout dans le Studio hors champ de saisie).
  *
  * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
  * @typedef {import('../scene-doc.js').Layer} Layer
  */
-import { isIdentityKind, isPhotographable } from '../layer-kinds.js';
+import { MAX_GROUPS, isGroup, selectionRoots, withMembers } from '../layer-group.js';
+import { isGroupKind, isIdentityKind, isPhotographable } from '../layer-kinds.js';
 import { withoutLook } from '../scene-doc.js';
 import { createPresetThumbnail } from './preset-thumbnail.js';
 import { icon, setIcon } from './icons.js';
-import { dropPosition, layerRows, loadGauge } from './layers-panel-view.js';
+import { dropTarget, layerRows, loadGauge } from './layers-panel-view.js';
 
 const ROW_THUMBNAIL_WIDTH = 56;
 const GALLERY_THUMBNAIL_WIDTH = 160;
@@ -39,6 +41,8 @@ const THUMBNAIL_DEBOUNCE_MS = 450;
  *     add: HTMLButtonElement,
  *     solo: HTMLButtonElement,
  *     duplicate: HTMLButtonElement,
+ *     group: HTMLButtonElement,
+ *     ungroup: HTMLButtonElement,
  *     remove: HTMLButtonElement,
  *     up: HTMLButtonElement,
  *     down: HTMLButtonElement,
@@ -83,6 +87,8 @@ export function createLayersPanelController(input) {
   /** Couches en train d'être glissées. */
   let dragIds = /** @type {string[]} */ ([]);
   let renaming = /** @type {string | null} */ (null);
+  /** The groups shown collapsed: a view state, never written in the scene. @type {Set<string>} */
+  const collapsed = new Set();
 
   /** @param {{ ok: boolean, message?: string }} result */
   function settle(result) {
@@ -98,11 +104,13 @@ export function createLayersPanelController(input) {
 
   /** @param {Layer} layer @returns {SceneDoc} la couche seule, pleine toile, visible et sans rendu étendu : l'effet lui-même, ce que la vignette montre */
   function aloneScene(layer) {
+    // Alone: a member does not bring its group, which the thumbnail scene does not have.
+    const { group: _group, ...alone } = withoutLook(layer);
     return {
       version: 1,
       id: 'vignette',
       name: layer.name ?? layer.kind,
-      layers: [{ ...withoutLook(layer), visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } }],
+      layers: [{ ...alone, visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } }],
     };
   }
 
@@ -137,6 +145,7 @@ export function createLayersPanelController(input) {
     grip.innerHTML = icon('grip');
 
     const buttons = {
+      fold: actionButton('fold', 'Replier ou déplier le groupe', 'chevron-down'),
       visible: actionButton('visible', 'Afficher ou masquer', 'eye'),
       lock: actionButton('lock', 'Verrouiller ou déverrouiller', 'lock'),
     };
@@ -155,7 +164,7 @@ export function createLayersPanelController(input) {
     toggles.className = 'layer-toggles';
     toggles.append(buttons.visible, buttons.lock);
 
-    el.append(grip, thumb, text, toggles);
+    el.append(buttons.fold, grip, thumb, text, toggles);
     return { el, title, sub, thumb, buttons, signature: '', thumbTimer: null, thumbnail: null };
   }
 
@@ -173,11 +182,11 @@ export function createLayersPanelController(input) {
    * @param {Layer} layer
    */
   function syncThumbnail(parts, layer) {
-    if (isIdentityKind(layer.kind) || !isPhotographable(layer.kind)) {
+    if (isIdentityKind(layer.kind) || isGroupKind(layer.kind) || !isPhotographable(layer.kind)) {
       const sign = isIdentityKind(layer.kind) ? 'identity' : `pictogram|${layer.kind}`;
       if (parts.signature !== sign) {
         disposeThumbnail(parts);
-        parts.thumb.innerHTML = icon(isIdentityKind(layer.kind) ? 'type' : 'code');
+        parts.thumb.innerHTML = icon(isIdentityKind(layer.kind) ? 'type' : isGroupKind(layer.kind) ? 'group' : 'code');
         parts.thumb.classList.add('layer-thumb-identity');
         parts.signature = sign;
       }
@@ -205,11 +214,14 @@ export function createLayersPanelController(input) {
   function render() {
     const { scene } = studio.state();
     const es = editor.state();
-    const view = layerRows(scene, { selection: es.selection, solo: es.solo, labelOf });
+    const view = layerRows(scene, { selection: es.selection, solo: es.solo, labelOf, collapsed });
     const byId = new Map(scene.layers.map((layer) => [layer.id, layer]));
+    // A collapsed group has no rows for its members; a group that is gone is no longer collapsed.
+    for (const id of collapsed) if (!byId.has(id)) collapsed.delete(id);
+    const shown = new Set(view.map((row) => row.id));
 
     for (const [id, parts] of rows) {
-      if (byId.has(id)) continue;
+      if (shown.has(id)) continue;
       disposeThumbnail(parts);
       parts.el.remove();
       rows.delete(id);
@@ -247,7 +259,14 @@ export function createLayersPanelController(input) {
     elements.solo.disabled = none;
     elements.solo.setAttribute('aria-pressed', String(es.solo !== null && es.selection.includes(es.solo)));
     elements.solo.classList.toggle('is-on', es.solo !== null);
-    elements.duplicate.disabled = none || selected.some((layer) => isIdentityKind(layer.kind)) || gauge.count + selected.length > gauge.max;
+    // A copy of a group brings its members: they are what counts against the load guard.
+    const roots = selectionRoots(scene.layers, es.selection);
+    const copied = withMembers(scene.layers, roots).filter((id) => !isGroup(/** @type {Layer} */ (byId.get(id)))).length;
+    const groupCount = scene.layers.filter(isGroup).length;
+    const copiedGroups = roots.filter((id) => isGroup(/** @type {Layer} */ (byId.get(id)))).length;
+    elements.duplicate.disabled = none || selected.some((layer) => isIdentityKind(layer.kind)) || gauge.count + copied > gauge.max || groupCount + copiedGroups > MAX_GROUPS;
+    elements.group.disabled = none || selected.some((layer) => isGroup(layer) || isIdentityKind(layer.kind)) || groupCount >= MAX_GROUPS;
+    elements.ungroup.disabled = !selected.some((layer) => isGroup(layer) || layer.group !== undefined);
     elements.remove.disabled = none;
     elements.up.disabled = none;
     elements.down.disabled = none;
@@ -270,7 +289,15 @@ export function createLayersPanelController(input) {
     el.classList.toggle('is-locked', row.locked);
     el.classList.toggle('is-dimmed', row.dimmed);
     el.classList.toggle('is-identity', row.identity);
+    el.classList.toggle('is-group', row.group);
+    el.classList.toggle('is-inherited', row.hiddenByGroup || row.lockedByGroup);
+    el.dataset.depth = String(row.depth);
     el.setAttribute('aria-selected', String(row.selected));
+    if (row.group) el.setAttribute('aria-expanded', String(!row.collapsed));
+    else el.removeAttribute('aria-expanded');
+    setIcon(parts.buttons.fold, row.collapsed ? 'chevron-right' : 'chevron-down');
+    parts.buttons.fold.setAttribute('aria-expanded', String(!row.collapsed));
+    parts.buttons.fold.tabIndex = -1;
     el.draggable = renaming !== row.id;
     if (renaming !== row.id) parts.title.textContent = row.title;
     parts.sub.textContent = row.subtitle;
@@ -287,6 +314,12 @@ export function createLayersPanelController(input) {
 
   /** L'œil et le cadenas d'une ligne : toute la sélection si la ligne en fait partie. @param {string} id @param {string} action */
   function runAction(id, action) {
+    if (action === 'fold') {
+      if (collapsed.has(id)) collapsed.delete(id);
+      else collapsed.add(id);
+      render();
+      return;
+    }
     const ids = targetsOf(id);
     const first = studio.state().scene.layers.find((layer) => layer.id === id);
     if (first === undefined) return;
@@ -377,7 +410,7 @@ export function createLayersPanelController(input) {
 
   // Glisser-déposer : le bord haut ou bas de la ligne survolée dit où la pile sera insérée.
   /** @param {DragEvent} event @returns {{ id: string, edge: 'top' | 'bottom', row: HTMLElement } | null} */
-  function dropTarget(event) {
+  function rowUnderPointer(event) {
     const row = /** @type {HTMLElement | null} */ ((/** @type {HTMLElement} */ (event.target)).closest('.layer-row'));
     if (row === null) return null;
     const rect = row.getBoundingClientRect();
@@ -385,7 +418,7 @@ export function createLayersPanelController(input) {
   }
 
   function clearDropMarks() {
-    for (const parts of rows.values()) parts.el.classList.remove('drop-top', 'drop-bottom');
+    for (const parts of rows.values()) parts.el.classList.remove('drop-top', 'drop-bottom', 'drop-into');
   }
 
   elements.list.addEventListener('dragstart', (event) => {
@@ -398,28 +431,29 @@ export function createLayersPanelController(input) {
     if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
   });
   elements.list.addEventListener('dragover', (event) => {
-    const hit = dropTarget(event);
+    const hit = rowUnderPointer(event);
     clearDropMarks();
     if (hit === null || dragIds.length === 0) return;
-    const position = dropPosition(studio.state().scene, dragIds, hit.id, hit.edge);
-    if (position === null) {
+    const target = dropTarget(studio.state().scene, dragIds, hit.id, hit.edge, collapsed);
+    if (target === null) {
       if (event.dataTransfer) event.dataTransfer.dropEffect = 'none';
       return;
     }
     event.preventDefault();
     if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-    hit.row.classList.add(hit.edge === 'top' ? 'drop-top' : 'drop-bottom');
+    // Into a group: the whole row is marked; beside a layer: the edge it is dropped on.
+    hit.row.classList.add('into' in target ? 'drop-into' : hit.edge === 'top' ? 'drop-top' : 'drop-bottom');
   });
   elements.list.addEventListener('dragleave', (event) => {
     if (!elements.list.contains(/** @type {Node | null} */ (event.relatedTarget))) clearDropMarks();
   });
   elements.list.addEventListener('drop', (event) => {
     event.preventDefault();
-    const hit = dropTarget(event);
+    const hit = rowUnderPointer(event);
     clearDropMarks();
     if (hit === null) return;
-    const position = dropPosition(studio.state().scene, dragIds, hit.id, hit.edge);
-    if (position !== null) settle(editor.moveLayers(dragIds, position));
+    const target = dropTarget(studio.state().scene, dragIds, hit.id, hit.edge, collapsed);
+    if (target !== null) settle(editor.moveLayersTo(dragIds, target));
     dragIds = [];
   });
   elements.list.addEventListener('dragend', () => {
@@ -446,6 +480,11 @@ export function createLayersPanelController(input) {
         editor.select([next], event.shiftKey ? 'add' : 'replace');
         anchorId = next;
       }
+    } else if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && last !== null && isGroup(/** @type {Layer} */ (studio.state().scene.layers.find((layer) => layer.id === last)))) {
+      event.preventDefault();
+      if (event.key === 'ArrowLeft') collapsed.add(last);
+      else collapsed.delete(last);
+      render();
     } else if ((event.key === 'Delete' || event.key === 'Backspace') && selection.length > 0) {
       event.preventDefault();
       settle(editor.removeLayers(selection));
@@ -468,6 +507,8 @@ export function createLayersPanelController(input) {
     if (primary !== undefined) editor.setSolo(solo === primary ? null : primary);
   });
   elements.duplicate.addEventListener('click', () => { settle(editor.duplicateLayers(editor.state().selection)); });
+  elements.group.addEventListener('click', () => { settle(editor.groupLayers(editor.state().selection)); });
+  elements.ungroup.addEventListener('click', () => { settle(editor.ungroupLayers(editor.state().selection)); });
   elements.remove.addEventListener('click', () => { settle(editor.removeLayers(editor.state().selection)); });
   elements.up.addEventListener('click', () => { settle(editor.moveLayers(editor.state().selection, 'up')); });
   elements.down.addEventListener('click', () => { settle(editor.moveLayers(editor.state().selection, 'down')); });
@@ -547,6 +588,8 @@ export function createLayersPanelController(input) {
 
   elements.solo.innerHTML = icon('solo');
   elements.duplicate.innerHTML = icon('copy');
+  elements.group.innerHTML = icon('group');
+  elements.ungroup.innerHTML = icon('ungroup');
   elements.remove.innerHTML = icon('trash');
   elements.up.innerHTML = icon('arrow-up');
   elements.down.innerHTML = icon('arrow-down');

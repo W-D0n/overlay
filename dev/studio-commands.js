@@ -10,6 +10,7 @@
  * figurent dans l'aide sans être traités deux fois.
  */
 import { createCommandRegistry } from './command-registry.js';
+import { isGroup, layersToCopy } from '../layer-group.js';
 import { isIdentityKind } from '../layer-kinds.js';
 import { PLACEMENT_PRESETS, alignPlacements, distributePlacements } from './placement-math.js';
 
@@ -63,11 +64,11 @@ export function createStudioCommands({ studio, clipboard, labelOf, addableKinds,
     { id: 'edit.redo', label: 'Rétablir', group: 'Édition', shortcut: 'Ctrl+Maj+Z', bind: false, keywords: ['refaire'], enabled: () => editor.state().canRedo, run: () => { settle(editor.redo()); } },
     {
       id: 'edit.copy', label: 'Copier les couches', group: 'Édition', shortcut: 'Ctrl+C', enabled: hasSelection,
-      run: () => { if (clipboard.copy(selectedLayers())) report.ok(`${selection().length} couche(s) copiée(s)`); },
+      run: () => { const copied = layersToCopy(layers(), selection()); if (clipboard.copy(copied)) report.ok(`${copied.length} couche(s) copiée(s)`); },
     },
     {
       id: 'edit.cut', label: 'Couper les couches', group: 'Édition', shortcut: 'Ctrl+X', enabled: hasSelection,
-      run: () => { if (clipboard.copy(selectedLayers())) settle(editor.removeLayers([...selection()])); },
+      run: () => { if (clipboard.copy(layersToCopy(layers(), selection()))) settle(editor.removeLayers([...selection()])); },
     },
     {
       id: 'edit.paste', label: 'Coller les couches', group: 'Édition', shortcut: 'Ctrl+V', enabled: () => clipboard.hasLayers(),
@@ -89,6 +90,16 @@ export function createStudioCommands({ studio, clipboard, labelOf, addableKinds,
       },
     },
     { id: 'edit.duplicate', label: 'Dupliquer', group: 'Édition', shortcut: 'Ctrl+D', bind: false, enabled: () => hasSelection() && selectedLayers().every((layer) => !isIdentityKind(layer.kind)), run: () => { settle(editor.duplicateLayers([...selection()])); } },
+    {
+      id: 'edit.group', label: 'Grouper', group: 'Édition', shortcut: 'Ctrl+G', keywords: ['regrouper', 'dossier', 'ensemble'],
+      enabled: () => hasSelection() && selectedLayers().every((layer) => !isGroup(layer) && !isIdentityKind(layer.kind)),
+      run: () => { settle(editor.groupLayers([...selection()])); },
+    },
+    {
+      id: 'edit.ungroup', label: 'Dégrouper', group: 'Édition', shortcut: 'Ctrl+Maj+G', keywords: ['défaire le groupe', 'séparer'],
+      enabled: () => selectedLayers().some((layer) => isGroup(layer) || layer.group !== undefined),
+      run: () => { settle(editor.ungroupLayers([...selection()])); },
+    },
     { id: 'edit.delete', label: 'Supprimer', group: 'Édition', shortcut: 'Suppr', bind: false, enabled: hasSelection, run: () => { settle(editor.removeLayers([...selection()])); } },
     { id: 'edit.selectAll', label: 'Tout sélectionner', group: 'Édition', shortcut: 'Ctrl+A', bind: false, enabled: () => layers().length > 0, run: () => editor.selectAll() },
     { id: 'edit.deselect', label: 'Désélectionner', group: 'Édition', shortcut: 'Échap', bind: false, enabled: hasSelection, run: () => editor.clearSelection() },

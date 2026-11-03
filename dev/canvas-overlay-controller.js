@@ -14,11 +14,13 @@
  * Clavier (surcouche active) : flèches (1 px, Maj 10 px), Suppr, Ctrl+D, Ctrl+A, Échap (annule le geste, ou désélectionne),
  * + / − (zoom), 0 (ajuster), 1 (100 %).
  * Une couche verrouillée se sélectionne mais ne se déplace ni ne se redimensionne.
+ * Un groupe se vise là où l'une de ses couches est, et se manipule d'un bloc par sa boîte ; Alt+clic descend dans ses couches. Un groupe masqué ou verrouillé masque ou verrouille ses couches.
  *
  * @typedef {import('./canvas-geometry.js').Rect} Rect
  * @typedef {import('./canvas-geometry.js').Handle} Handle
  */
 import { RENDER_REFERENCE } from '../render-reference.js';
+import { isEffectivelyLocked, isEffectivelyVisible, selectionRoots, withMembers } from '../layer-group.js';
 import {
   HANDLES, HANDLE_CURSORS, fromPixelRect, handlePoints, hitTestAll, isSelectableOnCanvas, marqueeHits, moveRect, rectBetween, resizeRect, scaleRectsWithin, toPixelRect, unionRect,
 } from './canvas-geometry.js';
@@ -112,10 +114,11 @@ export function createCanvasOverlayController(input) {
   /** @param {{ clientX: number, clientY: number }} event */
   const sourcePoint = (event) => screenToSource(transform(), areaPoint(event));
 
-  /** Les couches sélectionnées qu'un geste peut modifier : visibles et non verrouillées. */
+  /** Les couches sélectionnées qu'un geste peut modifier : visibles et non verrouillées. A group stands for its members: a layer selected with its group is left out. */
   function movableSelected() {
-    const chosen = selection();
-    return layers().filter((layer) => chosen.includes(layer.id) && layer.visible && layer.locked !== true);
+    const all = layers();
+    const roots = selectionRoots(all, selection());
+    return all.filter((layer) => roots.includes(layer.id) && isEffectivelyVisible(all, layer) && !isEffectivelyLocked(all, layer));
   }
 
   /** @param {Rect} rect @returns {Rect} le même rectangle, en pixels d'écran */
@@ -137,8 +140,10 @@ export function createCanvasOverlayController(input) {
 
   function render() {
     const chosen = selection();
-    const selectedLayers = layers().filter((layer) => chosen.includes(layer.id) && layer.visible);
-    const allUnlocked = selectedLayers.length > 0 && selectedLayers.every((layer) => layer.locked !== true);
+    const all = layers();
+    const roots = selectionRoots(all, chosen);
+    const selectedLayers = all.filter((layer) => roots.includes(layer.id) && isEffectivelyVisible(all, layer));
+    const allUnlocked = selectedLayers.length > 0 && selectedLayers.every((layer) => !isEffectivelyLocked(all, layer));
 
     selectionBox.hidden = selectedLayers.length === 0;
     if (selectedLayers.length > 0) {
@@ -169,7 +174,7 @@ export function createCanvasOverlayController(input) {
         outlines.set(layer.id, el);
         overlay.insertBefore(el, guidesLayer);
       }
-      el.classList.toggle('is-locked', layer.locked === true);
+      el.classList.toggle('is-locked', isEffectivelyLocked(all, layer));
       place(el, toScreen(toPixelRect(layer.placement)));
     }
 
@@ -218,7 +223,10 @@ export function createCanvasOverlayController(input) {
 
   /** @param {string[]} movingIds */
   function targetsFor(movingIds) {
-    const others = layers().filter((layer) => !movingIds.includes(layer.id) && layer.visible).map((layer) => toPixelRect(layer.placement));
+    // What moves does not attract itself: a moved group brings its members, and a moved member leaves the box of its own group (which changes with it).
+    const all = layers();
+    const excluded = new Set([...withMembers(all, movingIds), ...all.filter((layer) => movingIds.includes(layer.id) && layer.group !== undefined).map((layer) => /** @type {string} */ (layer.group))]);
+    const others = all.filter((layer) => !excluded.has(layer.id) && isEffectivelyVisible(all, layer)).map((layer) => toPixelRect(layer.placement));
     return collectTargets({ canvas: { width: RENDER_REFERENCE.width, height: RENDER_REFERENCE.height }, others, margin: safeMargin });
   }
   const snapThreshold = () => SNAP_SCREEN_PX / transform().scale;
@@ -370,7 +378,7 @@ export function createCanvasOverlayController(input) {
     if (gesture !== null) return;
     const handleEl = /** @type {HTMLElement | null} */ ((/** @type {HTMLElement} */ (event.target)).closest('.co-handle'));
     const hit = handleEl === null ? hitTestAll(layers(), sourcePoint(event), isIdentity)[0] ?? null : null;
-    overlay.style.cursor = spaceDown ? 'grab' : handleEl !== null ? HANDLE_CURSORS[/** @type {Handle} */ (handleEl.dataset.handle)] : hit !== null && selection().includes(hit) && layers().find((l) => l.id === hit)?.locked !== true ? 'move' : 'default';
+    overlay.style.cursor = spaceDown ? 'grab' : handleEl !== null ? HANDLE_CURSORS[/** @type {Handle} */ (handleEl.dataset.handle)] : hit !== null && selection().includes(hit) && !isEffectivelyLocked(layers(), /** @type {*} */ (layers().find((l) => l.id === hit))) ? 'move' : 'default';
     if (hit !== hoverId) {
       hoverId = hit;
       render();

@@ -31,6 +31,10 @@ const PATHS = {
   link: '<path d="M6.5 9.5l3-3M5 8L3.8 9.2a2.1 2.1 0 0 0 3 3L8 11M11 8l1.2-1.2a2.1 2.1 0 0 0-3-3L8 5"/>',
   unlink: '<path d="M5 8L3.8 9.2a2.1 2.1 0 0 0 3 3L8 11M11 8l1.2-1.2a2.1 2.1 0 0 0-3-3L8 5"/>',
   reset: '<path d="M3 8a5 5 0 1 1 1.5 3.5"/><path d="M3 4v4h4"/>',
+  group: '<rect x="2.5" y="2.5" width="8" height="8" rx="1"/><rect x="5.5" y="5.5" width="8" height="8" rx="1"/>',
+  ungroup: '<rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1"/><rect x="8" y="8" width="5.5" height="5.5" rx="1"/>',
+  'chevron-down': '<path d="M4 6l4 4 4-4"/>',
+  'chevron-right': '<path d="M6 4l4 4-4 4"/>',
   'arrow-up': '<path d="M8 13V3M4 7l4-4 4 4"/>',
   'arrow-down': '<path d="M8 3v10M4 9l4 4 4-4"/>',
 };

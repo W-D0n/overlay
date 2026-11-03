@@ -310,3 +310,69 @@ export function reorderItems(items, targetIds, where) {
 export function topLevelBlocks(layers) {
   return topLevelLayers(layers).map((layer) => ({ id: layer.id, layers: isGroup(layer) ? [...membersOf(layers, layer.id), layer] : [layer] }));
 }
+
+/**
+ * Where dropped layers go: right next to a layer, or into a group at its front.
+ * @typedef {{ beside: string, side: 'front' | 'back' } | { into: string }} DropTarget
+ */
+
+/**
+ * The layers after some of them were dropped at a target. A group moves as a block, with its members. Dropped layers next to a member of a group join that group;
+ * dropped next to a group or a free layer, they leave their group and sit beside it (beside the whole block of a group). A group cannot be dropped inside another one,
+ * nor an identity layer anywhere. A group left without members is dissolved.
+ * @param {readonly Layer[]} layers
+ * @param {readonly string[]} ids the layers dragged
+ * @param {DropTarget} target
+ * @returns {Layer[] | null} `null` when the drop makes no sense: nothing to move, the target is among the dragged layers, an identity layer, a group inside a group
+ */
+export function relocateLayers(layers, ids, target) {
+  const roots = selectionRoots(layers, ids);
+  if (roots.length === 0) return null;
+  const moving = new Set(withMembers(layers, roots));
+  const moved = layers.filter((layer) => moving.has(layer.id));
+  if (moved.some((layer) => isIdentityKind(layer.kind))) return null;
+  const rest = layers.filter((layer) => !moving.has(layer.id));
+  const carriesGroup = moved.some(isGroup);
+  const anchor = rest.find((layer) => layer.id === ('into' in target ? target.into : target.beside));
+  if (anchor === undefined || isIdentityKind(anchor.kind)) return null;
+
+  /** The group the dropped layers join, and the index they take among the layers that stay. @type {string | undefined} */
+  let owner;
+  let index;
+  if ('into' in target) {
+    if (!isGroup(anchor) || carriesGroup) return null;
+    owner = anchor.id;
+    // The group entry ends its block: just before it is the front of its members.
+    index = rest.indexOf(anchor);
+  } else if (anchor.group !== undefined && !carriesGroup) {
+    owner = anchor.group;
+    index = rest.indexOf(anchor) + (target.side === 'front' ? 1 : 0);
+  } else {
+    const range = /** @type {{ start: number, end: number }} */ (blockRange(rest, anchor.id));
+    index = target.side === 'front' ? range.end + 1 : range.start;
+  }
+
+  const placed = moved.map((layer) => {
+    // A member of a group that moves along keeps it, and a group keeps its place at the top level.
+    if (isGroup(layer) || (layer.group !== undefined && moving.has(layer.group))) return layer;
+    const { group: _left, ...free } = layer;
+    return owner === undefined ? free : { ...free, group: owner };
+  });
+  return deriveGroupPlacements(dissolveEmptyGroups([...rest.slice(0, index), ...placed, ...rest.slice(index)]));
+}
+
+/**
+ * The layers a copy takes for a selection: a group goes with its members, and a member whose group is not copied is copied as a free layer, so that the copy is a valid
+ * scene of its own.
+ * @param {readonly Layer[]} layers
+ * @param {readonly string[]} ids
+ * @returns {Layer[]} in scene order
+ */
+export function layersToCopy(layers, ids) {
+  const included = new Set(withMembers(layers, ids));
+  return layers.filter((layer) => included.has(layer.id)).map((layer) => {
+    if (layer.group === undefined || included.has(layer.group)) return layer;
+    const { group: _left, ...free } = layer;
+    return free;
+  });
+}

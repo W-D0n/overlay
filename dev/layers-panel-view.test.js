@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { MAX_LAYERS, createLayer } from '../scene-doc.js';
 import { createSceneEditor } from './scene-editor.js';
-import { LOAD_WARNING_LAYERS, dropPosition, layerRows, loadGauge } from './layers-panel-view.js';
+import { LOAD_WARNING_LAYERS, dropTarget, layerRows, loadGauge } from './layers-panel-view.js';
 
 const labelOf = (kind) => ({ rain: 'Pluie', bubble: 'Bulles', dotgrid: 'Points', branding: 'Branding' })[kind] ?? kind;
 const scene = (layers) => ({ version: 1, id: 's', name: 'S', layers });
@@ -57,15 +57,15 @@ describe('loadGauge', () => {
   });
 });
 
-describe('dropPosition', () => {
+describe('dropTarget', () => {
   const s = scene([L('a'), L('b'), L('c'), L('d'), L('branding', 'branding')]);
 
-  /** Applique le dépôt à un vrai éditeur et rend l'ordre de la pile (du dessous au dessus). */
+  /** Applies the drop to a real editor and returns the stack order (back to front). */
   const dropped = (moving, over, edge) => {
-    const target = dropPosition(s, moving, over, edge);
+    const target = dropTarget(s, moving, over, edge);
     if (target === null) return null;
     const editor = createSceneEditor({ scene: s });
-    editor.moveLayers(moving, target);
+    editor.moveLayersTo(moving, target);
     return editor.state().scene.layers.map((layer) => layer.id).join('');
   };
 
@@ -85,10 +85,85 @@ describe('dropPosition', () => {
   });
 
   test('déposer sur soi-même, ou entre les familles, ne fait rien', () => {
-    expect(dropPosition(s, ['a'], 'a', 'top')).toBeNull();
-    expect(dropPosition(s, ['a'], 'branding', 'top')).toBeNull();
-    expect(dropPosition(s, ['branding'], 'a', 'bottom')).toBeNull();
-    expect(dropPosition(s, ['a', 'branding'], 'b', 'top')).toBeNull();
-    expect(dropPosition(s, ['inconnue'], 'b', 'top')).toBeNull();
+    expect(dropTarget(s, ['a'], 'a', 'top')).toBeNull();
+    expect(dropTarget(s, ['a'], 'branding', 'top')).toBeNull();
+    expect(dropTarget(s, ['branding'], 'a', 'bottom')).toBeNull();
+    expect(dropTarget(s, ['a', 'branding'], 'b', 'top')).toBeNull();
+    expect(dropTarget(s, ['inconnue'], 'b', 'top')).toBeNull();
+    expect(dropTarget(s, ['a'], 'inconnue', 'top')).toBeNull();
+  });
+});
+
+describe('rows of a scene with groups', () => {
+  const G = (id, over = {}) => createLayer({ id, kind: 'group', ...over });
+  const grouped = () => scene([L('a', 'rain', { group: 'g' }), L('b', 'bubble', { group: 'g' }), G('g'), L('c')]);
+  const rows = (over = {}) => layerRows(grouped(), { selection: [], solo: null, labelOf, ...over });
+
+  test('a group is a row in front of its members, one level in', () => {
+    expect(rows().map((row) => [row.id, row.depth])).toEqual([['c', 0], ['g', 0], ['b', 1], ['a', 1]]);
+    const [, groupRow, member] = rows();
+    expect(groupRow).toMatchObject({ group: true, owner: null, members: 2, title: 'group', collapsed: false });
+    expect(member).toMatchObject({ group: false, owner: 'g', members: 0 });
+  });
+
+  test('the members of a collapsed group have no row; the group says it is collapsed', () => {
+    const view = rows({ collapsed: new Set(['g']) });
+    expect(view.map((row) => row.id)).toEqual(['c', 'g']);
+    expect(view[1].collapsed).toBe(true);
+  });
+
+  test('collapsing a group that is not there changes nothing', () => {
+    expect(rows({ collapsed: new Set(['ghost']) }).length).toBe(4);
+  });
+
+  test('the subtitle of a group counts its layers, with its type when it is renamed and its opacity when it is not full', () => {
+    const view = layerRows(scene([L('a', 'rain', { group: 'g' }), G('g', { name: 'Titre', opacity: 0.5 })]), { selection: [], solo: null, labelOf });
+    expect(view[0].subtitle).toBe('group · 1 couche · 50 %');
+    expect(rows()[1].subtitle).toBe('2 couches');
+  });
+
+  test('a member of a hidden or locked group says so, whatever its own flags', () => {
+    const layers = scene([L('a', 'rain', { group: 'g' }), L('b', 'bubble', { group: 'g', visible: false }), G('g', { visible: false, locked: true })]);
+    const view = layerRows(layers, { selection: [], solo: null, labelOf });
+    const byId = Object.fromEntries(view.map((row) => [row.id, row]));
+    expect(byId.a).toMatchObject({ visible: true, hiddenByGroup: true, lockedByGroup: true });
+    expect(byId.b).toMatchObject({ visible: false, hiddenByGroup: true });
+    expect(byId.g).toMatchObject({ visible: false, locked: true, hiddenByGroup: false, lockedByGroup: false });
+    expect(rows().every((row) => !row.hiddenByGroup && !row.lockedByGroup)).toBe(true);
+  });
+
+  test('the load gauge counts what draws, not the groups', () => {
+    expect(loadGauge(grouped())).toMatchObject({ count: 3, label: `3 / ${MAX_LAYERS}` });
+  });
+});
+
+describe('dropTarget over groups', () => {
+  const G = (id) => createLayer({ id, kind: 'group' });
+  const grouped = () => scene([L('a', 'rain', { group: 'g' }), L('b', 'bubble', { group: 'g' }), G('g'), L('c'), L('d')]);
+
+  test('the bottom edge of an expanded group row drops into the group, at its front', () => {
+    expect(dropTarget(grouped(), ['d'], 'g', 'bottom')).toEqual({ into: 'g' });
+  });
+
+  test('the top edge of a group row drops in front of the whole group', () => {
+    expect(dropTarget(grouped(), ['d'], 'g', 'top')).toEqual({ beside: 'g', side: 'front' });
+  });
+
+  test('for a collapsed group both edges drop beside it', () => {
+    expect(dropTarget(grouped(), ['d'], 'g', 'bottom', new Set(['g']))).toEqual({ beside: 'g', side: 'back' });
+  });
+
+  test('over a member, the drop joins its group', () => {
+    expect(dropTarget(grouped(), ['d'], 'a', 'top')).toEqual({ beside: 'a', side: 'front' });
+  });
+
+  test('a group dropped onto the bottom edge of another group goes behind it instead of into it', () => {
+    const two = scene([L('a', 'rain', { group: 'g' }), G('g'), L('b', 'rain', { group: 'h' }), G('h')]);
+    expect(dropTarget(two, ['h'], 'g', 'bottom')).toEqual({ beside: 'g', side: 'back' });
+  });
+
+  test('onto itself, onto one of its own members: nothing', () => {
+    expect(dropTarget(grouped(), ['g'], 'g', 'top')).toBeNull();
+    expect(dropTarget(grouped(), ['g'], 'a', 'top')).toBeNull();
   });
 });

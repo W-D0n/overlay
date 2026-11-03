@@ -213,6 +213,8 @@ export async function startBackgroundTuner(environment = {}) {
       solo: /** @type {HTMLButtonElement} */ (byId('layers-solo')),
       duplicate: /** @type {HTMLButtonElement} */ (byId('layers-duplicate')),
       remove: /** @type {HTMLButtonElement} */ (byId('layers-remove')),
+      group: /** @type {HTMLButtonElement} */ (byId('layers-group')),
+      ungroup: /** @type {HTMLButtonElement} */ (byId('layers-ungroup')),
       up: /** @type {HTMLButtonElement} */ (byId('layers-up')),
       down: /** @type {HTMLButtonElement} */ (byId('layers-down')),
       gallery: /** @type {HTMLDialogElement} */ (byId('layer-gallery')),

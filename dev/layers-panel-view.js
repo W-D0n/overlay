@@ -20,9 +20,17 @@
  *   selected: boolean,
  *   solo: boolean,
  *   dimmed: boolean,
+ *   depth: 0 | 1,
+ *   group: boolean,
+ *   owner: string | null,
+ *   collapsed: boolean,
+ *   members: number,
+ *   hiddenByGroup: boolean,
+ *   lockedByGroup: boolean,
  * }} LayerRow
  */
 import { MAX_LAYERS } from '../scene-doc.js';
+import { isGroup, membersOf, relocateLayers } from '../layer-group.js';
 import { isIdentityKind } from '../layer-kinds.js';
 
 /** À partir de combien de couches la jauge prévient : chaque couche d'effet pleine toile est un canvas de plus à dessiner. */
@@ -30,16 +38,19 @@ export const LOAD_WARNING_LAYERS = 6;
 
 /**
  * Les lignes du panneau, du dessus vers le dessous. `dimmed` : la couche est masquée par le solo d'une autre couche.
+ * A group is a row in front of its members, which come right after it, one level in (`depth`) ; the members of a collapsed group (`collapsed`) have no row.
+ * `hiddenByGroup` and `lockedByGroup`: the layer is visible or unlocked itself, but its group is hidden or locked.
  * @param {SceneDoc} scene
- * @param {{ selection: readonly string[], solo: string | null, labelOf: (kind: string) => string }} context
+ * @param {{ selection: readonly string[], solo: string | null, labelOf: (kind: string) => string, collapsed?: ReadonlySet<string> }} context
  * @returns {LayerRow[]}
  */
-export function layerRows(scene, { selection, solo, labelOf }) {
-  const rows = scene.layers.map((layer) => ({
+export function layerRows(scene, { selection, solo, labelOf, collapsed = new Set() }) {
+  const owners = new Map(scene.layers.filter(isGroup).map((layer) => [layer.id, layer]));
+  const rows = scene.layers.filter((layer) => layer.group === undefined || !collapsed.has(layer.group)).map((layer) => ({
     id: layer.id,
     title: layer.name ?? labelOf(layer.kind),
     // Le type n'est rappelé que si le nom l'a remplacé ; l'opacité, que si elle n'est pas pleine : pas de répétition.
-    subtitle: [layer.name === undefined ? null : labelOf(layer.kind), layer.opacity < 1 ? `${Math.round(layer.opacity * 100)} %` : null].filter((part) => part !== null).join(' · '),
+    subtitle: [layer.name === undefined ? null : labelOf(layer.kind), isGroup(layer) ? membersLabel(membersOf(scene.layers, layer.id).length) : null, layer.opacity < 1 ? `${Math.round(layer.opacity * 100)} %` : null].filter((part) => part !== null).join(' · '),
     kind: layer.kind,
     kindLabel: labelOf(layer.kind),
     identity: isIdentityKind(layer.kind),
@@ -49,9 +60,19 @@ export function layerRows(scene, { selection, solo, labelOf }) {
     selected: selection.includes(layer.id),
     solo: solo === layer.id,
     dimmed: solo !== null && solo !== layer.id,
+    depth: /** @type {0 | 1} */ (layer.group === undefined ? 0 : 1),
+    group: isGroup(layer),
+    owner: layer.group ?? null,
+    collapsed: collapsed.has(layer.id),
+    members: isGroup(layer) ? membersOf(scene.layers, layer.id).length : 0,
+    hiddenByGroup: layer.group !== undefined && owners.get(layer.group)?.visible === false,
+    lockedByGroup: layer.group !== undefined && owners.get(layer.group)?.locked === true,
   }));
   return rows.reverse();
 }
+
+/** @param {number} count */
+const membersLabel = (count) => `${count} couche${count > 1 ? 's' : ''}`;
 
 /**
  * La jauge de charge : nombre de couches, borne, et un niveau (`ok`, `warn` dès 6, `full` à la borne).
@@ -59,7 +80,8 @@ export function layerRows(scene, { selection, solo, labelOf }) {
  * @returns {{ count: number, max: number, level: 'ok' | 'warn' | 'full', label: string, hint: string }}
  */
 export function loadGauge(scene) {
-  const count = scene.layers.length;
+  // What draws counts: a group is only a container.
+  const count = scene.layers.filter((layer) => !isGroup(layer)).length;
   const level = count >= MAX_LAYERS ? 'full' : count >= LOAD_WARNING_LAYERS ? 'warn' : 'ok';
   return {
     count,
@@ -75,24 +97,22 @@ export function loadGauge(scene) {
 }
 
 /**
- * Où déposer des couches glissées : sur le bord haut ou bas d'une ligne. Rend la position `to` attendue par
- * `moveLayers` — ou `null` quand le dépôt n'a pas de sens (sur une des couches déplacées, ou entre familles : un effet
- * ne se range pas parmi les couches d'identité).
+ * Where to drop dragged layers, from the edge of the row they are over. The list shows the stack from front to back: the top edge of a row is right in front of its layer.
+ * Over the bottom edge of an expanded group row, the layers go into the group, at its front ; everywhere else, beside the row.
+ * `null` when the drop makes no sense: onto a dragged layer, into the identity layers, a group into a group (it then goes behind the group instead).
  * @param {SceneDoc} scene
- * @param {readonly string[]} movingIds couches glissées
- * @param {string} overId la ligne survolée
- * @param {'top' | 'bottom'} edge bord de cette ligne, tel qu'affiché (la liste va du dessus vers le dessous)
- * @returns {{ to: number } | null}
+ * @param {readonly string[]} movingIds the dragged layers
+ * @param {string} overId the row under the pointer
+ * @param {'top' | 'bottom'} edge the edge of that row, as displayed
+ * @param {ReadonlySet<string>} [collapsed] the groups shown collapsed
+ * @returns {import('../layer-group.js').DropTarget | null}
  */
-export function dropPosition(scene, movingIds, overId, edge) {
-  const first = scene.layers.find((layer) => movingIds.includes(layer.id));
-  if (first === undefined || movingIds.includes(overId)) return null;
-  const identity = isIdentityKind(first.kind);
-  const family = scene.layers.filter((layer) => isIdentityKind(layer.kind) === identity);
-  if (movingIds.some((id) => !family.some((layer) => layer.id === id))) return null;
-  const staying = family.filter((layer) => !movingIds.includes(layer.id));
-  const anchor = staying.findIndex((layer) => layer.id === overId);
-  if (anchor < 0) return null;
-  // Affichée du dessus vers le dessous : le bord haut d'une ligne est juste au-dessus d'elle dans la pile.
-  return { to: edge === 'top' ? anchor + 1 : anchor };
+export function dropTarget(scene, movingIds, overId, edge, collapsed = new Set()) {
+  const over = scene.layers.find((layer) => layer.id === overId);
+  if (over === undefined) return null;
+  /** @type {import('../layer-group.js').DropTarget[]} */
+  const candidates = [];
+  if (isGroup(over) && !collapsed.has(over.id) && edge === 'bottom') candidates.push({ into: over.id });
+  candidates.push({ beside: overId, side: edge === 'top' ? 'front' : 'back' });
+  return candidates.find((target) => relocateLayers(scene.layers, movingIds, target) !== null) ?? null;
 }

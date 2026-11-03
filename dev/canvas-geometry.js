@@ -64,20 +64,45 @@ export function isSelectableOnCanvas(layer, isIdentity) {
 }
 
 /**
+ * The layers that are on screen: visible, and not in a hidden group.
+ * @template {{ id: string, kind?: string, group?: string, visible: boolean }} T
+ * @param {readonly T[]} layers
+ * @returns {T[]}
+ */
+export function shownLayers(layers) {
+  const hidden = new Set(layers.filter((layer) => layer.kind === 'group' && !layer.visible).map(({ id }) => id));
+  return layers.filter((layer) => layer.visible && !(layer.group !== undefined && hidden.has(layer.group)));
+}
+
+/**
  * Les couches visibles sous un point (pixels de la source), de la plus haute à la plus basse. `layers` va du dessous au
  * dessus ; les couches d'identité (branding), montées au-dessus des effets, passent donc en premier — sauf quand elles
  * recouvrent toute la toile : elles voleraient alors chaque clic alors qu'il n'y a rien à y déplacer, on ne les vise que
- * par le panneau de couches. Une couche masquée est transparente au pointeur.
- * @param {readonly { id: string, kind: string, visible: boolean, placement: Placement }[]} layers
+ * par le panneau de couches. Une couche masquée est transparente au pointeur, ainsi que celles d'un groupe masqué.
+ * A group is reached where one of its members is, not over the empty part of its box: it comes before its members (it is above them), so a click selects the group
+ * and Alt+click goes down into its members.
+ * @param {readonly { id: string, kind: string, group?: string, visible: boolean, placement: Placement }[]} layers
  * @param {{ x: number, y: number }} point
  * @param {(kind: string) => boolean} isIdentity
  * @returns {string[]}
  */
 export function hitTestAll(layers, point, isIdentity) {
-  const ordered = [...layers.filter(({ kind }) => isIdentity(kind)).reverse(), ...layers.filter(({ kind }) => !isIdentity(kind)).reverse()];
+  const shown = shownLayers(layers);
+  const ordered = [...shown.filter(({ kind }) => isIdentity(kind)).reverse(), ...shown.filter(({ kind }) => !isIdentity(kind)).reverse()];
   return ordered
-    .filter((layer) => isSelectableOnCanvas(layer, isIdentity) && contains(toPixelRect(layer.placement), point))
+    .filter((layer) => isSelectableOnCanvas(layer, isIdentity) && reaches(shown, layer, (rect) => contains(rect, point)))
     .map(({ id }) => id);
+}
+
+/**
+ * Whether a layer is reached by a test on rectangles: its own rectangle, or for a group the rectangle of any of its members.
+ * @param {readonly { id: string, kind?: string, group?: string, placement: Placement }[]} shown
+ * @param {{ id: string, kind?: string, placement: Placement }} layer
+ * @param {(rect: Rect) => boolean} test
+ */
+function reaches(shown, layer, test) {
+  if (layer.kind !== 'group') return test(toPixelRect(layer.placement));
+  return shown.some((member) => member.group === layer.id && test(toPixelRect(member.placement)));
 }
 
 /**
@@ -92,17 +117,15 @@ export function hitTest(layers, point, isIdentity) {
 }
 
 /**
- * Les couches visibles dont le rectangle touche le rectangle de sélection.
- * @param {readonly { id: string, visible: boolean, placement: Placement }[]} layers
+ * Les couches visibles dont le rectangle touche le rectangle de sélection. A group is taken instead of its members: it is touched when one of them is.
+ * @param {readonly { id: string, kind?: string, group?: string, visible: boolean, placement: Placement }[]} layers
  * @param {Rect} marquee
  * @returns {string[]}
  */
 export function marqueeHits(layers, marquee) {
-  return layers.filter(({ visible, placement }) => {
-    if (!visible) return false;
-    const rect = toPixelRect(placement);
-    return rect.x < marquee.x + marquee.width && rect.x + rect.width > marquee.x && rect.y < marquee.y + marquee.height && rect.y + rect.height > marquee.y;
-  }).map(({ id }) => id);
+  const shown = shownLayers(layers);
+  const touches = (/** @type {Rect} */ rect) => rect.x < marquee.x + marquee.width && rect.x + rect.width > marquee.x && rect.y < marquee.y + marquee.height && rect.y + rect.height > marquee.y;
+  return shown.filter((layer) => layer.group === undefined && reaches(shown, layer, touches)).map(({ id }) => id);
 }
 
 /**

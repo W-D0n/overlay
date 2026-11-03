@@ -29,7 +29,7 @@
 import { MAX_LAYERS, canonicalSceneDoc, createLayer, validateSceneDoc, withoutLook } from '../scene-doc.js';
 import { animationFits } from '../layer-animation.js';
 import {
-  MAX_GROUPS, blockRange, boundingBox, dissolveEmptyGroups, groupLayers, isGroup, membersOf, reorderItems, resizeGroup, selectionRoots, topLevelBlocks, ungroupLayers, withMembers,
+  MAX_GROUPS, blockRange, boundingBox, dissolveEmptyGroups, groupLayers, isGroup, membersOf, relocateLayers, reorderItems, resizeGroup, selectionRoots, topLevelBlocks, ungroupLayers, withMembers,
 } from '../layer-group.js';
 import { isGroupKind, isIdentityKind, kindCapabilities, kindFamily, resolveKindId } from '../layer-kinds.js';
 
@@ -446,6 +446,21 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
       if (!accepted.ok) return accepted;
       commit('Réordonner', accepted.scene);
       return announce({ ok: true }, 'moveLayers', targets, { where });
+    },
+
+    /**
+     * Drops layers next to another layer, or into a group (a drag in the layers panel). A group moves with its members ; layers dropped next to a member join its group,
+     * dropped next to a group or a free layer they leave theirs ; a group left empty is dissolved.
+     * @param {string[]} ids
+     * @param {import('../layer-group.js').DropTarget} target
+     * @returns {Done | Refused}
+     */
+    moveLayersTo(ids, target) {
+      const targets = known(ids);
+      if (targets.length === 0) return refuse('unknown', 'aucune couche à déplacer');
+      const layers = relocateLayers(scene.layers, targets, target);
+      if (layers === null) return refuse('invalid', 'les couches ne se rangent pas à cet endroit');
+      return announce(finish(layers, 'Réordonner', undefined), 'moveLayersTo', targets, { target });
     },
 
     /**

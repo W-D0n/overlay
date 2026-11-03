@@ -191,3 +191,38 @@ describe('délégation vers la vue, la publication et les fenêtres', () => {
     expect(calls).toEqual(['zoomIn', 'zoomOut', 'fit', 'zoom100', 'toggle:snap', 'toggle:grid', 'toggle:rulers', 'toggle:safe', 'obs', 'publish', 'discard', 'changes', 'compare', 'test', 'palette', 'shortcuts', 'history', 'editHistory', 'diagnostic']);
   });
 });
+
+describe('groupes', () => {
+  const identityFirst = () => {
+    const ctx = setup();
+    ctx.editor.addLayer({ kind: 'bubble' });
+    return ctx;
+  };
+
+  test('group is unavailable without selection, with the identity layer or with a group; ungroup only when a group or a member is selected', () => {
+    const { registry, editor } = identityFirst();
+    editor.select([]);
+    expect(registry.isEnabled('edit.group')).toBe(false);
+    expect(registry.isEnabled('edit.ungroup')).toBe(false);
+    editor.select(['main', 'bubble']);
+    expect(registry.isEnabled('edit.group')).toBe(true);
+    expect(registry.isEnabled('edit.ungroup')).toBe(false);
+    editor.select(['branding']);
+    expect(registry.isEnabled('edit.group')).toBe(false);
+  });
+
+  test('running group then ungroup round-trips the scene, each in one undo step', () => {
+    const { registry, editor, studio } = identityFirst();
+    const flat = studio.state().scene.layers.map((layer) => layer.id).join();
+    editor.select(['main', 'bubble']);
+    expect(registry.run('edit.group')).toBe(true);
+    const layers = studio.state().scene.layers;
+    expect(layers.filter((layer) => layer.kind === 'group')).toHaveLength(1);
+    const groupId = layers.find((layer) => layer.kind === 'group').id;
+    expect(registry.isEnabled('edit.group')).toBe(false);
+    editor.select([groupId]);
+    expect(registry.isEnabled('edit.ungroup')).toBe(true);
+    expect(registry.run('edit.ungroup')).toBe(true);
+    expect(studio.state().scene.layers.map((layer) => layer.id).join()).toBe(flat);
+  });
+});

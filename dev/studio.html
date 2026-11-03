@@ -96,8 +96,14 @@
     .layer-row.is-selected { border-color: var(--color-gold-dim); background: rgba(200, 185, 122, .07); }
     .layer-row.is-hidden .layer-thumb, .layer-row.is-hidden .layer-text { opacity: .4; }
     .layer-row.is-dimmed { opacity: .45; }
+    .layer-row[data-depth="1"] { margin-left: var(--space-md); }
+    .layer-row.is-group .layer-title { font-weight: 600; }
+    .layer-row.is-inherited .layer-thumb, .layer-row.is-inherited .layer-text { opacity: .4; }
+    .layer-fold { visibility: hidden; padding: 0 2px; }
+    .layer-row.is-group .layer-fold { visibility: visible; }
     .layer-row.drop-top { box-shadow: 0 -2px 0 0 var(--color-gold); }
     .layer-row.drop-bottom { box-shadow: 0 2px 0 0 var(--color-gold); }
+    .layer-row.drop-into { box-shadow: inset 0 0 0 2px var(--color-gold); }
     .layer-grip { color: var(--color-text-ghost); cursor: grab; display: flex; }
     .layer-thumb { display: flex; width: 56px; height: 32px; background: var(--color-bg); border: 1px solid var(--color-rule); overflow: hidden; }
     .layer-thumb .preset-thumb { border: 0; }
@@ -1284,6 +1290,8 @@
       <div class="layers-selection-tools" role="toolbar" aria-label="Actions sur la sélection">
         <button id="layers-solo" type="button" class="layer-button" title="Isoler la couche dans l’aperçu" aria-label="Isoler la couche dans l’aperçu" disabled></button>
         <button id="layers-duplicate" type="button" class="layer-button" title="Dupliquer (Ctrl+D)" aria-label="Dupliquer" disabled></button>
+        <button id="layers-group" type="button" class="layer-button" title="Grouper (Ctrl+G)" aria-label="Grouper" disabled></button>
+        <button id="layers-ungroup" type="button" class="layer-button" title="Dégrouper (Ctrl+Maj+G)" aria-label="Dégrouper" disabled></button>
         <button id="layers-remove" type="button" class="layer-button" title="Supprimer (Suppr)" aria-label="Supprimer" disabled></button>
         <span class="layers-tools-gap"></span>
         <button id="layers-up" type="button" class="layer-button" title="Monter (Alt+↑)" aria-label="Monter" disabled></button>

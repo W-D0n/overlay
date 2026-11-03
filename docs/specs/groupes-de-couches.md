@@ -5,7 +5,7 @@ updated: 2026-11-03
 
 # Spec — Groupes de couches
 
-Statut : **décidée, en cours** (phases 1 à 3 livrées : le modèle pur, le moteur et l'éditeur ; plus de 110 défauts réinjectés tous vus rouges). Décision de l'owner du 2026-11-03 : « groupes complets », pas un simple dossier. Un groupe se comporte comme **une couche** : il a son opacité, sa fusion,
+Statut : **décidée, en cours** (phases 1 à 4 livrées : le modèle pur, le moteur, l'éditeur, puis le panneau, la toile et les commandes ; plus de 120 défauts réinjectés tous vus rouges, essais de bout en bout 807/807). Décision de l'owner du 2026-11-03 : « groupes complets », pas un simple dossier. Un groupe se comporte comme **une couche** : il a son opacité, sa fusion,
 sa rotation, son flou, ses filtres, sa timeline, ses liaisons et ses animations d'entrée, de boucle et de sortie, appliqués **à l'ensemble** de ses couches, rendues ensemble.
 
 ## 1. Le modèle
