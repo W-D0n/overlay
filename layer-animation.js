@@ -311,6 +311,34 @@ function exitStart(exit, leftAtMs) {
 }
 
 /**
+ * Where the entry and the exit stand at an instant: the presence of the layer (0 invisible, 1 at rest) and how far the exit has gone.
+ * An exit that starts during the entry leaves from the presence reached.
+ * @param {Animation} animation @param {number} elapsedMs @param {number | null} leftAtMs
+ * @returns {{ arrival: number, departure: number, leavingNow: boolean, entering: Preset | undefined, leaving: Preset | undefined }}
+ */
+function phasesAt({ enter, exit }, elapsedMs, leftAtMs) {
+  const entering = enter === undefined ? undefined : presetOf(enter.preset);
+  const leaving = exit === undefined ? undefined : presetOf(exit.preset);
+  const leaveAt = exit === undefined ? null : exitStart(exit, leftAtMs);
+  const arrival = enter === undefined || entering === undefined ? 1 : progress(Math.min(elapsedMs, leaveAt ?? Infinity), enter.delayMs ?? 0, enter.durationMs, enter.ease ?? entering.ease);
+  const leavingNow = exit !== undefined && leaving !== undefined && leaveAt !== null && elapsedMs >= leaveAt;
+  const departure = leavingNow ? progress(elapsedMs, leaveAt, exit.durationMs, exit.ease ?? leaving.ease) : 0;
+  return { arrival, departure, leavingNow, entering, leaving };
+}
+
+/**
+ * The content reveals at the entry and withdraws at the exit when one of the two is a content preset; the other phase leaves it whole.
+ * @param {{ arrival: number, departure: number, leavingNow: boolean, entering: Preset | undefined, leaving: Preset | undefined }} phases
+ * @returns {ContentState | null}
+ */
+function contentAt({ arrival, departure, leavingNow, entering, leaving }) {
+  const contentEntering = entering?.content !== undefined;
+  const contentLeaving = leavingNow && leaving?.content !== undefined;
+  const style = contentLeaving ? leaving?.content : contentEntering ? entering?.content : leaving?.content;
+  return style === undefined ? null : { ...style, presence: (contentEntering ? arrival : 1) * (contentLeaving ? 1 - departure : 1) };
+}
+
+/**
  * L'état de l'animation d'une couche à un instant de son horloge.
  * @param {Animation | undefined} animation
  * @param {number} elapsedMs le temps écoulé depuis le démarrage (ou la relance) de l'horloge de la couche
@@ -320,30 +348,15 @@ function exitStart(exit, leftAtMs) {
  */
 export function evaluateAnimation(animation, elapsedMs, leftAtMs = null) {
   if (animation === undefined) return { pose: rest(), gone: false, content: null };
-  const { enter, loop, exit } = animation;
-  const entering = enter === undefined ? undefined : presetOf(enter.preset);
-  const leaving = exit === undefined ? undefined : presetOf(exit.preset);
-
-  const delay = enter?.delayMs ?? 0;
-  const enterEnd = enter === undefined ? 0 : delay + enter.durationMs;
-  const leaveAt = exit === undefined ? null : exitStart(exit, leftAtMs);
-
-  // Présence : 0 invisible, 1 au repos. Une sortie qui démarre pendant l'entrée part de la présence atteinte.
-  const arrival = enter === undefined || entering === undefined ? 1 : progress(Math.min(elapsedMs, leaveAt ?? Infinity), delay, enter.durationMs, enter.ease ?? entering.ease);
-  const leavingNow = exit !== undefined && leaving !== undefined && leaveAt !== null && elapsedMs >= leaveAt;
-  const departure = leavingNow ? progress(elapsedMs, leaveAt, exit.durationMs, exit.ease ?? leaving.ease) : 0;
+  const phases = phasesAt(animation, elapsedMs, leftAtMs);
+  const { arrival, departure, leavingNow, entering, leaving } = phases;
   const presence = arrival * (1 - departure);
-
   const gone = leavingNow && departure >= 1;
-  const base = leavingNow ? leaving.pose(presence) : entering === undefined ? rest() : entering.pose(presence);
+  const base = leavingNow && leaving !== undefined ? leaving.pose(presence) : entering === undefined ? rest() : entering.pose(presence);
+  const content = contentAt(phases);
 
-  // Le contenu se dévoile à l'entrée et se retire à la sortie quand l'un des deux est un préréglage de contenu ; l'autre phase le laisse entier.
-  const contentEntering = entering?.content !== undefined;
-  const contentLeaving = leavingNow && leaving?.content !== undefined;
-  const style = contentLeaving ? leaving?.content : contentEntering ? entering?.content : leaving?.content;
-  /** @type {ContentState | null} */
-  const content = style === undefined ? null : { ...style, presence: (contentEntering ? arrival : 1) * (contentLeaving ? 1 - departure : 1) };
-
+  const { enter, loop } = animation;
+  const enterEnd = enter === undefined ? 0 : (enter.delayMs ?? 0) + enter.durationMs;
   const spinner = loop === undefined ? undefined : loopOf(loop.preset);
   if (loop === undefined || spinner === undefined || elapsedMs < enterEnd) return { pose: base, gone, content };
   const looping = spinner.pose((elapsedMs - enterEnd) / loop.periodMs, loop.amount ?? DEFAULT_AMOUNT);

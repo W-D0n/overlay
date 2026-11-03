@@ -316,6 +316,20 @@ describe('composition avec les valeurs de base', () => {
   });
 });
 
+describe('évaluation : enchaînement des phases', () => {
+  test('the loop waits for the end of the delay and the entry, not only for the entry', () => {
+    const animation = { enter: enter('fade', 500, { delayMs: 200 }), loop: { preset: 'float', periodMs: 1000, amount: 1 } };
+    expect(at(animation, 600).pose.y).toBe(0);
+    expect(at(animation, 950).pose.y).not.toBe(0);
+  });
+
+  test('at the very instant the exit starts, it takes over from the entry on the presence reached', () => {
+    const animation = { enter: enter('fade', 1000, { ease: 'linear' }), exit: exit('slide-bottom', 1000, { afterMs: 400 }) };
+    expect(at(animation, 399).pose.y).toBe(0);
+    expect(at(animation, 400).pose.y).toBeCloseTo(0.6 * 12, 9);
+  });
+});
+
 describe('relance et départ', () => {
   test('une alerte relance si elle est choisie, « toute alerte » les prend toutes', () => {
     expect(restartsAnimationOn({ enter: enter(), restartOn: ['event:raid'] }, 'raid')).toBe(true);
