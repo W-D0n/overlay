@@ -24,9 +24,6 @@ void main() {
 }
 `;
 
-/** Les uniformes que tout shader reçoit. */
-export const BUILTIN_UNIFORMS = Object.freeze(['uResolution', 'uTime', 'uAudio', 'uAlert', 'uPixelScale']);
-
 /** Valeur de `uAlert` tant qu'aucune alerte n'est arrivée : assez grande pour que `exp(-uAlert)` soit nul. */
 export const NO_ALERT = 1e6;
 

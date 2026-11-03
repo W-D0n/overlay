@@ -65,13 +65,11 @@ function show(value) {
 const titleOf = (layer, labelOf) => layer.name ?? labelOf(layer.kind);
 
 /**
- * @param {Layer} before
- * @param {Layer} after
- * @param {(kind: string) => string} labelOf
- * @param {(kind: string, key: string) => string} optionLabel
+ * What changed in the identity and the visibility of a layer: its kind, name, visibility, lock and opacity.
+ * @param {Layer} before @param {Layer} after @param {(kind: string) => string} labelOf
  * @returns {string[]}
  */
-function layerDetails(before, after, labelOf, optionLabel) {
+function statusDetails(before, after, labelOf) {
   /** @type {string[]} */
   const details = [];
   if (before.kind !== after.kind) details.push(`effet : ${labelOf(before.kind)} → ${labelOf(after.kind)}`);
@@ -79,10 +77,32 @@ function layerDetails(before, after, labelOf, optionLabel) {
   if (before.visible !== after.visible) details.push(after.visible ? 'affichée' : 'masquée');
   if ((before.locked === true) !== (after.locked === true)) details.push(after.locked === true ? 'verrouillée' : 'déverrouillée');
   if (before.opacity !== after.opacity) details.push(`opacité : ${Math.round(before.opacity * 100)} % → ${Math.round(after.opacity * 100)} %`);
+  return details;
+}
+
+/**
+ * What changed in the plain look of a layer: blend, rotation, blur.
+ * @param {Layer} before @param {Layer} after
+ * @returns {string[]}
+ */
+function lookDetails(before, after) {
+  /** @type {string[]} */
+  const details = [];
   const blendLabel = (/** @type {Layer} */ layer) => BLEND_MODES.find(({ id }) => id === (layer.blend ?? 'normal'))?.label ?? layer.blend;
   if (before.blend !== after.blend) details.push(`fusion : ${blendLabel(before)} → ${blendLabel(after)}`);
   if ((before.rotation ?? 0) !== (after.rotation ?? 0)) details.push(`rotation : ${before.rotation ?? 0}° → ${after.rotation ?? 0}°`);
   if ((before.blur ?? 0) !== (after.blur ?? 0)) details.push(`flou : ${before.blur ?? 0} px → ${after.blur ?? 0} px`);
+  return details;
+}
+
+/**
+ * What changed in what makes a layer move or react: timeline, presets, filters, mask, bindings.
+ * @param {Layer} before @param {Layer} after
+ * @returns {string[]}
+ */
+function motionDetails(before, after) {
+  /** @type {string[]} */
+  const details = [];
   if (stable(before.timeline) !== stable(after.timeline)) {
     const keys = (/** @type {Layer} */ layer) => (layer.timeline ?? []).reduce((total, track) => total + track.keys.length, 0);
     details.push(`animation : ${keys(before)} → ${keys(after)} images clés`);
@@ -94,6 +114,17 @@ function layerDetails(before, after, labelOf, optionLabel) {
     const count = (/** @type {Layer} */ layer) => layer.bindings?.length ?? 0;
     details.push(`liaisons : ${count(before)} → ${count(after)}`);
   }
+  return details;
+}
+
+/**
+ * What changed in the geometry of a layer: its crop and its placement, in percent of the canvas.
+ * @param {Layer} before @param {Layer} after
+ * @returns {string[]}
+ */
+function geometryDetails(before, after) {
+  /** @type {string[]} */
+  const details = [];
   for (const side of CROP_SIDES) {
     const a = Math.round((before.crop?.[side] ?? 0) * 1000) / 10;
     const b = Math.round((after.crop?.[side] ?? 0) * 1000) / 10;
@@ -105,12 +136,41 @@ function layerDetails(before, after, labelOf, optionLabel) {
     const b = toDisplay(key, after.placement[key], 'percent');
     if (a !== b) details.push(`${labels[key]} : ${a} % → ${b} %`);
   }
+  return details;
+}
+
+/**
+ * What changed in the settings of the effect, option by option.
+ * @param {Layer} before @param {Layer} after @param {(kind: string, key: string) => string} optionLabel
+ * @returns {string[]}
+ */
+function optionDetails(before, after, optionLabel) {
+  /** @type {string[]} */
+  const details = [];
   const keys = [...new Set([...Object.keys(before.options), ...Object.keys(after.options)])].sort();
   for (const key of keys) {
     if (stable(before.options[key]) === stable(after.options[key])) continue;
     details.push(`${optionLabel(after.kind, key)} : ${show(before.options[key])} → ${show(after.options[key])}`);
   }
   return details;
+}
+
+/**
+ * Everything that changed in a layer, in a fixed order: identity, look, motion, geometry, settings.
+ * @param {Layer} before
+ * @param {Layer} after
+ * @param {(kind: string) => string} labelOf
+ * @param {(kind: string, key: string) => string} optionLabel
+ * @returns {string[]}
+ */
+function layerDetails(before, after, labelOf, optionLabel) {
+  return [
+    ...statusDetails(before, after, labelOf),
+    ...lookDetails(before, after),
+    ...motionDetails(before, after),
+    ...geometryDetails(before, after),
+    ...optionDetails(before, after, optionLabel),
+  ];
 }
 
 /**

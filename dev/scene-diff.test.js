@@ -36,6 +36,26 @@ describe('couche modifiée', () => {
     expect(diff([L('a', 'rain', { mask: ellipse })], [L('a')])[0].details).toEqual(['masque : ellipse → aucun']);
   });
 
+  test('the details come in a fixed order: identity, look, motion, geometry, then settings', () => {
+    const before = L('a', 'rain', { options: { speed: 1 } });
+    const after = L('a', 'bubble', {
+      name: 'Autre',
+      visible: false,
+      opacity: 0.5,
+      blend: 'screen',
+      blur: 2,
+      filters: { hue: 30 },
+      crop: { left: 0.1 },
+      placement: { x: 0.25, y: 0, width: 1, height: 1 },
+      options: { speed: 2 },
+    });
+    const details = diff([before], [after])[0].details;
+    const index = (start) => details.findIndex((entry) => entry.startsWith(start));
+    const order = ['effet', 'nom', 'masquée', 'opacité', 'fusion', 'flou', 'filtres', 'rognage', 'X', 'réglage speed'].map(index);
+    expect(order.every((position) => position >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((x, y) => x - y));
+  });
+
   test('position et taille, en pourcentage de la toile', () => {
     const [change] = diff([L('a')], [L('a', 'rain', { placement: { x: 0.25, y: 0, width: 0.5, height: 1 } })]);
     expect(change.details).toEqual(['X : 0 % → 25 %', 'largeur : 100 % → 50 %']);

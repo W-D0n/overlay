@@ -819,21 +819,26 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
   }
 }
 
+/** How the history words a patch of a single key: a function of the subject ("la couche", "3 couches"). @type {Readonly<Record<string, (subject: string) => string>>} */
+const PATCH_LABELS = Object.freeze({
+  visible: (subject) => `Afficher ou masquer ${subject}`,
+  locked: (subject) => `Verrouiller ou déverrouiller ${subject}`,
+  opacity: (subject) => `Opacité de ${subject}`,
+  blend: (subject) => `Fusion de ${subject}`,
+  rotation: (subject) => `Rotation de ${subject}`,
+  crop: (subject) => `Rognage de ${subject}`,
+  blur: (subject) => `Flou de ${subject}`,
+  bindings: (subject) => `Liaisons de ${subject}`,
+  timeline: (subject) => `Animation de ${subject}`,
+  animation: (subject) => `Entrée, boucle et sortie de ${subject}`,
+  filters: (subject) => `Filtres de ${subject}`,
+  mask: (subject) => `Masque de ${subject}`,
+  name: () => 'Renommer une couche',
+});
+
 /** @param {string[]} keys @param {number} count */
 function describePatch(keys, count) {
   const subject = count === 1 ? 'la couche' : `${count} couches`;
-  if (keys.length === 1 && keys[0] === 'visible') return `Afficher ou masquer ${subject}`;
-  if (keys.length === 1 && keys[0] === 'locked') return `Verrouiller ou déverrouiller ${subject}`;
-  if (keys.length === 1 && keys[0] === 'opacity') return `Opacité de ${subject}`;
-  if (keys.length === 1 && keys[0] === 'blend') return `Fusion de ${subject}`;
-  if (keys.length === 1 && keys[0] === 'rotation') return `Rotation de ${subject}`;
-  if (keys.length === 1 && keys[0] === 'crop') return `Rognage de ${subject}`;
-  if (keys.length === 1 && keys[0] === 'blur') return `Flou de ${subject}`;
-  if (keys.length === 1 && keys[0] === 'bindings') return `Liaisons de ${subject}`;
-  if (keys.length === 1 && keys[0] === 'timeline') return `Animation de ${subject}`;
-  if (keys.length === 1 && keys[0] === 'animation') return `Entrée, boucle et sortie de ${subject}`;
-  if (keys.length === 1 && keys[0] === 'filters') return `Filtres de ${subject}`;
-  if (keys.length === 1 && keys[0] === 'mask') return `Masque de ${subject}`;
-  if (keys.length === 1 && keys[0] === 'name') return 'Renommer une couche';
-  return `Régler ${subject}`;
+  const label = keys.length === 1 && Object.hasOwn(PATCH_LABELS, keys[0]) ? PATCH_LABELS[keys[0]] : undefined;
+  return label === undefined ? `Régler ${subject}` : label(subject);
 }

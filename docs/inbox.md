@@ -107,7 +107,7 @@ Ordre = recommandation.
    ① UX/UI : parcourir chaque surface du Studio (panneaux, inspecteur, timeline, toile, dialogues, palette, états vides, erreurs, clavier, lecteur d'écran, petits écrans) et corriger / enrichir ce qui frotte ;
    ② revue de code de tout le dépôt (standards du projet, spec contre code, doublons, dette de `dev/typecheck-baseline.json`, fichiers trop gros, noms, tests faibles) ;
    ③ refactorisation des modules qui ont grossi (`dev/scene-editor.js`, `scene-runtime.js`, `dev/layers-panel-controller.js`…) sans changer le comportement : chaque étape garde `bun test`, le typage et `bun dev/e2e/run.js` verts, et les gardes (défauts réinjectés) prouvent que rien n'a bougé.
-   À cadrer au démarrage par un inventaire mesuré (taille et complexité par fichier, couverture des gardes) plutôt qu'à l'impression.
+   **Cadrée et commencée le 2026-11-03** : inventaire mesuré, lots et avancement dans `docs/revue-finale.md` (lot 1 fait ; lots 2 à 5 à faire).
 
 ---
 
