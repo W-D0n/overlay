@@ -784,6 +784,9 @@
     .tpl-head { display: flex; align-items: baseline; gap: var(--space-sm); }
     .tpl-summary { color: var(--color-text-dim); }
     .tpl-actions { display: flex; align-items: center; gap: var(--space-sm); }
+    .tpl-section { margin: var(--space-md) var(--space-lg) var(--space-xs); font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--color-gold); }
+    .tpl-category { list-style: none; margin: var(--space-sm) 0 2px; color: var(--color-text-dim); font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; }
+    #templates-search { margin: 0 var(--space-lg) var(--space-sm); width: calc(100% - 2 * var(--space-lg)); box-sizing: border-box; }
     .edit-list { display: flex; flex-direction: column; gap: 2px; }
     .edit-row { display: flex; flex-direction: column; gap: 2px; padding: var(--space-sm); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
     .edit-row[data-state="current"] { border-color: var(--color-accent, var(--color-text-primary)); }
@@ -991,8 +994,13 @@
       <button id="templates-save" type="button" disabled>Enregistrer la sélection</button>
       <span id="templates-error" class="tpl-error" role="status" aria-live="polite"></span>
     </div>
+    <h3 class="tpl-section">Mes modèles</h3>
     <p id="templates-empty" class="hint">Aucun modèle. Sélectionnez des couches, donnez un nom, puis enregistrez : le modèle s’insère ensuite dans n’importe quelle scène.</p>
     <ul id="templates-list" class="diagnostic-list"></ul>
+    <h3 class="tpl-section">Bibliothèque</h3>
+    <input id="templates-search" type="search" autocomplete="off" placeholder="Chercher dans la bibliothèque (titre, alerte, néon…)" aria-label="Chercher dans la bibliothèque de modèles">
+    <p id="templates-library-empty" class="hint" hidden>Aucun modèle de la bibliothèque ne correspond.</p>
+    <ul id="templates-library" class="diagnostic-list"></ul>
   </dialog>
 
   <div id="context-menu" class="context-menu" role="menu" aria-label="Actions sur la couche" hidden></div>

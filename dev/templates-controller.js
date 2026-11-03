@@ -6,13 +6,14 @@
  */
 import { layersToCopy } from '../layer-group.js';
 import { isIdentityKind } from '../layer-kinds.js';
+import { libraryByCategory, searchLibrary } from './builtin-layer-templates.js';
 import { createTemplate, describeTemplate, templateNameError } from './layer-templates.js';
 
 /**
  * @param {{
  *   elements: {
  *     dialog: HTMLDialogElement, name: HTMLInputElement, save: HTMLButtonElement, error: HTMLElement,
- *     list: HTMLElement, empty: HTMLElement, close: HTMLButtonElement,
+ *     list: HTMLElement, empty: HTMLElement, close: HTMLButtonElement, search: HTMLInputElement, library: HTMLElement, libraryEmpty: HTMLElement,
  *   },
  *   settings: {
  *     getTemplates(): import('./studio-settings.js').StoredTemplate[],
@@ -55,6 +56,69 @@ export function createTemplatesController(input) {
     el.textContent = label;
     el.dataset.action = action;
     return el;
+  }
+
+  /**
+   * Inserts a template in the scene, one history step. An identity layer (branding) is unique in the scene: if it is already there, the template goes in without it.
+   * @param {string} name @param {readonly import('../scene-doc.js').Layer[]} templateLayers
+   */
+  function insertTemplate(name, templateLayers) {
+    const present = new Set(editor.state().scene.layers.map((layer) => layer.kind));
+    const layers = templateLayers.filter((layer) => !(isIdentityKind(layer.kind) && present.has(layer.kind)));
+    const skipped = templateLayers.length - layers.length;
+    const result = editor.insertLayers(layers, `Insérer le modèle « ${name} »`);
+    if (result.ok) {
+      elements.dialog.close();
+      input.report.ok(`modèle « ${name} » inséré${skipped > 0 ? ` (${skipped} couche d’identité déjà présente, ignorée)` : ''}`);
+    } else {
+      input.report.error(`modèle « ${name} » : ${result.message}`);
+    }
+  }
+
+  /** The library shipped with the Studio: searchable, by category; a template is inserted as is, or copied to the owner templates to be edited and renamed. */
+  function renderLibrary() {
+    const found = searchLibrary(elements.search.value);
+    elements.libraryEmpty.hidden = found.length > 0;
+    elements.library.replaceChildren(...libraryByCategory(found).flatMap(({ category, templates }) => {
+      const heading = documentRef.createElement('li');
+      heading.className = 'tpl-category';
+      heading.setAttribute('role', 'presentation');
+      heading.textContent = category;
+      return [heading, ...templates.map((template) => {
+        const item = documentRef.createElement('li');
+        item.className = 'tpl-card';
+        item.dataset.id = template.id;
+        const title = documentRef.createElement('strong');
+        title.textContent = template.name;
+        const head = documentRef.createElement('div');
+        head.className = 'tpl-head';
+        head.appendChild(title);
+        const summary = documentRef.createElement('div');
+        summary.className = 'tpl-summary';
+        summary.textContent = `${template.description} (${describeTemplate(template, input.labelOf)})`;
+        const actions = documentRef.createElement('span');
+        actions.className = 'tpl-actions';
+        const insert = button('Insérer', 'insert');
+        insert.addEventListener('click', () => insertTemplate(template.name, template.layers));
+        const copy = button('Copier dans mes modèles', 'copy');
+        copy.addEventListener('click', () => {
+          const mine = settings.getTemplates();
+          let name = template.name;
+          for (let n = 2; templateNameError(name, mine) !== null && n < 100; n += 1) name = `${template.name} (${n})`;
+          const result = createTemplate(name, template.layers, mine);
+          if (!result.ok) {
+            input.report.error(result.error);
+            return;
+          }
+          settings.setTemplates([...mine, result.template]);
+          input.report.ok(`« ${result.template.name} » copié dans vos modèles`);
+          render();
+        });
+        actions.append(insert, copy);
+        item.append(head, summary, actions);
+        return item;
+      })];
+    }));
   }
 
   function renderList() {
@@ -125,19 +189,7 @@ export function createTemplatesController(input) {
         actions.append(ask, yes, no);
       } else {
         const insert = button('Insérer', 'insert');
-        insert.addEventListener('click', () => {
-          // Une couche d'identité (branding) est unique dans la scène : si elle y est déjà, le modèle s'insère sans elle.
-          const present = new Set(editor.state().scene.layers.map((layer) => layer.kind));
-          const layers = template.layers.filter((layer) => !(isIdentityKind(layer.kind) && present.has(layer.kind)));
-          const skipped = template.layers.length - layers.length;
-          const result = editor.insertLayers(layers, `Insérer le modèle « ${template.name} »`);
-          if (result.ok) {
-            elements.dialog.close();
-            input.report.ok(`modèle « ${template.name} » inséré${skipped > 0 ? ` (${skipped} couche d’identité déjà présente, ignorée)` : ''}`);
-          } else {
-            input.report.error(`modèle « ${template.name} » : ${result.message}`);
-          }
-        });
+        insert.addEventListener('click', () => insertTemplate(template.name, template.layers));
         const rename = button('Renommer', 'rename');
         rename.addEventListener('click', () => { editing = { id: template.id, mode: 'rename' }; renderList(); });
         const remove = button('Supprimer', 'remove');
@@ -152,7 +204,10 @@ export function createTemplatesController(input) {
   function render() {
     renderSave();
     renderList();
+    renderLibrary();
   }
+
+  elements.search.addEventListener('input', renderLibrary);
 
   elements.name.addEventListener('input', renderSave);
   elements.name.addEventListener('keydown', (event) => {

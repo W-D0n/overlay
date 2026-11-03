@@ -262,6 +262,8 @@ Pour réutiliser un ensemble de couches (réglages, opacités et placements comp
 2. « Enregistrer la sélection comme modèle… », donnez un nom ;
 3. dans une autre scène, « Modèles de couches… » → **Insérer** (un seul pas d'historique).
 
+**La bibliothèque** (même fenêtre, sous « Mes modèles ») propose des modèles prêts à l'emploi, rangés par catégorie et cherchables : titre et sous-titre, bandeau d'identité, alertes follow et raid (le panneau rebondit à chaque alerte reçue, reste quelques secondes puis disparaît), panneau « Je reviens », titre néon dont la lueur pulse avec le son, phrase à la machine à écrire, cadre doré. **Insérer** les pose dans la scène (un seul pas d'historique, groupe compris) ; **Copier dans mes modèles** en garde un exemplaire que vous pouvez renommer et supprimer.
+
 Les modèles sont rangés **sur le serveur** : ils suivent d'un navigateur à l'application de bureau. Une couche
 d'identité déjà présente dans la scène est ignorée à l'insertion (et l'insertion le dit).
 
