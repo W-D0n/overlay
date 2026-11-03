@@ -24,6 +24,7 @@ import { isEffectivelyLocked, isEffectivelyVisible, selectionRoots, withMembers 
 import {
   HANDLES, HANDLE_CURSORS, fromPixelRect, handlePoints, hitTestAll, isSelectableOnCanvas, marqueeHits, moveRect, rectBetween, resizeRect, scaleRectsWithin, toPixelRect, unionRect,
 } from './canvas-geometry.js';
+import { canvasKeyAction } from './canvas-keys.js';
 import { collectTargets, snapMove, snapResize } from './canvas-snapping.js';
 import { screenToSource, sourceToScreen } from './view-transform.js';
 
@@ -420,37 +421,39 @@ export function createCanvasOverlayController(input) {
     }
     if (!overlay.contains(/** @type {Node} */ (event.target))) return;
     const chosen = selection();
-    const step = event.shiftKey ? 10 : 1;
-    const arrows = /** @type {Record<string, [number, number]>} */ ({ ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] });
-    if (arrows[event.key] !== undefined) {
-      event.preventDefault();
-      const movable = movableSelected();
-      if (movable.length === 0) return;
-      const [dx, dy] = arrows[event.key];
-      commit(Object.fromEntries(movable.map((layer) => { const rect = toPixelRect(layer.placement); return [layer.id, { ...rect, x: rect.x + dx, y: rect.y + dy }]; })), 'Déplacer', `nudge:${movable.map((l) => l.id).join(',')}`);
-    } else if ((event.key === 'Delete' || event.key === 'Backspace') && chosen.length > 0) {
-      event.preventDefault();
-      const result = editor.removeLayers([...chosen]);
-      if (!result.ok) input.report.error(result.message);
-    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd' && chosen.length > 0) {
-      event.preventDefault();
-      const result = editor.duplicateLayers([...chosen]);
-      if (!result.ok) input.report.error(result.message);
-    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
-      event.preventDefault();
-      editor.selectAll();
-    } else if (event.key === 'Escape') {
-      editor.clearSelection();
-    } else if (event.key === '+' || event.key === '=') {
-      stage.stepZoom(1);
-    } else if (event.key === '-') {
-      stage.stepZoom(-1);
-    } else if (event.key === '0') {
-      stage.fit();
-    } else if (event.key === '1') {
-      stage.setScale(1);
+    const action = canvasKeyAction(event, chosen.length > 0);
+    if (action === null) return;
+    if (action.prevent) event.preventDefault();
+    runKeyAction(action, chosen);
+  }
+
+  /** @param {import('./canvas-keys.js').CanvasKeyAction} action @param {string[]} chosen */
+  function runKeyAction(action, chosen) {
+    switch (action.type) {
+      case 'nudge': nudgeSelection(action.dx, action.dy); break;
+      case 'remove': reportFailure(editor.removeLayers([...chosen])); break;
+      case 'duplicate': reportFailure(editor.duplicateLayers([...chosen])); break;
+      case 'select-all': editor.selectAll(); break;
+      case 'clear-selection': editor.clearSelection(); break;
+      case 'zoom-in': stage.stepZoom(1); break;
+      case 'zoom-out': stage.stepZoom(-1); break;
+      case 'fit': stage.fit(); break;
+      case 'actual-size': stage.setScale(1); break;
     }
   }
+
+  /** @param {number} dx @param {number} dy */
+  function nudgeSelection(dx, dy) {
+    const movable = movableSelected();
+    if (movable.length === 0) return;
+    commit(Object.fromEntries(movable.map((layer) => { const rect = toPixelRect(layer.placement); return [layer.id, { ...rect, x: rect.x + dx, y: rect.y + dy }]; })), 'Déplacer', `nudge:${movable.map((l) => l.id).join(',')}`);
+  }
+
+  /** @param {{ ok: boolean, message?: string }} result */
+  function reportFailure(result) {
+    if (!result.ok) input.report.error(result.message ?? '');
+  }
+
   /** @param {KeyboardEvent} event */
   function onKeyUp(event) {
     if (event.key !== ' ') return;

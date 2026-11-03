@@ -165,5 +165,35 @@ export async function run({ page, stack, check, errors }) {
   const refit = await frame();
   check('la touche 0 ajuste de nouveau la vue', Math.abs(refit.scale - fitFrame.scale) < 1e-6);
 
+  await page.press('1');
+  check('the 1 key shows the canvas at full size', Math.abs((await frame()).scale - 1) < 1e-6);
+  await page.press('0');
+  await page.press('=');
+  const zoomedIn = (await frame()).scale;
+  check('the = key zooms in', zoomedIn > refit.scale * 1.05);
+  await page.press('-');
+  check('the - key zooms out', (await frame()).scale < zoomedIn - 1e-6);
+
+  // Keyboard: select all, clear, duplicate, delete.
+  const rowsBefore = (await layerRows(page)).length;
+  await page.press('Control+a');
+  check('Ctrl+A selects every layer', (await layerRows(page)).every((/** @type {*} */ row) => row.selected));
+  await page.press('Escape');
+  check('Escape clears the selection', (await selectedTitles()) === '');
+  await page.click(layerRow(1));
+  await page.focus('#canvas-overlay');
+  await page.press('Control+d');
+  await page.sleep(100);
+  check('Ctrl+D duplicates the selected layer', (await layerRows(page)).length === rowsBefore + 1);
+  await page.press('Delete');
+  await page.sleep(100);
+  check('Delete removes the selected layers', (await layerRows(page)).length === rowsBefore);
+
+  // The page's own reaction to the keys the canvas owns is cancelled (scroll, bookmark, select-all), and left alone for the others.
+  const prevented = (/** @type {string} */ key, /** @type {object} */ init = {}) => page.evaluate(`(() => { const e = new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true, cancelable: true, ...${JSON.stringify(init)} }); document.getElementById('canvas-overlay').dispatchEvent(e); return e.defaultPrevented; })()`);
+  await page.click(layerRow(1));
+  check('the arrows and Ctrl+A/D cancel the browser reaction', (await prevented('ArrowLeft')) === true && (await prevented('a', { ctrlKey: true })) === true);
+  check('the zoom keys and Escape leave the browser alone', (await prevented('=')) === false && (await prevented('Escape')) === false);
+
   check('aucune erreur dans la console', errors.length === 0 ? true : errors.slice());
 }
