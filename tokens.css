@@ -22,6 +22,7 @@
   --color-gold-dim:     rgba(200, 185, 122, 0.5);  /* gold atténué */
   --color-gold-bar:     rgba(200, 185, 122, 0.85); /* barre signature */
   --color-gold-bar-bot: rgba(200, 185, 122, 0.3);  /* barre bas */
+  --color-mask:         #5F8D89;   /* outillage : masque édité sur l'aperçu (vert d'eau, distinct de l'or de la sélection) */
 
   --color-text-primary: #F2F0EC;   /* titres, valeurs */
   --color-text-mid:     #9A9890;   /* labels, secondaire */

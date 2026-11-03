@@ -170,6 +170,11 @@
     .canvas-overlay [hidden] { display: none; }
     .co-selection { position: absolute; box-sizing: border-box; border: 1px solid var(--color-gold); pointer-events: none; }
     .co-selection.is-locked { border-style: dashed; border-color: var(--color-text-mid); }
+    .co-mask { position: absolute; pointer-events: none; }
+    .co-mask-box { position: absolute; box-sizing: border-box; border: 1px dashed var(--color-mask); background: color-mix(in srgb, var(--color-mask) 8%, transparent); cursor: move; pointer-events: auto; touch-action: none; }
+    .co-mask-handle { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; box-sizing: border-box; background: var(--color-bg); border: 1px solid var(--color-mask); pointer-events: auto; touch-action: none; }
+    .co-mask-stop { position: absolute; cursor: grab; pointer-events: auto; touch-action: none; background: linear-gradient(transparent 4px, var(--color-mask) 4px, var(--color-mask) 6px, transparent 6px); }
+    .co-mask-stop.is-end { opacity: .6; }
     .co-handle { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; box-sizing: border-box; background: var(--color-bg); border: 1px solid var(--color-gold); pointer-events: auto; }
     .co-outline { position: absolute; box-sizing: border-box; border: 1px solid var(--color-gold-dim); pointer-events: none; }
     .co-outline.is-locked { border-style: dashed; }

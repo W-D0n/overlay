@@ -190,7 +190,7 @@ Le panneau **Timeline**, sous l'aperçu, fait **jouer** la scène : elle démarr
 
 ### Masquer une partie d'une couche
 
-La section **Masque** de l'inspecteur découpe ce que la couche montre — ou ce qu'un groupe entier montre : un rectangle, une ellipse (position, taille et bords adoucis en pourcentage de la couche) ou un dégradé linéaire (angle, début et fin du fondu). **Inverser** montre l'extérieur à la place. « Aucun masque » le retire. Le masque découpe aussi le halo et le flou de la couche. Exemple : une image qui s'efface vers la droite, ou un titre vu par un hublot ovale.
+La section **Masque** de l'inspecteur découpe ce que la couche montre — ou ce qu'un groupe entier montre : un rectangle, une ellipse (position, taille et bords adoucis en pourcentage de la couche) ou un dégradé linéaire (angle, début et fin du fondu). **Inverser** montre l'extérieur à la place. « Aucun masque » le retire. Le masque découpe aussi le halo et le flou de la couche. Exemple : une image qui s'efface vers la droite, ou un titre vu par un hublot ovale. **Éditer sur l'aperçu** montre le masque sur la couche : glissez la boîte, ses poignées ou, pour un dégradé, les deux lignes du fondu.
 
 ### Animer les filtres
 

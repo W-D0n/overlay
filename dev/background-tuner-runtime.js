@@ -37,6 +37,7 @@ import { createAnimationController } from './animation-controller.js';
 import { createBindingsController } from './bindings-controller.js';
 import { createFiltersController } from './filters-controller.js';
 import { createMaskController } from './mask-controller.js';
+import { createMaskHandlesController } from './mask-handles-controller.js';
 import { createVersionClient } from './version-client.js';
 import { createConnectionClient } from './connection-client.js';
 import { createSettingsController } from './settings-controller.js';
@@ -331,6 +332,15 @@ export async function startBackgroundTuner(environment = {}) {
 
   const mask = createMaskController({
     elements: { body: byId('mask-body'), hint: byId('mask-hint') },
+    studio: preview.document,
+    report,
+    documentRef,
+  });
+
+  const maskHandles = createMaskHandlesController({
+    overlay: byId('canvas-overlay'),
+    toggleHost: byId('mask-body'),
+    stage,
     studio: preview.document,
     report,
     documentRef,
