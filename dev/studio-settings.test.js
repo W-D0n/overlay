@@ -54,6 +54,14 @@ describe('modèles de couches', () => {
   const layer = (over = {}) => ({ id: 'rain', kind: 'rain', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {}, ...over });
   const template = (over = {}) => ({ id: 'tpl.pluie', name: 'Pluie', layers: [layer()], ...over });
 
+  test('a template with a group is valid, and the group does not count against the layer limit', () => {
+    const members = Array.from({ length: 8 }, (_, i) => layer({ id: `m${i}`, group: 'g' }));
+    const group = layer({ id: 'g', kind: 'group', options: {} });
+    expect(validateStudioSettings({ templates: [template({ layers: [...members, group] })] }).ok).toBe(true);
+    expect(errorsOf({ templates: [template({ layers: [...members, layer({ id: 'x' }), group] })] }).join()).toContain('couches');
+    expect(errorsOf({ templates: [template({ layers: [group] })] }).join()).toContain('couches');
+  });
+
   test('un modèle valide passe ; l’identifiant « tpl.… » est obligatoire et unique', () => {
     expect(validateStudioSettings({ templates: [template()] }).ok).toBe(true);
     expect(errorsOf({ templates: [template({ id: 'pluie' })] })[0]).toContain('tpl.');

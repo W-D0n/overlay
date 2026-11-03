@@ -246,6 +246,19 @@ Utilisez l'éditeur pour de vrais lives pendant quelque temps. Notez les moments
 
 **Me dire** : si les boucles tiennent 60 i/s, si la sortie au départ de la scène se voit en entier, si la relance par raid marche avec une vraie alerte.
 
+## 18. Groupes de couches dans OBS (coût et rendu)
+
+**Pourquoi** : les essais prouvent la structure (les couches dans l'élément du groupe) dans Chrome ; ils ne disent pas ce que coûte un groupe à opacité ou filtre dans la source navigateur d'**OBS**.
+**Hypothèses non mesurées** : un groupe de 3 à 4 couches avec une opacité ou un flou reste à 60 i/s à 1080p.
+
+1. Studio → ajoutez 3 effets, sélectionnez-les, **Grouper** (`Ctrl+G`). Publiez.
+2. Réglez l'opacité du groupe à 50 % : l'ensemble s'éclaircit d'un bloc (pas couche par couche, sans zones plus sombres là où elles se recouvrent). Ajoutez un flou ou une rotation : le groupe tourne autour du centre de ses couches.
+3. Masquez le groupe : ses trois couches disparaissent ; réaffichez-le.
+4. Ajoutez une animation d'entrée au groupe, changez de scène dans OBS et revenez : tout le groupe entre d'un bloc.
+5. Statistiques d'OBS : pas d'images ratées avec le groupe à opacité + flou.
+
+**Me dire** : si l'opacité du groupe se voit « en bloc », et si le groupe filtré tient 60 i/s.
+
 ---
 
 ## En cas de problème pendant ces essais

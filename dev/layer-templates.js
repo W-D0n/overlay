@@ -60,6 +60,8 @@ export function createTemplate(name, layers, templates) {
  * @param {(kind: string) => string} labelOf
  */
 export function describeTemplate(template, labelOf) {
-  const count = template.layers.length;
-  return `${count} couche${count > 1 ? 's' : ''} : ${template.layers.map((layer) => layer.name ?? labelOf(layer.kind)).join(', ')}`;
+  const drawn = template.layers.filter((layer) => layer.kind !== 'group');
+  const count = drawn.length;
+  const groups = template.layers.length - count;
+  return `${count} couche${count > 1 ? 's' : ''}${groups > 0 ? ` en ${groups} groupe${groups > 1 ? 's' : ''}` : ''} : ${drawn.map((layer) => layer.name ?? labelOf(layer.kind)).join(', ')}`;
 }

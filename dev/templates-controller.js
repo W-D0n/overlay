@@ -4,6 +4,7 @@
  * renommer ou supprimer un modèle. Les modèles vivent dans les réglages du Studio (serveur) : ils suivent l'utilisateur
  * d'une scène à l'autre et d'un navigateur à l'application de bureau.
  */
+import { layersToCopy } from '../layer-group.js';
 import { isIdentityKind } from '../layer-kinds.js';
 import { createTemplate, describeTemplate, templateNameError } from './layer-templates.js';
 
@@ -32,7 +33,8 @@ export function createTemplatesController(input) {
 
   const selectedLayers = () => {
     const { scene, selection } = editor.state();
-    return scene.layers.filter((layer) => selection.includes(layer.id));
+    // A group goes with its members; a member whose group is not selected becomes a free layer, so the template is a valid scene.
+    return layersToCopy(scene.layers, selection);
   };
 
   function renderSave() {
@@ -40,9 +42,10 @@ export function createTemplatesController(input) {
     const layers = selectedLayers();
     const typed = elements.name.value;
     const problem = layers.length === 0 ? 'sélectionnez au moins une couche pour en faire un modèle' : typed.trim() === '' ? null : templateNameError(typed, templates);
+    const drawn = layers.filter((layer) => layer.kind !== 'group').length;
     elements.error.textContent = problem ?? '';
     elements.save.disabled = layers.length === 0 || typed.trim() === '' || problem !== null;
-    elements.save.title = layers.length === 0 ? 'Sélectionnez au moins une couche' : `Enregistrer ${layers.length} couche${layers.length > 1 ? 's' : ''} comme modèle`;
+    elements.save.title = layers.length === 0 ? 'Sélectionnez au moins une couche' : `Enregistrer ${drawn} couche${drawn > 1 ? 's' : ''} comme modèle`;
   }
 
   /** @param {string} label @param {string} action */

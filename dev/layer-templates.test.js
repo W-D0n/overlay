@@ -49,6 +49,8 @@ describe('describeTemplate', () => {
     const { template } = createTemplate('P', [rain, bubble], []);
     expect(describeTemplate(template, (kind) => `Effet ${kind}`)).toBe('2 couches : Averse, Effet bubble');
     expect(describeTemplate(createTemplate('Q', [bubble], []).template, (k) => k)).toBe('1 couche : bubble');
+    const grouped = [{ ...bubble, id: 'm', group: 'g' }, { ...bubble, id: 'g', kind: 'group', name: undefined }];
+    expect(describeTemplate({ id: 'tpl.g', name: 'G', layers: grouped }, (k) => k)).toBe('1 couche en 1 groupe : bubble');
   });
 });
 

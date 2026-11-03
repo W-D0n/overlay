@@ -188,6 +188,17 @@ Le panneau **Timeline**, sous l'aperçu, fait **jouer** la scène : elle démarr
    et se remet à jouer, même si elle était arrivée à sa fin : un raid rejoue l'entrée du titre. Décochez tout pour que l'animation ne se joue qu'à l'arrivée de la scène.
    Cela vaut pour toute la scène (et donc aussi pour les réglages animés d'une couche Code ou Shader).
 
+### Grouper des couches
+
+Sélectionnez deux couches ou plus (hors identité) puis **Grouper** (bouton du panneau ou `Ctrl+G`) : un groupe apparaît au-dessus de ses couches, qui s'indentent dessous. Un groupe se règle comme une couche — opacité, fusion, flou, filtres, rotation, animations, timeline, liaisons — et ces réglages valent pour **l'ensemble** : une opacité de 50 % sur le groupe est appliquée une fois au tout, pas à chaque couche.
+
+- **Replier / déplier** : la flèche de la ligne du groupe (ou les flèches gauche et droite au clavier).
+- **Ranger / sortir** : glissez une couche sur la ligne d'un groupe pour l'y mettre, ou à côté d'une couche d'un groupe pour la placer dans ce groupe ; glissez-la hors du bloc pour la sortir.
+- **Sur l'aperçu** : un clic vise le groupe, **Alt+clic** descend dans la couche dessous ; déplacer ou redimensionner un groupe déplace et met à l'échelle toutes ses couches.
+- **Masquer / verrouiller** un groupe masque ou verrouille toutes ses couches.
+- **Dégrouper** (`Ctrl+Maj+G`) rend leurs couches ; supprimer un groupe supprime ses couches. Chacun est une seule étape d'annulation.
+- **Limites** : un seul niveau (pas de groupe dans un groupe), 4 groupes au plus ; un groupe ne compte pas dans les 8 couches, ses couches si. Un groupe à opacité ou filtre coûte un rendu hors écran de plus : voir la procédure d'essai dans OBS.
+
 ### Filtres d'une couche
 
 La section **Filtres** de l'inspecteur (une seule couche sélectionnée) règle la **luminosité**, le **contraste**, la **saturation** et la **teinte**, chacun avec un curseur et un nombre ; remettre la valeur neutre

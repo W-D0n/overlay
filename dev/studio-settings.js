@@ -109,7 +109,9 @@ function templatesErrors(templates) {
     else if (ids.has(template.id)) errors.push(`${where}.id : identifiant en double`);
     else ids.add(template.id);
     if (typeof template.name !== 'string' || template.name.trim() === '' || template.name.length > SETTINGS_LIMITS.nameLength) errors.push(`${where}.name : 1 à ${SETTINGS_LIMITS.nameLength} caractères attendus`);
-    if (!Array.isArray(template.layers) || template.layers.length === 0 || template.layers.length > MAX_LAYERS) {
+    // What draws counts against the limit; a group is only a container.
+    const drawn = Array.isArray(template.layers) ? template.layers.filter((layer) => layer?.kind !== 'group').length : 0;
+    if (!Array.isArray(template.layers) || drawn === 0 || drawn > MAX_LAYERS) {
       errors.push(`${where}.layers : 1 à ${MAX_LAYERS} couches attendues`);
     } else if (JSON.stringify(template.layers).length > SETTINGS_LIMITS.templateBytes) {
       errors.push(`${where} : modèle trop volumineux`);
