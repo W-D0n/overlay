@@ -335,3 +335,62 @@ export function leaveDelayMs(animation) {
   const exit = animation?.exit;
   return exit?.onLeave === true ? exit.durationMs : 0;
 }
+
+// ── Édition ─────────────────────────────────────────────────────────────────
+
+/** Les réglages d'une phase qu'on vient d'activer : une durée utilisable tout de suite. */
+const PHASE_DEFAULTS = Object.freeze({
+  enter: Object.freeze({ durationMs: 600 }),
+  loop: Object.freeze({ periodMs: 3000 }),
+  exit: Object.freeze({ durationMs: 600, onLeave: true }),
+});
+
+/** Les champs numériques facultatifs de chaque phase : vide dans l'interface = retirés du document. */
+const OPTIONAL_FIELDS = Object.freeze({ enter: ['delayMs', 'ease'], loop: ['amount'], exit: ['afterMs', 'ease'] });
+
+/**
+ * Choisit le préréglage d'une phase, ou la retire (`null`). Les réglages déjà faits (durée, retard…) sont gardés quand on change de préréglage ; une phase neuve part de valeurs utilisables
+ * (la sortie, du départ de la scène). Le résultat est canonique : sans phase, il n'y a plus d'animation (`undefined`).
+ * @param {Animation | undefined} animation
+ * @param {'enter' | 'loop' | 'exit'} phase
+ * @param {string | null} preset
+ * @returns {Animation | undefined}
+ */
+export function setPhase(animation, phase, preset) {
+  const { [phase]: current, ...others } = animation ?? {};
+  if (preset === null) return /** @type {Animation | undefined} */ (canonicalAnimation(others));
+  const next = { ...(current === undefined ? PHASE_DEFAULTS[phase] : current), preset };
+  return /** @type {Animation | undefined} */ (canonicalAnimation({ ...others, [phase]: next }));
+}
+
+/**
+ * Règle un champ d'une phase. Une valeur absente (`null`) retire un champ facultatif (retard, amplitude, instant de sortie) ; la sortie garde toujours un déclencheur (un instant ou le départ de la
+ * scène) : un réglage qui l'en priverait est ignoré. Les bornes sont celles de la forme canonique.
+ * @param {Animation | undefined} animation
+ * @param {'enter' | 'loop' | 'exit'} phase
+ * @param {string} field
+ * @param {number | boolean | string | null} value
+ * @returns {Animation | undefined}
+ */
+export function changePhase(animation, phase, field, value) {
+  const current = animation?.[phase];
+  if (animation === undefined || current === undefined) return animation;
+  const { [field]: _removed, ...rest } = /** @type {Record<string, unknown>} */ (current);
+  if (value === null && !/** @type {readonly string[]} */ (OPTIONAL_FIELDS[phase]).includes(field)) return animation;
+  const next = value === null ? rest : { ...rest, [field]: value };
+  if (phase === 'exit' && next.afterMs === undefined && next.onLeave !== true) return animation;
+  return /** @type {Animation | undefined} */ (canonicalAnimation({ ...animation, [phase]: next }));
+}
+
+/**
+ * Coche ou décoche une alerte de relance.
+ * @param {Animation | undefined} animation
+ * @param {string} source
+ * @returns {Animation | undefined}
+ */
+export function toggleRestart(animation, source) {
+  if (animation === undefined) return animation;
+  const list = animation.restartOn ?? [];
+  const next = list.includes(source) ? list.filter((id) => id !== source) : [...list, source];
+  return /** @type {Animation | undefined} */ (canonicalAnimation({ ...animation, restartOn: next }));
+}

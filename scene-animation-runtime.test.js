@@ -247,6 +247,17 @@ describe('animation de couche dans le moteur : relance par alerte, couche par co
     expect(calques[0].style.opacity).toBe('1');
   });
 
+  test("« recommencer » de la timeline rejoue aussi l'animation de chaque couche, comme à l'arrivée de la scène", () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(title(fadeIn()), logo(fadeIn())));
+    frame(0);
+    frame(2);
+    runtime.timeline.restart();
+    frame(2.5);
+    expect(calques[0].style.opacity).toBe('0.5');
+    expect(calques[1].style.opacity).toBe('0.5');
+  });
+
   test('l\'alerte relance aussi la timeline de la scène sans confondre les deux horloges', () => {
     const { runtime, frame } = setup();
     runtime.apply({ ...scene(title(fadeIn({ restartOn: ['event:raid'] }))), timeline: { durationMs: 4000, loop: 'once', restartOn: ['event:follow'] } });

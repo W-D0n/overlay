@@ -5,7 +5,7 @@ updated: 2026-11-03
 
 # Spec — Animations de couche (entrée, boucle, sortie)
 
-Statut : **en cours** — étapes 1 à 3 livrées (modèle pur `layer-animation.js` ; moteur : horloge par couche, entrée, boucle, sortie à date fixe, sortie au départ de la scène, relance par alerte couche par couche ; 93 défauts réinjectés tous vus rouges). Restent : le panneau du Studio, les préréglages de texte. Décision de l'owner du 2026-11-03 : une animation, de texte ou non, peut apparaître **n'importe quand** pour accompagner un
+Statut : **en cours** — étapes 1 à 4 livrées (modèle pur `layer-animation.js` ; moteur : horloge par couche, entrée, boucle, sortie à date fixe, sortie au départ de la scène, relance par alerte couche par couche ; panneau « Entrée, boucle, sortie » de l'inspecteur ; 118 défauts réinjectés tous vus rouges). Restent : les préréglages de texte (lettre par lettre, machine à écrire) et de forme, et la mesure dans OBS. Décision de l'owner du 2026-11-03 : une animation, de texte ou non, peut apparaître **n'importe quand** pour accompagner un
 moment du live ; chaque couche a donc **sa propre horloge** (choix B), et la sortie se règle à **date fixe** et **au départ de la scène** (options 2 et 3).
 Elle complète la timeline de scène (`timeline.md`), qui reste l'outil précis, image clé par image clé ; elle ne la remplace pas. Elle vaut pour **tous les types de couche**
 (texte, image, forme, code, shader) : les préréglages agissent sur le calque de la couche.
@@ -53,7 +53,7 @@ les changer) ; la pile est retirée après `plus longue sortie + durée de la tr
 1. Modèle pur + validation + évaluation (`layer-animation.js`), intégré à `scene-doc.js`.
 2. Moteur : horloge par couche, entrée, boucle, sortie à date fixe, relance par alerte.
 3. Sortie au départ de la scène (option 3), avec essais de bout en bout sur la durée de conservation de la pile.
-4. Panneau du Studio (liste de préréglages, durées, cases d'alertes), aperçu, annuler/rétablir.
+4. ~~Panneau du Studio~~ — **fait** (`dev/animation-controller.js`, essais `dev/e2e/suites/37-animation-couche.e2e.js`) : un préréglage par phase (ou « Aucune »), durée, retard, courbe, période, amplitude, instant de sortie, case « Quand la scène part », cases d'alertes de relance, bouton « Rejouer » (le même que « recommencer » de la timeline : il rejoue aussi les couches). Modifier une animation la rejoue ; annuler et rétablir passent par l'historique de l'éditeur.
 5. Préréglages de texte (glyphes).
 6. Formes : tracé du contour, remplissage progressif.
 

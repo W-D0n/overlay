@@ -269,6 +269,11 @@ export function createSceneRuntime(container, deps = {}) {
     entry.instance.drive(driven);
   }
 
+  /** Reprend toutes les animations de couche au début, comme à l'arrivée de la scène. */
+  function restartAnimations() {
+    for (const entry of mountedEntries()) entry.age = 0;
+  }
+
   /** Reprend la lecture au début de la scène et prévient les panneaux qui la suivent. */
   function restartPlayback() {
     playback.elapsedMs = 0;
@@ -514,8 +519,11 @@ export function createSceneRuntime(container, deps = {}) {
       state: timelineState,
       play() { playback.playing = true; },
       pause() { playback.playing = false; },
-      /** Reprend au début de la scène, comme à son arrivée. */
-      restart: restartPlayback,
+      /** Reprend au début de la scène, comme à son arrivée : la timeline et l'animation de chaque couche. */
+      restart() {
+        restartPlayback();
+        restartAnimations();
+      },
       /** @param {number} ms se place à cet instant (borné à la durée) et met la scène en pause : on regarde cette image */
       seek(ms) {
         playback.playing = false;

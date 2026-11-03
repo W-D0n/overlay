@@ -33,6 +33,7 @@ import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 import { isIdentityKind } from '../layer-kinds.js';
 import { ADDABLE_KIND_IDS, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
 import { createAssetClient } from './asset-client.js';
+import { createAnimationController } from './animation-controller.js';
 import { createBindingsController } from './bindings-controller.js';
 import { createVersionClient } from './version-client.js';
 import { createConnectionClient } from './connection-client.js';
@@ -312,6 +313,14 @@ export async function startBackgroundTuner(environment = {}) {
     report,
     documentRef,
     windowRef,
+  });
+
+  const animation = createAnimationController({
+    elements: { body: byId('animation-body'), hint: byId('animation-hint'), replay: /** @type {HTMLButtonElement} */ (byId('animation-replay')) },
+    studio: preview.document,
+    timeline: preview.timeline,
+    report,
+    documentRef,
   });
 
   const bindings = createBindingsController({

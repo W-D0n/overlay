@@ -1,6 +1,6 @@
 ---
 created: 2026-06-06
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Inbox — Overlay Stream
@@ -16,6 +16,7 @@ Notes et items qui restent à traiter. Les clôtures récentes sont consignées 
 Ce que seul l'owner peut faire (OBS, regard humain, décision). **Claude rappelle cette liste à la clôture du projet**
 (fin de l'étape 6), avant de dire que tout est terminé. **Les étapes détaillées de chaque point sont dans [`procedures-owner.md`](procedures-owner.md)** (numéros entre parenthèses).
 
+- [ ] **Animations de couche dans OBS** (2026-11-03, §17) : plusieurs boucles tiennent-elles 60 i/s ? la sortie « quand la scène part » se joue-t-elle en entier avant la transition d'arrivée ? le raid rejoue-t-il l'entrée d'une seule couche ?
 - [ ] **Couche Shader dans OBS** (2026-11-02, §16) : WebGL2 disponible ? i/s tenus et coût GPU d'un shader plein écran ? gain du mode « Quart » ?
 - [ ] **Couche Code dans OBS** (2026-11-01, §15) : WebGL2 disponible dans la source navigateur ? i/s tenus avec un cube three.js ? coût d'une page isolée (processus en plus) ? l'animation rejoue à chaque arrivée de scène ?
 - [ ] **Brancher Twitch** (2026-10-31, §1) : créer l'application Twitch (type Public), saisir son identifiant client dans Réglages › Twitch, se connecter par code. Puis premier vrai follow / sub / raid / bits.

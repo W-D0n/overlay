@@ -131,6 +131,20 @@
     .binding-number { display: flex; flex-direction: column; gap: 2px; color: var(--color-text-mid); font-size: var(--text-xs); }
     .binding-remove { justify-self: end; align-self: end; padding: 2px var(--space-sm); }
     #bindings-add { margin-right: var(--space-xs); }
+    .animation-body { display: flex; flex-direction: column; gap: var(--space-sm); margin: var(--space-sm) 0; }
+    .animation-body[hidden] { display: none; }
+    .animation-phase { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
+    .animation-choice { display: flex; align-items: center; gap: var(--space-sm); color: var(--color-text-mid); font-size: var(--text-xs); }
+    .animation-choice select { flex: 1; min-width: 0; }
+    .animation-fields { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xs); }
+    .animation-fields[hidden] { display: none; }
+    .animation-field { display: flex; flex-direction: column; gap: 2px; color: var(--color-text-mid); font-size: var(--text-xs); }
+    .animation-field select, .animation-field input[type="number"] { width: 100%; box-sizing: border-box; min-width: 0; }
+    .animation-check { flex-direction: row; align-items: center; gap: var(--space-xs); }
+    .animation-restart { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); }
+    .animation-restart[hidden] { display: none; }
+    .animation-restart-label { color: var(--color-text-mid); font-size: var(--text-xs); }
+    #animation-replay { margin-right: var(--space-xs); }
     .inspector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); margin: var(--space-sm) 0; }
     .inspector-grid label { display: flex; flex-direction: column; gap: 2px; color: var(--color-text-mid); font-size: var(--text-xs); }
     .inspector-grid input { width: 100%; box-sizing: border-box; }
@@ -1315,6 +1329,10 @@
           <label>Rogner bas (%) <input id="inspector-crop-bottom" type="number" min="0" max="90" step="0.5"></label>
           <label>Rogner gauche (%) <input id="inspector-crop-left" type="number" min="0" max="90" step="0.5"></label>
         </div>
+        <h3 class="inspector-subtitle">Entrée, boucle, sortie</h3>
+        <p id="animation-hint" class="hint"></p>
+        <div id="animation-body" class="animation-body"></div>
+        <button id="animation-replay" type="button" class="layers-add">Rejouer</button>
         <h3 class="inspector-subtitle">Animation</h3>
         <p id="bindings-hint" class="hint"></p>
         <div id="bindings-list" class="bindings-list"></div>

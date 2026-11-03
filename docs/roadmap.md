@@ -1,6 +1,6 @@
 ---
 created: 2026-07-26
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Roadmap — Overlay Stream D0n / Mozaïk
@@ -31,6 +31,7 @@ conditions réelles dans OBS (liste « À faire par l'owner » de l'inbox).
 | Incidents | Alerte quand le serveur, OBS ou la page de rendu est perdu | `specs/incidents-d-antenne.md` |
 | Connexions | Mot de passe OBS saisi dans le Studio (Réglages), alertes réelles par Twitch EventSub et par Twitchat | `specs/connexions-et-alertes.md` |
 | Code | Couche Code : HTML, CSS, JavaScript dans une page isolée ; réglages déclarés, son et alertes reçus ; scripts et modèles 3D de la médiathèque (three.js) | `specs/couche-code.md` |
+| Animations de couche | Entrée, boucle et sortie par préréglages (14 + 5), horloge propre à chaque couche, sortie à date fixe et au départ de la scène, relance par alerte couche par couche, panneau de l'inspecteur | `specs/animations-de-couche.md` |
 | Shader | Couche Shader : fragment GLSL (WebGL2, style Shadertoy) pour des fonds génératifs légers ; réglages, son et alertes en uniformes, qualité de rendu ; réglages numériques animables par la timeline et les liaisons | `specs/couche-shader.md` |
 
 Le guide d'usage est [`guides/studio-editeur-de-couches.md`](guides/studio-editeur-de-couches.md). Garde-fous : tests unitaires,

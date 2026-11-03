@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Procédures — ce que seul l'owner peut faire
@@ -231,6 +231,19 @@ Utilisez l'éditeur pour de vrais lives pendant quelque temps. Notez les moments
 5. Changez de scène OBS et revenez : le shader repart de zéro (l'animation rejoue).
 
 **Me dire** : WebGL2 disponible ou non, i/s tenus, coût GPU par couche et gain du mode « Quart », si une erreur de compilation montre la bonne ligne.
+
+## 17. Animations de couche dans OBS (entrée, boucle, sortie)
+
+**Pourquoi** : les essais prouvent le comportement dans Chrome avec le Studio ; ils ne disent pas comment la source navigateur d'**OBS** tient plusieurs boucles en même temps ni si une sortie « au départ de la scène » se voit bien lors d'un changement de scène.
+**Hypothèses non mesurées** : les boucles tiennent 60 i/s à 1080p avec plusieurs couches ; la sortie au départ de la scène se joue en entier avant la transition d'arrivée.
+
+1. Studio → ajoutez un **Texte**, choisissez une entrée « Glisse depuis le bas », une boucle « Flottement » et une sortie « Fondu » cochée sur « Quand la scène part ». Publiez.
+2. Dans OBS, changez de scène puis revenez : l'entrée se joue à chaque arrivée.
+3. Changez de scène : le titre sort en fondu avant que la nouvelle scène ne finisse d'arriver.
+4. Cochez « Raid » dans « Rejouer quand arrive », puis déclenchez un raid de test : le titre réentre, sans toucher aux autres couches.
+5. Posez trois à cinq couches avec une boucle chacune : l'affichage reste fluide (Statistiques d'OBS : pas d'images ratées).
+
+**Me dire** : si les boucles tiennent 60 i/s, si la sortie au départ de la scène se voit en entier, si la relance par raid marche avec une vraie alerte.
 
 ---
 

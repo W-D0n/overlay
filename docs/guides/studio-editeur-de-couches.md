@@ -1,6 +1,6 @@
 ---
 created: 2026-10-30
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Studio — l'éditeur de couches
@@ -178,9 +178,23 @@ Le panneau **Timeline**, sous l'aperçu, fait **jouer** la scène : elle démarr
 4. Glissez les losanges pour caler le rythme (flèches : 10 ms, `Maj` : 100 ms). Se placer dans le temps met en pause : l'aperçu montre cette image.
 5. Réglez la **durée** de la scène et la **boucle**, puis publiez : la page d'OBS joue l'animation depuis l'arrivée de la scène.
 
-6. **Rejouer sur une alerte** : cochez, dans le panneau, les alertes qui relancent l'animation (« Alerte raid », « Alerte follow »… ou « Toute alerte »). À leur arrivée, la scène repart du début
+6. **Rejouer sur une alerte** : cochez, dans le panneau de la timeline, les alertes qui relancent l'animation (« Alerte raid », « Alerte follow »… ou « Toute alerte »). À leur arrivée, la scène repart du début
    et se remet à jouer, même si elle était arrivée à sa fin : un raid rejoue l'entrée du titre. Décochez tout pour que l'animation ne se joue qu'à l'arrivée de la scène.
    Cela vaut pour toute la scène (et donc aussi pour les réglages animés d'une couche Code ou Shader).
+
+### Entrée, boucle, sortie d'une couche
+
+Pour faire entrer, vivre et sortir une couche **sans placer d'images clés**, utilisez la section **Entrée, boucle, sortie** de l'inspecteur (une seule couche sélectionnée). Chaque couche a **sa propre horloge**,
+qui part quand elle apparaît : une couche peut donc paraître à n'importe quel moment du live, sans dépendre de la timeline de la scène. Elle marche pour tous les types de couche (texte, image, forme, code, shader).
+
+- **Entrée** : fondu, glissement (depuis le bas, le haut, la droite ou la gauche), zoom, rebond, flou, rotation, révélation (vers la droite, la gauche, le bas ou le haut) ou glitch. Réglez la durée, un retard et la courbe.
+- **Boucle** : flottement, pulsation, balancement, clignotement ou tremblement, qui démarre à la fin de l'entrée. Réglez la période et l'amplitude.
+- **Sortie** : le même choix que l'entrée, jouée à l'envers. Elle démarre **à l'instant voulu** (« Après (ms) ») et/ou **quand la scène part** : la scène sortante reste alors en place le temps de la sortie, puis sa transition commence.
+  Une couche dont la sortie est finie quitte l'affichage et ne coûte plus rien.
+- **Rejouer quand arrive** : cochez les alertes qui rejouent l'animation de **cette couche seulement** (un raid fait réentrer le titre, le logo continue).
+- **Rejouer** (bouton) : revoit toutes les animations depuis le début, comme à l'arrivée de la scène. Modifier une animation la rejoue aussi, pour la voir tout de suite.
+
+Cette animation se superpose à la timeline et aux liaisons : l'opacité et l'échelle se multiplient, les décalages, la rotation et le flou s'ajoutent.
 
 Exemple : un titre qui arrive. Opacité de 0 à 1 entre 0 et 0,8 s, et décalage vertical de +8 % à 0 sur le même intervalle. Si une **liaison** (son, alerte)
 vise la même valeur, c'est elle qui l'emporte : la réaction en direct passe devant le scénario.
