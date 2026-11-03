@@ -1,6 +1,6 @@
 // @ts-check
 import { layerTargets, targetLabel, targetRange } from '../layer-bindings.js';
-import { DURATION_BOUNDS, EASES, MAX_KEYS, RESTART_SOURCES, changeKey, removeKey, setKey } from '../layer-timeline.js';
+import { DURATION_BOUNDS, EASES, MAX_KEYS, RESTART_SOURCES, changeKey, copyKeys, pasteKeys, removeKey, setKey } from '../layer-timeline.js';
 import { describeKey, formatSeconds, percentOf, timeFromPointer, timelineOf, valueAt } from './timeline-view.js';
 
 /**
@@ -9,14 +9,15 @@ import { describeKey, formatSeconds, percentOf, timeFromPointer, timelineOf, val
  *
  * Chaque valeur animée de la couche a une **piste** ; ses images clés sont des losanges qu'on glisse (ou qu'on déplace aux flèches, `Maj` pour aller
  * dix fois plus vite), qu'on règle (instant, valeur, courbe) ou qu'on supprime. « + Image clé » en pose une au repère de lecture, avec la valeur que la
- * couche y a déjà : poser une clé ne change rien tant qu'on ne la règle pas. Se placer dans le temps met la lecture en pause : l'aperçu montre
+ * couche y a déjà : poser une clé ne change rien tant qu'on ne la règle pas. On copie une image clé ou toute une piste (⧉), et « Coller » les pose au repère de lecture,
+ * sur la même valeur de la couche sélectionnée, qui peut être une autre couche (`Ctrl+C` et `Ctrl+V` sur une image clé font de même). Se placer dans le temps met la lecture en pause : l'aperçu montre
  * cette image, et la modifier s'y voit aussitôt. Tout s'écrit par les commandes de l'éditeur (annulable, publiable, enregistrable en commande).
  *
  * @param {{
  *   elements: {
  *     panel: HTMLElement, toggle: HTMLButtonElement, play: HTMLButtonElement, restart: HTMLButtonElement, readout: HTMLElement, scrub: HTMLInputElement,
- *     duration: HTMLInputElement, loop: HTMLInputElement, restartOn: HTMLElement, title: HTMLElement, target: HTMLSelectElement, addKey: HTMLButtonElement, tracks: HTMLElement,
- *     detail: HTMLElement, detailTime: HTMLInputElement, detailValue: HTMLInputElement, detailEase: HTMLSelectElement, detailRemove: HTMLButtonElement,
+ *     duration: HTMLInputElement, loop: HTMLInputElement, restartOn: HTMLElement, title: HTMLElement, target: HTMLSelectElement, addKey: HTMLButtonElement, paste: HTMLButtonElement, tracks: HTMLElement,
+ *     detail: HTMLElement, detailTime: HTMLInputElement, detailValue: HTMLInputElement, detailEase: HTMLSelectElement, detailCopy: HTMLButtonElement, detailRemove: HTMLButtonElement,
  *   },
  *   studio: ReturnType<typeof import('./studio-document.js').createStudioDocument>,
  *   timeline: { state(): { playing: boolean, timeMs: number, durationMs: number, loop: 'once' | 'loop' }, play(): void, pause(): void, restart(): void, seek(ms: number): void, subscribe(listener: (state: *) => void): () => void },
@@ -33,6 +34,8 @@ export function createTimelineController(input) {
   /** @type {{ target: import('../layer-bindings.js').BindingTarget, index: number } | null} */
   let selected = null;
   let selectedLayerId = '';
+  /** Les images clés copiées : elles survivent au changement de couche, c'est ce qui permet de les coller ailleurs. @type {import('../layer-timeline.js').KeyClip | null} */
+  let clip = null;
 
   /** @returns {import('../scene-doc.js').Layer | null} la couche réglée : la seule sélectionnée */
   function layer() {
@@ -109,6 +112,9 @@ export function createTimelineController(input) {
   }
 
   function renderTracks() {
+    // Reconstruire les pistes remplace les images clés : celle qui a le focus le garde, sinon les raccourcis du clavier (flèches, Suppr, Ctrl+C, Ctrl+V) cessent d'y arriver.
+    const active = /** @type {HTMLElement | null} */ (documentRef.activeElement);
+    const focused = active?.classList.contains('tl-key') ? { target: active.closest('.tl-track')?.getAttribute('data-target'), index: active.dataset.index } : null;
     const target = layer();
     syncTargets(target);
     const scene = studio.state().scene;
@@ -121,6 +127,8 @@ export function createTimelineController(input) {
     elements.loop.checked = settings.loop === 'loop';
     for (const box of restartBoxes) box.checked = (settings.restartOn ?? []).includes(box.value);
     elements.addKey.disabled = target === null;
+    elements.paste.disabled = target === null || clip === null;
+    elements.paste.title = clip === null ? 'Rien n’a été copié' : `Coller ${clip.keys.length} image${clip.keys.length > 1 ? 's' : ''} clé${clip.keys.length > 1 ? 's' : ''} (${targetLabel(clip.target, target).toLowerCase()}) au repère de lecture`;
     elements.title.textContent = target === null ? 'Sélectionnez une couche pour l’animer.' : `Animation de « ${target.name ?? target.kind} »`;
     elements.tracks.replaceChildren();
     const tracks = target?.timeline ?? [];
@@ -131,6 +139,12 @@ export function createTimelineController(input) {
       lane.setAttribute('aria-label', `Piste ${name.toLowerCase()}`);
       lane.dataset.target = track.target;
       const label = node('span', 'tl-label', name);
+      const copy = /** @type {HTMLButtonElement} */ (node('button', 'tl-copy'));
+      copy.type = 'button';
+      copy.title = `Copier la piste ${name.toLowerCase()}`;
+      copy.setAttribute('aria-label', `Copier la piste ${name.toLowerCase()}`);
+      copy.addEventListener('click', () => copyFrom(track.target));
+      label.appendChild(copy);
       const area = node('div', 'tl-lane');
       area.dataset.target = track.target;
       area.addEventListener('pointerdown', (event) => {
@@ -156,6 +170,16 @@ export function createTimelineController(input) {
     if (tracks.length === 0 && target !== null) elements.tracks.appendChild(node('p', 'hint tl-empty', 'Aucune image clé : placez le repère, choisissez une valeur et posez une première image clé.'));
     renderDetail();
     placePlayheads(timeline.state());
+    if (focused !== null) /** @type {HTMLElement | null} */ (elements.tracks.querySelector(`.tl-track[data-target="${focused.target}"] .tl-key[data-index="${focused.index}"]`))?.focus();
+  }
+
+  /**
+   * Remet à jour les champs (durée, détail de l'image clé choisie) sans reconstruire les pistes : à la perte de focus d'un champ, reconstruire les pistes remplacerait le bouton
+   * sur lequel on est en train de cliquer entre l'appui et le relâchement, et le clic serait perdu.
+   */
+  function renderFields() {
+    show(elements.duration, String(timelineOf(studio.state().scene).durationMs / 1000));
+    renderDetail();
   }
 
   function renderDetail() {
@@ -240,6 +264,38 @@ export function createTimelineController(input) {
     }
   }
 
+  /**
+   * Copie des images clés de la couche réglée : toutes celles de la piste, ou seulement celle qu'on désigne.
+   * @param {import('../layer-bindings.js').BindingTarget} target @param {number} [index]
+   */
+  function copyFrom(target, index) {
+    const live = layer();
+    if (live === null) return;
+    const copied = copyKeys(live.timeline ?? [], target, index === undefined ? undefined : [index]);
+    if (copied === null) return;
+    clip = copied;
+    renderTracks();
+    input.report.ok(`${copied.keys.length} image${copied.keys.length > 1 ? 's' : ''} clé${copied.keys.length > 1 ? 's' : ''} copiée${copied.keys.length > 1 ? 's' : ''}`);
+  }
+
+  /** Pose les images clés copiées au repère de lecture, sur la même valeur de la couche réglée ; elle doit avoir cette valeur. */
+  function paste() {
+    const live = layer();
+    if (live === null || clip === null) return;
+    if (!layerTargets(live).some(({ id }) => id === clip?.target)) {
+      input.report.error(`cette couche n’a pas la valeur « ${targetLabel(clip.target, live)} » : rien n’est collé`);
+      return;
+    }
+    const t = Math.round(timeline.state().timeMs);
+    const result = pasteKeys(live.timeline ?? [], clip, t, targetRange(clip.target, live));
+    if (result === null) {
+      input.report.error(`limite atteinte : ${MAX_KEYS} images clés par piste, une piste par valeur`);
+      return;
+    }
+    commitTracks(result.tracks, `paste:${clip.target}:${t}`);
+    select(clip.target, result.firstIndex);
+  }
+
   /** @param {import('../layer-bindings.js').BindingTarget} target @param {number} index */
   function removeSelected(target, index) {
     const live = layer();
@@ -282,9 +338,24 @@ export function createTimelineController(input) {
   elements.detailTime.addEventListener('input', () => { const t = Number.parseFloat(elements.detailTime.value); if (Number.isFinite(t)) changeSelected({ t }, 't'); });
   elements.detailValue.addEventListener('input', () => { const v = Number.parseFloat(elements.detailValue.value.replace(',', '.')); if (Number.isFinite(v)) changeSelected({ v }, 'v'); });
   elements.detailEase.addEventListener('change', () => changeSelected({ ease: /** @type {import('../layer-timeline.js').Ease} */ (elements.detailEase.value) }, 'ease'));
-  elements.detailTime.addEventListener('blur', renderTracks);
-  elements.detailValue.addEventListener('blur', renderTracks);
+  elements.detailTime.addEventListener('blur', renderFields);
+  elements.detailValue.addEventListener('blur', renderFields);
   elements.detailRemove.addEventListener('click', () => { if (selected !== null) removeSelected(selected.target, selected.index); });
+  elements.detailCopy.addEventListener('click', () => { if (selected !== null) copyFrom(selected.target, selected.index); });
+  elements.paste.addEventListener('click', paste);
+  // Ctrl+C et Ctrl+V dans le panneau, hors des champs de saisie (qui gardent leur copier-coller de texte).
+  elements.panel.addEventListener('keydown', (event) => {
+    if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+    const tag = /** @type {HTMLElement} */ (event.target).tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
+    if (event.key === 'c' && selected !== null) {
+      event.preventDefault();
+      copyFrom(selected.target, selected.index);
+    } else if (event.key === 'v' && clip !== null) {
+      event.preventDefault();
+      paste();
+    }
+  });
 
   // ── Lecture, durée, boucle ──────────────────────────────────────────────
 
@@ -301,7 +372,7 @@ export function createTimelineController(input) {
     const seconds = Number.parseFloat(elements.duration.value.replace(',', '.'));
     if (Number.isFinite(seconds)) commitScene({ durationMs: Math.min(DURATION_BOUNDS.max, Math.max(DURATION_BOUNDS.min, Math.round(seconds * 1000))) });
   });
-  elements.duration.addEventListener('blur', renderTracks);
+  elements.duration.addEventListener('blur', renderFields);
   elements.loop.addEventListener('change', () => commitScene({ loop: elements.loop.checked ? 'loop' : 'once' }));
 
   // Les alertes qui relancent la lecture : une case par alerte, dans l'ordre des sources ; aucune case = la timeline ne repart qu’à l’arrivée de la scène (la forme canonique retire la liste vide).

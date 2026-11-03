@@ -178,7 +178,10 @@ Le panneau **Timeline**, sous l'aperçu, fait **jouer** la scène : elle démarr
 4. Glissez les losanges pour caler le rythme (flèches : 10 ms, `Maj` : 100 ms). Se placer dans le temps met en pause : l'aperçu montre cette image.
 5. Réglez la **durée** de la scène et la **boucle**, puis publiez : la page d'OBS joue l'animation depuis l'arrivée de la scène.
 
-6. **Rejouer sur une alerte** : cochez, dans le panneau de la timeline, les alertes qui relancent l'animation (« Alerte raid », « Alerte follow »… ou « Toute alerte »). À leur arrivée, la scène repart du début
+6. **Copier-coller** : le ⧉ d'une piste copie toutes ses images clés ; « Copier » dans le détail d'une image clé copie celle-là. Placez le repère de lecture et cliquez « Coller » : les images arrivent à cet instant,
+   sur la même valeur de la couche sélectionnée (la même ou une autre). Une image déjà posée à l'un de ces instants est remplacée. `Ctrl+C` et `Ctrl+V` marchent sur une image clé sélectionnée. Une couche qui n'a pas la
+   valeur copiée (un réglage de code sur un texte) refuse et le dit.
+7. **Rejouer sur une alerte** : cochez, dans le panneau de la timeline, les alertes qui relancent l'animation (« Alerte raid », « Alerte follow »… ou « Toute alerte »). À leur arrivée, la scène repart du début
    et se remet à jouer, même si elle était arrivée à sa fin : un raid rejoue l'entrée du titre. Décochez tout pour que l'animation ne se joue qu'à l'arrivée de la scène.
    Cela vaut pour toute la scène (et donc aussi pour les réglages animés d'une couche Code ou Shader).
 

@@ -14,6 +14,7 @@ import { BINDING_SOURCES, BINDING_TARGETS, isTargetId, targetRange } from './lay
  * @typedef {'linear' | 'easeIn' | 'easeOut' | 'easeInOut' | 'hold'} Ease
  * @typedef {{ t: number, v: number, ease: Ease }} Keyframe
  * @typedef {{ target: TimelineTarget, keys: Keyframe[] }} Track
+ * @typedef {{ target: TimelineTarget, keys: { dt: number, v: number, ease: Ease }[] }} KeyClip des images clés copiées d'une piste, leurs instants comptés depuis la première
  * @typedef {{ durationMs: number, loop: 'once' | 'loop', restartOn?: string[] }} SceneTimeline
  */
 
@@ -300,6 +301,50 @@ export function changeKey(tracks, target, index, change, range = commonRange(tar
   if (track.keys.some((other, at) => at !== index && other.t === next.t)) return { tracks: [...tracks], index, refused: true };
   const keys = track.keys.map((other, at) => (at === index ? next : other)).sort((a, b) => a.t - b.t);
   return { tracks: tracks.map((candidate) => (candidate === track ? { ...candidate, keys } : candidate)), index: keys.findIndex((other) => other === next), refused: false };
+}
+
+/**
+ * Copie des images clés d'une piste : toutes, ou celles dont on donne les rangs. Les instants sont relatifs à la première image copiée, pour qu'on puisse
+ * les coller n'importe où dans le temps.
+ * @param {readonly Track[]} tracks
+ * @param {TimelineTarget} target
+ * @param {readonly number[]} [indexes] les rangs des images clés à copier ; toutes par défaut
+ * @returns {KeyClip | null} `null` quand la piste n'existe pas ou que rien n'est à copier
+ */
+export function copyKeys(tracks, target, indexes) {
+  const keys = (tracks.find((candidate) => candidate.target === target)?.keys ?? []).filter((_key, at) => indexes === undefined || indexes.includes(at));
+  if (keys.length === 0) return null;
+  return { target, keys: keys.map((key) => ({ dt: key.t - keys[0].t, v: key.v, ease: key.ease })) };
+}
+
+/**
+ * Colle des images clés copiées : la première à l'instant `at`, les autres au même écart qu'à la copie. Une image clé déjà posée à un instant collé est remplacée (valeur et courbe
+ * de la copie) ; les autres restent. Tout ou rien : `null` si la piste dépasserait la limite de clés, ou si la limite de pistes interdit d'en créer une. Les instants sont
+ * ramenés dans la durée possible (deux images qui s'y rejoindraient n'en font qu'une, la dernière), les valeurs dans les bornes de la valeur.
+ * @param {readonly Track[]} tracks
+ * @param {KeyClip} clip
+ * @param {number} at
+ * @param {{ min: number, max: number } | null} [range] les bornes de la valeur (celles des six valeurs communes par défaut ; `null` : sans borne)
+ * @returns {{ tracks: Track[], firstIndex: number } | null} `firstIndex` : le rang, dans la piste, de la première image collée
+ */
+export function pasteKeys(tracks, clip, at, range = commonRange(clip.target)) {
+  /** @type {Map<number, Keyframe>} */
+  const pasted = new Map();
+  for (const key of clip.keys) {
+    const t = clamp(Math.round(at + key.dt), TIME_LIMITS.min, TIME_LIMITS.max);
+    pasted.set(t, { t, v: bounded(key.v, range), ease: key.ease });
+  }
+  const existing = tracks.find((track) => track.target === clip.target);
+  if (existing === undefined && tracks.length >= MAX_TRACKS) return null;
+  const kept = (existing?.keys ?? []).filter((key) => !pasted.has(key.t));
+  const keys = [...kept, ...pasted.values()].sort((a, b) => a.t - b.t);
+  if (keys.length > MAX_KEYS) return null;
+  const first = clamp(Math.round(at), TIME_LIMITS.min, TIME_LIMITS.max);
+  const track = { target: clip.target, keys };
+  return {
+    tracks: existing === undefined ? [...tracks, track] : tracks.map((candidate) => (candidate === existing ? track : candidate)),
+    firstIndex: keys.findIndex((key) => key.t === first),
+  };
 }
 
 /**

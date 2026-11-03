@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Spec — Timeline à images clés
@@ -15,6 +15,11 @@ images clés ») et la raison d'être des **chemins adressables** de `scene-doc.
   `linear`, `easeIn`, `easeOut`, `easeInOut`, ou `hold` (palier : la valeur saute à la clé suivante).
 - La scène porte sa **durée** (0,5 à 60 s) et son **mode** (`once` : s'arrête à la dernière image ; `loop` : recommence) : `SceneDoc.timeline`. Absente, la
   scène a la timeline par défaut : 4 s (ou la dernière clé si elle est plus tardive), une seule fois.
+- **Copier-coller d'images clés** (2026-11-03) : `copyKeys(tracks, target, indexes?)` copie une image clé ou toute une piste (instants relatifs à la première) ; `pasteKeys(tracks, clip, at, range)` les pose
+  à l'instant voulu, sur la même valeur, d'une couche ou d'une autre. Une image déjà posée à un instant collé est remplacée (valeur et courbe de la copie), les autres restent ; les instants sont arrondis et ramenés dans la
+  durée possible, les valeurs dans les bornes ; **tout ou rien** si la piste dépasserait 24 images ou si 6 pistes existent déjà. Dans le panneau : ⧉ sur une piste la copie, « Copier » dans le détail copie l'image choisie,
+  « Coller » la pose au repère de lecture (la copie survit au changement de couche ; une couche qui n'a pas la valeur copiée, par exemple un réglage de code, refuse en le disant), `Ctrl+C` et `Ctrl+V` sur une image clé.
+  Collage = une entrée d'historique. Preuves : `layer-timeline-clip.test.js` (14 défauts réinjectés vus rouges) et `dev/e2e/suites/38-copier-coller-cles.e2e.js` (11 défauts de l'interface vus rouges).
 - **Relance par une alerte** (2026-11-02) : `SceneDoc.timeline.restartOn` liste les sources d'alerte (`event:any`, `event:follow`, `event:sub`, `event:raid`, `event:bits` : les
   impulsions des liaisons) qui **ramènent la lecture à zéro et la remettent en marche** quand elles arrivent, même arrêtée à sa fin ou mise en pause : « un raid rejoue l'entrée du titre ».
   `event:any` les relance toutes, `event:<type>` celles de ce type ; une liste vide n'est pas écrite (forme canonique, ordre des sources, sans doublon). Le moteur
