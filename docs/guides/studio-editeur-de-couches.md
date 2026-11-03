@@ -188,6 +188,8 @@ Pour faire entrer, vivre et sortir une couche **sans placer d'images clés**, ut
 qui part quand elle apparaît : une couche peut donc paraître à n'importe quel moment du live, sans dépendre de la timeline de la scène. Elle marche pour tous les types de couche (texte, image, forme, code, shader).
 
 - **Entrée** : fondu, glissement (depuis le bas, le haut, la droite ou la gauche), zoom, rebond, flou, rotation, révélation (vers la droite, la gauche, le bas ou le haut) ou glitch. Réglez la durée, un retard et la courbe.
+- **Pour un texte**, trois entrées et sorties de plus : **machine à écrire** (les lettres arrivent une à une), **lettre par lettre** et **mot par mot** (en fondu, en montant). En sortie, elles jouent à l'envers.
+  Elles ne sont proposées que pour une couche de texte, et leur durée de départ est de 1,5 s.
 - **Boucle** : flottement, pulsation, balancement, clignotement ou tremblement, qui démarre à la fin de l'entrée. Réglez la période et l'amplitude.
 - **Sortie** : le même choix que l'entrée, jouée à l'envers. Elle démarre **à l'instant voulu** (« Après (ms) ») et/ou **quand la scène part** : la scène sortante reste alors en place le temps de la sortie, puis sa transition commence.
   Une couche dont la sortie est finie quitte l'affichage et ne coûte plus rien.

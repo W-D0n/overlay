@@ -3,7 +3,7 @@ import { defineCanvasLayer } from './canvas-layer.js';
 import { resolveColor } from './color-utils.js';
 import { TEXT_FONT_FALLBACKS } from './text-layer.config.js';
 import { assetFonts } from './asset-font.js';
-import { fontFamilyCss, isFontInstalled, layoutText, normalizeTextOptions, sanitizeFontFamily } from './text-layout.js';
+import { fontFamilyCss, glyphLook, glyphUnits, isFontInstalled, layoutText, normalizeTextOptions, sanitizeFontFamily } from './text-layout.js';
 
 /**
  * components/TextLayer.js — Couche de contenu « texte » : un titre, un pseudo, un message, dans la zone de la couche.
@@ -11,6 +11,7 @@ import { fontFamilyCss, isFontInstalled, layoutText, normalizeTextOptions, sanit
  * Dessinée sur un canvas comme les effets : la même chaîne de rendu (échelle de la source, vignettes, coût) s'applique, et le texte
  * reste net à toute résolution. Couche **statique** (`canvas-layer.js`) : elle ne se redessine que si ses options ou sa taille
  * changent. La mise en page (retour à la ligne, ajustement à la zone) est dans `text-layout.js`.
+ * Une animation de texte (`animate`, lettre par lettre ou mot par mot) la redessine à chaque changement de présence, et seulement pendant l'animation.
  * Voir docs/specs/couches-de-contenu.md.
  */
 
@@ -77,6 +78,57 @@ export function createTextLayer({ fonts = assetFonts, warn = (message) => consol
       ctx.letterSpacing = `${options.letterSpacing}px`;
     }
 
+    /** L'apparition du texte en cours (`layer-animation.js`) ; `null` : le texte est entier. @type {import('../layer-animation.js').GlyphState | null} */
+    let glyph = null;
+
+    /**
+     * Une ligne, ou une unité de ligne : l'ombre, puis le contour, puis le remplissage.
+     * @param {CanvasRenderingContext2D} ctx @param {string} text @param {number} x @param {number} y
+     */
+    function paintRun(ctx, text, x, y) {
+      if (options.shadowBlur > 0 || options.shadowOffsetX !== 0 || options.shadowOffsetY !== 0) {
+        // Une seule ombre par ligne : sous le contour s'il y en a un, sinon sous le texte.
+        ctx.shadowColor = colors.shadow;
+        ctx.shadowBlur = options.shadowBlur;
+        ctx.shadowOffsetX = options.shadowOffsetX;
+        ctx.shadowOffsetY = options.shadowOffsetY;
+      }
+      if (options.outlineWidth > 0) {
+        ctx.lineWidth = options.outlineWidth * 2;
+        ctx.strokeStyle = colors.outline;
+        ctx.strokeText(text, x, y);
+        ctx.shadowColor = 'transparent';
+      }
+      ctx.fillStyle = colors.color;
+      ctx.fillText(text, x, y);
+      ctx.shadowColor = 'transparent';
+    }
+
+    /**
+     * Le texte qui se dévoile : chaque unité (lettre ou mot) est placée là où elle serait dans la ligne entière, puis dessinée selon sa présence.
+     * @param {CanvasRenderingContext2D} ctx @param {import('./text-layout.js').TextLayout} layout @param {import('../layer-animation.js').GlyphState} state
+     */
+    function drawRevealed(ctx, layout, state) {
+      ctx.textAlign = 'left';
+      const perLine = layout.lines.map((line) => glyphUnits(line, state.unit));
+      const count = perLine.reduce((total, units) => total + units.length, 0);
+      let index = 0;
+      layout.lines.forEach((line, row) => {
+        const y = layout.top + (row + 0.5) * layout.lineHeightPx;
+        const width = ctx.measureText(line).width;
+        const left = options.align === 'left' ? layout.left : options.align === 'right' ? layout.right - width : (layout.left + layout.right) / 2 - width / 2;
+        for (const unit of perLine[row]) {
+          const { alpha, rise } = glyphLook(state.reveal, state.presence, index, count);
+          index += 1;
+          if (alpha <= 0) continue;
+          ctx.save();
+          ctx.globalAlpha = alpha;
+          paintRun(ctx, line.slice(unit.start, unit.end), left + ctx.measureText(line.slice(0, unit.start)).width, y + rise * layout.size);
+          ctx.restore();
+        }
+      });
+    }
+
     /** Le nom de police déjà signalé introuvable : un avertissement par nom, pas un à chaque dessin. */
     let warnedFont = '';
 
@@ -116,26 +168,21 @@ export function createTextLayer({ fonts = assetFonts, warn = (message) => consol
         ctx.textBaseline = 'middle';
         ctx.textAlign = options.align;
         ctx.lineJoin = 'round';
+        if (glyph !== null) {
+          drawRevealed(ctx, layout, glyph);
+          return;
+        }
         const x = options.align === 'left' ? layout.left : options.align === 'right' ? layout.right : (layout.left + layout.right) / 2;
-        layout.lines.forEach((line, index) => {
-          const y = layout.top + (index + 0.5) * layout.lineHeightPx;
-          if (options.shadowBlur > 0 || options.shadowOffsetX !== 0 || options.shadowOffsetY !== 0) {
-            // Une seule ombre par ligne : sous le contour s'il y en a un, sinon sous le texte.
-            ctx.shadowColor = colors.shadow;
-            ctx.shadowBlur = options.shadowBlur;
-            ctx.shadowOffsetX = options.shadowOffsetX;
-            ctx.shadowOffsetY = options.shadowOffsetY;
-          }
-          if (options.outlineWidth > 0) {
-            ctx.lineWidth = options.outlineWidth * 2;
-            ctx.strokeStyle = colors.outline;
-            ctx.strokeText(line, x, y);
-            ctx.shadowColor = 'transparent';
-          }
-          ctx.fillStyle = colors.color;
-          ctx.fillText(line, x, y);
-          ctx.shadowColor = 'transparent';
-        });
+        layout.lines.forEach((line, index) => paintRun(ctx, line, x, layout.top + (index + 0.5) * layout.lineHeightPx));
+      },
+
+      /** @param {import('../layer-animation.js').GlyphState | null} next */
+      animate(next) {
+        // Le texte entier se dessine d'un seul trait, comme sans animation.
+        const wanted = next === null || next.presence >= 1 ? null : next;
+        if (JSON.stringify(wanted) === JSON.stringify(glyph)) return;
+        glyph = wanted;
+        host.invalidate();
       },
 
       /** @param {unknown} next */

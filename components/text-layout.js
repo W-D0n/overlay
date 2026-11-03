@@ -140,3 +140,48 @@ export function layoutText({ options, box, measure }) {
   const top = options.verticalAlign === 'top' ? pad : options.verticalAlign === 'bottom' ? box.height - pad - arranged.height : (box.height - arranged.height) / 2;
   return { size, lineHeightPx, lines: arranged.lines, top, left: pad, right: box.width - pad, fits: arranged.fits };
 }
+
+// ── Apparition du texte (lettre par lettre, mot par mot) ─────────────────────────────────────
+
+/** Part de la durée pendant laquelle une unité apparaît en douceur ; le reste sert à décaler les unités entre elles. */
+export const GLYPH_WINDOW = 0.5;
+/** Hauteur dont une unité monte en apparaissant, en part de la taille de la police. */
+export const GLYPH_RISE = 0.35;
+
+/**
+ * Les unités qui apparaissent une à une dans une ligne : les lettres (un groupe de graphèmes, donc un accent ou un emoji reste entier) ou les mots. Les espaces ne sont pas des unités :
+ * ils ne se voient pas, les compter ferait attendre dans le vide. Chaque unité donne ses bornes dans la ligne.
+ * @param {string} line
+ * @param {'chars' | 'words'} unit
+ * @returns {{ start: number, end: number }[]}
+ */
+export function glyphUnits(line, unit) {
+  /** @type {{ start: number, end: number }[]} */
+  const units = [];
+  if (unit === 'words') {
+    for (const match of line.matchAll(/\S+/g)) units.push({ start: match.index ?? 0, end: (match.index ?? 0) + match[0].length });
+    return units;
+  }
+  const pieces = typeof Intl !== 'undefined' && typeof Intl.Segmenter === 'function'
+    ? [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(line)].map(({ segment, index }) => ({ segment, index }))
+    : Array.from(line).reduce((all, segment) => [...all, { segment, index: all.length === 0 ? 0 : all[all.length - 1].index + all[all.length - 1].segment.length }], /** @type {{ segment: string, index: number }[]} */ ([]));
+  for (const { segment, index } of pieces) if (segment.trim() !== '') units.push({ start: index, end: index + segment.length });
+  return units;
+}
+
+/**
+ * L'état d'une unité pour une présence du texte donnée.
+ * `hard` : l'unité est là ou n'y est pas (machine à écrire, et en sens inverse l'effacement depuis la fin).
+ * `soft` : elle apparaît en fondu en montant, chaque unité un peu après la précédente.
+ * @param {'hard' | 'soft'} reveal
+ * @param {number} presence 0 (rien) à 1 (tout le texte)
+ * @param {number} index le rang de l'unité dans tout le texte
+ * @param {number} count le nombre d'unités du texte
+ * @returns {{ alpha: number, rise: number }} `rise` : la hauteur restant à monter, en part de la taille de la police
+ */
+export function glyphLook(reveal, presence, index, count) {
+  if (reveal === 'hard') return { alpha: presence * count > index ? 1 : 0, rise: 0 };
+  const start = count > 1 ? (index / (count - 1)) * (1 - GLYPH_WINDOW) : 0;
+  const local = Math.min(1, Math.max(0, (presence - start) / GLYPH_WINDOW));
+  return { alpha: local, rise: (1 - local) ** 2 * GLYPH_RISE };
+}

@@ -27,7 +27,8 @@
  * @typedef {ReturnType<typeof createSceneEditor>} SceneEditor
  */
 import { MAX_LAYERS, canonicalSceneDoc, createLayer, validateSceneDoc, withoutLook } from '../scene-doc.js';
-import { isIdentityKind, kindFamily, resolveKindId } from '../layer-kinds.js';
+import { usesGlyphs } from '../layer-animation.js';
+import { isIdentityKind, kindCapabilities, kindFamily, resolveKindId } from '../layer-kinds.js';
 
 const DEFAULT_HISTORY_LIMIT = 200;
 const DEFAULT_COALESCE_MS = 800;
@@ -561,6 +562,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
         return refuse('unique', 'cette couche existe déjà dans la scène');
       }
       if (resolved === layer.kind) return { ok: true };
+      if (usesGlyphs(layer.animation) && kindCapabilities(resolved).glyphs !== true) return refuse('invalid', 'cette couche a une entrée ou une sortie « de texte » : choisissez-en une autre avant de changer son type');
       const layers = scene.layers.map((candidate) => (candidate.id === id ? { ...candidate, kind: resolved, options } : candidate));
       return announce(finish(layers, 'Changer l’effet', undefined), 'setLayerKind', [id], { kind: resolved, options });
     },

@@ -5,7 +5,7 @@ updated: 2026-11-03
 
 # Spec — Animations de couche (entrée, boucle, sortie)
 
-Statut : **en cours** — étapes 1 à 4 livrées (modèle pur `layer-animation.js` ; moteur : horloge par couche, entrée, boucle, sortie à date fixe, sortie au départ de la scène, relance par alerte couche par couche ; panneau « Entrée, boucle, sortie » de l'inspecteur ; 118 défauts réinjectés tous vus rouges). Restent : les préréglages de texte (lettre par lettre, machine à écrire) et de forme, et la mesure dans OBS. Décision de l'owner du 2026-11-03 : une animation, de texte ou non, peut apparaître **n'importe quand** pour accompagner un
+Statut : **en cours** — étapes 1 à 5 livrées (modèle pur `layer-animation.js` ; moteur : horloge par couche, entrée, boucle, sortie à date fixe, sortie au départ de la scène, relance par alerte couche par couche ; panneau « Entrée, boucle, sortie » de l'inspecteur ; préréglages de texte ; 150 défauts réinjectés tous vus rouges). Restent : les préréglages de forme (tracé du contour) et la mesure dans OBS. Décision de l'owner du 2026-11-03 : une animation, de texte ou non, peut apparaître **n'importe quand** pour accompagner un
 moment du live ; chaque couche a donc **sa propre horloge** (choix B), et la sortie se règle à **date fixe** et **au départ de la scène** (options 2 et 3).
 Elle complète la timeline de scène (`timeline.md`), qui reste l'outil précis, image clé par image clé ; elle ne la remplace pas. Elle vaut pour **tous les types de couche**
 (texte, image, forme, code, shader) : les préréglages agissent sur le calque de la couche.
@@ -45,8 +45,12 @@ les changer) ; la pile est retirée après `plus longue sortie + durée de la tr
 ## 5. Préréglages
 
 - **Toute couche** : fondu, glissement (4 sens), zoom, rebond, flou, rotation, révélation par masque (4 sens), glitch.
-- **Texte** : lettre par lettre, mot par mot, machine à écrire. Ils demandent une mise en page par glyphe (`text-layout.js`) et le temps de l'horloge de la couche dans le composant
-  (nouvelle capacité optionnelle `ComponentInstance.animate`). Livrés après les préréglages de calque.
+- **Texte** (**faits**) : machine à écrire (lettre par lettre, d'un coup), lettre par lettre (en fondu, en montant), mot par mot (en fondu, en montant). Ils ne conviennent qu'à une couche de texte
+  (capacité `glyphs` de `layer-kinds.js`) : le modèle refuse l'un d'eux sur un autre type, le panneau les grise, et changer le type d'une couche qui en utilise un est refusé avec une explication.
+  Le calque reste au repos ; le modèle donne au composant une **présence du texte** de 0 à 1 (`GlyphState`, par `ComponentInstance.animate`), et la couche de texte dessine chaque unité à sa place dans la
+  ligne entière (`text-layout.js` : `glyphUnits`, `glyphLook`) — un accent décomposé ou un emoji composé reste une seule unité, les espaces ne comptent pas. En sortie, le même préréglage joue à l'envers
+  (la machine à écrire efface depuis la fin). Une durée de départ plus longue (1,5 s) est proposée : une phrase ne se lit pas en 600 ms. Preuves : `components/text-glyph.test.js`, `layer-animation-glyph.test.js`,
+  et la suite e2e 37 qui lit l'encre réellement dessinée dans le canvas du texte.
 
 ## 6. Ordre de livraison
 
@@ -55,6 +59,7 @@ les changer) ; la pile est retirée après `plus longue sortie + durée de la tr
 3. Sortie au départ de la scène (option 3), avec essais de bout en bout sur la durée de conservation de la pile.
 4. ~~Panneau du Studio~~ — **fait** (`dev/animation-controller.js`, essais `dev/e2e/suites/37-animation-couche.e2e.js`) : un préréglage par phase (ou « Aucune »), durée, retard, courbe, période, amplitude, instant de sortie, case « Quand la scène part », cases d'alertes de relance, bouton « Rejouer » (le même que « recommencer » de la timeline : il rejoue aussi les couches). Modifier une animation la rejoue ; annuler et rétablir passent par l'historique de l'éditeur.
 5. Préréglages de texte (glyphes).
+5. ~~Préréglages de texte~~ — **fait** (§5).
 6. Formes : tracé du contour, remplissage progressif.
 
 ## 7. Limites assumées

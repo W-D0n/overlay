@@ -35,6 +35,7 @@ import { smooth } from '../layer-cost.js';
  *   update?: (options: unknown) => void,
  *   setAudioLevel?: (levels: import('../audio-levels.js').AudioLevels) => void,
  *   trigger?: (event: any) => void,
+ *   animate?: (state: import('../layer-animation.js').GlyphState | null) => void,
  *   destroy?: () => void,
  *   extend?: Record<string, (...args: any[]) => any>,
  * }} CanvasLayer
@@ -131,6 +132,9 @@ export function defineCanvasLayer(create) {
     }
     if (layer.trigger !== undefined) {
       instance.trigger = (event) => layer.trigger?.(event);
+    }
+    if (layer.animate !== undefined) {
+      instance.animate = (state) => layer.animate?.(state);
     }
     return instance;
   };

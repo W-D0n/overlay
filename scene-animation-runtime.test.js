@@ -12,7 +12,9 @@ function setup() {
   const listeners = new Set();
   let time = 0;
   const clock = { subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); } };
-  const registry = { text: () => ({ el: {}, update() {}, destroy() {} }), rain: () => ({ el: {}, update() {}, destroy() {} }) };
+  /** Ce que la couche de texte reçoit de l'apparition de son texte. */
+  const glyphs = [];
+  const registry = { text: () => ({ el: {}, update() {}, destroy() {}, animate: (state) => glyphs.push(state) }), rain: () => ({ el: {}, update() {}, destroy() {} }) };
   const runtime = createSceneRuntime({ appendChild() {} }, {
     registry,
     clock,
@@ -37,7 +39,7 @@ function setup() {
     time = seconds;
     for (const listener of [...listeners]) listener({ dt, time, pixelRatio: 1 });
   };
-  return { runtime, calques, stages, writes, timers, listeners, frame };
+  return { runtime, calques, stages, writes, timers, listeners, frame, glyphs };
 }
 
 const scene = (...layers) => ({ version: 1, id: 's', name: 'S', layers });
@@ -453,5 +455,95 @@ describe('animation de couche dans le moteur : sortie au départ de la scène', 
     stages[0].style.transition = undefined;
     firstHold.callback();
     expect(stages[0].style.transition).toBeUndefined();
+  });
+});
+
+describe('animation de couche dans le moteur : texte qui se dévoile', () => {
+  const typed = (extra = {}) => ({ enter: { preset: 'type', durationMs: 1000, ease: 'linear' }, ...extra });
+
+  test("la couche de texte reçoit l'état dès le montage, avant toute image", () => {
+    const { runtime, glyphs } = setup();
+    runtime.apply(scene(title(typed())));
+    expect(glyphs).toEqual([{ unit: 'chars', reveal: 'hard', presence: 0 }]);
+  });
+
+  test("puis la présence avance avec l'horloge de la couche, et cesse de changer une fois le texte entier", () => {
+    const { runtime, glyphs, frame } = setup();
+    runtime.apply(scene(title(typed())));
+    frame(0);
+    frame(0.5);
+    expect(glyphs.at(-1)).toEqual({ unit: 'chars', reveal: 'hard', presence: 0.5 });
+    frame(2);
+    expect(glyphs.at(-1).presence).toBe(1);
+    const count = glyphs.length;
+    frame(3);
+    frame(4);
+    expect(glyphs.length).toBe(count);
+  });
+
+  test('le calque reste au repos pendant que le texte se dévoile', () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(title(typed())));
+    frame(0);
+    frame(0.5);
+    expect(calques[0].style.opacity).toBe('1');
+    expect(calques[0].style.transform).toBe('');
+  });
+
+  test('une animation sans texte, ou aucune animation, donne le texte entier', () => {
+    const { runtime, glyphs } = setup();
+    runtime.apply(scene(title({ enter: { preset: 'fade', durationMs: 1000 } })));
+    expect(glyphs).toEqual([null]);
+    runtime.apply(scene(title(undefined)));
+    expect(glyphs.at(-1)).toBeNull();
+  });
+
+  test("retirer l'animation rend le texte entier tout de suite", () => {
+    const { runtime, glyphs, frame } = setup();
+    runtime.apply(scene(title(typed())));
+    frame(0);
+    frame(0.3);
+    runtime.apply(scene(title(undefined)));
+    expect(glyphs.at(-1)).toBeNull();
+  });
+
+  test("la sortie de texte retire le texte puis la couche sort de l'affichage", () => {
+    const { runtime, calques, glyphs, frame } = setup();
+    runtime.apply(scene(title({ exit: { preset: 'letters', durationMs: 1000, afterMs: 1000, ease: 'linear' } })));
+    frame(0);
+    frame(1.5);
+    expect(glyphs.at(-1)).toEqual({ unit: 'chars', reveal: 'soft', presence: 0.5 });
+    frame(2.5);
+    expect(glyphs.at(-1).presence).toBe(0);
+    expect(calques[0].style.display).toBe('none');
+  });
+
+  test("une alerte choisie rejoue l'apparition du texte", () => {
+    const { runtime, glyphs, frame } = setup();
+    runtime.apply(scene(title(typed({ restartOn: ['event:raid'] }))));
+    frame(0);
+    frame(2);
+    expect(glyphs.at(-1).presence).toBe(1);
+    runtime.react({ type: 'raid' });
+    frame(2.25);
+    expect(glyphs.at(-1).presence).toBeCloseTo(0.25, 9);
+  });
+
+  test("se placer dans la timeline garde l'apparition du texte à son instant", () => {
+    const { runtime, glyphs, frame } = setup();
+    runtime.apply(scene(title(typed())));
+    frame(0);
+    frame(0.5);
+    frame(0.75);
+    runtime.timeline.seek(0);
+    expect(glyphs.at(-1).presence).toBeCloseTo(0.75, 9);
+  });
+
+  test('une couche sans méthode animate ne gêne pas', () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(logo({ enter: { preset: 'fade', durationMs: 1000, ease: 'linear' } })));
+    frame(0);
+    frame(0.5);
+    expect(calques[0].style.opacity).toBe('0.5');
   });
 });

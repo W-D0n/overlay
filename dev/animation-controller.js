@@ -1,5 +1,6 @@
 // @ts-check
 import { ANIMATION_EASES, AFTER_LIMITS, AMOUNT_LIMITS, DELAY_LIMITS, DURATION_LIMITS, LOOPS, PERIOD_LIMITS, PRESETS, changePhase, setPhase, toggleRestart } from '../layer-animation.js';
+import { kindCapabilities } from '../layer-kinds.js';
 import { RESTART_SOURCES } from '../layer-timeline.js';
 
 /**
@@ -23,7 +24,7 @@ export function createAnimationController(input) {
   const { editor } = studio;
 
   /** @typedef {'enter' | 'loop' | 'exit'} Phase */
-  /** @type {readonly { phase: Phase, label: string, presets: readonly { id: string, label: string }[] }[]} */
+  /** @type {readonly { phase: Phase, label: string, presets: readonly { id: string, label: string, glyph?: unknown }[] }[]} */
   const PHASES = [
     { phase: 'enter', label: 'Entrée', presets: PRESETS },
     { phase: 'loop', label: 'Boucle', presets: LOOPS },
@@ -104,6 +105,8 @@ export function createAnimationController(input) {
     for (const option of presets) {
       const el = /** @type {HTMLOptionElement} */ (node('option', undefined, option.label));
       el.value = option.id;
+      // Les préréglages de texte ne conviennent qu'à une couche de texte : `render` les grise sur les autres.
+      if (option.glyph !== undefined) el.dataset.glyph = 'true';
       preset.appendChild(el);
     }
     preset.addEventListener('change', () => {
@@ -218,8 +221,10 @@ export function createAnimationController(input) {
         : 'L’entrée joue une fois, la boucle ensuite sans fin, la sortie à l’instant voulu ou quand la scène part.';
     if (layer === undefined) return;
     const { animation } = layer;
+    const textual = kindCapabilities(layer.kind).glyphs === true;
     for (const { phase } of PHASES) {
       const state = phases[phase];
+      for (const option of state.preset.options) if (option.dataset.glyph === 'true') option.disabled = !textual;
       const current = animation?.[phase];
       show(state.preset, current === undefined ? '' : current.preset);
       state.fields.hidden = current === undefined;

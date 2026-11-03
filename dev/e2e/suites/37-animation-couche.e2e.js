@@ -105,8 +105,42 @@ export async function run({ page, stack, check, errors }) {
   const rest = await look();
   check('et la couche est de nouveau visible, opaque', rest.display !== 'none' && rest.opacity === 1 ? true : rest);
 
+  // Le texte qui se dévoile : on lit l'encre réellement dessinée dans le canvas du texte, pendant que la machine à écrire joue.
+  const ink = () => page.evaluate(`(() => { const canvas = ${CALQUE}.querySelector('canvas'); const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data; let count = 0; for (let i = 3; i < data.length; i += 16) if (data[i] > 0) count += 1; return count; })()`);
+  const baseline = await ink();
+  check('le texte posé dessine de l’encre', baseline > 200 ? true : baseline);
+  await pick(PHASE('enter', 'preset'), 'type');
+  await page.evaluate(`window.__ink = []; window.__tick = setInterval(() => { const canvas = ${CALQUE}.querySelector('canvas'); const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data; let count = 0; for (let i = 3; i < data.length; i += 16) if (data[i] > 0) count += 1; window.__ink.push(count); }, 60)`);
+  await page.sleep(2400);
+  await page.evaluate('clearInterval(window.__tick)');
+  const inked = /** @type {number[]} */ (await page.evaluate('window.__ink'));
+  check('la durée de départ d’un préréglage de texte est plus longue (1,5 s)', (await page.evaluate(`document.querySelector(${JSON.stringify(PHASE('enter', 'durationMs'))}).value`)) === '1500');
+  check('la machine à écrire part d’un texte presque vide', inked[0] < baseline * 0.3 ? true : [inked[0], baseline]);
+  check('l’encre ne fait que croître, lettre après lettre', inked.every((value, at) => at === 0 || value >= inked[at - 1] - baseline * 0.02) ? true : inked);
+  check('des états intermédiaires passent à l’écran', inked.filter((value) => value > baseline * 0.1 && value < baseline * 0.9).length >= 4 ? true : inked);
+  check('et le texte finit entier, identique à celui qui n’est pas animé', Math.abs(inked.at(-1) - baseline) <= baseline * 0.02 ? true : [inked.at(-1), baseline]);
+  await pick(PHASE('enter', 'preset'), '');
+  await page.sleep(300);
+  check('retirer l’animation rend le texte entier', Math.abs((await ink()) - baseline) <= baseline * 0.02);
+
+  // Un préréglage de texte ne se propose pas à une couche qui n’en dessine pas.
+  await page.click('#layers-add');
+  await page.click('#gallery-grid [data-kind="shape"]');
+  await page.waitFor("[...document.querySelectorAll('#layers-list .layer-title')].length >= 3", 8000);
+  await page.sleep(300);
+  check('sur une forme, les préréglages de texte sont grisés et ceux de calque restent permis', await page.evaluate(`(() => {
+    const options = [...document.querySelectorAll(${JSON.stringify(PHASE('enter', 'preset'))} + ' option')];
+    const byValue = (value) => options.find((option) => option.value === value);
+    return byValue('type').disabled && byValue('letters').disabled && byValue('words').disabled && !byValue('fade').disabled && !byValue('zoom').disabled;
+  })()`));
+  const textRow = await page.evaluate("[...document.querySelectorAll('#layers-list .layer-row')].findIndex((row) => row.querySelector('.layer-title')?.textContent === 'Texte')");
+  await page.click(layerRow(textRow));
+  await page.sleep(300);
+  check('sur le texte, ils sont permis', await page.evaluate(`[...document.querySelectorAll(${JSON.stringify(PHASE('enter', 'preset'))} + ' option')].filter((option) => ['type', 'letters', 'words'].includes(option.value)).every((option) => !option.disabled)`));
+
   // Plusieurs couches : le panneau se tait.
-  await page.click(layerRow(2), { modifiers: ['Control'] });
+  const otherRow = await page.evaluate("[...document.querySelectorAll('#layers-list .layer-row')].findIndex((row) => row.querySelector('.layer-title')?.textContent !== 'Texte')");
+  await page.click(layerRow(otherRow), { modifiers: ['Control'] });
   const hint = await page.evaluate("document.getElementById('animation-hint').textContent");
   check('avec plusieurs couches sélectionnées, rien n’est proposé et la raison est dite', (await page.evaluate("document.getElementById('animation-body').hidden")) === true && hint.includes('une seule couche'));
 

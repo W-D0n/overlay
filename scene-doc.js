@@ -3,7 +3,7 @@ import { validateTransition } from './background-transition.js';
 import { animationErrors, canonicalAnimation } from './layer-animation.js';
 import { bindingErrors, canonicalBindings } from './layer-bindings.js';
 import { canonicalSceneTimeline, canonicalTracks, sceneTimelineErrors, trackErrors } from './layer-timeline.js';
-import { clampOptions, isIdentityKind, neutralizeOptions, resolveKindId, validateOptions } from './layer-kinds.js';
+import { clampOptions, isIdentityKind, kindCapabilities, neutralizeOptions, resolveKindId, validateOptions } from './layer-kinds.js';
 
 /**
  * scene-doc.js — Document de scène : une pile ordonnée de couches (docs/specs/scene-doc-etape-4.md).
@@ -406,7 +406,7 @@ function lookErrors(where, layer) {
   if (layer.blur !== undefined && !isFraction(layer.blur)) errors.push(`${where}.blur : nombre attendu`);
   errors.push(...bindingErrors(`${where}.bindings`, layer.bindings));
   errors.push(...trackErrors(`${where}.timeline`, layer.timeline));
-  errors.push(...animationErrors(`${where}.animation`, layer.animation));
+  errors.push(...animationErrors(`${where}.animation`, layer.animation, { glyphs: kindCapabilities(layer.kind).glyphs === true }));
   if (layer.crop === undefined) return errors;
   const { crop } = layer;
   if (!isPlainObject(crop)) return [...errors, `${where}.crop : objet attendu`];
