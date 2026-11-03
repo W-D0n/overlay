@@ -24,6 +24,7 @@ updated: 2026-11-02
 | [scene-doc-etape-4](scene-doc-etape-4.md) | Validée | 2026-10-29 | Document de scène (couches), moteur de scène |
 | [couches-de-contenu](couches-de-contenu.md) | Fait | 2026-10-31 | Texte, forme, image et assets : contenus posés dans une scène |
 | [timeline](timeline.md) | Fait | 2026-10-31 | Timeline à images clés : la scène joue, depuis l'arrivée dans OBS |
+| [animations-de-couche](animations-de-couche.md) | Décidée | 2026-11-03 | Entrée, boucle et sortie par couche, horloge propre à chaque couche, sortie au départ de la scène |
 | [incidents-d-antenne](incidents-d-antenne.md) | Fait | 2026-10-31 | Être prévenu quand le serveur, OBS ou la page de rendu est perdu |
 | [versions-de-scene](versions-de-scene.md) | Fait | 2026-10-31 | Points de restauration nommés d'une scène |
 | [liaisons-de-couche](liaisons-de-couche.md) | Fait | 2026-10-31 | Le son et les alertes pilotent une couche (opacité, échelle, rotation, flou, position) |

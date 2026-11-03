@@ -82,7 +82,7 @@ Ordre = recommandation.
 2. ~~**Couche Shader**~~ — **faite le 2026-11-02** (`specs/couche-shader.md`) : fragment GLSL en WebGL2 à la Shadertoy, uniformes `uResolution`, `uTime`, `uAudio`, `uAlert` et réglages en `u_<clé>`, qualité de rendu, dernier programme valide conservé en cas d'erreur, réglages numériques animables. À éprouver dans OBS (procédure §16).
    **Reste** : textures (image de la médiathèque en `sampler2D`), passes multiples (fluides), vignette, coût GPU mesuré par couche.
 3. ~~**Déclencheurs d'alerte → animation**~~ — **faits le 2026-11-02** (piste 2 ci-dessus) : ils servent aussi les réglages animés des couches Code et Shader.
-4. **Animations de texte et de forme sans code** : préréglages d'entrée, de boucle et de sortie (lettre par lettre, machine à écrire, glitch, rebond, masque).
+4. **Animations de couche** (`specs/animations-de-couche.md`, décidée le 2026-11-03) : préréglages d'entrée, de boucle et de sortie pour toute couche, **une horloge par couche** (elle peut apparaître n'importe quand), sortie à date fixe et au départ de la scène, relance par alerte couche par couche ; puis lettre par lettre / machine à écrire pour le texte. Le code (CSS, JS, 3D) reste disponible à côté.
 5. **Finitions** : groupes de couches, courbes de Bézier, copier-coller d'images clés, filtres par couche (flou, lueur, masque), bibliothèque de modèles.
 6. **À mesurer avant d'aller plus loin** (hypothèses, rien n'est mesuré) : WebGL2 et `iframe` dans la source navigateur d'OBS (dépend de l'accélération matérielle) ;
    coût d'une `iframe` plus un rendu 3D par scène à 1080p/60 → plafond ou indicateur de charge dans le Studio.
