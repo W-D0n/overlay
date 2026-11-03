@@ -5,7 +5,7 @@ updated: 2026-11-03
 
 # Spec — Animations de couche (entrée, boucle, sortie)
 
-Statut : **en cours** — étapes 1 et 2 livrées (modèle pur `layer-animation.js` ; moteur : horloge par couche, entrée, boucle, sortie à date fixe, relance par alerte couche par couche ; 59 défauts réinjectés tous vus rouges). Restent : la sortie au départ de la scène, le panneau du Studio, les préréglages de texte. Décision de l'owner du 2026-11-03 : une animation, de texte ou non, peut apparaître **n'importe quand** pour accompagner un
+Statut : **en cours** — étapes 1 à 3 livrées (modèle pur `layer-animation.js` ; moteur : horloge par couche, entrée, boucle, sortie à date fixe, sortie au départ de la scène, relance par alerte couche par couche ; 93 défauts réinjectés tous vus rouges). Restent : le panneau du Studio, les préréglages de texte. Décision de l'owner du 2026-11-03 : une animation, de texte ou non, peut apparaître **n'importe quand** pour accompagner un
 moment du live ; chaque couche a donc **sa propre horloge** (choix B), et la sortie se règle à **date fixe** et **au départ de la scène** (options 2 et 3).
 Elle complète la timeline de scène (`timeline.md`), qui reste l'outil précis, image clé par image clé ; elle ne la remplace pas. Elle vaut pour **tous les types de couche**
 (texte, image, forme, code, shader) : les préréglages agissent sur le calque de la couche.
@@ -39,7 +39,8 @@ le masque de révélation se combine au rognage. Une couche peut donc avoir une 
 
 Quand une scène en remplace une autre, les couches sortantes qui ont `exit.onLeave` jouent leur sortie **avant d'être retirées** : la pile sortante est conservée jusqu'à la fin de la plus longue
 sortie. Règle retenue : l'arrivée de la nouvelle scène commence tout de suite ; l'effet de transition de la pile sortante ne démarre qu'une fois les sorties jouées (sinon le fondu de la
-pile masquerait la sortie de chaque couche). Une scène remplacée sans transition (réglage en direct) ne joue pas de sortie : ce n'est pas un départ.
+pile masquerait la sortie de chaque couche). Mise en œuvre (`scene-runtime.js`, `startLeaving`) : chaque couche sortante note l'instant de son départ et **fige ses valeurs de base** (la timeline de la scène suivante repart de zéro et ne doit pas
+les changer) ; la pile est retirée après `plus longue sortie + durée de la transition`. Une alerte ne relance pas une couche qui part ; une transition plus récente qui retire la pile annule la suite. Une scène remplacée sans transition (réglage en direct) ne joue pas de sortie : ce n'est pas un départ.
 
 ## 5. Préréglages
 

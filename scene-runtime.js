@@ -3,7 +3,7 @@ import { COMPONENT_REGISTRY } from './component-registry.js';
 import { cssEasing, normalizeTransition, transitionStyles } from './background-transition.js';
 import { isAudioOn, isIdentityKind, kindCapabilities } from './layer-kinds.js';
 import { referenceScale } from './render-reference.js';
-import { applyPose, evaluateAnimation, restartsAnimationOn } from './layer-animation.js';
+import { applyPose, evaluateAnimation, leaveDelayMs, restartsAnimationOn } from './layer-animation.js';
 import { PARAM_TARGET_PREFIX, evaluateBindings, recordPulse, usesAudio } from './layer-bindings.js';
 import { effectiveTimeline, evaluateTimeline, hasKeys, playbackTime, restartsOn } from './layer-timeline.js';
 import { getRenderClock } from './render-clock.js';
@@ -47,8 +47,9 @@ import { CROP_SIDES } from './scene-doc.js';
  * @typedef {import('./scene-doc.js').SceneDoc} SceneDoc
  * @typedef {import('./scene-doc.js').Layer} Layer
  * @typedef {{ id: string, kind: string, instance: import('./types.js').ComponentInstance, visible: boolean }} MountedLayerInfo
- * @typedef {{ id: string, kind: string, instance: import('./types.js').ComponentInstance, calque: *, visible: boolean, options: Record<string, unknown>, layer: Layer, memory: number[], appliedKey: string, age: number }} MountedLayer
- * L'`age` est l'horloge propre de la couche, en millisecondes : 0 au montage et à une alerte de relance (`layer-animation.js`).
+ * @typedef {{ id: string, kind: string, instance: import('./types.js').ComponentInstance, calque: *, visible: boolean, options: Record<string, unknown>, layer: Layer, memory: number[], appliedKey: string, age: number, leftAt: number | null, frozen: Partial<Record<import('./layer-bindings.js').BindingTarget, number>> | null }} MountedLayer
+ * L'`age` est l'horloge propre de la couche, en millisecondes : 0 au montage et à une alerte de relance (`layer-animation.js`). `leftAt` : l'âge où sa scène a été
+ * remplacée (la couche joue alors sa sortie « au départ »), `frozen` : ses valeurs de base figées à ce moment, la timeline de la scène ayant repris au début pour la suivante.
  * @typedef {{ calque: *, layers: Map<string, MountedLayer> }} Stage
  */
 
@@ -180,7 +181,7 @@ export function createSceneRuntime(container, deps = {}) {
     const calque = createCalque();
     calque.appendChild(instance.el);
     stage.calque.appendChild(calque);
-    return { id: layer.id, kind: layer.kind, instance, calque, visible: layer.visible, options: layer.options, layer, memory: [], appliedKey: '', age: 0 };
+    return { id: layer.id, kind: layer.kind, instance, calque, visible: layer.visible, options: layer.options, layer, memory: [], appliedKey: '', age: 0, leftAt: null, frozen: null };
   }
 
   /** @param {MountedLayer} entry @param {Layer} layer @param {number} index */
@@ -210,6 +211,11 @@ export function createSceneRuntime(container, deps = {}) {
   /** Toutes les couches montées, effets et identité. @returns {MountedLayer[]} */
   function mountedEntries() {
     return [...(current === null ? [] : current.layers.values()), ...(identity === null ? [] : identity.layers.values())];
+  }
+
+  /** Les couches des scènes sortantes qui jouent leur sortie « au départ de la scène ». @returns {MountedLayer[]} */
+  function leavingEntries() {
+    return outgoing.flatMap((stage) => [...stage.layers.values()].filter((entry) => entry.leftAt !== null));
   }
 
   /** La timeline de la scène affichée : la sienne, ou celle par défaut. */
@@ -244,7 +250,7 @@ export function createSceneRuntime(container, deps = {}) {
   function animatedLook(entry, bound) {
     const { animation } = entry.layer;
     if (animation === undefined) return bound;
-    const { pose, gone } = evaluateAnimation(animation, entry.age);
+    const { pose, gone } = evaluateAnimation(animation, entry.age, entry.leftAt);
     return { ...bound, ...applyPose(entry.layer, bound, pose), gone };
   }
 
@@ -277,16 +283,26 @@ export function createSceneRuntime(container, deps = {}) {
     for (const entry of mountedEntries()) {
       if (!entry.visible || !isAnimated(entry.layer)) continue;
       entry.age += frame.dt * 1000;
-      const values = bindingValues(entry, frame.time, frame.dt);
-      const look = animatedLook(entry, values);
-      // On n'écrit que ce qui a changé : une liaison au repos ne coûte aucune écriture de style.
-      const key = JSON.stringify(look);
-      if (key === entry.appliedKey) continue;
-      entry.appliedKey = key;
-      driveParams(entry, values);
-      Object.assign(entry.calque.style, lookStyles(entry.layer, look));
+      paint(entry, bindingValues(entry, frame.time, frame.dt));
+    }
+    for (const entry of leavingEntries()) {
+      entry.age += frame.dt * 1000;
+      paint(entry, entry.frozen ?? {});
     }
     if (timelineListeners.size > 0) for (const listener of timelineListeners) listener(timelineState());
+  }
+
+  /**
+   * Écrit le style d'une couche à cet instant ; on n'écrit que ce qui a changé : une couche au repos ne coûte aucune écriture de style.
+   * @param {MountedLayer} entry @param {Partial<Record<import('./layer-bindings.js').BindingTarget, number>>} values
+   */
+  function paint(entry, values) {
+    const look = animatedLook(entry, values);
+    const key = JSON.stringify(look);
+    if (key === entry.appliedKey) return;
+    entry.appliedKey = key;
+    driveParams(entry, values);
+    Object.assign(entry.calque.style, lookStyles(entry.layer, look));
   }
 
   /** Vrai si une couche a quelque chose à évaluer à chaque image : des liaisons, des images clés ou une animation. @param {Layer} layer */
@@ -296,7 +312,7 @@ export function createSceneRuntime(container, deps = {}) {
 
   /** L'horloge tourne tant qu'une couche montée a des liaisons ou des images clés, et pas plus. */
   function syncClock() {
-    const needed = mountedEntries().some((entry) => entry.visible && isAnimated(entry.layer));
+    const needed = mountedEntries().some((entry) => entry.visible && isAnimated(entry.layer)) || leavingEntries().length > 0;
     if (needed && stopClock === null) stopClock = clock.subscribe(tickBindings);
     else if (!needed && stopClock !== null) { stopClock(); stopClock = null; }
   }
@@ -354,6 +370,8 @@ export function createSceneRuntime(container, deps = {}) {
     Object.assign(next.calque.style, incoming.from);
 
     const previous = current;
+    // Les couches de la scène qui part jouent leur sortie : elle reste en place le temps de la plus longue, puis sa propre transition commence.
+    const hold = previous === null ? 0 : startLeaving(previous);
     current = next;
     playback.elapsedMs = 0;
     if (previous !== null) {
@@ -375,8 +393,14 @@ export function createSceneRuntime(container, deps = {}) {
       // Le sortant est animé lui aussi : les effets peignent sur des canvas transparents, donc
       // révéler l'entrant ne le masque pas. Sans ça il reste visible puis disparaît d'un coup.
       if (previous !== null) {
-        previous.calque.style.transition = timingFor(outgoingStyles.properties);
-        Object.assign(previous.calque.style, outgoingStyles.to);
+        const fadeOut = () => {
+          // Une transition plus récente a pu retirer la scène entre-temps.
+          if (!outgoing.includes(previous)) return;
+          previous.calque.style.transition = timingFor(outgoingStyles.properties);
+          Object.assign(previous.calque.style, outgoingStyles.to);
+        };
+        if (hold === 0) fadeOut();
+        else scheduleTimeout(fadeOut, hold);
       }
     });
 
@@ -385,7 +409,25 @@ export function createSceneRuntime(container, deps = {}) {
       if (current !== next) return;
       flushOutgoing();
       clearTransitionStyles(next.calque);
-    }, transition.durationMs);
+      syncClock();
+    }, hold + transition.durationMs);
+  }
+
+  /**
+   * Prévient les couches d'une scène qui part qu'elle part : celles qui ont une sortie « au départ » la jouent depuis cet instant, leurs valeurs de base figées.
+   * @param {Stage} stage
+   * @returns {number} le temps que la scène doit rester en place pour que la plus longue sortie finisse
+   */
+  function startLeaving(stage) {
+    let hold = 0;
+    for (const entry of stage.layers.values()) {
+      const delay = leaveDelayMs(entry.layer.animation);
+      if (delay === 0) continue;
+      entry.leftAt = entry.age;
+      entry.frozen = bindingValues(entry, clockTime, 0);
+      hold = Math.max(hold, delay);
+    }
+    return hold;
   }
 
   /** @param {SceneDoc} fullScene */

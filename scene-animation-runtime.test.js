@@ -5,7 +5,10 @@ import { createLayer } from './scene-doc.js';
 /** Un monde factice : un calque par couche dont on compte les écritures de style, et une horloge qu'on fait avancer à la main. */
 function setup() {
   const calques = [];
+  const stages = [];
   const writes = [];
+  /** Les temporisateurs demandés au moteur, avec leur délai : on les déclenche à la main. */
+  const timers = [];
   const listeners = new Set();
   let time = 0;
   const clock = { subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); } };
@@ -13,7 +16,13 @@ function setup() {
   const runtime = createSceneRuntime({ appendChild() {} }, {
     registry,
     clock,
-    createStageCalque: () => ({ style: {}, appendChild() {}, remove() {} }),
+    scheduleFrame: (callback) => callback(),
+    scheduleTimeout: (callback, delayMs) => timers.push({ callback, delayMs }),
+    createStageCalque: () => {
+      const stage = { style: {}, removed: false, appendChild() {}, remove() { stage.removed = true; } };
+      stages.push(stage);
+      return stage;
+    },
     createCalque: () => {
       const index = calques.length;
       const style = new Proxy({}, { set: (target, key, value) => { writes.push([index, key, value]); target[key] = value; return true; } });
@@ -28,7 +37,7 @@ function setup() {
     time = seconds;
     for (const listener of [...listeners]) listener({ dt, time, pixelRatio: 1 });
   };
-  return { runtime, calques, writes, listeners, frame };
+  return { runtime, calques, stages, writes, timers, listeners, frame };
 }
 
 const scene = (...layers) => ({ version: 1, id: 's', name: 'S', layers });
@@ -311,5 +320,127 @@ describe('animation de couche dans le moteur : édition', () => {
     expect(calques[0].style.opacity).toBe('0.25');
     frame(2);
     expect(calques[0].style.opacity).toBe('0.5');
+  });
+});
+
+describe('animation de couche dans le moteur : sortie au départ de la scène', () => {
+  const arrival = { type: 'fade', durationMs: 400, easing: 'linear' };
+  const leaving = (durationMs = 1000, extra = {}) => ({ exit: { preset: 'fade', durationMs, onLeave: true, ease: 'linear' }, ...extra });
+  const replace = (runtime, ...layers) => runtime.apply({ ...scene(...layers), transition: arrival });
+
+  test('la scène sortante reste en place le temps de la sortie, puis sa transition commence', () => {
+    const { runtime, stages, timers } = setup();
+    runtime.apply(scene(title(leaving(1000))));
+    replace(runtime, logo(undefined));
+    expect(runtime.stageCount()).toBe(2);
+    expect(stages[0].style.transition).toBeUndefined();
+    expect(timers.map(({ delayMs }) => delayMs).sort((a, b) => a - b)).toEqual([1000, 1400]);
+    timers.find(({ delayMs }) => delayMs === 1000).callback();
+    expect(stages[0].style.transition).toBe('opacity 400ms linear');
+    expect(stages[0].style.opacity).toBe('0');
+    timers.find(({ delayMs }) => delayMs === 1400).callback();
+    expect(runtime.stageCount()).toBe(1);
+    expect(stages[0].removed).toBe(true);
+  });
+
+  test('la couche sortante joue sa sortie pendant que la nouvelle scène arrive', () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(title(leaving(1000))));
+    frame(0);
+    frame(5);
+    replace(runtime, logo(undefined));
+    frame(5.5);
+    expect(calques[0].style.opacity).toBe('0.5');
+    frame(6);
+    expect(calques[0].style.opacity).toBe('0');
+    expect(calques[0].style.display).toBe('none');
+  });
+
+  test("sans sortie « au départ », rien ne change : pas d'attente, la transition commence tout de suite", () => {
+    const { runtime, stages, timers, listeners } = setup();
+    runtime.apply(scene(title(fadeIn())));
+    replace(runtime, logo(undefined));
+    expect(timers.map(({ delayMs }) => delayMs)).toEqual([400]);
+    expect(stages[0].style.transition).toBe('opacity 400ms linear');
+    expect(listeners.size).toBe(0);
+  });
+
+  test('une sortie à date fixe ne retient pas la scène', () => {
+    const { runtime, timers } = setup();
+    runtime.apply(scene(title({ exit: { preset: 'fade', durationMs: 1000, afterMs: 9000 } })));
+    replace(runtime, logo(undefined));
+    expect(timers.map(({ delayMs }) => delayMs)).toEqual([400]);
+  });
+
+  test('la scène attend la plus longue des sorties', () => {
+    const { runtime, timers } = setup();
+    runtime.apply(scene(title(leaving(500)), logo(leaving(1500))));
+    replace(runtime, createLayer({ id: 'autre', kind: 'text' }));
+    expect(timers.map(({ delayMs }) => delayMs).sort((a, b) => a - b)).toEqual([1500, 1900]);
+  });
+
+  test("l'horloge reste branchée pendant l'attente et se libère quand la scène est retirée", () => {
+    const { runtime, listeners, timers } = setup();
+    runtime.apply(scene(title(leaving(1000))));
+    replace(runtime, logo(undefined));
+    expect(listeners.size).toBe(1);
+    timers.find(({ delayMs }) => delayMs === 1400).callback();
+    expect(listeners.size).toBe(0);
+  });
+
+  test('une coupure franche (durée nulle) ou le premier montage ne jouent aucune sortie', () => {
+    const { runtime, stages, timers } = setup();
+    runtime.apply({ ...scene(title(leaving(1000))), transition: arrival });
+    expect(timers).toEqual([]);
+    runtime.apply({ ...scene(logo(undefined)), transition: { ...arrival, durationMs: 0 } });
+    expect(timers).toEqual([]);
+    expect(runtime.stageCount()).toBe(1);
+    expect(stages[0].removed).toBe(true);
+  });
+
+  test('un réglage en direct (sans transition) ne joue pas de sortie', () => {
+    const { runtime, calques, timers, frame } = setup();
+    runtime.apply(scene(title(leaving(1000))));
+    frame(0);
+    runtime.apply(scene(title(leaving(1000), { opacity: 0.9 })));
+    frame(5);
+    expect(timers).toEqual([]);
+    expect(calques[0].style.opacity).toBe('0.9');
+  });
+
+  test('les valeurs de base de la couche sortante sont figées à son départ, la timeline de la scène suivante ne les change pas', () => {
+    const { runtime, calques, frame } = setup();
+    const dim = { target: 'opacity', keys: [{ t: 0, v: 1, ease: 'linear' }, { t: 1000, v: 0.5, ease: 'linear' }] };
+    runtime.apply(scene(title(leaving(1000), { timeline: [dim] })));
+    frame(0);
+    frame(5);
+    replace(runtime, logo(undefined));
+    frame(5.5);
+    expect(calques[0].style.opacity).toBe('0.25');
+  });
+
+  test("une alerte pendant l'attente ne relance pas la couche qui part", () => {
+    const { runtime, calques, frame } = setup();
+    runtime.apply(scene(title(leaving(1000, { restartOn: ['event:raid'] }))));
+    frame(0);
+    frame(5);
+    replace(runtime, logo(undefined));
+    frame(5.5);
+    runtime.react({ type: 'raid' });
+    frame(5.75);
+    expect(calques[0].style.opacity).toBe('0.25');
+  });
+
+  test("la transition d'une scène retirée entre-temps n'est pas rejouée sur elle", () => {
+    const { runtime, stages, timers } = setup();
+    runtime.apply(scene(title(leaving(1000))));
+    replace(runtime, logo(leaving(1000)));
+    const firstHold = timers.find(({ delayMs }) => delayMs === 1000);
+    replace(runtime, createLayer({ id: 'autre', kind: 'text' }));
+    timers.filter(({ delayMs }) => delayMs === 1400).at(-1).callback();
+    expect(stages[0].removed).toBe(true);
+    stages[0].style.transition = undefined;
+    firstHold.callback();
+    expect(stages[0].style.transition).toBeUndefined();
   });
 });
