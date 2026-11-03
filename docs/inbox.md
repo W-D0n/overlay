@@ -79,7 +79,7 @@ Ordre = recommandation.
 1. ~~**Couche Code isolée**~~ — **faite le 2026-11-01** (`specs/couche-code.md`) : HTML + CSS + JS dans une `iframe` `sandbox` sans `allow-same-origin`, politique de contenu limitée à la médiathèque,
    réglages déclarés par le code → formulaire du Studio, son et alertes reçus par `postMessage`, fichiers `asset:<id>` (images, polices, scripts `.js`, modèles `.glb`), import confirmé par une case. À éprouver dans OBS (procédure §15).
    **Réglages animés : faits le 2026-11-02** (`specs/couche-code.md` §9) : la timeline et les liaisons pilotent les réglages numériques bornés (`param:<clé>`). Restent hors de cette étape les réglages couleur, texte, case et liste.
-   Autres restes : éditeur de réglages en lignes plutôt qu'en JSON, éditeur de code (indentation, coloration), modèles de départ, `.gltf` à fichiers séparés.
+   Autres restes : éditeur de réglages en lignes plutôt qu'en JSON, coloration du code, `.gltf` à fichiers séparés. **Faits le 2026-11-03** : modèles de départ (titre, particules, cube WebGL), indentation / Entrée / numéros de ligne (`specs/couche-code.md` §9 bis).
 2. ~~**Couche Shader**~~ — **faite le 2026-11-02** (`specs/couche-shader.md`) : fragment GLSL en WebGL2 à la Shadertoy, uniformes `uResolution`, `uTime`, `uAudio`, `uAlert` et réglages en `u_<clé>`, qualité de rendu, dernier programme valide conservé en cas d'erreur, réglages numériques animables. À éprouver dans OBS (procédure §16).
    **Reste** : textures (image de la médiathèque en `sampler2D`), passes multiples (fluides), vignette, coût GPU mesuré par couche.
 3. ~~**Déclencheurs d'alerte → animation**~~ — **faits le 2026-11-02** (piste 2 ci-dessus) : ils servent aussi les réglages animés des couches Code et Shader.

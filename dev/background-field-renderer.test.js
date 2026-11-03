@@ -32,6 +32,7 @@ describe('rendu des champs de fond', () => {
   });
 });
 
+import { CODE_TEMPLATES } from '../components/code-templates.js';
 import { createBackgroundFieldRenderer } from './background-field-renderer.js';
 
 describe('champ booléen', () => {
@@ -91,7 +92,7 @@ describe('champs de la couche Code : code et réglages déclarés', () => {
       appendChild(child) { this.children.push(child); return child; },
       replaceChildren(...nodes) { this.children = [...nodes]; },
       setAttribute(name, value) { this[`attr:${name}`] = value; },
-      addEventListener() {},
+      addEventListener(type, listener) { this.listeners = { ...this.listeners, [type]: listener }; },
       focus() {},
       setSelectionRange(start, end) { this.selection = [start, end]; },
       classList: { add() {}, remove() {}, toggle() {} },
@@ -104,9 +105,9 @@ describe('champs de la couche Code : code et réglages déclarés', () => {
   /** Les étiquettes (nom des champs) que la section « réglages » affiche, dans l'ordre. */
   const paramLabels = (root) => byClass(root, 'params-field').flatMap((host) => host.children.filter((entry) => entry.tag === 'label').map((entry) => entry.textContent));
   /** Le compte rendu (sous un champ de code) du champ dont on donne la zone de saisie. */
-  const statusOf = (root, area) => byClass(root, 'code-field').find((wrapper) => wrapper.children.includes(area)).children.find((entry) => entry.className === 'field-status');
+  const statusOf = (root, area) => byClass(root, 'code-field').find((wrapper) => all(wrapper).includes(area)).children.find((entry) => entry.className === 'field-status');
 
-  function setup({ assetLibrary } = {}) {
+  function setup({ assetLibrary, onApply, currentOptions } = {}) {
     const changes = [];
     const container = node('div');
     const renderer = createBackgroundFieldRenderer({
@@ -114,6 +115,8 @@ describe('champs de la couche Code : code et réglages déclarés', () => {
       documentRef: /** @type {*} */ ({ createElement: node }),
       onChange: (key, next) => changes.push([key, next]),
       ...(assetLibrary === undefined ? {} : { assetLibrary }),
+      ...(onApply === undefined ? {} : { onApply }),
+      ...(currentOptions === undefined ? {} : { currentOptions }),
     });
     return { container, renderer, changes };
   }
@@ -230,7 +233,7 @@ describe('champs de la couche Code : code et réglages déclarés', () => {
     const area = field(container, 'HTML');
     area.selectionStart = 10;
     area.selectionEnd = 10;
-    const insert = byClass(container, 'code-field').find((wrapper) => wrapper.children.includes(area)).children.find((entry) => entry.className === 'code-insert');
+    const insert = byClass(container, 'code-field').find((wrapper) => all(wrapper).includes(area)).children.find((entry) => entry.className === 'code-insert');
     insert.onclick();
     expect(opened).toHaveLength(1);
     expect(opened[0].accept).toBeUndefined();
@@ -238,6 +241,84 @@ describe('champs de la couche Code : code et réglages déclarés', () => {
     expect(area.value).toBe(`<img src="asset:${'a'.repeat(32)}">`);
     expect(area.selection).toEqual([10 + 6 + 32, 10 + 6 + 32]);
     expect(changes.at(-1)).toEqual(['html', area.value]);
+  });
+
+  describe('modèle de départ', () => {
+    const starter = (container) => {
+      const row = byClass(container, 'starter-row')[0];
+      const [select, apply] = row.children;
+      return { select, apply, help: container.children.find((entry) => entry.className === 'field-help' && entry.attr_role !== undefined) ?? all(container).find((entry) => entry.tag === 'p' && entry['attr:role'] === 'status') };
+    };
+
+    test('only a Code layer has one, and only when the page can apply it', () => {
+      const withoutApply = setup();
+      withoutApply.renderer.render('code', base);
+      expect(byClass(withoutApply.container, 'starter-row')).toHaveLength(0);
+      const withApply = setup({ onApply: () => {} });
+      withApply.renderer.render('code', base);
+      expect(byClass(withApply.container, 'starter-row')).toHaveLength(1);
+      withApply.renderer.render('rain', {});
+      expect(byClass(withApply.container, 'starter-row')).toHaveLength(0);
+    });
+
+    test('lists the templates, and applies the chosen one over untouched code in one patch that also resets the settings values', () => {
+      const patches = [];
+      const { container, renderer } = setup({ onApply: (patch) => patches.push(patch), currentOptions: () => ({}) });
+      renderer.render('code', { ...base, params: { couleur: '#ff0000' } });
+      const { select, apply } = starter(container);
+      expect(select.children.map((option) => option.value)).toEqual(['', ...CODE_TEMPLATES.map(({ id }) => id)]);
+      expect(apply.disabled).toBe(true);
+      select.value = 'particules';
+      select.listeners.change();
+      expect(apply.disabled).toBe(false);
+      apply.listeners.click();
+      const particles = CODE_TEMPLATES.find(({ id }) => id === 'particules');
+      expect(patches).toEqual([{ html: particles.html, css: particles.css, js: particles.js, paramSpec: particles.paramSpec, params: {} }]);
+    });
+
+    test('code the author wrote is not replaced by the first click: it asks, and the second click applies', () => {
+      const patches = [];
+      let current = { ...base, js: '// mon code' };
+      const { container, renderer } = setup({ onApply: (patch) => patches.push(patch), currentOptions: () => current });
+      renderer.render('code', base);
+      const { select, apply } = starter(container);
+      select.value = 'cube-webgl';
+      select.listeners.change();
+      apply.listeners.click();
+      expect(patches).toHaveLength(0);
+      expect(apply.textContent).toBe('Remplacer mon code ?');
+      apply.listeners.click();
+      expect(patches).toHaveLength(1);
+      current = base;
+    });
+
+    test('the state of the code is read when clicking, not when the form was built', () => {
+      const patches = [];
+      let current = {};
+      const { container, renderer } = setup({ onApply: (patch) => patches.push(patch), currentOptions: () => current });
+      renderer.render('code', base);
+      const { select, apply } = starter(container);
+      select.value = 'particules';
+      select.listeners.change();
+      current = { ...base, js: '// écrit depuis' };
+      apply.listeners.click();
+      expect(patches).toHaveLength(0);
+    });
+
+    test('choosing another template forgets a pending confirmation', () => {
+      const patches = [];
+      const { container, renderer } = setup({ onApply: (patch) => patches.push(patch), currentOptions: () => ({ ...base, js: '// à moi' }) });
+      renderer.render('code', base);
+      const { select, apply } = starter(container);
+      select.value = 'cube-webgl';
+      select.listeners.change();
+      apply.listeners.click();
+      select.value = 'particules';
+      select.listeners.change();
+      expect(apply.textContent).toBe('Appliquer');
+      apply.listeners.click();
+      expect(patches).toHaveLength(0);
+    });
   });
 
   test('« Insérer un fichier » est inactif sans médiathèque, et la déclaration des réglages n’en a pas', () => {

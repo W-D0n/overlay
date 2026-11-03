@@ -63,6 +63,8 @@ La couche **Code** exécute du **HTML, du CSS et du JavaScript** que vous écriv
 bibliothèque 3D comme three.js. Elle s'ajoute comme les autres (« + Ajouter › Code ») et se place comme un contenu ; elle arrive et part avec sa scène, et **la page
 repart de zéro à chaque arrivée de scène** (une animation d'entrée se rejoue).
 
+- **Modèle de départ** : en haut du formulaire, trois modèles complets (HTML, CSS, JavaScript et réglages) : *Titre qui se révèle*, *Particules (canvas 2D)* et *Cube 3D (WebGL)*. « Appliquer » les pose en un seul pas d'historique (annulable) ; si le code a été écrit par vous, un premier clic demande « Remplacer mon code ? » et le second applique.
+- **Confort de saisie** : `Tab` et `Maj+Tab` indentent et désindentent (toutes les lignes sélectionnées), `Entrée` garde l'indentation et ouvre un bloc après `{`, `[` ou `(` ; les numéros de ligne s'affichent à gauche. **`Échap` puis `Tab`** quitte la zone (le clavier n'y reste pas piégé).
 - **Trois zones de code** : HTML (le corps de la page), CSS, JavaScript. Le JavaScript est un **module** : `import`, `await` de premier niveau. Un changement de code recharge la
   page après une courte pause ; un réglage ne la recharge pas.
 - **Réglages exposés** : une liste JSON décrit les réglages que le Studio présente comme des champs (`number`, `text`, `color`, `boolean`, `select`) :

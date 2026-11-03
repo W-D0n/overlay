@@ -1,6 +1,6 @@
 ---
 created: 2026-11-01
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Spec — Couche Code (HTML, CSS et JavaScript dans une page isolée)
@@ -114,8 +114,15 @@ une liaison neuve part du défaut du réglage jusqu'à son maximum.
 - **Preuves** : `layer-param-targets.test.js` et `CodeLayer.test.js` (44 mutations réinjectées, 42 vues rouges, 2 équivalentes : le test du type dans `paramTargets` — seul un nombre porte `min`/`max` — et le test du préfixe dans `paramBase`) ;
   `dev/e2e/suites/34-reglages-animes.e2e.js` lit les valeurs **dans la page isolée** (images clés, bornes, courbe, liaison qui l'emporte, retour à la valeur manuelle, aucun rechargement), vue rouge sur deux régressions réelles.
 
+## 9 bis. Modèles de départ et confort de saisie (2026-11-03)
+
+- **Modèles de départ** (`components/code-templates.js`, données seules) : *Titre qui se révèle* (HTML et CSS), *Particules (canvas 2D)*, *Cube 3D (WebGL, sans bibliothèque)*. Chacun porte HTML, CSS, JavaScript et déclaration de réglages ; leurs sources ne contiennent ni import ni adresse externe. `components/code-templates.test.js` vérifie, pour chacun : les limites d'une couche Code, une déclaration sans défaut, un script qui se compile, des réglages utilisés = réglages déclarés (dans les deux sens), une couche valide dans une scène.
+- **Appliquer** : liste « Modèle de départ » en tête du formulaire d'une couche Code, `onApply(patch)` du moteur de champs → une seule commande de l'éditeur (`html`, `css`, `js`, `paramSpec`, `params: {}`), donc une étape d'annulation. Un code que l'auteur a modifié (autre chose que le défaut ou un modèle) n'est remplacé qu'au second clic (« Remplacer mon code ? ») ; l'état du code est lu **au clic**, pas à la construction du formulaire (il ne se reconstruit pas pendant la frappe).
+- **Saisie** (`dev/code-editing.js`, fonctions pures) : `Tab` indente (deux espaces, toutes les lignes touchées), `Maj+Tab` désindente, `Entrée` garde l'indentation et ouvre un bloc après une parenthèse ou une accolade (le fermant passe à sa ligne) ; numéros de ligne à gauche, qui défilent avec le texte. L'édition passe par `execCommand('insertText')` : l'annulation du navigateur (`Ctrl+Z`) reste celle de l'auteur. **`Échap` puis `Tab` quitte la zone** : la touche Tab ne piège pas le clavier.
+- **Preuves** : `dev/code-editing.test.js`, `dev/background-field-renderer.test.js` (le modèle de départ, y compris la confirmation lue au clic), `dev/e2e/suites/47-modeles-code.e2e.js` (vrai Studio : chaque modèle s'applique, **le script tourne dans la page isolée sans erreur remontée — cube WebGL compris**, un pas d'annulation, touches réelles). 16 défauts réinjectés, tous vus rouges ; le défilement des numéros de ligne n'est vérifié qu'à l'œil.
+
 ## 10. Reste
 
-- Éditeur de réglages en lignes (au lieu du JSON), éditeur de code (indentation, coloration, numéros de ligne), modèles de départ (titre animé, particules canvas, cube WebGL), `.gltf` à fichiers séparés, bibliothèque de scripts proposée.
+- Éditeur de réglages en lignes (au lieu du JSON), coloration syntaxique, `.gltf` à fichiers séparés, bibliothèque de scripts proposée.
 - **À mesurer dans OBS** (hypothèses, procédure §15) : WebGL2 dans la source navigateur ; coût d'une page isolée (processus en plus) à 1080p / 60 i/s ; plafond ou indicateur de charge dans le Studio.
 - Couche Shader (GLSL en WebGL2 natif) et déclencheurs d'alerte → animation : pistes 2 et 3 de l'inbox.

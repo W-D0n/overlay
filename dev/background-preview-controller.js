@@ -106,6 +106,12 @@ export function createBackgroundPreviewController(input) {
     container: input.fields,
     documentRef,
     ...(input.assetLibrary === undefined ? {} : { assetLibrary: input.assetLibrary }),
+    currentOptions: () => targetLayer(editor.state().scene, editor.state().selection)?.options ?? {},
+    onApply(patch) {
+      const target = targetLayer(editor.state().scene, editor.state().selection);
+      if (target === null) return;
+      editor.setOptions(target.id, patch);
+    },
     onChange(key, value) {
       const target = targetLayer(editor.state().scene, editor.state().selection);
       if (target === null) return;

@@ -6,6 +6,8 @@ import { DESIGN_TOKENS, tokenLabel } from './design-tokens.js';
 import { buildNumericFieldControl } from './numeric-field-control.js';
 import { assetKind } from './asset-format.js';
 import { normalizeParamValues, paramFieldSchemas, parseParamSpec } from '../components/code-params.js';
+import { CODE_TEMPLATES } from '../components/code-templates.js';
+import { indent, lineCount, newline, outdent } from './code-editing.js';
 
 const DEFAULT_ADDED_COLOR = 'var(--color-gold)';
 
@@ -39,9 +41,21 @@ export function backgroundFieldValues(component, options) {
 }
 
 /**
+ * Whether the code of a Code layer is still one the Studio gave (the default or a starting point): then a starting point can replace it without asking.
+ * @param {Record<string, unknown>} options
+ */
+export function isUntouchedCode(options) {
+  const defaults = Object.fromEntries(BACKGROUND_FIELD_SCHEMAS.code.map(({ key, default: value }) => [key, value]));
+  const known = [defaults, ...CODE_TEMPLATES];
+  return known.some((source) => ['html', 'css', 'js'].every((key) => (options[key] ?? defaults[key]) === /** @type {Record<string, unknown>} */ (source)[key]));
+}
+
+/**
  * @param {{
  *   container: HTMLElement,
  *   onChange: (key: string, value: unknown) => void,
+ *   onApply?: (patch: Record<string, unknown>) => void,
+ *   currentOptions?: () => Record<string, unknown>,
  *   assetLibrary?: AssetLibraryAccess,
  *   documentRef?: Document,
  * }} input
@@ -344,6 +358,41 @@ export function createBackgroundFieldRenderer(input) {
     textarea.setAttribute('wrap', 'off');
     textarea.rows = field.language === 'javascript' || field.language === 'glsl' ? 14 : field.language === 'css' ? 10 : 8;
     textarea.value = typeof value === 'string' ? value : '';
+    const editor = documentRef.createElement('div');
+    editor.className = 'code-editor';
+    const gutter = documentRef.createElement('div');
+    gutter.className = 'code-gutter';
+    gutter.setAttribute('aria-hidden', 'true');
+    const numberLines = () => {
+      const count = lineCount(textarea.value);
+      if (gutter.dataset.lines === String(count)) return;
+      gutter.dataset.lines = String(count);
+      gutter.textContent = Array.from({ length: count }, (_, index) => index + 1).join('\n');
+    };
+    textarea.addEventListener('scroll', () => { gutter.scrollTop = textarea.scrollTop; });
+    // Tab indents and Enter keeps the indentation; Escape lets the next Tab leave the field (so the keyboard is never trapped).
+    let leaving = false;
+    textarea.addEventListener('blur', () => { leaving = false; });
+    textarea.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') { leaving = true; return; }
+      if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing) return;
+      const wasLeaving = leaving;
+      leaving = false;
+      const start = textarea.selectionStart ?? 0;
+      const end = textarea.selectionEnd ?? start;
+      const edit = event.key === 'Tab' ? (wasLeaving ? null : event.shiftKey ? outdent(textarea.value, start, end) : indent(textarea.value, start, end))
+        : event.key === 'Enter' && !event.shiftKey ? newline(textarea.value, start, end) : null;
+      if (event.key === 'Tab' && !wasLeaving) event.preventDefault();
+      if (edit === null) return;
+      event.preventDefault();
+      // execCommand keeps the browser's own undo (Ctrl+Z) for the edit; setRangeText is the fallback.
+      textarea.setSelectionRange(edit.from, edit.to);
+      if (!documentRef.execCommand?.('insertText', false, edit.insert)) {
+        textarea.setRangeText(edit.insert, edit.from, edit.to, 'end');
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      textarea.setSelectionRange(edit.start, edit.end);
+    });
     const status = documentRef.createElement('p');
     status.className = 'field-status';
     status.setAttribute('role', 'status');
@@ -355,13 +404,16 @@ export function createBackgroundFieldRenderer(input) {
       status.dataset.level = errors.length > 0 ? 'error' : 'ok';
     }
     textarea.oninput = () => {
+      numberLines();
       emit(field.key, textarea.value);
       if (field.key === 'paramSpec') {
         showParamProblems(textarea.value);
         rebuildParams(textarea.value);
       }
     };
-    wrapper.appendChild(textarea);
+    numberLines();
+    editor.append(gutter, textarea);
+    wrapper.appendChild(editor);
 
     if (['html', 'css', 'javascript'].includes(field.language ?? '')) {
       const insert = documentRef.createElement('button');
@@ -411,6 +463,61 @@ export function createBackgroundFieldRenderer(input) {
     return host;
   }
 
+  /**
+   * "Modèle de départ" of a Code layer: a choice of ready-made HTML + CSS + JavaScript + settings, applied in one step. Replacing code the author has written asks a second click.
+   * @param {Record<string, unknown>} options @param {(patch: Record<string, unknown>) => void} apply
+   */
+  function buildStarterRow(options, apply) {
+    const label = documentRef.createElement('label');
+    label.textContent = 'Modèle de départ';
+    const row = documentRef.createElement('div');
+    row.className = 'starter-row';
+    const select = documentRef.createElement('select');
+    select.setAttribute('aria-label', 'Modèle de départ');
+    const none = documentRef.createElement('option');
+    none.value = '';
+    none.textContent = 'Choisir un modèle…';
+    select.appendChild(none);
+    for (const template of CODE_TEMPLATES) {
+      const option = documentRef.createElement('option');
+      option.value = template.id;
+      option.textContent = template.label;
+      select.appendChild(option);
+    }
+    const button = documentRef.createElement('button');
+    button.type = 'button';
+    button.className = 'starter-apply';
+    button.disabled = true;
+    const help = documentRef.createElement('p');
+    help.className = 'field-help';
+    help.setAttribute('role', 'status');
+    let confirming = false;
+    const idle = () => {
+      confirming = false;
+      button.textContent = 'Appliquer';
+    };
+    idle();
+    select.addEventListener('change', () => {
+      idle();
+      button.disabled = select.value === '';
+      help.textContent = CODE_TEMPLATES.find(({ id }) => id === select.value)?.description ?? '';
+    });
+    button.addEventListener('click', () => {
+      const template = CODE_TEMPLATES.find(({ id }) => id === select.value);
+      if (template === undefined) return;
+      // The options at the time of the click: the form is not rebuilt while the author types, so the ones it was built with may be old.
+      if (!confirming && !isUntouchedCode(input.currentOptions?.() ?? options)) {
+        confirming = true;
+        button.textContent = 'Remplacer mon code ?';
+        help.textContent = 'Ce modèle remplace le HTML, le CSS, le JavaScript et les réglages exposés de cette couche (annulable d’un geste).';
+        return;
+      }
+      apply({ html: template.html, css: template.css, js: template.js, paramSpec: template.paramSpec, params: {} });
+    });
+    row.append(select, button);
+    input.container.append(label, row, help);
+  }
+
   /** @type {((values: Record<string, unknown>) => void) | null} */
   let paramsEmit = null;
 
@@ -458,6 +565,7 @@ export function createBackgroundFieldRenderer(input) {
       paramsEmit = null;
       codeReports = context.reports ?? null;
       input.container.replaceChildren();
+      if (component === 'code' && input.onApply !== undefined) buildStarterRow(options, input.onApply);
       for (const { field, value } of backgroundFieldValues(component, options)) {
         const label = documentRef.createElement('label');
         label.textContent = field.label;
