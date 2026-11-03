@@ -219,3 +219,94 @@ export function isEffectivelyLocked(layers, layer) {
   const owner = layer.group === undefined ? undefined : layers.find((candidate) => candidate.id === layer.group);
   return owner?.locked === true;
 }
+
+/**
+ * The ids of a selection once a group stands for its members: a layer whose group is also selected is left out (the group already moves, hides or deletes it).
+ * @param {readonly Layer[]} layers
+ * @param {readonly string[]} ids
+ * @returns {string[]} in scene order
+ */
+export function selectionRoots(layers, ids) {
+  const wanted = new Set(ids);
+  return layers.filter((layer) => wanted.has(layer.id) && !(layer.group !== undefined && wanted.has(layer.group))).map(({ id }) => id);
+}
+
+/**
+ * The ids with the members of every group among them added.
+ * @param {readonly Layer[]} layers
+ * @param {readonly string[]} ids
+ * @returns {string[]} in scene order
+ */
+export function withMembers(layers, ids) {
+  const wanted = new Set(ids);
+  return layers.filter((layer) => wanted.has(layer.id) || (layer.group !== undefined && wanted.has(layer.group))).map(({ id }) => id);
+}
+
+/**
+ * A placement carried from one box to another: translated and scaled the way the box itself changes.
+ * @param {Placement} placement
+ * @param {Placement} from a box with a width and a height
+ * @param {Placement} to
+ * @returns {Placement}
+ */
+export function fitPlacement(placement, from, to) {
+  const scaleX = to.width / from.width;
+  const scaleY = to.height / from.height;
+  return {
+    x: to.x + (placement.x - from.x) * scaleX,
+    y: to.y + (placement.y - from.y) * scaleY,
+    width: placement.width * scaleX,
+    height: placement.height * scaleY,
+  };
+}
+
+/**
+ * The layers after a group's box has been set to `to`: every member moves and scales with it (the group's own placement is derived from them).
+ * @param {readonly Layer[]} layers
+ * @param {string} groupId
+ * @param {Placement} to a box with a positive width and height
+ * @returns {Layer[] | null} `null` when `groupId` is not a group with members, or `to` has no area
+ */
+export function resizeGroup(layers, groupId, to) {
+  const group = layers.find((layer) => layer.id === groupId);
+  const members = membersOf(layers, groupId);
+  if (group === undefined || !isGroup(group) || members.length === 0 || !(to.width > 0) || !(to.height > 0)) return null;
+  const from = boundingBox(members.map((member) => member.placement));
+  return deriveGroupPlacements(layers.map((layer) => (layer.group === groupId ? { ...layer, placement: fitPlacement(layer.placement, from, to) } : layer)));
+}
+
+/**
+ * Moves some items in an ordered list, back to front: `up` and `down` swap each target with its untargeted neighbour, `top`, `bottom` and `{ to }` gather the targets
+ * (`to` being their position among the items that stay).
+ * @template {{ id: string }} Item
+ * @param {readonly Item[]} items
+ * @param {readonly string[]} targetIds
+ * @param {'up' | 'down' | 'top' | 'bottom' | { to: number }} where
+ * @returns {Item[]}
+ */
+export function reorderItems(items, targetIds, where) {
+  if (where === 'up' || where === 'down') {
+    const reordered = [...items];
+    const order = where === 'up' ? reordered.map((_, index) => reordered.length - 1 - index) : reordered.map((_, index) => index);
+    const step = where === 'up' ? 1 : -1;
+    for (const index of order) {
+      const neighbour = reordered[index + step];
+      if (!targetIds.includes(reordered[index].id) || neighbour === undefined || targetIds.includes(neighbour.id)) continue;
+      [reordered[index], reordered[index + step]] = [neighbour, reordered[index]];
+    }
+    return reordered;
+  }
+  const moving = items.filter(({ id }) => targetIds.includes(id));
+  const staying = items.filter(({ id }) => !targetIds.includes(id));
+  const at = where === 'top' ? staying.length : where === 'bottom' ? 0 : Math.max(0, Math.min(staying.length, where.to));
+  return [...staying.slice(0, at), ...moving, ...staying.slice(at)];
+}
+
+/**
+ * The blocks of the top-level entries of a scene, back to front: a group with its members, or a layer alone.
+ * @param {readonly Layer[]} layers
+ * @returns {{ id: string, layers: Layer[] }[]}
+ */
+export function topLevelBlocks(layers) {
+  return topLevelLayers(layers).map((layer) => ({ id: layer.id, layers: isGroup(layer) ? [...membersOf(layers, layer.id), layer] : [layer] }));
+}
