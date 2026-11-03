@@ -188,6 +188,12 @@ Le panneau **Timeline**, sous l'aperçu, fait **jouer** la scène : elle démarr
    et se remet à jouer, même si elle était arrivée à sa fin : un raid rejoue l'entrée du titre. Décochez tout pour que l'animation ne se joue qu'à l'arrivée de la scène.
    Cela vaut pour toute la scène (et donc aussi pour les réglages animés d'une couche Code ou Shader).
 
+### Filtres d'une couche
+
+La section **Filtres** de l'inspecteur (une seule couche sélectionnée) règle la **luminosité**, le **contraste**, la **saturation** et la **teinte**, chacun avec un curseur et un nombre ; remettre la valeur neutre
+(1, 1, 1 et 0°) retire le réglage. La **lueur** s'allume par sa case : une couleur, une portée (en pixels de la source de référence) et une intensité ; une portée ou une intensité nulle l'éteint. Le halo est flouté
+avec le reste quand la couche a aussi un flou. « Réinitialiser » retire tous les filtres.
+
 ### Entrée, boucle, sortie d'une couche
 
 Pour faire entrer, vivre et sortir une couche **sans placer d'images clés**, utilisez la section **Entrée, boucle, sortie** de l'inspecteur (une seule couche sélectionnée). Chaque couche a **sa propre horloge**,

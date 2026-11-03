@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Spec — Liaisons de couche (le son et les alertes pilotent une couche)
@@ -72,3 +72,13 @@ survivantes.
   `BINDING_SOURCES`) les accueille sans changer le moteur.
 - Courbes de réponse (au-delà du lissage et de la retombée) : sera repris avec la timeline.
 - Vérifier dans OBS le comportement avec le vrai micro (voir `docs/inbox.md`).
+
+## Filtres d'une couche (2026-11-03)
+
+`Layer.filters` (`layer-filters.js`, module pur) porte des **réglages de couleur** et une **lueur**, en plus du flou : luminosité (0 à 2, neutre 1), contraste (0 à 2, neutre 1), saturation (0 à 3, neutre 1), teinte
+(-180° à 180°, neutre 0), et `glow = { color: '#rrggbb', size, intensity }` (portée de 0 à 60 px de la source de référence, intensité de 0 à 1). Absent = neutre : une valeur neutre, un halo sans portée ou sans intensité
+ne sont pas écrits (forme canonique : bornée, arrondie au centième, couleur en minuscules). Le moteur rend le tout en `filter` CSS sur le calque de la couche : luminosité, contraste, saturation, teinte, puis le halo
+(`drop-shadow` sans décalage, portée suivant `--reference-scale`), puis le flou, de sorte que le halo est flouté avec le reste. Inspecteur : section « Filtres » (une seule couche à la fois, annulable). « Réinitialiser » les
+retire. Les filtres suivent la couche dans le presse-papiers de style et dans le récapitulatif de publication (« filtres : aucun → luminosité, lueur »). Ils **ne sont pas encore animables** par la timeline ni les
+liaisons (cibles de `layer-bindings.js` : les six valeurs communes et les réglages de code). Preuves : `layer-filters.test.js`, `layer-filters-doc.test.js` (35 défauts réinjectés vus rouges) et
+`dev/e2e/suites/40-filtres-couche.e2e.js` (le filtre CSS lu sur le calque réel ; 17 défauts de l'interface vus rouges).

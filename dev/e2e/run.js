@@ -26,6 +26,8 @@ if (shots !== null) mkdirSync(shots, { recursive: true });
 
 let failed = 0;
 let total = 0;
+/** Les contrôles en échec, avec leur suite : rappelés à la fin, pour qu'un échec isolé dans une longue sortie ne se perde pas. @type {{ suite: string, name: string, detail: unknown }[]} */
+const failures = [];
 try {
   for (const file of files) {
     const suite = await import(join(SUITES_DIR, file));
@@ -48,11 +50,16 @@ try {
     if (shots !== null) await browser.screenshot(join(shots, `${file.replace('.e2e.js', '')}.png`));
     total += results.length;
     failed += results.filter((result) => !result.ok).length;
+    failures.push(...results.filter((result) => !result.ok).map((result) => ({ suite: suite.name, name: result.name, detail: result.detail })));
   }
 } finally {
   await browser.close();
   await stack.stop();
 }
 
+if (failures.length > 0) {
+  console.info('\nÉchecs :');
+  for (const failure of failures) console.info(`  ✗ [${failure.suite}] ${failure.name}  → ${JSON.stringify(failure.detail)}`);
+}
 console.info(`\n${total - failed} / ${total} contrôles réussis${failed === 0 ? '' : `, ${failed} en échec`}`);
 process.exit(failed === 0 && total > 0 ? 0 : 1);

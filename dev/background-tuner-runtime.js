@@ -35,6 +35,7 @@ import { ADDABLE_KIND_IDS, backgroundEffectLabel, defaultBackgroundOptions } fro
 import { createAssetClient } from './asset-client.js';
 import { createAnimationController } from './animation-controller.js';
 import { createBindingsController } from './bindings-controller.js';
+import { createFiltersController } from './filters-controller.js';
 import { createVersionClient } from './version-client.js';
 import { createConnectionClient } from './connection-client.js';
 import { createSettingsController } from './settings-controller.js';
@@ -316,6 +317,13 @@ export async function startBackgroundTuner(environment = {}) {
     report,
     documentRef,
     windowRef,
+  });
+
+  const filters = createFiltersController({
+    elements: { body: byId('filters-body'), hint: byId('filters-hint') },
+    studio: preview.document,
+    report,
+    documentRef,
   });
 
   const animation = createAnimationController({

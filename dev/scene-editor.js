@@ -33,7 +33,7 @@ import { isIdentityKind, kindCapabilities, kindFamily, resolveKindId } from '../
 const DEFAULT_HISTORY_LIMIT = 200;
 const DEFAULT_COALESCE_MS = 800;
 const PLACEMENT_KEYS = ['x', 'y', 'width', 'height'];
-const LAYER_PATCH_KEYS = ['name', 'visible', 'locked', 'opacity', 'blend', 'rotation', 'crop', 'blur', 'bindings', 'timeline', 'animation'];
+const LAYER_PATCH_KEYS = ['name', 'visible', 'locked', 'opacity', 'blend', 'rotation', 'crop', 'blur', 'bindings', 'timeline', 'animation', 'filters'];
 
 /** @param {string} message @param {Refused['reason']} reason @returns {Refused} */
 const refuse = (reason, message) => ({ ok: false, reason, message });
@@ -397,7 +397,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     /**
      * Règle `name`, `visible`, `locked`, `opacity` ou le rendu étendu (`blend`, `rotation`, `crop`, `blur`) sur des couches.
      * @param {string[]} ids
-     * @param {{ name?: string, visible?: boolean, locked?: boolean, opacity?: number, blend?: import('../scene-doc.js').BlendMode, rotation?: number, crop?: Partial<import('../scene-doc.js').Crop>, blur?: number, bindings?: import('../layer-bindings.js').Binding[], timeline?: import('../layer-timeline.js').Track[], animation?: import('../layer-animation.js').Animation }} patch
+     * @param {{ name?: string, visible?: boolean, locked?: boolean, opacity?: number, blend?: import('../scene-doc.js').BlendMode, rotation?: number, crop?: Partial<import('../scene-doc.js').Crop>, blur?: number, bindings?: import('../layer-bindings.js').Binding[], timeline?: import('../layer-timeline.js').Track[], animation?: import('../layer-animation.js').Animation, filters?: import('../layer-filters.js').Filters }} patch
      * @param {CoalesceOptions} [options]
      * @returns {Done | Refused}
      */
@@ -485,7 +485,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
      * Applique un style à des couches : l'opacité et le rendu étendu à toutes, les réglages d'effet à celles du même type que le style. Une
      * seule entrée d'historique.
      * @param {string[]} ids
-     * @param {{ kind: string, opacity: number, options: Record<string, unknown>, look?: Partial<Pick<Layer, 'blend' | 'rotation' | 'crop' | 'blur' | 'bindings' | 'timeline'>> }} style
+     * @param {{ kind: string, opacity: number, options: Record<string, unknown>, look?: Partial<Pick<Layer, 'blend' | 'rotation' | 'crop' | 'blur' | 'bindings' | 'timeline' | 'animation' | 'filters'>> }} style
      * @returns {Done | Refused}
      */
     applyStyle(ids, style) {
@@ -710,6 +710,7 @@ function describePatch(keys, count) {
   if (keys.length === 1 && keys[0] === 'bindings') return `Liaisons de ${subject}`;
   if (keys.length === 1 && keys[0] === 'timeline') return `Animation de ${subject}`;
   if (keys.length === 1 && keys[0] === 'animation') return `Entrée, boucle et sortie de ${subject}`;
+  if (keys.length === 1 && keys[0] === 'filters') return `Filtres de ${subject}`;
   if (keys.length === 1 && keys[0] === 'name') return 'Renommer une couche';
   return `Régler ${subject}`;
 }

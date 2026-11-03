@@ -12,6 +12,7 @@
  * @typedef {{ layerId: string | null, kind: 'added' | 'removed' | 'changed' | 'order', title: string, details: string[] }} Change
  */
 import { LOOPS, PRESETS } from '../layer-animation.js';
+import { ADJUSTMENTS, ADJUST_KEYS } from '../layer-filters.js';
 import { BLEND_MODES, CROP_LABELS, CROP_SIDES } from '../scene-doc.js';
 import { toDisplay } from './placement-math.js';
 
@@ -20,6 +21,13 @@ function stable(value) {
   return JSON.stringify(value, (_key, nested) => (nested !== null && typeof nested === 'object' && !Array.isArray(nested)
     ? Object.fromEntries(Object.keys(nested).sort().map((key) => [key, nested[key]]))
     : nested));
+}
+
+/** « luminosité, lueur », ou « aucun ». @param {Layer['filters']} filters @returns {string} */
+function filtersSummary(filters) {
+  if (filters === undefined) return 'aucun';
+  const parts = [...ADJUST_KEYS.filter((key) => filters[key] !== undefined).map((key) => ADJUSTMENTS[key].label.toLowerCase()), ...(filters.glow === undefined ? [] : ['lueur'])];
+  return parts.length === 0 ? 'aucun' : parts.join(', ');
 }
 
 /** « entrée Fondu · boucle Flottement · sortie Zoom », ou « aucune ». @param {Layer['animation']} animation @returns {string} */
@@ -72,6 +80,7 @@ function layerDetails(before, after, labelOf, optionLabel) {
     details.push(`animation : ${keys(before)} → ${keys(after)} images clés`);
   }
   if (stable(before.animation) !== stable(after.animation)) details.push(`préréglages : ${animationSummary(before.animation)} → ${animationSummary(after.animation)}`);
+  if (stable(before.filters) !== stable(after.filters)) details.push(`filtres : ${filtersSummary(before.filters)} → ${filtersSummary(after.filters)}`);
   if (stable(before.bindings) !== stable(after.bindings)) {
     const count = (/** @type {Layer} */ layer) => layer.bindings?.length ?? 0;
     details.push(`liaisons : ${count(before)} → ${count(after)}`);

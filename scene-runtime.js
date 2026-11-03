@@ -4,6 +4,7 @@ import { cssEasing, normalizeTransition, transitionStyles } from './background-t
 import { isAudioOn, isIdentityKind, kindCapabilities } from './layer-kinds.js';
 import { referenceScale } from './render-reference.js';
 import { applyPose, evaluateAnimation, leaveDelayMs, restartsAnimationOn } from './layer-animation.js';
+import { filterCss } from './layer-filters.js';
 import { PARAM_TARGET_PREFIX, evaluateBindings, recordPulse, usesAudio } from './layer-bindings.js';
 import { effectiveTimeline, evaluateTimeline, hasKeys, playbackTime, restartsOn } from './layer-timeline.js';
 import { getRenderClock } from './render-clock.js';
@@ -617,7 +618,8 @@ function lookStyles(layer, bound = {}) {
     mixBlendMode: blend === undefined || blend === 'normal' ? '' : blend,
     transform: [shift, turn, grow].filter((part) => part !== '').join(' '),
     clipPath: crop === undefined && !revealed ? '' : `inset(${CROP_SIDES.map((side) => percent(Math.min(1, (crop?.[side] ?? 0) + (reveal?.[side] ?? 0)))).join(' ')})`,
-    filter: blur === 0 ? '' : `blur(calc(var(--reference-scale, 1) * ${Number(blur.toFixed(3))}px))`,
+    // Les filtres de couleur et le halo d'abord, le flou ensuite : le halo est flouté avec le reste.
+    filter: [filterCss(layer.filters), blur === 0 ? '' : `blur(calc(var(--reference-scale, 1) * ${Number(blur.toFixed(3))}px))`].filter((part) => part !== '').join(' '),
   };
 }
 

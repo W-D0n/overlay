@@ -131,6 +131,13 @@
     .binding-number { display: flex; flex-direction: column; gap: 2px; color: var(--color-text-mid); font-size: var(--text-xs); }
     .binding-remove { justify-self: end; align-self: end; padding: 2px var(--space-sm); }
     #bindings-add { margin-right: var(--space-xs); }
+    .filters-body { display: flex; flex-direction: column; gap: var(--space-xs); margin: var(--space-sm) 0; }
+    .filters-body[hidden] { display: none; }
+    .filter-row { display: grid; grid-template-columns: 86px 1fr 64px; gap: var(--space-sm); align-items: center; color: var(--color-text-mid); font-size: var(--text-xs); }
+    .filter-row input[type="number"] { width: 100%; box-sizing: border-box; min-width: 0; }
+    .filter-glow { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
+    .filter-glow-head { grid-template-columns: 1fr auto; }
+    .filter-toggle { display: inline-flex; align-items: center; gap: var(--space-xs); }
     .animation-body { display: flex; flex-direction: column; gap: var(--space-sm); margin: var(--space-sm) 0; }
     .animation-body[hidden] { display: none; }
     .animation-phase { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
@@ -1346,6 +1353,9 @@
           <label>Rogner bas (%) <input id="inspector-crop-bottom" type="number" min="0" max="90" step="0.5"></label>
           <label>Rogner gauche (%) <input id="inspector-crop-left" type="number" min="0" max="90" step="0.5"></label>
         </div>
+        <h3 class="inspector-subtitle">Filtres</h3>
+        <p id="filters-hint" class="hint"></p>
+        <div id="filters-body" class="filters-body"></div>
         <h3 class="inspector-subtitle">Entrée, boucle, sortie</h3>
         <p id="animation-hint" class="hint"></p>
         <div id="animation-body" class="animation-body"></div>

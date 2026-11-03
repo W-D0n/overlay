@@ -2,6 +2,7 @@
 import { validateTransition } from './background-transition.js';
 import { animationErrors, canonicalAnimation } from './layer-animation.js';
 import { bindingErrors, canonicalBindings } from './layer-bindings.js';
+import { canonicalFilters, filterErrors } from './layer-filters.js';
 import { canonicalSceneTimeline, canonicalTracks, sceneTimelineErrors, trackErrors } from './layer-timeline.js';
 import { clampOptions, isIdentityKind, kindCapabilities, neutralizeOptions, resolveKindId, validateOptions } from './layer-kinds.js';
 
@@ -31,6 +32,7 @@ import { clampOptions, isIdentityKind, kindCapabilities, neutralizeOptions, reso
  *   bindings?: import('./layer-bindings.js').Binding[],
  *   timeline?: import('./layer-timeline.js').Track[],
  *   animation?: import('./layer-animation.js').Animation,
+ *   filters?: import('./layer-filters.js').Filters,
  *   options: Record<string, unknown>,
  * }} Layer
  * @typedef {{
@@ -82,14 +84,14 @@ export const LOOK_LIMITS = Object.freeze({
 export const CROP_SIDES = /** @type {const} */ (['top', 'right', 'bottom', 'left']);
 export const CROP_LABELS = Object.freeze({ top: 'haut', right: 'droite', bottom: 'bas', left: 'gauche' });
 /** Les champs de rendu étendu d'une couche. */
-export const LOOK_KEYS = /** @type {const} */ (['blend', 'rotation', 'crop', 'blur', 'bindings', 'timeline', 'animation']);
+export const LOOK_KEYS = /** @type {const} */ (['blend', 'rotation', 'crop', 'blur', 'bindings', 'timeline', 'animation', 'filters']);
 
 /** La couche sans son rendu étendu.
  * @param {Layer} layer
  * @returns {Layer}
  */
 export function withoutLook(layer) {
-  const { blend: _blend, rotation: _rotation, crop: _crop, blur: _blur, bindings: _bindings, timeline: _timeline, animation: _animation, ...plain } = layer;
+  const { blend: _blend, rotation: _rotation, crop: _crop, blur: _blur, bindings: _bindings, timeline: _timeline, animation: _animation, filters: _filters, ...plain } = layer;
   return plain;
 }
 
@@ -277,7 +279,7 @@ export function canonicalSceneDoc(scene) {
  * @returns {Layer}
  */
 function canonicalLook(layer) {
-  const { blend, rotation, crop, blur, bindings, timeline, animation, ...rest } = layer;
+  const { blend, rotation, crop, blur, bindings, timeline, animation, filters, ...rest } = layer;
   /** @type {Record<string, unknown>} */
   const look = {};
   if (blend !== 'normal' && blend !== undefined) look.blend = blend;
@@ -299,6 +301,8 @@ function canonicalLook(layer) {
   if (tracks !== undefined) look.timeline = tracks;
   const animated = canonicalAnimation(animation);
   if (animated !== undefined) look.animation = animated;
+  const filtered = canonicalFilters(filters);
+  if (filtered !== undefined) look.filters = filtered;
   return /** @type {Layer} */ ({ ...rest, ...look });
 }
 
@@ -406,6 +410,7 @@ function lookErrors(where, layer) {
   if (layer.blur !== undefined && !isFraction(layer.blur)) errors.push(`${where}.blur : nombre attendu`);
   errors.push(...bindingErrors(`${where}.bindings`, layer.bindings));
   errors.push(...trackErrors(`${where}.timeline`, layer.timeline));
+  errors.push(...filterErrors(`${where}.filters`, layer.filters));
   errors.push(...animationErrors(`${where}.animation`, layer.animation, { content: kindCapabilities(layer.kind).content }));
   if (layer.crop === undefined) return errors;
   const { crop } = layer;
