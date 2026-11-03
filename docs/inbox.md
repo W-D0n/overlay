@@ -93,6 +93,14 @@ Ordre = recommandation.
    ③ « couverture » plein écran synchronisée avec le changement de scène OBS par websocket (l'overlay ne peut pas masquer ce qu'il y a dessous : il le couvre) ; ④ overlays d'ambiance (grain, light leaks) convertis en WebM VP9 avec alpha ;
    ⑤ passes 3D (occlusion en multiplication, spéculaire en addition). **À mesurer dans OBS** : WebM alpha, coût de la planche en mémoire graphique, précision du changement de scène. **À décider** : quelles séries importer (~1,7 Go de sources),
    définition des planches (480×270 par défaut, 640×360 pour les lignes fines), et les packs Studio Planet (modèles Final Cut / Premiere, non utilisables tels quels, licence à vérifier avant tout usage dans le dépôt).
+   **Voie « fichiers + OBS », sans l'application** (précisée le 2026-11-03 ; connaissances d'OBS, **rien n'a été essayé dans OBS**, à confirmer dans la version de l'owner) : OBS lit déjà tous ces fichiers (il décode en ffmpeg, MJPEG compris) ;
+   la conversion n'est nécessaire que pour le navigateur. ① **Stinger avec Track Matte** (OBS ≥ 28) : une vidéo de transition, un matte en fichier séparé (les `Brush Matte` H.264 tels quels), case « inverser » si le sens est contraire,
+   point de transition réglé en ms. ② **Un par scène** : clic droit sur la scène › Transition Override. ③ **Au hasard** : OBS n'a pas de tirage natif ; options : un script Lua, le module Advanced Scene Switcher, ou l'application via
+   obs-websocket (`SetCurrentSceneTransition` avant chaque changement de scène : elle ne lit aujourd'hui que `GetSceneList` et les changements de scène, elle n'envoie encore aucune commande). ④ **Grain, light leaks, flares, bokeh** :
+   des sources Média avec un **mode de fusion** (OBS ≥ 29 : Additif, Écran, Multiplication…) : pas besoin de canal alpha, puisque la sortie d'OBS est opaque. ⑤ **Passes 3D** : `OCCLU` en Multiplication, `SPEC` en Additif sur la même scène.
+   ⑥ Les packs Studio Planet servent dans Premiere / Final Cut ; pour OBS, il faut les exporter en vidéo. **Comparaison** : cette voie couvre tout le cadre (jeu et caméra compris), avec la qualité d'OBS et sans conversion ; la voie
+   « planche d'images » ne vaut que pour les transitions **à l'intérieur de l'overlay** (et la couverture synchronisée du lot ③ rejoint la voie OBS). **Recommandation** : voie OBS d'abord pour les transitions plein cadre, l'application
+   n'ajoutant que le choix de la transition (par scène, par événement, au hasard) par obs-websocket ; la planche d'images pour les transitions propres à l'overlay.
 6. **À mesurer avant d'aller plus loin** (hypothèses, rien n'est mesuré) : WebGL2 et `iframe` dans la source navigateur d'OBS (dépend de l'accélération matérielle) ;
    coût d'une `iframe` plus un rendu 3D par scène à 1080p/60 → plafond ou indicateur de charge dans le Studio.
 
