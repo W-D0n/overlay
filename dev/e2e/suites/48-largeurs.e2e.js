@@ -35,6 +35,13 @@ export async function run({ page, stack, check, errors }) {
     check(`à ${width} px, aucun panneau ne déborde`, found.offenders.length === 0 ? true : found.offenders);
   }
 
+  // The hidden attribute always hides: a `display` written for an element must never bring it back (the mask rows showed under « Aucun » that way).
+  const shownDespiteHidden = () => page.evaluate("[...document.querySelectorAll('[hidden]')].filter((el) => getComputedStyle(el).display !== 'none').map((el) => (el.id ? '#' + el.id : '') + '.' + String(el.className).split(' ').join('.'))");
+  check('every element marked hidden is really hidden, with a layer selected', (await shownDespiteHidden()).length === 0 ? true : await shownDespiteHidden());
+  await page.click('#canvas-overlay', { position: { x: 5, y: 5 } });
+  check('and with nothing selected', (await shownDespiteHidden()).length === 0 ? true : await shownDespiteHidden());
+  await page.click('#layers-list .layer-row:nth-child(2)');
+
   // A layer row keeps its eye and its lock on its own line, next to the title: five cells in a grid of five columns.
   await page.setViewport(1700, 1200);
   const row = await page.evaluate("(() => { const r = document.querySelector('#layers-list .layer-row'); const t = r.querySelector('.layer-title').getBoundingClientRect(); const g = r.querySelector('.layer-toggles').getBoundingClientRect(); return { sameLine: g.top < t.bottom && g.bottom > t.top, toggleWidth: Math.round(g.width) }; })()");

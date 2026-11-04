@@ -269,7 +269,7 @@ export function createBackgroundFieldRenderer(input) {
   }
 
   /**
-   * @param {import('../layer-kinds.js').FieldSchema} field
+   * @param {import('./component-field-schemas.js').FormField} field
    * @param {unknown} value
    * @param {Emit} [emit] où part le changement (par défaut, l'option de la couche réglée)
    * @param {Record<string, unknown>} [options] les options de la couche réglée (le champ « réglages » lit la déclaration qui s'y trouve)
@@ -287,7 +287,7 @@ export function createBackgroundFieldRenderer(input) {
       const select = documentRef.createElement('select');
       select.setAttribute('aria-label', field.label);
       for (const choice of field.choices ?? []) {
-        select.appendChild(createOption(choice, choice, choice === value));
+        select.appendChild(createOption(field.choiceLabels?.[choice] ?? choice, choice, choice === value));
       }
       select.onchange = () => emit(field.key, select.value);
       return select;

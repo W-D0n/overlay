@@ -1,5 +1,6 @@
 // @ts-check
 import { CONTENT_KIND_IDS, EFFECT_KIND_IDS, LAYER_KINDS, LAYER_KIND_IDS, NUMBER_FIELD_GUIDANCE } from '../layer-kinds.js';
+import { CHOICE_LABELS } from './choice-labels.js';
 
 /**
  * dev/component-field-schemas.js — Vue « formulaire » des types de couche pour le tuner.
@@ -8,13 +9,14 @@ import { CONTENT_KIND_IDS, EFFECT_KIND_IDS, LAYER_KINDS, LAYER_KIND_IDS, NUMBER_
  * ne fait que la présenter sous la forme attendue par le rendu des formulaires.
  *
  * @typedef {import('../layer-kinds.js').FieldSchema} FieldSchema
+ * @typedef {FieldSchema & { choiceLabels?: Readonly<Record<string, string>> }} FormField un champ tel que le formulaire l'affiche : une liste porte le libellé de chacun de ses choix
  */
 
 export { NUMBER_FIELD_GUIDANCE };
 
-/** @type {Record<string, FieldSchema[]>} */
+/** @type {Record<string, FormField[]>} */
 export const BACKGROUND_FIELD_SCHEMAS = Object.fromEntries(
-  LAYER_KIND_IDS.map((id) => [id, LAYER_KINDS[id].fields]),
+  LAYER_KIND_IDS.map((id) => [id, LAYER_KINDS[id].fields.map((field) => (field.type === 'select' ? { ...field, choiceLabels: CHOICE_LABELS[`${id}.${field.key}`] } : field))]),
 );
 
 /**

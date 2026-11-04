@@ -1,6 +1,8 @@
 /* dev/studio.css — La feuille de style du Studio (dev/studio.html). Toutes les valeurs viennent de tokens.css ; un sélecteur qu'aucune page ni aucun script n'emploie est refusé par dev/studio-css.test.js. */
 
 html, body { height: 100%; }
+/* L'attribut hidden cache toujours : sans cette règle, tout `display` écrit pour un élément le fait réapparaître (rangées du masque, bouton masqué…). */
+[hidden] { display: none !important; }
 body {
   margin: 0;
   overflow: hidden;
@@ -123,6 +125,8 @@ body {
 .inspector-segment button[aria-pressed="true"] { color: var(--color-gold); border-color: var(--color-gold); background: rgba(200, 185, 122, .08); }
 .inspector-units .layer-button { margin-left: auto; }
 .inspector-subtitle { margin: var(--space-md) 0 0; font-size: var(--text-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-mid); }
+/* Le texte d'aide se tire vers son titre de section ; sous un sous-titre, il garde un peu d'air. */
+.inspector-subtitle + .hint { margin-top: var(--space-xs); }
 .bindings-list { display: flex; flex-direction: column; gap: var(--space-sm); margin: var(--space-sm) 0; }
 .binding-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
 .binding-row select, .binding-row input { width: 100%; box-sizing: border-box; min-width: 0; }
@@ -130,28 +134,25 @@ body {
 .binding-remove { justify-self: end; align-self: end; padding: 2px var(--space-sm); }
 #bindings-add { margin-right: var(--space-xs); }
 .filters-body { display: flex; flex-direction: column; gap: var(--space-xs); margin: var(--space-sm) 0; }
-.filters-body[hidden] { display: none; }
 .filter-row { display: grid; grid-template-columns: 86px 1fr 64px; gap: var(--space-sm); align-items: center; color: var(--color-text-mid); font-size: var(--text-xs); }
 .filter-row input[type="number"] { width: 100%; box-sizing: border-box; min-width: 0; }
 .filter-glow { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
 .filter-glow-head { grid-template-columns: 1fr auto; }
 .filter-toggle { display: inline-flex; align-items: center; gap: var(--space-xs); }
 .animation-body { display: flex; flex-direction: column; gap: var(--space-sm); margin: var(--space-sm) 0; }
-.animation-body[hidden] { display: none; }
 .animation-phase { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-xs); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
 .animation-choice { display: flex; align-items: center; gap: var(--space-sm); color: var(--color-text-mid); font-size: var(--text-xs); }
 .animation-choice select { flex: 1; min-width: 0; }
 .animation-fields { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xs); }
-.animation-fields[hidden] { display: none; }
 .animation-field { display: flex; flex-direction: column; gap: 2px; color: var(--color-text-mid); font-size: var(--text-xs); }
 .animation-field select, .animation-field input[type="number"] { width: 100%; box-sizing: border-box; min-width: 0; }
 .animation-check { flex-direction: row; align-items: center; gap: var(--space-xs); }
 .animation-restart { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); }
-.animation-restart[hidden] { display: none; }
 .animation-restart-label { color: var(--color-text-mid); font-size: var(--text-xs); }
 #animation-replay { margin-right: var(--space-xs); }
-.inspector-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm); margin: var(--space-sm) 0; }
-.inspector-grid label { display: flex; flex-direction: column; gap: 2px; color: var(--color-text-mid); font-size: var(--text-xs); }
+.inspector-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-sm); margin: var(--space-sm) 0; }
+/* Un libellé qui passe sur deux lignes ne décale pas son champ : les champs d'une même rangée s'alignent en bas. */
+.inspector-grid label { display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; color: var(--color-text-mid); font-size: var(--text-xs); }
 .inspector-grid input { width: 100%; box-sizing: border-box; }
 .inspector-align { flex-wrap: wrap; gap: 2px; }
 .inspector-align .layer-button { border-color: var(--color-rule); }
@@ -159,7 +160,6 @@ body {
 /* ── Surcouche de manipulation directe ──────────────────────────── */
 .canvas-overlay { position: absolute; inset: 0; z-index: 5; touch-action: none; user-select: none; outline: none; }
 .canvas-overlay:focus-visible { box-shadow: inset 0 0 0 1px var(--color-gold-dim); }
-.canvas-overlay [hidden] { display: none; }
 .co-selection { position: absolute; box-sizing: border-box; border: 1px solid var(--color-gold); pointer-events: none; }
 .co-selection.is-locked { border-style: dashed; border-color: var(--color-text-mid); }
 .co-mask { position: absolute; pointer-events: none; }
@@ -195,7 +195,6 @@ body {
 .va-ruler { position: absolute; z-index: 6; pointer-events: none; }
 .va-ruler-x { left: 0; top: 0; }
 .va-ruler-y { left: 0; top: 0; }
-.va-grid[hidden], .va-safe[hidden], .va-ruler[hidden] { display: none; }
 
 /* ── Palette, aide, changements, menu contextuel ─────────────────── */
 .palette { width: min(620px, 92vw); margin-top: 12vh; padding: 0; }
@@ -218,7 +217,6 @@ kbd { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--col
 .change-detail { margin-left: var(--space-lg); color: var(--color-text-mid); }
 .change-empty { padding: var(--space-md); color: var(--color-text-mid); }
 .context-menu { position: fixed; z-index: 50; min-width: 240px; padding: var(--space-xs); background: var(--color-bg-panel); border: 1px solid var(--color-rule-mid); box-shadow: 0 8px 24px rgba(0, 0, 0, .5); }
-.context-menu[hidden] { display: none; }
 .context-item { display: flex; justify-content: space-between; gap: var(--space-lg); width: 100%; padding: var(--space-xs) var(--space-sm); border: 0; background: transparent; color: var(--color-text-primary); text-align: left; cursor: pointer; }
 .context-item:hover:not(:disabled), .context-item:focus-visible { background: rgba(200, 185, 122, .12); outline: none; }
 .context-item:disabled { opacity: .35; cursor: default; }
@@ -261,7 +259,6 @@ kbd { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--col
 .cc-editor-actions { display: flex; gap: var(--space-sm); }
 .cc-io textarea { width: 100%; box-sizing: border-box; font-family: var(--font-mono); font-size: var(--text-xs); background: var(--color-bg); }
 .macro-bar { position: fixed; left: 50%; top: var(--space-sm); transform: translateX(-50%); z-index: 60; display: flex; gap: var(--space-sm); align-items: center; max-width: 92vw; padding: var(--space-xs) var(--space-md); background: var(--color-bg-panel); border: 1px solid var(--color-danger); }
-.macro-bar[hidden] { display: none; }
 .macro-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-danger); animation: macro-pulse 1.2s infinite; }
 .macro-steps { color: var(--color-text-mid); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 40vw; }
 @keyframes macro-pulse { 50% { opacity: .35; } }
@@ -309,7 +306,6 @@ kbd { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--col
 .settings-alerts time { color: var(--color-text-dim); }
 .settings-alerts-empty { color: var(--color-text-dim); }
 .settings-code { display: flex; flex-direction: column; gap: var(--space-xs); padding: var(--space-sm); background: var(--color-bg-widget); border: 1px solid var(--color-rule); }
-.settings-code[hidden] { display: none; }
 .settings-code p { margin: 0; }
 .settings-code a { color: var(--color-gold); }
 .settings-usercode { font-family: var(--font-mono); font-size: var(--text-xl, 1.5rem); letter-spacing: 0.2em; color: var(--color-text-primary); user-select: all; }
@@ -386,7 +382,6 @@ kbd { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--col
 .tl-curve-handle { fill: var(--color-gold); stroke: var(--color-bg-panel); stroke-width: 2; cursor: grab; touch-action: none; }
 .tl-curve-handle:focus-visible { outline: 2px solid var(--color-text-primary); outline-offset: 2px; }
 .tl-curve-controls { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-xs) var(--space-sm); align-content: start; min-width: 200px; }
-.tl-curve-controls[hidden] { display: none; }
 .tl-curve-controls select { grid-column: 1 / -1; }
 .tl-curve-controls input[type="number"] { width: 64px; }
 .tl-copy { margin-left: var(--space-xs); padding: 0 var(--space-xs); font-size: var(--text-xs); line-height: 1.4; }
@@ -467,6 +462,8 @@ select, input, textarea {
   border-radius: 3px;
 }
 textarea { resize: vertical; min-height: 64px; }
+input[type="checkbox"], input[type="radio"] { width: auto; }
+.filter-glow-head input[type="color"] { width: 44px; padding: 0; }
 
 .numeric-control {
   display: grid;
@@ -575,7 +572,6 @@ button:hover { border-color: var(--color-gold); }
 .preset-action { padding: var(--space-xs) var(--space-sm); }
 .preset-draft { color: var(--color-gold); font-size: var(--text-base); }
 .preset-draft-line .preset-action { padding: 0 var(--space-xs); }
-.preset-row [hidden] { display: none; }
 .preset-draft-line { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--space-sm); }
 /* Chaque point de départ tenait sur trois lignes ; en deux colonnes la liste passe de
    cinq cartes hautes à cinq lignes lisibles. */
@@ -638,9 +634,7 @@ button:hover { border-color: var(--color-gold); }
   border-radius: var(--radius-sm);
   background: var(--color-bg-panel);
 }
-.preset-import-review[hidden] { display: none; }
 .preset-import-code { margin: 0 0 var(--space-sm); padding: var(--space-sm); border: 1px solid var(--color-danger); border-radius: var(--radius-sm); }
-.preset-import-code[hidden] { display: none; }
 .preset-import-code p { color: var(--color-danger); }
 .preset-import-code-ack { display: flex; gap: var(--space-sm); align-items: center; cursor: pointer; color: var(--color-text-primary); }
 .preset-import-code-ack input { width: auto; }

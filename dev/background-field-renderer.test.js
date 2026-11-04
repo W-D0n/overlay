@@ -160,6 +160,19 @@ describe('champs de la couche Code : code et réglages déclarés', () => {
     expect(select.children.map((option) => option.value)).toEqual(['a', 'b']);
   });
 
+  test('une liste montre le libellé de chaque choix et garde l’identifiant comme valeur ; celle d’un réglage déclaré par le code montre ses choix tels quels', () => {
+    const { container, renderer, changes } = setup();
+    renderer.render('dotgrid', { colorMode: 'noise' });
+    const colorMode = all(container).find((entry) => entry.tag === 'select' && entry['attr:aria-label'] === 'Mode de couleur');
+    expect(colorMode.children.map((option) => [option.value, option.textContent, option.selected])).toEqual([['flat', 'Uni', false], ['noise', 'Dégradé animé', true], ['glow', 'Halo', false]]);
+    colorMode.value = 'glow';
+    colorMode.onchange();
+    expect(changes).toEqual([['colorMode', 'glow']]);
+    renderer.render('code', { ...base, paramSpec: SPEC });
+    const declared = all(byClass(container, 'params-field')[0]).find((entry) => entry.tag === 'select');
+    expect(declared.children.map((option) => [option.value, option.textContent])).toEqual([['a', 'a'], ['b', 'b']]);
+  });
+
   test('changer un réglage publie tout l’objet des valeurs (celles qui n’ont pas bougé restent)', () => {
     const { container, renderer, changes } = setup();
     renderer.render('code', { ...base, paramSpec: SPEC, params: { titre: 'Salut' } });

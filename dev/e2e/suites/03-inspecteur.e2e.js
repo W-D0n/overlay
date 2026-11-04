@@ -28,6 +28,10 @@ export async function run({ page, stack, check, errors }) {
   await page.click(layerRow(1));
   f = await fields();
   check('une couche sélectionnée : 0 / 0 / 100 / 100 %, opacité 100', f.bodyHidden === false && f.x === '0' && f.y === '0' && f.w === '100' && f.h === '100' && f.opacity === '100');
+
+  // A list shows French labels, and keeps the stored identifier as its value.
+  const colorMode = await page.evaluate("(() => { const s = document.querySelector('#fields select[aria-label=\"Mode de couleur\"]'); return s === null ? null : [...s.options].map((o) => [o.value, o.textContent]); })()");
+  check('the color mode list reads « Uni, Dégradé animé, Halo », stored as flat, noise, glow', JSON.stringify(colorMode) === JSON.stringify([['flat', 'Uni'], ['noise', 'Dégradé animé'], ['glow', 'Halo']]) ? true : colorMode);
   check('la position prédéfinie « Plein cadre » est reconnue', f.preset === 'full');
 
   await page.fill('#inspector-width', 50);
