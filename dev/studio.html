@@ -364,7 +364,7 @@
     <label>Couleur
       <input id="branding-color" type="text" placeholder="var(--color-gold)">
     </label>
-    <label>Opacité
+    <label>Opacité du branding
       <input id="branding-opacity" type="range" min="0" max="1" step="0.05">
     </label>
     <div id="branding-position" class="hint"></div>
@@ -476,14 +476,10 @@
     </section>
 
     <section class="layer-inspector" aria-labelledby="inspector-title">
-      <h2 id="inspector-title">Position et taille</h2>
+      <h2 id="inspector-title">Inspecteur de la couche</h2>
       <p id="inspector-empty" class="hint">Sélectionnez une couche dans la pile pour régler son opacité, sa position, sa taille et son rendu.</p>
       <div id="inspector-body" hidden>
-        <div class="inspector-row">
-          <label for="inspector-opacity-range">Opacité</label>
-          <input id="inspector-opacity-range" type="range" min="0" max="100" step="1">
-          <span class="inspector-number"><input id="inspector-opacity" type="number" min="0" max="100" step="1" aria-label="Opacité en pourcentage"><span class="field-unit">%</span></span>
-        </div>
+        <h3 class="inspector-subtitle">Position et taille</h3>
         <div class="inspector-row inspector-units">
           <span>Unité</span>
           <span class="inspector-segment" role="group" aria-label="Unité de position et de taille">
@@ -518,6 +514,11 @@
         </div>
         <h3 class="inspector-subtitle">Rendu</h3>
         <div class="inspector-row">
+          <label for="inspector-opacity-range">Opacité</label>
+          <input id="inspector-opacity-range" type="range" min="0" max="100" step="1">
+          <span class="inspector-number"><input id="inspector-opacity" type="number" min="0" max="100" step="1" aria-label="Opacité en pourcentage"><span class="field-unit">%</span></span>
+        </div>
+        <div class="inspector-row">
           <label for="inspector-blend">Fusion</label>
           <select id="inspector-blend"></select>
         </div>
@@ -547,7 +548,7 @@
         <p id="animation-hint" class="hint"></p>
         <div id="animation-body" class="animation-body"></div>
         <button id="animation-replay" type="button" class="layers-add">Rejouer</button>
-        <h3 class="inspector-subtitle">Animation</h3>
+        <h3 class="inspector-subtitle">Liaisons</h3>
         <p id="bindings-hint" class="hint"></p>
         <div id="bindings-list" class="bindings-list"></div>
         <button id="bindings-add" type="button" class="layers-add">+ Ajouter une liaison</button>
@@ -557,7 +558,7 @@
 
     <h2>Réglages de la couche</h2>
     <p id="effect-target" class="hint effect-target"></p>
-    <label for="effect-select">Type</label>
+    <label for="effect-select">Type de la couche</label>
     <select id="effect-select"></select>
     <div id="fields"></div>
 
@@ -576,7 +577,7 @@
       Comment cette scène remplace le fond précédent. Sans effet sur tes réglages en cours : la
       transition se joue quand la scène arrive (clic sur une scène, ou changement de scène OBS).
     </p>
-    <label>Type
+    <label>Type de transition
       <select id="transition-type">
         <option value="fade">Fondu</option>
         <option value="wipe">Balayage</option>

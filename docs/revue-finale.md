@@ -1,6 +1,6 @@
 ---
 created: 2026-11-03
-updated: 2026-11-03
+updated: 2026-11-04
 ---
 
 # Passe finale : UX/UI, revue et refactorisation de toute la codebase
@@ -83,7 +83,7 @@ Gardes nouvelles, toutes vues rouges sur le défaut réinjecté : `dev/e2e/suite
 
 Tests 2 822, e2e 922 / 922.
 
-**5c — dialogues et palette (relevé).** Réglages, diagnostic, historique, versions, galerie d'ajout et palette de commandes parcourus à 1700 px : aucun débordement, textes clairs, ordre logique. Une seule décision ouverte, qui revient à l'owner (noms de code des effets affichés tels quels) : consignée dans `docs/inbox.md`. Reste du lot 5, à faire avec un usage réel de l'éditeur : l'ordre des sections de l'inspecteur (Position, Rendu, Filtres, Masque, Animation, Liaisons, Timeline), l'ordre de tabulation et les contrastes au lecteur d'écran.
+**5c — dialogues et palette (relevé).** Réglages, diagnostic, historique, versions, galerie d'ajout et palette de commandes parcourus à 1700 px : aucun débordement, textes clairs, ordre logique. Une seule décision ouverte, qui revient à l'owner (noms de code des effets affichés tels quels) : consignée dans `docs/inbox.md`. **5d — inspecteur, tabulation, contrastes.** Inspecteur : le titre de niveau 2 s'appelait « Position et taille » alors qu'il couvre tout le panneau, et la dernière section « Animation » regroupait les liaisons (en doublon de « Entrée, boucle, sortie ») ; le panneau est maintenant un seul plan (« Inspecteur de la couche » ; Position et taille ; Rendu, qui porte désormais l'opacité ; Filtres ; Masque ; Entrée, boucle, sortie ; Liaisons), vu rouge sur l'ancien HTML. Lecteur d'écran : deux champs « Opacité » (couche et branding) et deux « Type » (effet et transition) étaient indiscernables ; garde `nomsDeChampsEnDouble` de la suite accessibilité, vue rouge sur l'opacité, puis libellés distincts. Tabulation : l'ordre du clavier est celui du document ; garde `reorders` de `studio-css.test.js` (aucun `order`, aucun `*-reverse`, placement en grille limité à une liste vérifiée), vue rouge sur trois défauts réinjectés. Contrastes : déjà mesurés sur la page réelle par la suite 13 (WCAG AA, texte visible, dialogues et chaque type d'effet) : aucun écart. Écart connu et assumé : sous 1100 px la zone de l'aperçu passe au-dessus de la bibliothèque alors que le document la place après ; la tabulation y visite donc la bibliothèque avant l'aperçu. Les trois zones sont des repères nommés (navigation par repères possible), et inverser le document dégraderait la mise en page large, qui est l'usage normal.
 
 ### Lot 6 — gardes permanentes (au fil de l'eau)
 

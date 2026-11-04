@@ -18,6 +18,10 @@ const AUDIT = `(() => {
   const controls = [...document.querySelectorAll('button, input:not([type=hidden]), select, textarea, [role=button], a[href]')];
   const found = {};
   found.sansNom = controls.filter((el) => !accessibleName(el)).map(describe);
+  // Deux champs visibles ne portent jamais le même nom : un lecteur d'écran ne saurait pas les distinguer (« Type » et « Type »).
+  const fieldNames = new Map();
+  for (const el of controls.filter((c) => c.tagName !== 'BUTTON' && visible(c))) { const n = accessibleName(el).replace(/\s+/g, ' ').trim(); if (n) fieldNames.set(n, [...(fieldNames.get(n) || []), describe(el)]); }
+  found.nomsDeChampsEnDouble = [...fieldNames].filter(([, list]) => list.length > 1).map(([n, list]) => '« ' + n + ' » : ' + list.join(', '));
   found.dialoguesSansTitre = [...document.querySelectorAll('dialog')].filter((d) => !labelledBy(d) && !(d.getAttribute('aria-label') || '').trim()).map(describe);
   const ids = [...document.querySelectorAll('[id]')].map((el) => el.id);
   found.idDoublons = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
@@ -66,6 +70,7 @@ export async function run({ page, stack, check, errors }) {
   const rules = {
     sansNom: 'chaque bouton, champ et lien a un nom accessible',
     dialoguesSansTitre: 'chaque fenêtre est titrée (aria-labelledby ou aria-label)',
+    nomsDeChampsEnDouble: 'deux champs visibles ne portent jamais le même nom',
     idDoublons: 'aucun identifiant en double',
     tabindexPositif: 'aucun tabindex positif (l’ordre de tabulation suit le document)',
     imagesSansAlt: 'chaque image a un attribut alt',

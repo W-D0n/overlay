@@ -107,6 +107,25 @@ function definedTwice(rules) {
   }));
 }
 
+/**
+ * Declarations that can make the visual order differ from the document order, and so from the Tab order.
+ * `order` and the reversed flex directions are banned outright. Grid placement is allowed only where the document order was checked against it:
+ * the cells of a row that read in document order (a cell that spans the whole row, or the thumbnail that is the first child of its row), and the three zones, whose narrow layouts put the preview above the library (the preview first, the library and the inspector under it).
+ */
+const PLACEMENT_PROPS = ['grid-row', 'grid-column', 'grid-area', 'grid-template-areas'];
+const PLACEMENT_CHECKED = ['.studio-zones', '.rail', '.stage-zone', '.inspector', '.cc-step', '.cc-step-index', '.cc-step-label', '.cc-step-tools', '.cc-step-fields', '.tl-curve-controls select', '.color-control select', '.preset-draft-line', '.obs-scene-row-warning', '.preset-row:not(.preset-row-builtin) .preset-thumb', '.preset-row .preset-thumb', '.preset-row-builtin .preset-thumb'];
+/** @param {string} sheet */
+function reorders(sheet) {
+  const found = (sheet.match(/(row|column)-reverse/g) ?? []).map((direction) => `flex-direction : ${direction}`);
+  for (const rule of parseRules(sheet)) {
+    for (const prop of rule.props) {
+      const unchecked = PLACEMENT_PROPS.includes(prop) && !rule.selectors.every((selector) => PLACEMENT_CHECKED.includes(selector));
+      if (prop === 'order' || unchecked) found.push(`${rule.selectors.join(', ')} : ${prop}`);
+    }
+  }
+  return found;
+}
+
 describe('dev/studio.css', () => {
   test('la feuille est bien lue : des centaines de classes et des identifiants', () => {
     expect(classesInCss.size).toBeGreaterThan(200);
@@ -146,6 +165,14 @@ describe('dev/studio.css', () => {
 
   test('aucune règle n’est écrite deux fois pour les mêmes sélecteurs avec une même propriété', () => {
     expect(definedTwice(parseRules(css))).toEqual([]);
+  });
+
+  test('l’ordre visuel est celui du document : aucune règle ne réordonne les éléments, donc la tabulation suit ce que l’œil voit', () => {
+    expect(reorders(css)).toEqual([]);
+    expect(reorders('.a { order: 2; }')).toHaveLength(1);
+    expect(reorders('.a { flex-direction: row-reverse; }')).toHaveLength(1);
+    expect(reorders('.a { grid-row: 1; }')).toHaveLength(1);
+    expect(reorders('.a { border-color: red; }')).toEqual([]);
   });
 
   test('ces deux gardes voient les défauts qu’elles cherchent', () => {

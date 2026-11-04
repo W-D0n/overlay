@@ -98,5 +98,11 @@ export async function run({ page, stack, check, errors }) {
   const pip = aired.layers.find((/** @type {*} */ l) => Math.abs(l.placement.x - 0.03) < 1e-9);
   check('publié : le placement part dans la scène de l’antenne', pip !== undefined && Math.abs(pip.placement.width - 0.25) < 1e-9);
 
+  // The inspector reads as one outline: a level-2 title, then its sections in the order a layer is set up (place it, render it, filter, mask, animate, bind).
+  const outline = await page.evaluate("[...document.querySelectorAll('#inspector-title, #inspector-body .inspector-subtitle')].map((h) => h.textContent.trim())");
+  check('the inspector sections follow one order, each under its own title', JSON.stringify(outline) === JSON.stringify(['Inspecteur de la couche', 'Position et taille', 'Rendu', 'Filtres', 'Masque', 'Entrée, boucle, sortie', 'Liaisons']) ? true : outline);
+  const opacityUnderRender = await page.evaluate("(() => { const h = [...document.querySelectorAll('.inspector-subtitle')].find((e) => e.textContent === 'Rendu'); const next = [...document.querySelectorAll('.inspector-subtitle')].find((e) => e.textContent === 'Filtres'); const o = document.getElementById('inspector-opacity-range'); return !!(h.compareDocumentPosition(o) & Node.DOCUMENT_POSITION_FOLLOWING) && !!(o.compareDocumentPosition(next) & Node.DOCUMENT_POSITION_FOLLOWING); })()");
+  check('the opacity is set under « Rendu », not under « Position et taille »', opacityUnderRender === true);
+
   check('aucune erreur dans la console', errors.length === 0 ? true : errors.slice());
 }

@@ -1,6 +1,6 @@
 ---
 created: 2026-10-30
-updated: 2026-11-03
+updated: 2026-11-04
 ---
 
 # Studio — l'éditeur de couches
@@ -103,7 +103,7 @@ C'est le moyen le plus léger d'obtenir un fond génératif, bien plus qu'une co
 
 ### Faire réagir une couche (liaisons)
 
-La section **Animation** de l'inspecteur lie une couche au **son** ou aux **alertes** (follow, sub, raid, bits, ou toute alerte). Une liaison
+La section **Liaisons** de l'inspecteur lie une couche au **son** ou aux **alertes** (follow, sub, raid, bits, ou toute alerte). Une liaison
 dit : quelle source, quelle valeur de la couche elle pilote (échelle, opacité, rotation, flou, position, ou un réglage numérique d'une couche Code), la valeur **au repos** (« De ») et celle
 quand la source est **au maximum** (« À »). Exemples :
 
