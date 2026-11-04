@@ -7,7 +7,7 @@
  * lu dans l'environnement, aucun port n'est ouvert, aucun `process.exit` n'est appelé ici : chaque route se teste
  * en appelant `fetch` directement.
  *
- * Routes (les routes de presets sont dans `dev/preset-routes.js`) :
+ * Routes (les routes de presets sont dans `dev/preset-routes.js`, celles d'exploitation dans `dev/ops-routes.js`) :
  *   GET  /state         — renvoie la scène en antenne et les scènes (`scene`, `scenes`) avec leur projection plate
  *                          (`current`, `presets`, voir `dev/state-wire.js`) ; 500 + erreurs si le fichier est invalide —
  *                          jamais de reset silencieux.
@@ -45,19 +45,16 @@ import { createPresetRoutes } from './preset-routes.js';
 import { findEntry, recordReplaced } from './background-history.js';
 import { withDraft, withDrafts, withoutDraft } from './preset-drafts.js';
 import { channelForPath } from './channels.js';
-import { EXIT_RESTART, EXIT_STOP } from './supervisor.js';
-
-/** Le fichier d'un asset de la médiathèque : seule route qu'une page isolée (Origin `null`) peut lire. */
-const ASSET_FILE_PATH = /^\/assets\/[0-9a-f]{32}$/;
 import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
 import { validateBranding } from '../branding-format.js';
-import { validateBenchReport } from './obs-bench.js';
 import { applySettingsPatch, normalizeStudioSettings, validateSettingsPatch } from './studio-settings.js';
-import { errorMessage } from './error-message.js';
 import { createAssetRoutes } from './asset-routes.js';
 import { createVersionRoutes } from './version-routes.js';
 import { createEventIntake } from './event-intake.js';
-import { collectAssetUsage } from './asset-format.js';
+import { createOpsRoutes } from './ops-routes.js';
+
+/** Le fichier d'un asset de la médiathèque : seule route qu'une page isolée (Origin `null`) peut lire. */
+const ASSET_FILE_PATH = /^\/assets\/[0-9a-f]{32}$/;
 
 /**
  * @typedef {import('./background-state-format.js').BackgroundFile} BackgroundFile
@@ -293,98 +290,7 @@ export function createHost({ store, assets, versions, channels, obs, control, co
     return response;
   }
 
-  /** GET /bench-result — le dernier rapport du banc de mesure OBS (404 tant qu'aucun n'a été envoyé). */
-  async function handleGetBenchResult() {
-    const file = Bun.file(`${store.path}.bench.json`);
-    if (!(await file.exists())) return jsonError('aucun rapport du banc de mesure', 404);
-    return new Response(await file.text(), { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } });
-  }
-
-  /**
-   * POST /bench-result — le rapport de la page `dev/obs-bench.html`, rangé à côté du fichier d'état.
-   * @param {Request} req
-   * @returns {Promise<Response>}
-   */
-  async function handlePostBenchResult(req) {
-    const checked = validateBenchReport(await req.json());
-    if (!checked.ok) return jsonError(checked.error, 400);
-    await Bun.write(`${store.path}.bench.json`, `${JSON.stringify(checked.report, null, 2)}
-`);
-    return Response.json({ ok: true }, { headers: CORS_HEADERS });
-  }
-
-  /** GET /obs-status — connexion OBS et scènes réelles, pour la section « Scènes OBS » du tuner. */
-  function handleGetObsStatus() {
-    return Response.json({ ...obs.status(), configured: obs.configured }, { headers: CORS_HEADERS });
-  }
-
-  /**
-   * GET /live-status — nombre de pages de rendu connectées (une par page : son canal `state`).
-   * Seul moyen de savoir, depuis le Studio, qu'une source OBS affiche bien le fond.
-   */
-  function handleGetLiveStatus() {
-    return Response.json({ renderPages: channels.count('state', 'render') }, { headers: CORS_HEADERS });
-  }
-
-  /**
-   * Les images que les scènes utilisent (l'historique n'affiche rien à l'antenne : il ne compte pas) et combien manquent dans la
-   * médiathèque.
-   * @param {Awaited<ReturnType<typeof store.read>>} read
-   * @returns {Promise<{ referenced: number, missing: number }>}
-   */
-  async function readAssetUse(read) {
-    if (!read.ok) return { referenced: 0, missing: 0 };
-    const { history: _history, ...live } = /** @type {Record<string, unknown>} */ (read.file);
-    const referenced = [...collectAssetUsage(live).keys()];
-    const present = new Set((await assets.list().catch(() => [])).map((asset) => asset.id));
-    return { referenced: referenced.length, missing: referenced.filter((id) => !present.has(id)).length };
-  }
-
-  /**
-   * GET /diagnostics — les faits dont le Studio tire son diagnostic (`dev/diagnostics.js`) : état d'OBS, photographie
-   * de ses sources navigateur et scènes (lecture seule), pages de rendu, table scène → preset. À la demande, jamais en
-   * boucle : l'inspection fait plusieurs requêtes à OBS.
-   */
-  async function handleGetDiagnostics() {
-    /** @type {import('./obs-inspector.js').ObsInspection | null} */
-    let inspection = null;
-    /** @type {string | null} */
-    let inspectionError = null;
-    if (obs.status().connected && obs.inspect !== null) {
-      try {
-        inspection = await obs.inspect();
-      } catch (error) {
-        inspectionError = errorMessage(error);
-      }
-    }
-    const read = await store.read();
-    return Response.json({
-      obs: { ...obs.status(), configured: obs.configured },
-      inspection,
-      inspectionError,
-      renderPages: channels.count('state', 'render'),
-      sceneMap: read.ok ? readSceneMap(read.file) : {},
-      staticPort,
-      assetUse: await readAssetUse(read),
-    }, { headers: CORS_HEADERS });
-  }
-
-  /**
-   * POST /control/restart | /control/stop — demande au lanceur (`dev/start-stream.js`) de relancer ou d'arrêter
-   * les serveurs, par code de sortie (75 / 0). Un en-tête personnalisé est exigé : il force une requête
-   * préalable CORS qu'une page étrangère ne passe pas. Hors lanceur, personne ne relancerait : refus.
-   * Le serveur ne demande que sa propre sortie, jamais celle d'un autre processus.
-   * @param {'restart' | 'stop'} action
-   * @returns {(req: Request) => Promise<Response>}
-   */
-  function controlHandler(action) {
-    return async (req) => {
-      if (req.headers.get('X-Overlay-Control') !== '1') return jsonError('en-tête X-Overlay-Control requis', 400);
-      if (!control.supervised) return jsonError('serveur non supervisé : lancé hors de start-stream', 501);
-      setTimeout(() => control.exit(action === 'restart' ? EXIT_RESTART : EXIT_STOP), 100);
-      return Response.json({ ok: true, action }, { status: 202, headers: CORS_HEADERS });
-    };
-  }
+  const ops = createOpsRoutes({ store, assets, channels, obs, control, staticPort });
 
   /** @type {Record<string, () => Response | Promise<Response>>} */
   const getRoutes = {
@@ -392,19 +298,14 @@ export function createHost({ store, assets, versions, channels, obs, control, co
     '/history': handleGetHistory,
     '/drafts': handleGetDrafts,
     '/studio-settings': handleGetStudioSettings,
-    '/bench-result': handleGetBenchResult,
-    '/obs-status': handleGetObsStatus,
-    '/live-status': handleGetLiveStatus,
-    '/diagnostics': handleGetDiagnostics,
+    ...ops.get,
   };
 
   /** @type {Record<string, (req: Request) => Promise<Response>>} */
   const postRoutes = {
-    '/control/restart': controlHandler('restart'),
-    '/control/stop': controlHandler('stop'),
+    ...ops.post,
     '/scene-map': handlePostSceneMap,
     '/studio-settings': handlePostStudioSettings,
-    '/bench-result': handlePostBenchResult,
     '/branding': handlePostBranding,
     '/state': handlePostState,
     '/rollback': handleRollback,
