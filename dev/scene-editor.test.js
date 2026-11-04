@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { MAX_LAYERS, createLayer, validateSceneDoc } from '../scene-doc.js';
-import { createSceneEditor, uniqueLayerId, viewScene } from './scene-editor.js';
+import { createSceneEditor, viewScene } from './scene-editor.js';
+import { uniqueLayerId } from './scene-edits.js';
 
 const scene = (layers = [], extra = {}) => ({ version: 1, id: 'nuit', name: 'Nuit', layers, ...extra });
 const effect = (id, kind = 'rain', over = {}) => createLayer({ id, kind, ...over });

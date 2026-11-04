@@ -38,9 +38,11 @@ Lecture : le code est **typé sans dette** et bien couvert ; le risque est aille
 
 Les fonctions de complexité > 25 restantes, dans cet ordre de risque (une fonction à la fois, comportement figé par un test **avant** de toucher, défauts réinjectés **après**) : `DotGridAnimated.update` (34), `host.js fetch` (32), `operation-steps.stepErrors` (32), `code-params.readDefinition` (31), `layer-animation.evaluateAnimation` (30), le gestionnaire de clavier de `layers-panel-controller` (29), `layer-animation.animationErrors` (29), `asset-format.sniffAssetType` (28), `canvas-overlay-controller.onKeyDown` (27), `canvas-geometry.resizeRect` (26), `layer-animation.canonicalAnimation` (26). Cible : aucune fonction au-dessus de 25, puis au-dessus de 20.
 
-### Lot 3 — découper les grosses fabriques (à faire)
+### Lot 3 — découper les grosses fabriques (en cours)
 
 `startBackgroundTuner` (741 l : câblage de tous les contrôleurs du Studio), `createSceneEditor` (706 l : toutes les commandes d'édition), `createSceneRuntime` (556 l), `createLayersPanelController` (548 l), `createBackgroundFieldRenderer` (520 l), `createCanvasOverlayController` (434 l), `createHost` (434 l). Méthode : extraire par **domaine** (par exemple les opérations de groupe, de filtres, de masque du `scene-editor`), jamais par taille ; chaque extraction garde l'interface publique et passe `bun test`, le typage et les essais de bout en bout sans en changer un seul.
+
+**3a — `createSceneEditor` (fait).** Les huit éditions structurelles (ajout, suppression, duplication, déplacement, collage, groupe, dégroupe, changement de type) deviennent des planificateurs purs dans `dev/scene-edits.js` (scène + arguments → couches, libellé, sélection, opération à enregistrer, ou refus) ; l'éditeur ne garde que l'état, l'historique, la validation et l'annonce (`applyPlan`). 844 → 667 lignes. 61 défauts réinjectés : 58 détectés, 3 survivants dont 2 ont fait écrire les cas « à la limite, accepté », 1 équivalent (ordre de deux `push`). 29 tests directs (`dev/scene-edits.test.js`). Un essai e2e vide a aussi été corrigé (Alt+↑ de la liste : la sélection était vide après Suppr).
 
 ### Lot 4 — `dev/studio.html` (à faire)
 

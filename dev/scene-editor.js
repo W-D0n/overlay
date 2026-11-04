@@ -26,20 +26,16 @@
  * @typedef {import('./operation-steps.js').EditorOperation} EditorOperation
  * @typedef {ReturnType<typeof createSceneEditor>} SceneEditor
  */
-import { MAX_LAYERS, canonicalSceneDoc, createLayer, validateSceneDoc, withoutLook } from '../scene-doc.js';
-import { animationFits } from '../layer-animation.js';
+import { canonicalSceneDoc, validateSceneDoc, withoutLook } from '../scene-doc.js';
+import { boundingBox, isGroup, membersOf, relocateLayers, resizeGroup, selectionRoots } from '../layer-group.js';
 import {
-  MAX_GROUPS, blockRange, boundingBox, dissolveEmptyGroups, groupLayers, isGroup, membersOf, relocateLayers, reorderItems, resizeGroup, selectionRoots, topLevelBlocks, ungroupLayers, withMembers,
-} from '../layer-group.js';
-import { isGroupKind, isIdentityKind, kindCapabilities, kindFamily, resolveKindId } from '../layer-kinds.js';
+  planAddLayer, planDuplicateLayers, planGroupLayers, planInsertLayers, planMoveLayers, planRemoveLayers, planSetLayerKind, planUngroupLayers, knownIds, refuse,
+} from './scene-edits.js';
 
 const DEFAULT_HISTORY_LIMIT = 200;
 const DEFAULT_COALESCE_MS = 800;
 const PLACEMENT_KEYS = ['x', 'y', 'width', 'height'];
 const LAYER_PATCH_KEYS = ['name', 'visible', 'locked', 'opacity', 'blend', 'rotation', 'crop', 'blur', 'bindings', 'timeline', 'animation', 'filters', 'mask'];
-
-/** The layers that draw: a group draws nothing, the load guard counts the others. @param {readonly Layer[]} layers */
-const drawnCount = (layers) => layers.filter((layer) => !isGroup(layer)).length;
 
 /**
  * The layers with new placements. A group takes a box: its members move and scale with it, and a member patched together with its group follows the group.
@@ -64,9 +60,6 @@ function placeLayers(layers, patches) {
   return result;
 }
 
-/** @param {string} message @param {Refused['reason']} reason @returns {Refused} */
-const refuse = (reason, message) => ({ ok: false, reason, message });
-
 /** JSON dont l'ordre des clés ne compte pas : deux scènes égales s'écrivent pareil. @param {unknown} value @returns {string} */
 function stableStringify(value) {
   if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
@@ -75,18 +68,6 @@ function stableStringify(value) {
     return `{${Object.keys(record).filter((key) => record[key] !== undefined).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`).join(',')}}`;
   }
   return JSON.stringify(value);
-}
-
-/**
- * Un identifiant de couche libre dans la scène, bâti sur `base` (`rain`, `rain-2`, …).
- * @param {SceneDoc} scene
- * @param {string} base
- */
-export function uniqueLayerId(scene, base) {
-  const stem = base.replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'couche';
-  const used = new Set(scene.layers.map(({ id }) => id));
-  if (!used.has(stem)) return stem;
-  for (let n = 2; ; n += 1) if (!used.has(`${stem}-${n}`)) return `${stem}-${n}`;
 }
 
 /**
@@ -227,30 +208,28 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     return validation.ok ? { ok: true, scene: canonical } : refuse('invalid', validation.errors.join(' ; '));
   }
 
-  /** @param {string[]} ids @returns {string[]} les identifiants présents dans la scène, sans doublon, dans l'ordre des couches */
-  function known(ids) {
-    const wanted = new Set(ids);
-    return scene.layers.filter(({ id }) => wanted.has(id)).map(({ id }) => id);
+  /**
+   * Carries an edit planned by `scene-edits.js` out: validates the new layers, records them in the history, announces the operation.
+   * @template R
+   * @param {import('./scene-edits.js').Plan} plan
+   * @returns {R | Refused}
+   */
+  function applyPlan(plan) {
+    if (!plan.ok) return plan;
+    if ('unchanged' in plan) return /** @type {R} */ (/** @type {unknown} */ ({ ok: true }));
+    const accepted = accept({ ...scene, layers: plan.layers });
+    if (!accepted.ok) return accepted;
+    commit(plan.label, accepted.scene, plan.selection);
+    const done = { ok: true, ...plan.result };
+    const { operation } = plan;
+    return /** @type {R} */ (operation === undefined ? done : announce(done, operation.op, operation.ids, operation.args));
   }
+
+  /** @param {string[]} ids */
+  const known = (ids) => knownIds(scene, ids);
 
   /** @param {string} id */
   const find = (id) => scene.layers.find((layer) => layer.id === id);
-
-  /**
-   * Where a new layer goes: right above the selection, otherwise at the top of the effects ; an effect stays under the identity layers, an identity layer above the effects.
-   * Above a layer of a group, it goes into that group's block and joins the group; above a group, it goes above the whole block.
-   * @param {Layer[]} layers
-   * @param {boolean} identity
-   * @returns {{ index: number, group?: string }}
-   */
-  function insertionPoint(layers, identity) {
-    const effects = layers.filter(({ kind }) => !isIdentityKind(kind)).length;
-    if (identity) return { index: layers.length };
-    const anchor = selection.length === 0 ? -1 : Math.max(...selection.map((id) => layers.findIndex((layer) => layer.id === id)));
-    if (anchor < 0 || anchor >= effects) return { index: effects };
-    const group = layers[anchor].group;
-    return group === undefined ? { index: anchor + 1 } : { index: anchor + 1, group };
-  }
 
   return {
     state,
@@ -326,30 +305,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
      * @returns {(Done & { id: string }) | Refused}
      */
     addLayer({ kind, name, options, placement, opacity }) {
-      const resolved = resolveKindId(kind);
-      if (resolved === null) return refuse('invalid', `type de couche inconnu : ${kind}`);
-      if (isGroupKind(resolved)) return refuse('invalid', 'un groupe se crée en groupant des couches');
-      if (drawnCount(scene.layers) >= MAX_LAYERS) return refuse('limit', `${MAX_LAYERS} couches au plus`);
-      if (isIdentityKind(resolved) && scene.layers.some((layer) => layer.kind === resolved)) {
-        return refuse('unique', 'cette couche existe déjà dans la scène');
-      }
-      const id = uniqueLayerId(scene, resolved);
-      const point = insertionPoint(scene.layers, isIdentityKind(resolved));
-      const layer = createLayer({
-        id,
-        kind: resolved,
-        ...(point.group === undefined ? {} : { group: point.group }),
-        ...(name === undefined ? {} : { name }),
-        ...(options === undefined ? {} : { options }),
-        ...(opacity === undefined ? {} : { opacity }),
-        ...(placement === undefined ? {} : { placement: { x: 0, y: 0, width: 1, height: 1, ...placement } }),
-      });
-      const layers = [...scene.layers];
-      layers.splice(point.index, 0, layer);
-      const accepted = accept({ ...scene, layers });
-      if (!accepted.ok) return accepted;
-      commit('Ajouter une couche', accepted.scene, [id]);
-      return announce({ ok: true, id }, 'addLayer', [id], { kind: resolved, ...(name === undefined ? {} : { name }), ...(options === undefined ? {} : { options }), ...(placement === undefined ? {} : { placement }), ...(opacity === undefined ? {} : { opacity }) });
+      return applyPlan(planAddLayer(scene, selection, { kind, name, options, placement, opacity }));
     },
 
     /**
@@ -357,14 +313,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
      * @returns {Done | Refused}
      */
     removeLayers(ids) {
-      const targets = known(ids);
-      if (targets.length === 0) return refuse('unknown', 'aucune couche à supprimer');
-      // A group takes its members with it ; a group left without members goes too.
-      const removed = withMembers(scene.layers, targets);
-      const accepted = accept({ ...scene, layers: dissolveEmptyGroups(scene.layers.filter(({ id }) => !removed.includes(id))) });
-      if (!accepted.ok) return accepted;
-      commit(targets.length === 1 ? 'Supprimer une couche' : `Supprimer ${targets.length} couches`, accepted.scene, selection.filter((id) => !removed.includes(id) && accepted.scene.layers.some((layer) => layer.id === id)));
-      return announce({ ok: true }, 'removeLayers', targets, {});
+      return applyPlan(planRemoveLayers(scene, selection, ids));
     },
 
     /**
@@ -374,42 +323,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
      * @returns {(Done & { ids: string[] }) | Refused}
      */
     duplicateLayers(ids) {
-      const targets = selectionRoots(scene.layers, known(ids));
-      if (targets.length === 0) return refuse('unknown', 'aucune couche à dupliquer');
-      if (targets.some((id) => isIdentityKind(/** @type {Layer} */ (find(id)).kind))) return refuse('unique', 'une couche d’identité ne se duplique pas');
-      const copiedGroups = targets.filter((id) => isGroup(/** @type {Layer} */ (find(id))));
-      const copiedDrawn = targets.reduce((sum, id) => sum + (copiedGroups.includes(id) ? membersOf(scene.layers, id).length : 1), 0);
-      if (drawnCount(scene.layers) + copiedDrawn > MAX_LAYERS) return refuse('limit', `${MAX_LAYERS} couches au plus`);
-      if (scene.layers.filter(isGroup).length + copiedGroups.length > MAX_GROUPS) return refuse('limit', `${MAX_GROUPS} groupes au plus`);
-      /** @type {Layer[]} */
-      const layers = [];
-      /** @type {string[]} */
-      const copies = [];
-      /** A copy of a layer under a new identifier, unlocked. @param {Layer} layer @param {Partial<Layer>} [over] */
-      const copyOf = (layer, over = {}) => {
-        const { locked: _locked, ...unlocked } = structuredClone(layer);
-        const id = uniqueLayerId({ ...scene, layers }, layer.id.replace(/-\d+$/, ''));
-        return { ...unlocked, id, ...(layer.name === undefined ? {} : { name: `${layer.name} copie` }), ...over };
-      };
-      for (const layer of scene.layers) {
-        layers.push(layer);
-        if (!targets.includes(layer.id)) continue;
-        if (!isGroup(layer)) {
-          const copy = copyOf(layer);
-          copies.push(copy.id);
-          layers.push(copy);
-          continue;
-        }
-        // The group entry ends its block: the copy of the block goes right above it, members first.
-        const groupCopy = copyOf(layer);
-        for (const member of membersOf(scene.layers, layer.id)) layers.push(copyOf(member, { group: groupCopy.id }));
-        layers.push(groupCopy);
-        copies.push(groupCopy.id);
-      }
-      const accepted = accept({ ...scene, layers });
-      if (!accepted.ok) return accepted;
-      commit(targets.length === 1 ? 'Dupliquer une couche' : `Dupliquer ${targets.length} couches`, accepted.scene, copies);
-      return announce({ ok: true, ids: copies }, 'duplicateLayers', targets, {});
+      return applyPlan(planDuplicateLayers(scene, ids));
     },
 
     /**
@@ -420,32 +334,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
      * @returns {Done | Refused}
      */
     moveLayers(ids, where) {
-      const targets = selectionRoots(scene.layers, known(ids));
-      if (targets.length === 0) return refuse('unknown', 'aucune couche à déplacer');
-      const owners = new Set(targets.map((id) => /** @type {Layer} */ (find(id)).group));
-      if (owners.size > 1) return refuse('invalid', 'la sélection est répartie entre plusieurs groupes ou à la fois dans un groupe et hors de tout groupe');
-      const [owner] = owners;
-      /** @type {Layer[]} */
-      let layers;
-      if (owner === undefined) {
-        const identity = isIdentityKind(/** @type {Layer} */ (find(targets[0])).kind);
-        const blocks = topLevelBlocks(scene.layers).filter((block) => isIdentityKind(block.layers[0].kind) === identity);
-        if (targets.some((id) => !blocks.some((block) => block.id === id))) return refuse('invalid', 'effets et couches d’identité ne se mélangent pas');
-        const reordered = reorderItems(blocks, targets, where).flatMap((block) => block.layers);
-        const others = scene.layers.filter((layer) => !reordered.includes(layer));
-        layers = identity ? [...others, ...reordered] : [...reordered, ...others];
-      } else {
-        // Inside a group: only the members move, the block stays where it is.
-        const members = membersOf(scene.layers, owner);
-        const reordered = reorderItems(members, targets, where);
-        const range = /** @type {{ start: number, end: number }} */ (blockRange(scene.layers, owner));
-        layers = [...scene.layers.slice(0, range.start), ...reordered, ...scene.layers.slice(range.end)];
-      }
-      if (layers.every((layer, index) => layer === scene.layers[index])) return { ok: true };
-      const accepted = accept({ ...scene, layers });
-      if (!accepted.ok) return accepted;
-      commit('Réordonner', accepted.scene);
-      return announce({ ok: true }, 'moveLayers', targets, { where });
+      return applyPlan(planMoveLayers(scene, selection, ids, where));
     },
 
     /**
@@ -527,42 +416,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
      * @returns {(Done & { ids: string[] }) | Refused}
      */
     insertLayers(incoming, entryLabel) {
-      if (incoming.length === 0) return refuse('empty', 'rien à coller');
-      if (drawnCount(scene.layers) + drawnCount(incoming) > MAX_LAYERS) return refuse('limit', `${MAX_LAYERS} couches au plus`);
-      if (scene.layers.filter(isGroup).length + incoming.filter(isGroup).length > MAX_GROUPS) return refuse('limit', `${MAX_GROUPS} groupes au plus`);
-      if (incoming.some((layer) => isIdentityKind(layer.kind) && scene.layers.some((existing) => existing.kind === layer.kind))) {
-        return refuse('unique', 'cette couche existe déjà dans la scène');
-      }
-      /** The new identifier of each pasted layer: the references of pasted members follow their group. @type {Map<string, string>} */
-      const renamed = new Map();
-      /** @type {Layer[]} */
-      const added = [];
-      for (const layer of incoming) {
-        const id = uniqueLayerId({ ...scene, layers: [...scene.layers, ...added] }, layer.id.replace(/-\d+$/, ''));
-        renamed.set(layer.id, id);
-        added.push({ ...layer, id });
-      }
-      const pasted = added.map((layer, index) => {
-        const { locked: _locked, group, ...rest } = structuredClone(layer);
-        // A member keeps its group when the group is pasted with it, and otherwise pastes as a free layer.
-        const owner = incoming[index].group === undefined ? undefined : renamed.get(incoming[index].group);
-        return /** @type {Layer} */ ({ ...rest, ...(owner === undefined ? {} : { group: owner }) });
-      });
-      const layers = [...scene.layers];
-      const effects = pasted.filter((layer) => !isIdentityKind(layer.kind));
-      const identities = pasted.filter((layer) => isIdentityKind(layer.kind));
-      const point = insertionPoint(layers, false);
-      // Free layers pasted above a layer of a group join that group ; a pasted group goes above the whole block it was pasted over.
-      const hasGroup = effects.some(isGroup);
-      const index = point.group !== undefined && hasGroup ? /** @type {{ end: number }} */ (blockRange(layers, point.group)).end + 1 : point.index;
-      const joining = point.group !== undefined && !hasGroup ? point.group : undefined;
-      layers.splice(index, 0, ...effects.map((layer) => (joining !== undefined && layer.group === undefined ? { ...layer, group: joining } : layer)));
-      layers.push(...identities);
-      const accepted = accept({ ...scene, layers });
-      if (!accepted.ok) return accepted;
-      const ids = pasted.map(({ id }) => id);
-      commit(entryLabel ?? (pasted.length === 1 ? 'Coller une couche' : `Coller ${pasted.length} couches`), accepted.scene, ids);
-      return { ok: true, ids };
+      return applyPlan(planInsertLayers(scene, selection, incoming, entryLabel));
     },
 
     /**
@@ -606,16 +460,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
      * @returns {(Done & { id: string }) | Refused}
      */
     groupLayers(ids) {
-      const targets = known(ids);
-      if (targets.length === 0) return refuse('unknown', 'aucune couche à grouper');
-      if (scene.layers.filter(isGroup).length >= MAX_GROUPS) return refuse('limit', `${MAX_GROUPS} groupes au plus`);
-      const id = uniqueLayerId(scene, 'group');
-      const layers = groupLayers(scene.layers, targets, { id });
-      if (layers === null) return refuse('invalid', 'seules des couches se groupent : ni un groupe, ni une couche d’identité');
-      const accepted = accept({ ...scene, layers });
-      if (!accepted.ok) return accepted;
-      commit(targets.length === 1 ? 'Grouper une couche' : `Grouper ${targets.length} couches`, accepted.scene, [id]);
-      return announce({ ok: true, id }, 'groupLayers', targets, {});
+      return applyPlan(planGroupLayers(scene, ids));
     },
 
     /**
@@ -624,18 +469,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
      * @returns {(Done & { ids: string[] }) | Refused}
      */
     ungroupLayers(ids) {
-      const groups = [...new Set(known(ids).flatMap((id) => {
-        const layer = /** @type {Layer} */ (find(id));
-        return isGroup(layer) ? [layer.id] : layer.group === undefined ? [] : [layer.group];
-      }))];
-      if (groups.length === 0) return refuse('invalid', 'aucun groupe à dégrouper');
-      const freed = groups.flatMap((id) => membersOf(scene.layers, id).map((member) => member.id));
-      let layers = scene.layers;
-      for (const id of groups) layers = /** @type {Layer[]} */ (ungroupLayers(layers, id));
-      const accepted = accept({ ...scene, layers });
-      if (!accepted.ok) return accepted;
-      commit(groups.length === 1 ? 'Dégrouper' : `Dégrouper ${groups.length} groupes`, accepted.scene, freed);
-      return announce({ ok: true, ids: freed }, 'ungroupLayers', groups, {});
+      return applyPlan(planUngroupLayers(scene, ids));
     },
 
     /**
@@ -675,18 +509,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
      * @returns {Done | Refused}
      */
     setLayerKind(id, kind, options = {}) {
-      const layer = find(id);
-      if (layer === undefined) return refuse('unknown', `couche introuvable : ${id}`);
-      const resolved = resolveKindId(kind);
-      if (resolved === null) return refuse('invalid', `type de couche inconnu : ${kind}`);
-      if (kindFamily(resolved) !== kindFamily(layer.kind)) return refuse('invalid', 'un effet, un contenu et une couche d’identité ne se remplacent pas entre eux');
-      if (isIdentityKind(resolved) && scene.layers.some((other) => other.id !== id && other.kind === resolved)) {
-        return refuse('unique', 'cette couche existe déjà dans la scène');
-      }
-      if (resolved === layer.kind) return { ok: true };
-      if (!animationFits(layer.animation, kindCapabilities(resolved).content)) return refuse('invalid', 'cette couche a une entrée ou une sortie propre à son contenu (texte ou forme) : choisissez-en une autre avant de changer son type');
-      const layers = scene.layers.map((candidate) => (candidate.id === id ? { ...candidate, kind: resolved, options } : candidate));
-      return announce(finish(layers, 'Changer l’effet', undefined), 'setLayerKind', [id], { kind: resolved, options });
+      return applyPlan(planSetLayerKind(scene, selection, id, kind, options));
     },
 
     /**
