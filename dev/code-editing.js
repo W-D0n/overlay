@@ -95,3 +95,18 @@ export function lineCount(text) {
 export function applyEdit(text, edit) {
   return { text: text.slice(0, edit.from) + edit.insert + text.slice(edit.to), start: edit.start, end: edit.end };
 }
+
+/**
+ * What a key does in a code text area: Tab indents (Shift+Tab outdents), Enter keeps the indentation, Escape lets the next Tab leave the field (so the keyboard is never trapped).
+ * @param {{ key: string, shiftKey: boolean, ctrlKey: boolean, metaKey: boolean, altKey: boolean, isComposing: boolean }} input
+ * @param {string} text @param {number} start @param {number} end the selection
+ * @param {boolean} leaving Escape was pressed and no other key since
+ * @returns {{ leaving: boolean, edit: Edit | null }} `edit`: the change to apply (the key's own action is then cancelled), `null`: the key keeps its meaning
+ */
+export function codeKeyEdit(input, text, start, end, leaving) {
+  if (input.key === 'Escape') return { leaving: true, edit: null };
+  if (input.ctrlKey || input.metaKey || input.altKey || input.isComposing) return { leaving, edit: null };
+  if (input.key === 'Tab') return { leaving: false, edit: leaving ? null : input.shiftKey ? outdent(text, start, end) : indent(text, start, end) };
+  if (input.key === 'Enter' && !input.shiftKey) return { leaving: false, edit: newline(text, start, end) };
+  return { leaving: false, edit: null };
+}

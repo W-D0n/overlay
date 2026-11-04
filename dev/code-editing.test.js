@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { applyEdit, indent, lineCount, newline, outdent } from './code-editing.js';
+import { applyEdit, codeKeyEdit, indent, lineCount, newline, outdent } from './code-editing.js';
 
 const run = (fn, text, start, end = start) => {
   const edit = fn(text, start, end);
@@ -94,5 +94,45 @@ describe('lineCount', () => {
   test('at least one, one more per newline', () => {
     expect(lineCount('')).toBe(1);
     expect(lineCount('a\nb\n')).toBe(3);
+  });
+});
+
+describe('codeKeyEdit', () => {
+  const key = (name, over = {}) => ({ key: name, shiftKey: false, ctrlKey: false, metaKey: false, altKey: false, isComposing: false, ...over });
+  const apply = (input, text, start, end = start, leaving = false) => {
+    const action = codeKeyEdit(input, text, start, end, leaving);
+    return { leaving: action.leaving, result: action.edit === null ? null : applyEdit(text, action.edit) };
+  };
+
+  test('Tab indents, Shift+Tab outdents, Enter keeps the indentation', () => {
+    expect(apply(key('Tab'), 'ab', 1).result).toEqual({ text: 'a  b', start: 3, end: 3 });
+    expect(apply(key('Tab', { shiftKey: true }), '  ab', 3).result).toEqual({ text: 'ab', start: 1, end: 1 });
+    expect(apply(key('Enter'), '  ab', 4).result?.text).toBe('  ab' + String.fromCharCode(10) + '  ');
+  });
+
+  test('Shift+Enter and the other keys keep their own meaning', () => {
+    expect(apply(key('Enter', { shiftKey: true }), 'ab', 1).result).toBeNull();
+    expect(apply(key('a'), 'ab', 1).result).toBeNull();
+    expect(apply(key('ArrowLeft'), 'ab', 1).result).toBeNull();
+  });
+
+  test('Ctrl, Cmd, Alt and a composition in progress leave every key alone, and keep the leaving state', () => {
+    for (const modifier of ['ctrlKey', 'metaKey', 'altKey', 'isComposing']) {
+      const tab = apply(key('Tab', { [modifier]: true }), 'ab', 1, 1, true);
+      expect(tab).toEqual({ leaving: true, result: null });
+      expect(apply(key('Enter', { [modifier]: true }), 'ab', 1).result).toBeNull();
+    }
+  });
+
+  test('Escape arms the exit: the next Tab is left to the browser, and the exit is disarmed after it', () => {
+    expect(apply(key('Escape'), 'ab', 1)).toEqual({ leaving: true, result: null });
+    expect(apply(key('Tab'), 'ab', 1, 1, true)).toEqual({ leaving: false, result: null });
+    expect(apply(key('Tab', { shiftKey: true }), '  ab', 3, 3, true)).toEqual({ leaving: false, result: null });
+  });
+
+  test('any other key disarms the exit', () => {
+    expect(apply(key('a'), 'ab', 1, 1, true).leaving).toBe(false);
+    expect(apply(key('Enter'), 'ab', 1, 1, true).leaving).toBe(false);
+    expect(apply(key('Enter', { shiftKey: true }), 'ab', 1, 1, true).leaving).toBe(false);
   });
 });
