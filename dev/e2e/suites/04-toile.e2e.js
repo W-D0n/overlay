@@ -54,6 +54,18 @@ export async function run({ page, stack, check, errors }) {
   check('glisser la couche la déplace de (200, 100) px de la source', Math.abs(box.x - 200) <= 3 && Math.abs(box.y - 100) <= 3 && box.w === 960 && box.h === 540);
   check('un seul annuler défait tout le déplacement (geste regroupé)', await (async () => { await page.click('#layers-undo'); const b = await inspector(); await page.click('#layers-redo'); return b.x === 0 && b.y === 0; })());
 
+  // The cursor says what a press would do: move over the selected layer, the handle's arrow over a handle, the arrow elsewhere.
+  const cursor = () => page.evaluate("document.getElementById('canvas-overlay').style.cursor");
+  const center = await at(680, 370);
+  await page.mouseMove(center.x, center.y);
+  check('the cursor is the move cross over the selected layer', (await cursor()) === 'move');
+  const seHandle = await page.evaluate("(() => { const r = document.querySelector('#canvas-overlay .co-handle[data-handle=se]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; })()");
+  await page.mouseMove(seHandle.x, seHandle.y);
+  check('the cursor is the diagonal arrow over the south-east handle', (await cursor()) === 'nwse-resize');
+  const elsewhere = await at(1850, 1050);
+  await page.mouseMove(elsewhere.x, elsewhere.y);
+  check('the cursor is the plain arrow over a layer that is not selected', (await cursor()) === 'default');
+
   // Aimantation : approcher le bord gauche à 5 px de la toile fait coller à 0, avec un repère pendant le geste.
   start = await at(200 + 480, 100 + 270);
   const f1 = await frame();
@@ -61,11 +73,13 @@ export async function run({ page, stack, check, errors }) {
   await page.mouseMove(start.x - 100 * f1.scale, start.y);
   await page.mouseMove(start.x - 195 * f1.scale, start.y);
   const during = await guideCount();
+  const readoutDuring = await page.evaluate("(() => { const r = document.querySelector('#canvas-overlay .co-readout'); return { hidden: r.hidden, text: r.textContent }; })()");
   await page.mouseUp(start.x - 195 * f1.scale, start.y);
   box = await inspector();
   check('le bord gauche, à 5 px de la toile, colle à 0', box.x === 0);
   check('un repère d’aimantation était tracé pendant le glissement', during >= 1);
   check('le repère disparaît au relâchement', (await guideCount()) === 0);
+  check('the position readout shows during the drag, then goes away', readoutDuring.hidden === false && /^X -?\d+ · Y -?\d+$/.test(readoutDuring.text) && (await page.evaluate("document.querySelector('#canvas-overlay .co-readout').hidden")) === true);
 
   // Ctrl tenu : pas d'aimantation.
   start = await at(480, 370);
@@ -143,6 +157,17 @@ export async function run({ page, stack, check, errors }) {
   await page.click('#canvas-overlay', { position: { x: overlap.x - (await page.boxOf('#canvas-overlay')).x, y: overlap.y - (await page.boxOf('#canvas-overlay')).y }, modifiers: ['Alt'] });
   const second = await selectedTitles();
   check('Alt+clic sélectionne la couche située sous celle déjà sélectionnée', first !== '' && second !== '' && first !== second);
+
+  // Shift + click toggles the aimed layer in the selection ; toggling a layer off starts no drag of the layers that stay.
+  const rectBefore = JSON.stringify(await inspector());
+  const aim = { x: overlap.x - (await page.boxOf('#canvas-overlay')).x, y: overlap.y - (await page.boxOf('#canvas-overlay')).y };
+  await page.click('#canvas-overlay', { position: aim, modifiers: ['Shift'] });
+  check('Shift + click adds the aimed layer to the selection', (await selectedTitles()).split(',').length === 2);
+  await page.mouseDown(overlap.x, overlap.y, { modifiers: ['Shift'] });
+  await page.mouseMove(overlap.x + 60, overlap.y + 30, { modifiers: ['Shift'] });
+  await page.mouseUp(overlap.x + 60, overlap.y + 30, { modifiers: ['Shift'] });
+  check('Shift + click on a selected layer takes it out of the selection', (await selectedTitles()).split(',').length === 1);
+  check('and starts no drag of the layers that stay', JSON.stringify(await inspector()) === rectBefore);
 
   // Vue : zoom à la molette et déplacement à l'Espace.
   await page.click('#canvas-overlay', { position: { x: 5, y: 5 } });

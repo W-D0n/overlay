@@ -22,10 +22,11 @@
 import { RENDER_REFERENCE } from '../render-reference.js';
 import { isEffectivelyLocked, isEffectivelyVisible, selectionRoots, withMembers } from '../layer-group.js';
 import {
-  HANDLES, HANDLE_CURSORS, fromPixelRect, handlePoints, hitTestAll, isSelectableOnCanvas, marqueeHits, moveRect, rectBetween, resizeRect, scaleRectsWithin, toPixelRect, unionRect,
+  HANDLES, HANDLE_CURSORS, fromPixelRect, handlePoints, hitTestAll, isSelectableOnCanvas, marqueeHits, rectBetween, toPixelRect, unionRect,
 } from './canvas-geometry.js';
+import { cursorFor, dragResult, pickOnDown } from './canvas-gestures.js';
 import { canvasKeyAction } from './canvas-keys.js';
-import { collectTargets, snapMove, snapResize } from './canvas-snapping.js';
+import { collectTargets } from './canvas-snapping.js';
 import { screenToSource, sourceToScreen } from './view-transform.js';
 
 /** Force de l'aimant, en pixels d'écran : la même à tout zoom. */
@@ -267,39 +268,16 @@ export function createCanvasOverlayController(input) {
       return;
     }
 
-    const startBox = /** @type {Rect} */ (g.startBox);
     const ids = Object.keys(g.startRects);
-    /** @type {import('./canvas-snapping.js').Guide[]} */
-    let guides = [];
-    /** @type {Record<string, Rect>} */
-    let rects;
-    if (g.type === 'move') {
-      const box = moveRect(startBox, dx, dy, { lockAxis: event.shiftKey });
-      let sx = 0;
-      let sy = 0;
-      if (snapping) {
-        const snapped = snapMove(box, targetsFor(ids), snapThreshold());
-        sx = snapped.dx;
-        sy = snapped.dy;
-        guides = snapped.guides;
-      }
-      const ddx = box.x + sx - startBox.x;
-      const ddy = box.y + sy - startBox.y;
-      rects = Object.fromEntries(ids.map((id) => [id, { ...g.startRects[id], x: g.startRects[id].x + ddx, y: g.startRects[id].y + ddy }]));
-      showReadout(`X ${Math.round(box.x + sx)} · Y ${Math.round(box.y + sy)}`);
-    } else {
-      const handle = /** @type {Handle} */ (g.handle);
-      let box = resizeRect(startBox, handle, dx, dy, { keepRatio: event.shiftKey, fromCenter: event.altKey });
-      if (snapping && !event.shiftKey && !event.altKey) {
-        const snapped = snapResize(box, handle, targetsFor(ids), snapThreshold());
-        box = snapped.box;
-        guides = snapped.guides;
-      }
-      rects = scaleRectsWithin(startBox, box, g.startRects);
-      showReadout(`${Math.round(box.width)} × ${Math.round(box.height)} px`);
-    }
-    showGuides(guides);
-    if (commit(rects, g.type === 'move' ? 'Déplacer' : 'Redimensionner', `canvas:${g.type}:${ids.join(',')}`)) g.changed = true;
+    const result = dragResult(
+      { type: g.type, startBox: /** @type {Rect} */ (g.startBox), startRects: g.startRects, handle: g.handle },
+      { dx, dy },
+      event,
+      snapping ? { targets: () => targetsFor(ids), threshold: snapThreshold() } : null,
+    );
+    showReadout(result.readout);
+    showGuides(result.guides);
+    if (commit(result.rects, result.label, `canvas:${g.type}:${ids.join(',')}`)) g.changed = true;
   }
 
   /** @param {PointerEvent} event */
@@ -352,23 +330,13 @@ export function createCanvasOverlayController(input) {
       return;
     }
 
-    const hits = hitTestAll(layers(), startPoint, isIdentity);
-    let hit = hits[0] ?? null;
-    if (event.altKey && hits.length > 0) {
-      // Alt+clic : la couche juste en dessous de celle qui est déjà sélectionnée à cet endroit.
-      const current = hits.findIndex((id) => selection().includes(id));
-      hit = hits[current < 0 ? 0 : Math.min(hits.length - 1, current + 1)];
-    }
-    if (hit === null) {
+    const picked = pickOnDown({ hits: hitTestAll(layers(), startPoint, isIdentity), selection: selection(), altKey: event.altKey, shiftKey: event.shiftKey });
+    if (picked.hit === null) {
       gesture = base;
       return;
     }
-    if (event.shiftKey) {
-      editor.select([hit], 'toggle');
-      if (!selection().includes(hit)) return;
-    } else if (!selection().includes(hit) || event.altKey) {
-      editor.select([hit]);
-    }
+    if (picked.select !== null) editor.select(picked.select.ids, picked.select.mode);
+    if (event.shiftKey && !selection().includes(picked.hit)) return;
     const movable = movableSelected();
     if (movable.length === 0) return;
     gesture = { ...base, type: 'move', startRects: Object.fromEntries(movable.map((layer) => [layer.id, toPixelRect(layer.placement)])), startBox: unionRect(movable.map((layer) => toPixelRect(layer.placement))) };
@@ -379,7 +347,10 @@ export function createCanvasOverlayController(input) {
     if (gesture !== null) return;
     const handleEl = /** @type {HTMLElement | null} */ ((/** @type {HTMLElement} */ (event.target)).closest('.co-handle'));
     const hit = handleEl === null ? hitTestAll(layers(), sourcePoint(event), isIdentity)[0] ?? null : null;
-    overlay.style.cursor = spaceDown ? 'grab' : handleEl !== null ? HANDLE_CURSORS[/** @type {Handle} */ (handleEl.dataset.handle)] : hit !== null && selection().includes(hit) && !isEffectivelyLocked(layers(), /** @type {*} */ (layers().find((l) => l.id === hit))) ? 'move' : 'default';
+    const handle = handleEl === null ? null : /** @type {Handle} */ (handleEl.dataset.handle);
+    const hitLayer = hit === null ? undefined : layers().find((layer) => layer.id === hit);
+    const overMovable = hitLayer !== undefined && selection().includes(hitLayer.id) && !isEffectivelyLocked(layers(), hitLayer);
+    overlay.style.cursor = cursorFor({ spaceDown, handle, overMovable });
     if (hit !== hoverId) {
       hoverId = hit;
       render();
