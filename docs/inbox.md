@@ -1,6 +1,6 @@
 ---
 created: 2026-06-06
-updated: 2026-11-03
+updated: 2026-11-04
 ---
 
 # Inbox — Overlay Stream
@@ -115,6 +115,10 @@ Ordre = recommandation.
 
 Une exécution complète a rendu `739 / 742` (30 contrôles manquants : une suite s'est interrompue en cours de route) juste après un `bun test` ; sept exécutions complètes suivantes ont donné `772 / 772`. La suite concernée n'a pas été
 identifiée (seule la dernière ligne avait été gardée). `dev/e2e/run.js` rappelle désormais, en fin de sortie, chaque contrôle en échec avec sa suite : **au prochain échec intermittent, relever ce rappel avant de relancer**.
+
+### Noms des effets : décision de vocabulaire (2026-11-04)
+
+Passe finale, lot 5 : la galerie d'ajout, la palette de commandes et le panneau des couches affichent les effets sous leur nom de code, en une seule chaîne : `DotGrid`, `FloatingSymbols`, `GeometricPattern`, `ColorDrops`, `StarsParallax`, `OrbitingShapes`, `ShapeMorph`, `WaterRipple`. Les types de contenu, eux, ont un vrai nom français (« Texte », « Forme », « Image »). **Décision à prendre par l'owner** : garder ces noms (ce sont ceux de l'histoire du projet et des scènes déjà nommées) ou les remplacer par des noms lisibles (« Grille de points », « Symboles flottants », « Motif géométrique », « Gouttes de couleur », « Étoiles en parallaxe », « Formes en orbite », « Silhouettes changeantes », « Ondes »). Le changement ne touche que le libellé affiché (`label` dans `layer-kinds.js`), jamais l'identifiant stocké dans les scènes ; recommandation : les remplacer, la galerie étant la première chose qu'un utilisateur voit.
 
 ## À regarder en priorité à la prochaine session d'audit / review
 

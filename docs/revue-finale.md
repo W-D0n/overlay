@@ -83,6 +83,8 @@ Gardes nouvelles, toutes vues rouges sur le défaut réinjecté : `dev/e2e/suite
 
 Tests 2 822, e2e 922 / 922.
 
+**5c — dialogues et palette (relevé).** Réglages, diagnostic, historique, versions, galerie d'ajout et palette de commandes parcourus à 1700 px : aucun débordement, textes clairs, ordre logique. Une seule décision ouverte, qui revient à l'owner (noms de code des effets affichés tels quels) : consignée dans `docs/inbox.md`. Reste du lot 5, à faire avec un usage réel de l'éditeur : l'ordre des sections de l'inspecteur (Position, Rendu, Filtres, Masque, Animation, Liaisons, Timeline), l'ordre de tabulation et les contrastes au lecteur d'écran.
+
 ### Lot 6 — gardes permanentes (au fil de l'eau)
 
 Chaque classe de défaut trouvée repart avec une règle totale et décidable (comme `dev/dead-exports.test.js`), jamais un balayage jetable.
