@@ -46,6 +46,8 @@ Les fonctions de complexité > 25 restantes, dans cet ordre de risque (une fonct
 
 **3b — `startBackgroundTuner` (fait).** Les treize tables « identifiant d'élément → élément » (≈ 230 lignes de `byId`) passent dans `dev/studio-elements.js`, une fonction par panneau ; le câblage tombe de 822 à 620 lignes et se lit comme la liste des panneaux et de leurs dépendances. Garde permanente nouvelle (`dev/studio-elements.test.js`) : chaque identifiant demandé, par les tables comme par le câblage lui-même, existe dans `studio.html`, et aucune table n'en demande deux fois un même ; vue rouge sur un identifiant mal écrit, un doublon et une faute dans le câblage. Essais de bout en bout : 895 / 895.
 
+**3c — `createSceneRuntime` (fait).** Ce qui est pur sort de la fermeture : `layer-look.js` rassemble « à quoi ressemble une couche à cet instant » (`valuesAt` : timeline puis liaisons et règle du silence au bout d'une demi-seconde ; `lookAt` : l'animation par-dessus ; `paramValues`, `drivenFilters`, `lookStyles`, `percent`). `scene-runtime.js` garde l'état (scènes montées, horloge, lecture) : 723 → 653 lignes. 26 tests directs ; 34 défauts réinjectés, 32 détectés, 2 équivalents (court-circuits qui ne changent pas le résultat : liste de liaisons vide, aucun filtre piloté). e2e 895 / 895.
+
 ### Lot 4 — `dev/studio.html` (à faire)
 
 Sortir le CSS en ligne (environ mille lignes) dans un `dev/studio.css` chargé par la page (sans étape de build ; vérifier la liste blanche de `dev/local-access-policy`), ranger les sections de l'inspecteur dans l'ordre de l'usage, et supprimer les règles mortes.
