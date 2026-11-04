@@ -15,6 +15,11 @@ export async function run({ page, stack, check, errors }) {
   await stack.api('/save-preset', { scene: PILE });
   await openStudio({ page, stack });
 
+  // The page's own stylesheet is loaded and applied: it is a file of its own, and a page without it still works, only unstyled.
+  const sheet = await page.evaluate("(() => { const s = [...document.styleSheets].find((x) => x.href !== null && x.href.endsWith('/dev/studio.css')); return { loaded: s !== undefined, rules: s === undefined ? 0 : s.cssRules.length, bodyFillsWindow: document.body.getBoundingClientRect().height === window.innerHeight }; })()");
+  check('the Studio stylesheet (dev/studio.css) is loaded, with its rules', sheet.loaded === true && sheet.rules > 300);
+  check('and applied: the page fills the window', sheet.bodyFillsWindow === true);
+
   const air = async () => (await stack.api('/state')).scene;
   const kinds = (/** @type {*} */ scene) => scene.layers.map((/** @type {*} */ layer) => layer.kind).join();
   const snap = async () => ({

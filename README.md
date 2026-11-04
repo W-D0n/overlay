@@ -91,6 +91,7 @@ branding-format.js
 
 dev/
   studio.html
+  studio.css
   builtin-background-presets.js
   background-preset-import-flow.js
   background-preset-library.js

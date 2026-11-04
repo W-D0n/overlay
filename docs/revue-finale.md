@@ -58,9 +58,9 @@ Les fonctions de complexité > 25 restantes, dans cet ordre de risque (une fonct
 
 **Bilan du lot 3.** Sept grosses fabriques découpées par domaine, jamais par taille : `scene-editor` 844 → 667, `background-tuner-runtime` 822 → 620, `scene-runtime` 723 → 653, `layers-panel-controller` 603 → 545, `background-field-renderer` 582 → 414, `canvas-overlay-controller` 484 → 455, `host` 523 → 425. Neuf modules neufs, tous testés directement (`scene-edits`, `studio-elements`, `layer-look`, `layer-gallery-controller`, `code-field`, `starter-row`, `canvas-gestures`, `ops-routes`, `codeKeyEdit`), ≈ 260 défauts réinjectés ; deux essais e2e vides repérés et corrigés (Alt+↑ de la liste, curseurs et Maj+clic de la toile). Tests : 2 655 → 2 804 ; e2e : 877 → 902.
 
-### Lot 4 — `dev/studio.html` (à faire)
+### Lot 4 — `dev/studio.html` (fait)
 
-Sortir le CSS en ligne (environ mille lignes) dans un `dev/studio.css` chargé par la page (sans étape de build ; vérifier la liste blanche de `dev/local-access-policy`), ranger les sections de l'inspecteur dans l'ordre de l'usage, et supprimer les règles mortes.
+Le CSS en ligne (841 lignes) est sorti dans `dev/studio.css`, chargé par la page après `tokens.css` (sans étape de build ; `.css` et `dev/` sont déjà dans la liste blanche de `local-access-policy`) : la page passe de 1 465 à 623 lignes. Preuve de l'effet, vue rouge sur un lien retiré et sur un lien cassé : deux contrôles e2e (la feuille est chargée avec ses règles, et appliquée : la page remplit la fenêtre). Règles mortes : 299 classes et 30 identifiants mesurés, trois règles mortes retirées (`.layer-fold` et son pendant de groupe, `.preset-copy`) ; cinq familles de classes bâties par des gabarits (`co-guide-${kind}`, `change-${kind}`, …) sont reconnues par une liste fermée dont chaque gabarit est vérifié dans le script qui le construit. Garde permanente nouvelle, `dev/studio-css.test.js` : aucune classe ni aucun identifiant sans emploi, aucun `<style>` en ligne, la feuille chargée après les tokens ; vue rouge sur une classe morte, un identifiant mort, un gabarit disparu et un `<style>` réintroduit. Le rangement des sections de l'inspecteur dans l'ordre de l'usage reste à faire avec le lot 5 (il demande de regarder le vrai Studio). Tests 2 810, e2e 904 / 904.
 
 ### Lot 5 — UX/UI, surface par surface (à faire)
 
