@@ -52,6 +52,44 @@ describe('checkShortcut', () => {
   });
 });
 
+describe('validateCustomCommand : bornes et formes refusées', () => {
+  const valid = { name: 'Ok', steps: ['edit.copy'] };
+
+  test('the name is accepted up to the limit and refused one character above', () => {
+    expect(validateCustomCommand({ ...valid, name: 'x'.repeat(NAME_MAX_LENGTH) }, ctx()).ok).toBe(true);
+    expect(validateCustomCommand({ ...valid, name: 'x'.repeat(NAME_MAX_LENGTH + 1) }, ctx()).errors).toEqual([`le nom dépasse ${NAME_MAX_LENGTH} caractères`]);
+  });
+
+  test('the steps are accepted up to the limit and refused one above', () => {
+    expect(validateCustomCommand({ ...valid, steps: Array(MAX_STEPS).fill('edit.copy') }, ctx()).ok).toBe(true);
+    expect(validateCustomCommand({ ...valid, steps: Array(MAX_STEPS + 1).fill('edit.copy') }, ctx()).errors).toEqual([`${MAX_STEPS} étapes au plus`]);
+  });
+
+  test('a step that is not a text, nor a recorded gesture, is unknown', () => {
+    expect(validateCustomCommand({ ...valid, steps: [5] }, ctx()).errors).toEqual(['étape inconnue : 5']);
+  });
+
+  test('an empty shortcut is no shortcut, a shortcut that is not a text is refused', () => {
+    const empty = validateCustomCommand({ ...valid, shortcut: '' }, ctx());
+    expect(empty.ok).toBe(true);
+    expect('shortcut' in empty.command).toBe(false);
+    expect(validateCustomCommand({ ...valid, shortcut: 5 }, ctx()).errors).toEqual(['raccourci : texte attendu']);
+  });
+
+  test('a list is not a command, and an id outside the custom namespace is replaced', () => {
+    expect(validateCustomCommand([valid], ctx()).errors).toEqual(['commande : objet attendu']);
+    expect(validateCustomCommand({ ...valid, id: 'edit.copy' }, ctx()).command.id).toBe('custom.ok');
+  });
+
+  test('the errors come in the order name, steps, shortcut', () => {
+    const result = validateCustomCommand({ name: '', steps: [], shortcut: 'K' }, ctx());
+    expect(result.errors.length).toBe(3);
+    expect(result.errors[0]).toBe('le nom est obligatoire');
+    expect(result.errors[1]).toBe('au moins une étape est nécessaire');
+    expect(result.errors[2]).toContain('Ctrl ou Alt');
+  });
+});
+
 describe('validateCustomCommand', () => {
   test('une définition valide : nom rogné, identifiant dérivé du nom, étapes conservées', () => {
     const result = validateCustomCommand({ name: '  Mise en page  ', steps: ['layer.top', 'position.align.left'], shortcut: 'Ctrl+Maj+M' }, ctx());

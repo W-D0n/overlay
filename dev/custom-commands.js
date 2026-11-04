@@ -82,37 +82,46 @@ export function checkShortcut(shortcut, { taken = new Map() } = {}) {
  * @returns {{ ok: true, command: CustomCommand } | { ok: false, errors: string[] }}
  */
 export function validateCustomCommand(raw, { knownIds, taken = new Map(), others = [] }) {
-  /** @type {string[]} */
-  const errors = [];
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return { ok: false, errors: ['commande : objet attendu'] };
   const record = /** @type {Record<string, unknown>} */ (raw);
   const name = typeof record.name === 'string' ? record.name.trim() : '';
-  if (name === '') errors.push('le nom est obligatoire');
-  else if (name.length > NAME_MAX_LENGTH) errors.push(`le nom dépasse ${NAME_MAX_LENGTH} caractères`);
-  else if (others.some((other) => other.id !== record.id && other.name.toLowerCase() === name.toLowerCase())) errors.push(`une commande s'appelle déjà « ${name} »`);
-
   const steps = Array.isArray(record.steps) ? record.steps : [];
-  if (!Array.isArray(record.steps) || steps.length === 0) errors.push('au moins une étape est nécessaire');
-  if (steps.length > MAX_STEPS) errors.push(`${MAX_STEPS} étapes au plus`);
-  for (const step of steps) {
+  const shortcut = readShortcut(record.shortcut, taken);
+  const errors = [...nameErrors(name, record.id, others), ...stepsErrors(record.steps, knownIds), ...shortcut.errors];
+  if (errors.length > 0) return { ok: false, errors };
+  const id = typeof record.id === 'string' && record.id.startsWith(CUSTOM_PREFIX) ? record.id : `${CUSTOM_PREFIX}${slugify(name)}`;
+  return { ok: true, command: { id, name, steps: /** @type {CommandStep[]} */ (steps), ...(shortcut.value === undefined ? {} : { shortcut: shortcut.value }) } };
+}
+
+/** @param {string} name @param {unknown} id @param {readonly CustomCommand[]} others @returns {string[]} */
+function nameErrors(name, id, others) {
+  if (name === '') return ['le nom est obligatoire'];
+  if (name.length > NAME_MAX_LENGTH) return [`le nom dépasse ${NAME_MAX_LENGTH} caractères`];
+  if (others.some((other) => other.id !== id && other.name.toLowerCase() === name.toLowerCase())) return [`une commande s'appelle déjà « ${name} »`];
+  return [];
+}
+
+/** @param {unknown} steps @param {ReadonlySet<string>} knownIds @returns {string[]} */
+function stepsErrors(steps, knownIds) {
+  const list = Array.isArray(steps) ? steps : [];
+  /** @type {string[]} */
+  const errors = [];
+  if (list.length === 0) errors.push('au moins une étape est nécessaire');
+  if (list.length > MAX_STEPS) errors.push(`${MAX_STEPS} étapes au plus`);
+  for (const step of list) {
     if (isOperationStep(step)) errors.push(...stepErrors(step));
     else if (typeof step !== 'string' || !knownIds.has(step)) errors.push(`étape inconnue : ${String(step)}`);
     else if (!isStepAllowed(step)) errors.push(`étape non autorisée dans une commande : ${step}`);
   }
+  return errors;
+}
 
-  /** @type {string | undefined} */
-  let shortcut;
-  if (record.shortcut !== undefined && record.shortcut !== '') {
-    if (typeof record.shortcut !== 'string') errors.push('raccourci : texte attendu');
-    else {
-      const problem = checkShortcut(record.shortcut, { taken });
-      if (problem !== null) errors.push(problem);
-      else shortcut = record.shortcut;
-    }
-  }
-  if (errors.length > 0) return { ok: false, errors };
-  const id = typeof record.id === 'string' && record.id.startsWith(CUSTOM_PREFIX) ? record.id : `${CUSTOM_PREFIX}${slugify(name)}`;
-  return { ok: true, command: { id, name, steps: /** @type {CommandStep[]} */ (steps), ...(shortcut === undefined ? {} : { shortcut }) } };
+/** @param {unknown} shortcut @param {ReadonlyMap<string, string>} taken @returns {{ value?: string, errors: string[] }} an absent or empty shortcut is no shortcut */
+function readShortcut(shortcut, taken) {
+  if (shortcut === undefined || shortcut === '') return { errors: [] };
+  if (typeof shortcut !== 'string') return { errors: ['raccourci : texte attendu'] };
+  const problem = checkShortcut(shortcut, { taken });
+  return problem === null ? { value: shortcut, errors: [] } : { errors: [problem] };
 }
 
 /** @param {string} name */
