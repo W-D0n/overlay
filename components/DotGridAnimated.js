@@ -152,6 +152,61 @@ function isAutoReactionMode(value) {
 }
 
 /**
+ * What a new set of options changes in a running grid, without touching it: the values to take (only the ones that really change, already bounded) and what has to be
+ * rebuilt because of them. An option of the wrong type, or out of its range, is ignored.
+ * @typedef {{ spacing: number, dotRadius: number, glowIntensity: number, reactionMode: 'none'|'ambient'|'follow'|'sub'|'raid'|'bits', reactionInterval: number }} UpdateCurrent
+ * @typedef {{
+ *   colorMode?: 'flat' | 'noise' | 'glow', spacing?: number, dotRadius?: number, audioIntensity?: number, baseOpacity?: number, pulseSpeed?: number, angle?: number,
+ *   glowIntensity?: number, colorA?: [number, number, number], colorB?: [number, number, number], reactionMode?: UpdateCurrent['reactionMode'], reactionInterval?: number, reactionIntensity?: number,
+ * }} UpdateValues
+ * @param {Record<string, unknown>} opts
+ * @param {UpdateCurrent} current
+ * @param {(css: string) => [number, number, number]} [resolve] how a CSS colour becomes RGB (needs a page by default)
+ * @returns {{ values: UpdateValues, stale: { layout: boolean, colors: boolean, glow: boolean, schedule: boolean }, clearAudio: boolean }} `clearAudio`: the preset is no longer audio-reactive
+ */
+export function planUpdate(opts, current, resolve = resolveColor) {
+  /** @type {UpdateValues} */
+  const values = {};
+  const stale = { layout: false, colors: false, glow: false, schedule: false };
+  if (opts.colorMode === 'flat' || opts.colorMode === 'noise' || opts.colorMode === 'glow') values.colorMode = opts.colorMode;
+  if (typeof opts.spacing === 'number' && opts.spacing > 0 && opts.spacing !== current.spacing) {
+    values.spacing = opts.spacing;
+    stale.layout = true;
+  }
+  if (typeof opts.dotRadius === 'number' && opts.dotRadius > 0 && opts.dotRadius !== current.dotRadius) {
+    values.dotRadius = opts.dotRadius;
+    stale.glow = true;
+  }
+  if (typeof opts.audioIntensity === 'number' && opts.audioIntensity >= 0) values.audioIntensity = opts.audioIntensity;
+  if (typeof opts.baseOpacity === 'number') values.baseOpacity = Math.min(1, Math.max(0, opts.baseOpacity));
+  if (typeof opts.pulseSpeed === 'number') values.pulseSpeed = Math.max(0, opts.pulseSpeed);
+  if (typeof opts.angle === 'number') values.angle = opts.angle;
+  if (typeof opts.glowIntensity === 'number' && opts.glowIntensity !== current.glowIntensity) {
+    values.glowIntensity = Math.max(0, opts.glowIntensity);
+    stale.glow = true;
+  }
+  if (typeof opts.colorA === 'string') {
+    values.colorA = resolve(opts.colorA);
+    stale.colors = true;
+    stale.glow = true;
+  }
+  if (typeof opts.colorB === 'string') {
+    values.colorB = resolve(opts.colorB);
+    stale.colors = true;
+  }
+  if (isAutoReactionMode(opts.reactionMode) && opts.reactionMode !== current.reactionMode) {
+    values.reactionMode = opts.reactionMode;
+    stale.schedule = true;
+  }
+  if (typeof opts.reactionInterval === 'number' && opts.reactionInterval > 0 && opts.reactionInterval !== current.reactionInterval) {
+    values.reactionInterval = Math.max(1, opts.reactionInterval);
+    stale.schedule = true;
+  }
+  if (typeof opts.reactionIntensity === 'number') values.reactionIntensity = Math.max(0, opts.reactionIntensity);
+  return { values, stale, clearAudio: opts.audioReactive !== undefined && !isAudioOn(opts.audioReactive) };
+}
+
+/**
  * Délai (ms) avant le prochain déclenchement `ambient` — `randomValue` ∈ [0,1) injecté pour rendre
  * la fonction pure/testable (bornes 45000-90000ms, `docs/specs/dotgrid-event-triggers.md` AC-07).
  * @param {number} randomValue
@@ -549,70 +604,32 @@ export const DotGridAnimated = defineCanvasLayer((/** @type {DotGridOptions} */ 
       const opts = /** @type {Record<string, unknown>} */ (
         typeof newOptions === 'object' && newOptions !== null ? newOptions : {}
       );
-      let layoutStale = false;
-      let colorsStale = false;
-      let glowStale = false;
-      let scheduleStale = false;
-
       if ('mode' in opts) methods.setMode(opts.mode);
-      if (opts.colorMode === 'flat' || opts.colorMode === 'noise' || opts.colorMode === 'glow') {
-        colorMode = opts.colorMode;
-      }
-      if (typeof opts.spacing === 'number' && opts.spacing > 0 && opts.spacing !== spacing) {
-        spacing = opts.spacing;
-        layoutStale = true;
-      }
-      if (typeof opts.dotRadius === 'number' && opts.dotRadius > 0 && opts.dotRadius !== dotRadius) {
-        dotRadius = opts.dotRadius;
-        glowStale = true;
-      }
-      if (typeof opts.audioIntensity === 'number' && opts.audioIntensity >= 0) {
-        audioIntensity = opts.audioIntensity;
-      }
+      const { values, stale, clearAudio } = planUpdate(opts, { spacing, dotRadius, glowIntensity, reactionMode, reactionInterval });
+      if (values.colorMode !== undefined) colorMode = values.colorMode;
+      if (values.spacing !== undefined) spacing = values.spacing;
+      if (values.dotRadius !== undefined) dotRadius = values.dotRadius;
+      if (values.audioIntensity !== undefined) audioIntensity = values.audioIntensity;
       // Le preset repasse en non réactif : plus aucun niveau ne sera diffusé, on efface le dernier
       // reçu pour que la grille retrouve son animation normale.
-      if (opts.audioReactive !== undefined && !isAudioOn(opts.audioReactive)) {
+      if (clearAudio) {
         audioBass = 0;
         audioTreble = 0;
       }
-      if (typeof opts.baseOpacity === 'number') {
-        baseOpacity = Math.min(1, Math.max(0, opts.baseOpacity));
-      }
-      if (typeof opts.pulseSpeed === 'number') pulseSpeed = Math.max(0, opts.pulseSpeed);
-      if (typeof opts.angle === 'number') angle = opts.angle;
-      if (typeof opts.glowIntensity === 'number' && opts.glowIntensity !== glowIntensity) {
-        glowIntensity = Math.max(0, opts.glowIntensity);
-        glowStale = true;
-      }
-      if (typeof opts.colorA === 'string') {
-        colorA = resolveColor(opts.colorA);
-        colorsStale = true;
-        glowStale = true;
-      }
-      if (typeof opts.colorB === 'string') {
-        colorB = resolveColor(opts.colorB);
-        colorsStale = true;
-      }
-      if (isAutoReactionMode(opts.reactionMode) && opts.reactionMode !== reactionMode) {
-        reactionMode = opts.reactionMode;
-        scheduleStale = true;
-      }
-      if (
-        typeof opts.reactionInterval === 'number'
-        && opts.reactionInterval > 0
-        && opts.reactionInterval !== reactionInterval
-      ) {
-        reactionInterval = Math.max(1, opts.reactionInterval);
-        scheduleStale = true;
-      }
-      if (typeof opts.reactionIntensity === 'number') {
-        reactionIntensity = Math.max(0, opts.reactionIntensity);
-      }
+      if (values.baseOpacity !== undefined) baseOpacity = values.baseOpacity;
+      if (values.pulseSpeed !== undefined) pulseSpeed = values.pulseSpeed;
+      if (values.angle !== undefined) angle = values.angle;
+      if (values.glowIntensity !== undefined) glowIntensity = values.glowIntensity;
+      if (values.colorA !== undefined) colorA = values.colorA;
+      if (values.colorB !== undefined) colorB = values.colorB;
+      if (values.reactionMode !== undefined) reactionMode = values.reactionMode;
+      if (values.reactionInterval !== undefined) reactionInterval = values.reactionInterval;
+      if (values.reactionIntensity !== undefined) reactionIntensity = values.reactionIntensity;
 
-      if (colorsStale) colorLUT = buildColorRamp(colorA, colorB, COLOR_NOISE_STEPS);
-      if (glowStale) rebuildGlowSprite();
-      if (layoutStale) rebuildPoints();
-      if (scheduleStale) scheduleAutoReaction();
+      if (stale.colors) colorLUT = buildColorRamp(colorA, colorB, COLOR_NOISE_STEPS);
+      if (stale.glow) rebuildGlowSprite();
+      if (stale.layout) rebuildPoints();
+      if (stale.schedule) scheduleAutoReaction();
     },
 
     /**
