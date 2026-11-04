@@ -82,6 +82,22 @@ describe('état courant', () => {
 });
 
 describe('routage', () => {
+  test('every read route answers on GET only', async () => {
+    const { call } = setup();
+    for (const route of ['/state', '/history', '/drafts', '/studio-settings', '/bench-result', '/obs-status', '/live-status', '/diagnostics']) {
+      if (route !== '/bench-result') expect([route, (await call(route)).status]).toEqual([route, 200]);
+      expect((await call(route, { method: 'DELETE' })).status).toBe(404);
+    }
+  });
+
+  test('each read route answers with its own document', async () => {
+    const { call } = setup();
+    const keys = async (route) => Object.keys(await (await call(route)).json()).sort().join();
+    const documents = new Set();
+    for (const route of ['/state', '/history', '/drafts', '/studio-settings', '/obs-status', '/live-status', '/diagnostics']) documents.add(await keys(route));
+    expect(documents.size).toBe(7);
+  });
+
   test('route inconnue : 404', async () => {
     const { call, post } = setup();
     expect((await call('/nimporte')).status).toBe(404);

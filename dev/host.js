@@ -386,6 +386,18 @@ export function createHost({ store, assets, versions, channels, obs, control, co
     };
   }
 
+  /** @type {Record<string, () => Response | Promise<Response>>} */
+  const getRoutes = {
+    '/state': handleGetState,
+    '/history': handleGetHistory,
+    '/drafts': handleGetDrafts,
+    '/studio-settings': handleGetStudioSettings,
+    '/bench-result': handleGetBenchResult,
+    '/obs-status': handleGetObsStatus,
+    '/live-status': handleGetLiveStatus,
+    '/diagnostics': handleGetDiagnostics,
+  };
+
   /** @type {Record<string, (req: Request) => Promise<Response>>} */
   const postRoutes = {
     '/control/restart': controlHandler('restart'),
@@ -471,14 +483,8 @@ export function createHost({ store, assets, versions, channels, obs, control, co
         return upgraded ? undefined : new Response('upgrade failed', { status: 500 });
       }
 
-      if (req.method === 'GET' && url.pathname === '/state') return handleGetState();
-      if (req.method === 'GET' && url.pathname === '/history') return handleGetHistory();
-      if (req.method === 'GET' && url.pathname === '/drafts') return handleGetDrafts();
-      if (req.method === 'GET' && url.pathname === '/studio-settings') return handleGetStudioSettings();
-      if (req.method === 'GET' && url.pathname === '/bench-result') return handleGetBenchResult();
-      if (req.method === 'GET' && url.pathname === '/obs-status') return handleGetObsStatus();
-      if (req.method === 'GET' && url.pathname === '/live-status') return handleGetLiveStatus();
-      if (req.method === 'GET' && url.pathname === '/diagnostics') return handleGetDiagnostics();
+      const read = req.method === 'GET' ? getRoutes[url.pathname] : undefined;
+      if (read !== undefined) return read();
 
       const handler = req.method === 'POST' ? postRoutes[url.pathname] : undefined;
       if (!handler) return jsonError('not found', 404);
