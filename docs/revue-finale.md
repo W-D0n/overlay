@@ -44,6 +44,8 @@ Les fonctions de complexité > 25 restantes, dans cet ordre de risque (une fonct
 
 **3a — `createSceneEditor` (fait).** Les huit éditions structurelles (ajout, suppression, duplication, déplacement, collage, groupe, dégroupe, changement de type) deviennent des planificateurs purs dans `dev/scene-edits.js` (scène + arguments → couches, libellé, sélection, opération à enregistrer, ou refus) ; l'éditeur ne garde que l'état, l'historique, la validation et l'annonce (`applyPlan`). 844 → 667 lignes. 61 défauts réinjectés : 58 détectés, 3 survivants dont 2 ont fait écrire les cas « à la limite, accepté », 1 équivalent (ordre de deux `push`). 29 tests directs (`dev/scene-edits.test.js`). Un essai e2e vide a aussi été corrigé (Alt+↑ de la liste : la sélection était vide après Suppr).
 
+**3b — `startBackgroundTuner` (fait).** Les treize tables « identifiant d'élément → élément » (≈ 230 lignes de `byId`) passent dans `dev/studio-elements.js`, une fonction par panneau ; le câblage tombe de 822 à 620 lignes et se lit comme la liste des panneaux et de leurs dépendances. Garde permanente nouvelle (`dev/studio-elements.test.js`) : chaque identifiant demandé, par les tables comme par le câblage lui-même, existe dans `studio.html`, et aucune table n'en demande deux fois un même ; vue rouge sur un identifiant mal écrit, un doublon et une faute dans le câblage. Essais de bout en bout : 895 / 895.
+
 ### Lot 4 — `dev/studio.html` (à faire)
 
 Sortir le CSS en ligne (environ mille lignes) dans un `dev/studio.css` chargé par la page (sans étape de build ; vérifier la liste blanche de `dev/local-access-policy`), ranger les sections de l'inspecteur dans l'ordre de l'usage, et supprimer les règles mortes.
