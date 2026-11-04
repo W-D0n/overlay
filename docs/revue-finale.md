@@ -70,6 +70,8 @@ Parcourir chaque surface avec le vrai Studio (panneaux, inspecteur, timeline, to
 
 Chaque classe de défaut trouvée repart avec une règle totale et décidable (comme `dev/dead-exports.test.js`), jamais un balayage jetable.
 
+**Gardes posées au fil de la passe.** `dev/studio-elements.test.js` (tout identifiant demandé existe dans `studio.html`), `dev/studio-css.test.js` (aucune classe ni identifiant mort, aucun `<style>` en ligne) et `dev/file-size.test.js` (aucun fichier source au-delà de 700 lignes ; seule exemption, `layer-kinds.js`, une table de description plafonnée à sa taille actuelle, qui sort de la liste dès qu'elle tient dans la limite). Chacune est vue rouge sur une régression réinjectée. La mesure de complexité reste un outil à la demande (`dev/tools/complexity.cjs`) : elle exige l'analyseur TypeScript, qui n'entre pas dans le dépôt.
+
 ## 3. Règles de la passe
 
 - Aucun changement de comportement sans décision de l'owner : une refactorisation garde `bun test`, `bun dev/typecheck.js` et `bun dev/e2e/run.js` verts, et ses défauts réinjectés prouvent que rien n'a bougé.
