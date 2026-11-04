@@ -18,7 +18,7 @@ Mesures reproductibles. Complexité et longueur : `dev/tools/complexity.cjs` (an
 | Dette de typage (`dev/typecheck-baseline.json`) | **0** |
 | Fonctions analysées | 3 305 |
 | Complexité cyclomatique > 15 | 53 → 51 (lot 1) → **49** (lot 2, en cours) |
-| Complexité cyclomatique > 25 | 14 → 12 (lot 1) → **1** (lot 2, en cours) |
+| Complexité cyclomatique > 25 | 14 → 12 (lot 1) → **3** mesurées après le lot 2 (14 au départ), toutes des listes plates de gardes indépendantes : `stepErrors` (32), `sniffAssetType` (28, table de signatures), `planUpdate` (26, une garde par option). Les découper ajouterait des indirections sans rien clarifier ; elles sont tenues par leurs tests (lot 2 clos). > 15 : 53 → 46 |
 | Fonctions de plus de 100 lignes | 60 (dont 22 de plus de 200 : des fabriques de contrôleurs) |
 | Exports jamais utilisés, nulle part | 1 → **0** (supprimé, gardé par un test) |
 | Plus gros fichiers | `dev/studio.html` 1 465 l (CSS en ligne compris), `layer-kinds.js` 888 l (données), `dev/scene-editor.js` 839 l, `dev/background-tuner-runtime.js` 822 l, `scene-runtime.js` 723 l |
