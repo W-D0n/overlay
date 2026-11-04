@@ -94,6 +94,9 @@ export async function run({ page, stack, check, errors }) {
   check('Ctrl+D duplique la couche sélectionnée, la copie est seule sélectionnée', rows.length === 4 && rows.filter((/** @type {*} */ x) => x.selected).length === 1);
   await page.press('Delete');
   check('Suppr supprime la sélection', (await layerRows(page)).length === 3);
+  // The delete left nothing selected: pick the lowest effect, so that moving it up changes the order.
+  await page.click(layerRow(2));
+  await page.focus('#layers-list');
   const orderBefore = await layerTitles(page);
   await page.press('Alt+ArrowUp');
   check('Alt+↑ réordonne la couche sélectionnée sans en perdre', (await layerRows(page)).length === 3 && (await layerTitles(page)) !== orderBefore);
