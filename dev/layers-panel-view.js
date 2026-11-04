@@ -29,7 +29,7 @@
  *   lockedByGroup: boolean,
  * }} LayerRow
  */
-import { MAX_LAYERS } from '../scene-doc.js';
+import { MAX_LAYERS, withoutLook } from '../scene-doc.js';
 import { isGroup, membersOf, relocateLayers } from '../layer-group.js';
 import { isIdentityKind } from '../layer-kinds.js';
 
@@ -115,4 +115,20 @@ export function dropTarget(scene, movingIds, overId, edge, collapsed = new Set()
   if (isGroup(over) && !collapsed.has(over.id) && edge === 'bottom') candidates.push({ into: over.id });
   candidates.push({ beside: overId, side: edge === 'top' ? 'front' : 'back' });
   return candidates.find((target) => relocateLayers(scene.layers, movingIds, target) !== null) ?? null;
+}
+
+/**
+ * The layer alone, full frame, visible and without extended look: the effect itself, what a thumbnail shows.
+ * @param {Layer} layer
+ * @returns {SceneDoc}
+ */
+export function aloneScene(layer) {
+  // Alone: a member does not bring its group, which the thumbnail scene does not have.
+  const { group: _group, ...alone } = withoutLook(layer);
+  return {
+    version: 1,
+    id: 'vignette',
+    name: layer.name ?? layer.kind,
+    layers: [{ ...alone, visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } }],
+  };
 }

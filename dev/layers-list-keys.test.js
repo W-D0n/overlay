@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { listKeyAction } from './layers-list-keys.js';
+import { historyKeyAction, listKeyAction } from './layers-list-keys.js';
 
 const key = (name, over = {}) => ({ key: name, shiftKey: false, altKey: false, ctrlKey: false, metaKey: false, ...over });
 const state = (over = {}) => ({ displayed: ['a', 'b', 'c'], selection: ['b'], lastIsGroup: false, ...over });
@@ -61,5 +61,30 @@ describe('listKeyAction', () => {
   test('the bare letters and other keys mean nothing', () => {
     for (const name of ['d', 'a', 'x', 'Enter', ' ']) expect(listKeyAction(key(name), state())).toBeNull();
     expect(listKeyAction(key('x', { ctrlKey: true }), state())).toBeNull();
+  });
+});
+
+describe('historyKeyAction', () => {
+  test('Ctrl or Cmd + Z undoes, with Shift redoes, in either case', () => {
+    for (const modifier of ['ctrlKey', 'metaKey']) {
+      expect(historyKeyAction(key('z', { [modifier]: true }), false)).toBe('undo');
+      expect(historyKeyAction(key('Z', { [modifier]: true }), false)).toBe('undo');
+      expect(historyKeyAction(key('z', { [modifier]: true, shiftKey: true }), false)).toBe('redo');
+      expect(historyKeyAction(key('Z', { [modifier]: true, shiftKey: true }), false)).toBe('redo');
+    }
+  });
+
+  test('Ctrl + Y redoes, unless Shift or Alt is held', () => {
+    expect(historyKeyAction(key('y', { ctrlKey: true }), false)).toBe('redo');
+    expect(historyKeyAction(key('Y', { metaKey: true }), false)).toBe('redo');
+    expect(historyKeyAction(key('y', { ctrlKey: true, shiftKey: true }), false)).toBeNull();
+    expect(historyKeyAction(key('y', { ctrlKey: true, altKey: true }), false)).toBeNull();
+  });
+
+  test('nothing without Ctrl or Cmd, nothing in a text field, nothing for other letters', () => {
+    expect(historyKeyAction(key('z'), false)).toBeNull();
+    expect(historyKeyAction(key('y'), false)).toBeNull();
+    expect(historyKeyAction(key('z', { ctrlKey: true }), true)).toBeNull();
+    expect(historyKeyAction(key('x', { ctrlKey: true }), false)).toBeNull();
   });
 });

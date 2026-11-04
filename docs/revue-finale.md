@@ -48,6 +48,8 @@ Les fonctions de complexité > 25 restantes, dans cet ordre de risque (une fonct
 
 **3c — `createSceneRuntime` (fait).** Ce qui est pur sort de la fermeture : `layer-look.js` rassemble « à quoi ressemble une couche à cet instant » (`valuesAt` : timeline puis liaisons et règle du silence au bout d'une demi-seconde ; `lookAt` : l'animation par-dessus ; `paramValues`, `drivenFilters`, `lookStyles`, `percent`). `scene-runtime.js` garde l'état (scènes montées, horloge, lecture) : 723 → 653 lignes. 26 tests directs ; 34 défauts réinjectés, 32 détectés, 2 équivalents (court-circuits qui ne changent pas le résultat : liste de liaisons vide, aucun filtre piloté). e2e 895 / 895.
 
+**3d — `createLayersPanelController` (fait).** La galerie d'ajout devient son propre contrôleur (`dev/layer-gallery-controller.js`, avec `sync` qui désactive la carte d'une couche d'identité déjà présente : cette règle vivait dans le rendu du panneau) ; `aloneScene` passe dans la vue pure ; Ctrl+Z / Ctrl+Maj+Z / Ctrl+Y deviennent `historyKeyAction`. Le panneau passe de 603 à 545 lignes. 12 tests de la galerie (faux DOM, fabrique de vignette injectée), tests ajoutés pour `historyKeyAction` et `aloneScene` ; 35 défauts réinjectés, 3 survivants qui ont fait écrire trois cas (pictogramme de chaque carte, sélecteur d'image sans effet sur les autres types, carte d'un type non identitaire jamais désactivée). e2e 895 / 895.
+
 ### Lot 4 — `dev/studio.html` (à faire)
 
 Sortir le CSS en ligne (environ mille lignes) dans un `dev/studio.css` chargé par la page (sans étape de build ; vérifier la liste blanche de `dev/local-access-policy`), ranger les sections de l'inspecteur dans l'ordre de l'usage, et supprimer les règles mortes.

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { MAX_LAYERS, createLayer } from '../scene-doc.js';
 import { createSceneEditor } from './scene-editor.js';
-import { LOAD_WARNING_LAYERS, dropTarget, layerRows, loadGauge } from './layers-panel-view.js';
+import { LOAD_WARNING_LAYERS, aloneScene, dropTarget, layerRows, loadGauge } from './layers-panel-view.js';
 
 const labelOf = (kind) => ({ rain: 'Pluie', bubble: 'Bulles', dotgrid: 'Points', branding: 'Branding' })[kind] ?? kind;
 const scene = (layers) => ({ version: 1, id: 's', name: 'S', layers });
@@ -165,5 +165,25 @@ describe('dropTarget over groups', () => {
   test('onto itself, onto one of its own members: nothing', () => {
     expect(dropTarget(grouped(), ['g'], 'g', 'top')).toBeNull();
     expect(dropTarget(grouped(), ['g'], 'a', 'top')).toBeNull();
+  });
+});
+
+describe('aloneScene', () => {
+  const layer = createLayer({ id: 'a', kind: 'rain', name: 'Pluie', opacity: 0.4, visible: false, blur: 6, rotation: 20, placement: { x: 0.2, y: 0.3, width: 0.4, height: 0.2 }, options: { count: 9 } });
+
+  test('la couche seule, pleine toile, visible et opaque, avec ses réglages d’effet', () => {
+    const scene = aloneScene({ ...layer, group: 'g' });
+    expect(scene).toMatchObject({ version: 1, id: 'vignette', name: 'Pluie' });
+    expect(scene.layers).toHaveLength(1);
+    expect(scene.layers[0]).toMatchObject({ id: 'a', kind: 'rain', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: { count: 9 } });
+  });
+
+  test('sans le rendu étendu ni le groupe, et nommée d’après son type à défaut de nom', () => {
+    const [alone] = aloneScene({ ...layer, group: 'g' }).layers;
+    expect(alone.blur).toBeUndefined();
+    expect(alone.rotation).toBeUndefined();
+    expect(alone.group).toBeUndefined();
+    const { name: _name, ...unnamed } = layer;
+    expect(aloneScene(unnamed).name).toBe('rain');
   });
 });

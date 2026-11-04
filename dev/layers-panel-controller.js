@@ -18,14 +18,13 @@
  */
 import { MAX_GROUPS, isGroup, selectionRoots, withMembers } from '../layer-group.js';
 import { isGroupKind, isIdentityKind, isPhotographable } from '../layer-kinds.js';
-import { withoutLook } from '../scene-doc.js';
 import { createPresetThumbnail } from './preset-thumbnail.js';
 import { icon, setIcon } from './icons.js';
-import { dropTarget, layerRows, loadGauge } from './layers-panel-view.js';
-import { listKeyAction } from './layers-list-keys.js';
+import { aloneScene, dropTarget, layerRows, loadGauge } from './layers-panel-view.js';
+import { historyKeyAction, listKeyAction } from './layers-list-keys.js';
+import { createLayerGalleryController } from './layer-gallery-controller.js';
 
 const ROW_THUMBNAIL_WIDTH = 56;
-const GALLERY_THUMBNAIL_WIDTH = 160;
 /** Une vignette n'est refaite qu'après ce délai sans réglage : un curseur ne la redessine pas à chaque cran. */
 const THUMBNAIL_DEBOUNCE_MS = 450;
 
@@ -101,18 +100,6 @@ export function createLayersPanelController(input) {
   function targetsOf(id) {
     const { selection } = editor.state();
     return selection.includes(id) ? [...selection] : [id];
-  }
-
-  /** @param {Layer} layer @returns {SceneDoc} la couche seule, pleine toile, visible et sans rendu étendu : l'effet lui-même, ce que la vignette montre */
-  function aloneScene(layer) {
-    // Alone: a member does not bring its group, which the thumbnail scene does not have.
-    const { group: _group, ...alone } = withoutLook(layer);
-    return {
-      version: 1,
-      id: 'vignette',
-      name: layer.name ?? layer.kind,
-      layers: [{ ...alone, visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 } }],
-    };
   }
 
   // ── Construction d'une ligne ────────────────────────────────────────────
@@ -272,10 +259,7 @@ export function createLayersPanelController(input) {
     elements.up.disabled = none;
     elements.down.disabled = none;
 
-    const hasBranding = scene.layers.some((layer) => layer.kind === 'branding');
-    for (const card of elements.galleryGrid.querySelectorAll('[data-kind="branding"]')) {
-      /** @type {HTMLButtonElement} */ (card).disabled = hasBranding;
-    }
+    gallery.sync(scene);
   }
 
   /**
@@ -515,67 +499,23 @@ export function createLayersPanelController(input) {
   }
   /** @param {KeyboardEvent} event */
   function onShortcut(event) {
-    if (!(event.ctrlKey || event.metaKey) || isTyping(event.target)) return;
-    const key = event.key.toLowerCase();
-    if (key === 'z' && !event.shiftKey) {
-      event.preventDefault();
-      editor.undo();
-    } else if ((key === 'z' && event.shiftKey) || (key === 'y' && !event.shiftKey && !event.altKey)) {
-      event.preventDefault();
-      editor.redo();
-    }
+    const action = historyKeyAction(event, isTyping(event.target));
+    if (action === null) return;
+    event.preventDefault();
+    if (action === 'undo') editor.undo();
+    else editor.redo();
   }
   documentRef.addEventListener('keydown', onShortcut);
 
-  // Galerie d'ajout : un effet, son aperçu, un clic.
-  /** @type {{ destroy: () => void }[]} */
-  const galleryThumbnails = [];
-  for (const kind of input.addableKinds) {
-    const card = documentRef.createElement('button');
-    card.type = 'button';
-    card.className = 'gallery-card';
-    card.dataset.kind = kind;
-    const preview = documentRef.createElement('span');
-    preview.className = 'gallery-preview';
-    if (isIdentityKind(kind) || !isPhotographable(kind)) {
-      preview.classList.add('layer-thumb-identity');
-      preview.innerHTML = icon(isIdentityKind(kind) ? 'type' : 'code');
-    } else {
-      const thumbnail = createPresetThumbnail({
-        scene: aloneScene({ id: 'apercu', kind: /** @type {*} */ (kind), visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: input.defaultOptions(kind) }),
-        documentRef,
-        width: GALLERY_THUMBNAIL_WIDTH,
-      });
-      galleryThumbnails.push(thumbnail);
-      preview.appendChild(thumbnail.el);
-    }
-    const label = documentRef.createElement('span');
-    label.className = 'gallery-label';
-    label.textContent = labelOf(kind);
-    card.append(preview, label);
-    card.addEventListener('click', () => {
-      // Une image se choisit dans la médiathèque : la galerie se referme sur elle.
-      if (kind === 'image' && input.pickImage !== undefined) {
-        elements.gallery.close();
-        input.pickImage();
-        return;
-      }
-      const result = editor.addLayer({ kind, ...(isIdentityKind(kind) ? {} : { options: input.defaultOptions(kind) }) });
-      if (result.ok) {
-        elements.galleryStatus.textContent = '';
-        elements.gallery.close();
-      } else {
-        elements.galleryStatus.textContent = result.message;
-      }
-    });
-    elements.galleryGrid.appendChild(card);
-  }
-  elements.add.addEventListener('click', () => {
-    elements.galleryStatus.textContent = '';
-    if (typeof elements.gallery.showModal === 'function') elements.gallery.showModal();
-    else elements.gallery.setAttribute('open', '');
+  const gallery = createLayerGalleryController({
+    elements: { open: elements.add, dialog: elements.gallery, grid: elements.galleryGrid, status: elements.galleryStatus, close: elements.galleryClose },
+    editor,
+    labelOf,
+    addableKinds: input.addableKinds,
+    defaultOptions: input.defaultOptions,
+    ...(input.pickImage === undefined ? {} : { pickImage: input.pickImage }),
+    documentRef,
   });
-  elements.galleryClose.addEventListener('click', () => elements.gallery.close());
 
   elements.solo.innerHTML = icon('solo');
   elements.duplicate.innerHTML = icon('copy');
@@ -586,7 +526,6 @@ export function createLayersPanelController(input) {
   elements.down.innerHTML = icon('arrow-down');
   elements.undo.innerHTML = icon('undo');
   elements.redo.innerHTML = icon('redo');
-  elements.add.innerHTML = `${icon('plus')}<span>Ajouter</span>`;
 
   studio.subscribe(render);
   render();
@@ -597,7 +536,7 @@ export function createLayersPanelController(input) {
     destroy() {
       documentRef.removeEventListener('keydown', onShortcut);
       for (const parts of rows.values()) disposeThumbnail(parts);
-      for (const thumbnail of galleryThumbnails) thumbnail.destroy();
+      gallery.destroy();
     },
   };
 }

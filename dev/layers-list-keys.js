@@ -37,3 +37,17 @@ export function listKeyAction(input, { displayed, selection, lastIsGroup }) {
   if (letter === 'a') return { type: 'select-all' };
   return null;
 }
+
+/**
+ * Undo and redo from the keyboard, anywhere in the Studio except in a text field (which keeps its own): Ctrl or Cmd + Z, Ctrl or Cmd + Shift + Z, Ctrl or Cmd + Y.
+ * @param {KeyInput} input
+ * @param {boolean} typing the key goes to a text field
+ * @returns {'undo' | 'redo' | null}
+ */
+export function historyKeyAction(input, typing) {
+  if (!(input.ctrlKey || input.metaKey) || typing) return null;
+  const letter = input.key.toLowerCase();
+  if (letter === 'z') return input.shiftKey ? 'redo' : 'undo';
+  if (letter === 'y' && !input.shiftKey && !input.altKey) return 'redo';
+  return null;
+}
