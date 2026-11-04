@@ -44,6 +44,14 @@ export async function run({ page, stack, check, errors }) {
   await page.click(`${layerRow(groupRow)} .layer-fold`);
   check('unfolding shows them again', (await rows()).length === 4 && (await rows()).find((/** @type {*} */ row) => row.group).expanded === 'true');
 
+  // The same from the keyboard: Left folds the selected group, Right unfolds it.
+  await page.click(layerRow(groupRow));
+  await page.focus('#layers-list');
+  await page.press('ArrowLeft');
+  check('the Left arrow folds the selected group', (await rows()).length === 2);
+  await page.press('ArrowRight');
+  check('the Right arrow unfolds it', (await rows()).length === 4);
+
   // Hide the group from its row: the members rows show it is inherited, and nothing but the group is flagged hidden in the scene.
   await page.click(`${layerRow(groupRow)} .layer-visible`);
   const hidden = await rows();

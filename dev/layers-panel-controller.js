@@ -22,6 +22,7 @@ import { withoutLook } from '../scene-doc.js';
 import { createPresetThumbnail } from './preset-thumbnail.js';
 import { icon, setIcon } from './icons.js';
 import { dropTarget, layerRows, loadGauge } from './layers-panel-view.js';
+import { listKeyAction } from './layers-list-keys.js';
 
 const ROW_THUMBNAIL_WIDTH = 56;
 const GALLERY_THUMBNAIL_WIDTH = 160;
@@ -465,40 +466,30 @@ export function createLayersPanelController(input) {
   elements.list.tabIndex = 0;
   elements.list.addEventListener('keydown', (event) => {
     const { selection } = editor.state();
-    const displayed = [...elements.list.children].map((node) => /** @type {HTMLElement} */ (node).dataset.id ?? '');
     const last = selection.length === 0 ? null : selection[selection.length - 1];
-    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-      event.preventDefault();
-      const up = event.key === 'ArrowUp';
-      if (event.altKey) {
-        if (selection.length > 0) settle(editor.moveLayers(selection, up ? 'up' : 'down'));
-        return;
-      }
-      const index = last === null ? (up ? displayed.length : -1) : displayed.indexOf(last);
-      const next = displayed[Math.max(0, Math.min(displayed.length - 1, index + (up ? -1 : 1)))];
-      if (next !== undefined) {
-        editor.select([next], event.shiftKey ? 'add' : 'replace');
-        anchorId = next;
-      }
-    } else if ((event.key === 'ArrowLeft' || event.key === 'ArrowRight') && last !== null && isGroup(/** @type {Layer} */ (studio.state().scene.layers.find((layer) => layer.id === last)))) {
-      event.preventDefault();
-      if (event.key === 'ArrowLeft') collapsed.add(last);
-      else collapsed.delete(last);
-      render();
-    } else if ((event.key === 'Delete' || event.key === 'Backspace') && selection.length > 0) {
-      event.preventDefault();
-      settle(editor.removeLayers(selection));
-    } else if (event.key === 'F2' && last !== null) {
-      event.preventDefault();
-      startRename(last);
-    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'd' && selection.length > 0) {
-      event.preventDefault();
-      settle(editor.duplicateLayers(selection));
-    } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
-      event.preventDefault();
-      editor.selectAll();
+    const lastLayer = last === null ? undefined : studio.state().scene.layers.find((layer) => layer.id === last);
+    const displayed = [...elements.list.children].map((node) => /** @type {HTMLElement} */ (node).dataset.id ?? '');
+    const action = listKeyAction(event, { displayed, selection, lastIsGroup: lastLayer !== undefined && isGroup(lastLayer) });
+    if (action === null) return;
+    event.preventDefault();
+    switch (action.type) {
+      case 'move': settle(editor.moveLayers(selection, action.direction)); break;
+      case 'select': editor.select([action.id], action.add ? 'add' : 'replace'); anchorId = action.id; break;
+      case 'fold': foldGroup(/** @type {string} */ (last), action.folded); break;
+      case 'remove': settle(editor.removeLayers(selection)); break;
+      case 'rename': startRename(/** @type {string} */ (last)); break;
+      case 'duplicate': settle(editor.duplicateLayers(selection)); break;
+      case 'select-all': editor.selectAll(); break;
+      default: break;
     }
   });
+
+  /** @param {string} id @param {boolean} folded */
+  function foldGroup(id, folded) {
+    if (folded) collapsed.add(id);
+    else collapsed.delete(id);
+    render();
+  }
 
   // Barre d'outils de la sélection.
   elements.solo.addEventListener('click', () => {

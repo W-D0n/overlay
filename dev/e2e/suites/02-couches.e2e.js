@@ -94,8 +94,30 @@ export async function run({ page, stack, check, errors }) {
   check('Ctrl+D duplique la couche sélectionnée, la copie est seule sélectionnée', rows.length === 4 && rows.filter((/** @type {*} */ x) => x.selected).length === 1);
   await page.press('Delete');
   check('Suppr supprime la sélection', (await layerRows(page)).length === 3);
+  const orderBefore = await layerTitles(page);
   await page.press('Alt+ArrowUp');
-  check('Alt+↑ réordonne la couche sélectionnée sans en perdre', (await layerRows(page)).length === 3);
+  check('Alt+↑ réordonne la couche sélectionnée sans en perdre', (await layerRows(page)).length === 3 && (await layerTitles(page)) !== orderBefore);
+  const prevented = (/** @type {string} */ key) => page.evaluate(`(() => { const e = new KeyboardEvent('keydown', { key: ${JSON.stringify(key)}, bubbles: true, cancelable: true }); document.getElementById('layers-list').dispatchEvent(e); return e.defaultPrevented; })()`);
+  check('the arrows of the list cancel the page scroll, other keys are left alone', (await prevented('ArrowDown')) === true && (await prevented('x')) === false);
+
+  const selectedIndex = async () => (await layerRows(page)).findIndex((/** @type {*} */ row) => row.selected);
+  await page.click(layerRow(0));
+  await page.focus('#layers-list');
+  await page.press('ArrowDown');
+  check('the Down arrow selects the next layer', (await selectedIndex()) === 1);
+  await page.press('Shift+ArrowDown');
+  check('Shift + Down adds the next layer to the selection', (await layerRows(page)).filter((/** @type {*} */ row) => row.selected).length === 2);
+  await page.press('Control+a');
+  check('Ctrl+A selects every layer of the list', (await layerRows(page)).every((/** @type {*} */ row) => row.selected));
+  await page.click(layerRow(1));
+  await page.focus('#layers-list');
+  await page.press('ArrowUp');
+  check('the Up arrow selects the previous layer', (await selectedIndex()) === 0);
+  await page.press('ArrowUp');
+  check('the Up arrow stops at the top of the list', (await selectedIndex()) === 0);
+  await page.press('F2');
+  check('F2 opens the rename field of the selected layer', (await page.evaluate("document.querySelectorAll('#layers-list .layer-rename').length")) === 1);
+  await page.press('Escape');
 
   for (let i = 0; i < 6 && !(await panelState(page)).addDisabled; i += 1) await addLayer(page, 'rain');
   ui = await panelState(page);
