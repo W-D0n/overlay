@@ -203,6 +203,12 @@ export async function launchBrowser({ stateRedirect, viewport = { width: 1700, h
     evaluate,
     boxOf,
 
+    /** Change la taille de la fenêtre (la page se remet en forme comme à un vrai redimensionnement). @param {number} width @param {number} height */
+    async setViewport(width, height) {
+      await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
+      await sleep(250);
+    },
+
     /** @param {string} url */
     async goto(url) {
       await send('Page.navigate', { url });

@@ -37,6 +37,11 @@ export async function run({ page, stack, check, errors }) {
   check('the group row is titled "Groupe"', (await rows()).some((/** @type {*} */ row) => row.group && row.title === 'Groupe'));
   check('grouping is one history entry', /Grouper/i.test(await undoTitle()) ? true : await undoTitle());
 
+  // The fold chevron belongs to groups: a plain row keeps its room (hidden), a group row shows it.
+  const foldVisibility = () => page.evaluate("[...document.querySelectorAll('#layers-list .layer-row')].map((r) => ({ group: r.classList.contains('is-group'), visibility: getComputedStyle(r.querySelector('.layer-fold')).visibility }))");
+  const folds = await foldVisibility();
+  check('only the group row shows its fold chevron', folds.some((/** @type {*} */ row) => row.group) && folds.every((/** @type {*} */ row) => row.visibility === (row.group ? 'visible' : 'hidden')));
+
   // Fold and unfold.
   const groupRow = (await rows()).findIndex((/** @type {*} */ row) => row.group);
   await page.click(`${layerRow(groupRow)} .layer-fold`);

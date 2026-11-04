@@ -66,6 +66,15 @@ Le CSS en ligne (841 lignes) est sorti dans `dev/studio.css`, chargé par la pag
 
 Parcourir chaque surface avec le vrai Studio (panneaux, inspecteur, timeline, toile, dialogues, palette, états vides, erreurs, clavier, lecteur d'écran, largeurs réduites) et noter ce qui frotte avant de corriger : cohérence des libellés et des unités, ordre des sections de l'inspecteur (qui a beaucoup grossi : filtres, masque, animations, liaisons, timeline), états vides utiles, retours d'erreur, ordre de tabulation, contrastes. Chaque correction d'interface passe `bun dev/e2e/run.js`.
 
+**5a — largeurs de la fenêtre (fait).** Mesure sur le vrai Studio, de 1920 à 900 px : `#inspector` débordait à toutes les largeurs (362 px de contenu dans une colonne de 349 à 258 px, d'où barre de défilement horizontale et libellés coupés), ainsi que le panneau des couches et la liste des points de départ. Quatre causes, aucune au hasard :
+
+1. la règle `@container` du rail étroit était **écrasée** par les règles de base de même sélecteur écrites plus bas (elle ne s'appliquait jamais) ;
+2. chaque ligne de couche a cinq éléments (repli, poignée, vignette, texte, boutons) pour une grille de **quatre** colonnes : l'œil et le cadenas tombaient sur une 2ᵉ ligne, dans une colonne de 12 px (défaut posé avec les groupes) ;
+3. l'en-tête des couches, ses outils, la barre de la sélection et les lignes d'enregistrement ne passaient pas à la ligne ; `.save-row` et `.cc-field` étaient en plus définis **deux fois**, la seconde règle écrasant la première à moitié ;
+4. à colonne étroite, la vignette d'une ligne de couche réduisait son titre à une lettre : elle s'efface sous 17 rem de colonne (requête de conteneur sur le panneau de droite, qui suit donc la colonne et non la fenêtre).
+
+Gardes nouvelles, toutes vues rouges sur le défaut réinjecté : `dev/e2e/suites/48-largeurs.e2e.js` (aucun débordement horizontal à six largeurs, l'œil et le cadenas à côté du titre ; cinq corrections annulées une à une, cinq détectées ; le bloc `@container` supprimé, détecté) ; `dev/studio-css.test.js` (aucune règle de bloc `@media`/`@container` écrasée par une règle de base plus bas, aucune règle écrite deux fois pour les mêmes sélecteurs avec une propriété commune). Une régression de ma propre passe, rattrapée : au lot 4 j'avais retiré `.layer-fold` comme règle morte alors que le gabarit `layer-${name}` construit ce bouton ; le chevron s'affichait sur toutes les lignes. La garde de règles mortes tire désormais cette famille des appels `actionButton(...)`, et un essai e2e vérifie que seule la ligne d'un groupe montre son chevron (vu rouge sans les deux règles). Au passage : barre du haut avec un peu d'air quand elle passe sur deux lignes. Tests 2 816, e2e 919 / 919.
+
 ### Lot 6 — gardes permanentes (au fil de l'eau)
 
 Chaque classe de défaut trouvée repart avec une règle totale et décidable (comme `dev/dead-exports.test.js`), jamais un balayage jetable.
