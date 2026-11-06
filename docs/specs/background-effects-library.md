@@ -1,7 +1,7 @@
 ---
 feature: background-effects-library
 created: 2026-07-07
-updated: 2026-07-07
+updated: 2026-11-06
 status: draft
 ---
 
@@ -24,7 +24,7 @@ son propre jeu de paramètres — le cycle de formes original devient un effet p
 plus. Ces effets **remplacent** DotGrid (`#bg-layer` devient polymorphe, un seul effet actif à la
 fois, même emplacement/cycle de vie que DotGrid aujourd'hui). Chaque effet a son propre toolset de
 fine-tuning, exposé à la fois en config JSON ET en UI dédiée dans le panneau de dev (owner :
-option 2, avec la remarque que `dev/overlay-setting.html` n'est peut-être plus le bon nom vu
+option 2, avec la remarque que `overlay-setting.html` n'est peut-être plus le bon nom vu
 l'ampleur — voir LAC-01).
 
 ## Décision d'architecture — `#bg-layer` polymorphe
@@ -102,7 +102,7 @@ composant lui-même (repli interne sur un mode par défaut si `mode` est invalid
 > 2026-07-16, via le contrat standalone ; le retrait de l'effet MatrixGrid en 2026-07-18
 > ramène le registre courant à 11 effets.
 
-Chaque effet est un composant `components/*.js` exposant `{ el, update(options), destroy, morphTo? }`
+Chaque effet est un composant `src/components/*.js` exposant `{ el, update(options), destroy, morphTo? }`
 (contrat `ComponentInstance` existant), enregistré dans `component-registry.js`. Le nom devient une
 valeur de `ComponentName` (extension, comme S8 a ajouté `Box`/`Divider`/etc.).
 
@@ -187,7 +187,7 @@ bruit qui fait varier la teinte des points), candidat naturel car le moteur simp
 | `scene-resolve.js` | modifier | retire `resolveDotgridMode` (AC-08) |
 | `scene-resolve.test.js` | modifier | retire les tests `resolveDotgridMode` (T16-T19), plus rien à tester ici (encapsulé) |
 | `scene-runtime.js` | modifier | `currentBackground` générique remplace `grid`/`currentDotgridMode`, `applyDotgridMode`→`applyBackground`, `morphDotgrid`→généralisé (AD-B2/B3) |
-| `components/DotGridAnimated.js` | modifier | `mode` devient une option lue depuis `options.mode` (au lieu d'un `setMode()` externe), validation interne |
+| `src/components/DotGridAnimated.js` | modifier | `mode` devient une option lue depuis `options.mode` (au lieu d'un `setMode()` externe), validation interne |
 | `component-registry.js` | inchangé | `DotGridBackground` déjà enregistré |
 | `scenes/data/*.scene.json` | modifier | chaque config existante : `dotgridMode` → `background: { component: 'DotGridBackground', options: { mode } }` |
 | `docs/specs/scene-runtime-engine.md` | modifier | AD-7 (mention `dotgridMode`/`setMode`) mise à jour pour refléter le composant générique |
@@ -198,10 +198,10 @@ bruit qui fait varier la teinte des points), candidat naturel car le moteur simp
 
 ## Lacunes identifiées
 
-- [x] **LAC-01** — Tranchée en session B7 : **conservé tel quel** (`dev/overlay-setting.html`),
+- [x] **LAC-01** — Tranchée en session B7 : **conservé tel quel** (`overlay-setting.html`),
       pas de renommage. Avec la section Fond effectivement ajoutée (10 effets, ~70 lignes) sous les
       yeux, le renommage reste disproportionné par rapport au bénéfice : 11 fichiers référencent le
-      nom actuel (`dev/component-field-schemas.js`, `dev/start-dev.js`,
+      nom actuel (`studio/inspector/component-field-schemas.js`, `server/lifecycle/start-studio.js`,
       `scenes/registry.js`, et 4 specs historiques — `docs/specs/scene-placement-protocol.md`,
       `scene-definition-v2.md`, `scene-history-protocol.md`, `obs-scene-control.md` — qui
       documentent un état passé, pas à réécrire pour un renommage cosmétique). Le
@@ -211,8 +211,8 @@ bruit qui fait varier la teinte des points), candidat naturel car le moteur simp
 - [x] **LAC-02** — Tranchée (owner, 2026-07-10) : implémentée. `DotGridAnimated.js` gagne
       `colorMode: 'flat' | 'noise'` (défaut `'flat'`, rétrocompatible) — en mode `'noise'`, la teinte
       de chaque point est modulée par un bruit Simplex indépendant de la couche 2 (opacité), via
-      `hueShiftRgb`/`buildHueShiftLUT` (`components/color-utils.js`). Exposé en config JSON et dans
-      `dev/overlay-setting.html` (section Fond). Perf : LUT précalculée une fois par instance (61
+      `hueShiftRgb`/`buildHueShiftLUT` (`src/components/color-utils.js`). Exposé en config JSON et dans
+      `overlay-setting.html` (section Fond). Perf : LUT précalculée une fois par instance (61
       entrées) plutôt qu'une conversion HSL complète par point/frame — coût CPU jugé sensible en
       contexte stream (OBS/encodage/jeu partagent la machine). Bug trouvé et corrigé en review
       (2026-07-10) : `simplex2` peut légèrement dépasser [-1,1] (normalisation empirique), un index

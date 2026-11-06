@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * components/image-fit.js — Où et comment poser une image dans la zone de sa couche : pur, sans canvas ni DOM.
+ * src/components/image-fit.js — Où et comment poser une image dans la zone de sa couche : pur, sans canvas ni DOM.
  *
  * `contain` montre toute l'image, centrée, sans la déformer ; `cover` remplit la zone en rognant l'image (centrée) ; `fill`
  * l'étire aux dimensions de la zone. Le résultat est celui de `drawImage(image, sx, sy, sw, sh, dx, dy, dw, dh)`.

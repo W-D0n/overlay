@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { animationErrors, evaluateAnimation, setPhase, animationFits } from './layer-animation.js';
-import { createSceneEditor } from '../../dev/scene-editor.js';
+import { createSceneEditor } from '../../studio/editor/scene-editor.js';
 import { createLayer, validateSceneDoc } from '../scene/scene-doc.js';
 
 const REST = { opacity: 1, x: 0, y: 0, scale: 1, rotation: 0, blur: 0, reveal: { top: 0, right: 0, bottom: 0, left: 0 } };

@@ -2,7 +2,7 @@
 import { STATE_SERVER_URL } from '../../ports.config.js';
 
 /**
- * components/asset-image.js — Charge l'image d'un asset de la médiathèque (`dev/asset-routes.js`), une seule fois par identifiant.
+ * src/components/asset-image.js — Charge l'image d'un asset de la médiathèque (`server/routes/asset-routes.js`), une seule fois par identifiant.
  *
  * Le contenu d'un identifiant ne change jamais : une image déjà chargée (ou en cours) est partagée par toutes les couches qui la
  * montrent, et le navigateur la garde en cache. L'image est chargée avec `crossOrigin = 'anonymous'` (la page de rendu et le

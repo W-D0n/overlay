@@ -8,8 +8,8 @@ Direction artistique **Atelier** : noir profond, or patiné, typographie serif +
 Une **scène** est une pile de couches (effets de fond, texte, formes, images, branding) que le Studio édite et que la page de rendu joue dans OBS :
 
 - `background.html` — URL à utiliser dans OBS ;
-- `dev/studio.html` — entrée unique de création : rail (antenne, bibliothèque, scènes OBS, branding), aperçu 1920×1080 et réglages de la scène ;
-- `dev/background-state-server.js` — persistance JSON, médiathèque, versions et synchronisation WebSocket.
+- `studio/index.html` — entrée unique de création : rail (antenne, bibliothèque, scènes OBS, branding), aperçu 1920×1080 et réglages de la scène ;
+- `server/background-state-server.js` — persistance JSON, médiathèque, versions et synchronisation WebSocket.
 
 Ce que fait le Studio : couches ordonnées, historique annulable, brouillon puis publication, **texte, formes et images**
 (médiathèque d'images et de polices importées), **liaisons** au son et aux alertes, **timeline à images clés**, **versions nommées**,
@@ -25,7 +25,7 @@ git `scene-engine-v1`, et ses specs vivent dans `docs/specs/archive/`.
 
 Double-cliquer sur `studio.bat` (à la racine). Il lance les serveurs et ouvre le Studio dans le navigateur dès qu'il répond :
 
-`http://localhost:5931/dev/studio.html`
+`http://localhost:5931/studio/index.html`
 
 `Ctrl+C` dans la fenêtre (ou la fermer) arrête proprement les serveurs.
 
@@ -63,7 +63,7 @@ Dans OBS, la densité des canvas est déjà à DPR 1 (mesuré le 2026-10-29) ; l
 pause lorsque leur page devient invisible.
 
 Le serveur d'état doit rester ouvert pendant le live. Il ne modifie que
-`dev/data/background-state.json`, jamais le code source.
+`data/background-state.json`, jamais le code source.
 
 ### Si un serveur reste bloqué
 
@@ -82,19 +82,37 @@ studio.bat                 Lance le Studio et l'ouvre dans le navigateur
 stream.bat                 Lance le fond pour le live (OBS)
 kill-servers.bat           Libère les ports d'un bun.exe orphelin
 
-src/                       Le moteur de l'overlay (jamais de serveur ni d'interface de dev)
+src/                       Le moteur de l'overlay : ce que charge OBS, sans serveur ni interface d'édition
   scene/                   Document de scène (scene-doc) et moteur qui le monte (scene-runtime)
   layers/                  Types de couche (layer-kinds, component-registry), animation, filtres, masque, groupes, timeline, liaisons
   background/              État du fond, sélection, transitions, réactions, audio
   render/                  Source de rendu OBS : résolution de référence, horloge, transport, URL
-  obs/                     Connexion OBS : authentification, correspondance scène ↔ preset
+  obs/                     Authentification OBS, correspondance scène ↔ preset
   branding/                Couche d'identité (pseudo, réseaux)
   components/              Les effets et les couches (*Background.js, *Layer.js), leurs outils et leur palette
+  shared/                  Formats et utilitaires communs au Studio et aux serveurs (état, fil de données, erreurs)
   styles/tokens.css        Tokens de design Atelier, source de vérité visuelle
   types.js                 Types JSDoc partagés
 
-dev/                       Le Studio (studio.html), les serveurs (static-server, background-state-server,
-                           start-studio, start-stream, kill-servers) et les essais de bout en bout (e2e/)
+studio/                    L'application de création (navigateur) : index.html, main.js, studio.css
+  editor/                  Modèle d'édition, historique, commandes, modèles de couche
+  canvas/                  Aperçu, gestes, repères, masque, vignettes
+  inspector/               Inspecteur de couche : champs, filtres, masque, animation, liaisons
+  layers/                  Panneau des couches, galerie, timeline, courbes
+  presets/                 Bibliothèque de presets, antenne, médiathèque, publication
+  settings/                Connexions (OBS, Twitch), diagnostic, versions, serveurs
+  ui/                      Briques d'interface (icônes, curseurs, champs numériques)
+  bench/                   Pages d'essai : charge, banc OBS, sonde de stockage
+
+server/                    Les serveurs Bun
+  background-state-server.js, static-server.js, host.js, local-access-policy.js
+  lifecycle/               Lancement, arrêt et supervision (start-studio, start-stream, kill-servers…)
+  routes/  stores/         Routes HTTP et persistance sur disque
+  integrations/            OBS WebSocket, Twitch EventSub, Twitchat
+
+tools/                     Contrôle de types, gardes permanentes (guards/), types d'environnement
+e2e/                       Essais de bout en bout : le Studio dans un vrai Chrome
+data/                      État local (presets, médiathèque) : jamais versionné
 docs/                      Specs, guides, backlog
 src-tauri/                 Application de bureau (panneau de contrôle des serveurs)
 ```

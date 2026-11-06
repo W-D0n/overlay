@@ -1,11 +1,11 @@
 ---
 created: 2026-10-30
-updated: 2026-11-04
+updated: 2026-11-06
 ---
 
 # Studio — l'éditeur de couches
 
-Ce guide couvre la création d'une scène dans `dev/studio.html` : empiler des couches, les régler, les
+Ce guide couvre la création d'une scène dans `studio/index.html` : empiler des couches, les régler, les
 placer, retrouver ses gestes, automatiser. Pour la mise en place d'OBS et le tuning d'un fond seul, voir
 `tuner-le-fond.md`.
 
@@ -357,7 +357,7 @@ serveur est vide ; un serveur déjà rempli n'est jamais écrasé.
 ## Si quelque chose ne va pas
 
 - **Le Studio ne se connecte pas** : le serveur d'état est arrêté ; relancez-le depuis l'en-tête
-  (« Redémarrer ») ou `dev/start-stream.js`.
+  (« Redémarrer ») ou `server/lifecycle/start-stream.js`.
 - **« Réglages non enregistrés » reste affiché** : le serveur est injoignable ou trop ancien pour la route
   `/studio-settings` ; redémarrez-le. Rien n'est perdu entre-temps.
 - **Un modèle ne s'insère pas** : le message dit pourquoi (limite de 8 couches, par exemple).

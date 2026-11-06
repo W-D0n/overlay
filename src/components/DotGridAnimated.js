@@ -83,7 +83,7 @@ export function easeProgress(easing, t) {
 
 /**
  * Convertit un delta en degrés (issu de `simplex2 * maxDeg`) en index valide de `colorLUT`.
- * Pure — clampe défensivement : `simplex2` (normalisation empirique, voir `components/simplex.js`)
+ * Pure — clampe défensivement : `simplex2` (normalisation empirique, voir `src/components/simplex.js`)
  * peut légèrement dépasser [-1,1], ce qui sans clamp produirait un index hors bornes du tableau
  * (`undefined` au destructuring, crash de `tick()` — bug constaté en review, 2026-07-10).
  * @param {number} deg

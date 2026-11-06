@@ -6,7 +6,7 @@
   <title>Overlay — Fond seul</title>
   <!--
     URL OBS background-only (docs/specs/background-standalone.md) : ne rend QUE l'effet de fond
-    courant, piloté par dev/background-state-server.js (port 5932). État chargé au démarrage (GET /state), puis suivi en live via
+    courant, piloté par server/background-state-server.js (port 5932). État chargé au démarrage (GET /state), puis suivi en live via
     WS /state-ws — serveur injoignable : page vide + reconnexion avec backoff, jamais d'erreur
     visible dans la Browser Source.
     OBS : la page épouse la taille de la Browser Source, quelle qu'elle soit ; pointer-events: none.

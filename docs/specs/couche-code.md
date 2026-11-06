@@ -1,6 +1,6 @@
 ---
 created: 2026-11-01
-updated: 2026-11-03
+updated: 2026-11-06
 ---
 
 # Spec — Couche Code (HTML, CSS et JavaScript dans une page isolée)
@@ -54,7 +54,7 @@ aucun shader.
 
 ## 4. Modèle de menace
 
-**Garanti** (vu de l'intérieur par `dev/e2e/suites/33-couche-code.e2e.js`) : la page isolée ne lit ni l'état du serveur, ni la liste de la médiathèque, ni Internet ; ne
+**Garanti** (vu de l'intérieur par `e2e/suites/33-couche-code.e2e.js`) : la page isolée ne lit ni l'état du serveur, ni la liste de la médiathèque, ni Internet ; ne
 peut ouvrir ni WebSocket extérieur, ni image extérieure, ni sous-document réseau ; n'a ni stockage, ni cookies, ni accès à la page parente ni à la page de premier niveau ; n'ouvre
 aucune fenêtre. Chaque refus est confirmé par l'événement `securitypolicyviolation` de la page, avec la directive qui l'a bloqué. Elle lit un fichier de la médiathèque octet pour octet.
 
@@ -68,7 +68,7 @@ Voir `docs/security.md`.
 
 ## 5. Fichiers de la médiathèque
 
-Deux types d'asset de plus (`dev/asset-format.js`) : **`glb`** (modèle 3D binaire, reconnu à l'en-tête `glTF`) et **`js`** (script `.js` / `.mjs`). Un script n'a pas d'en-tête : il est reconnu à son
+Deux types d'asset de plus (`src/shared/asset-format.js`) : **`glb`** (modèle 3D binaire, reconnu à l'en-tête `glTF`) et **`js`** (script `.js` / `.mjs`). Un script n'a pas d'en-tête : il est reconnu à son
 extension **et** à son contenu (UTF-8 valide, aucun octet nul, 5 Mo au plus) ; un en-tête d'image, de police ou de modèle l'emporte toujours sur le nom. Servis avec leur type (`text/javascript; charset=utf-8` :
 un module l'exige), `nosniff`, identifiant tiré du contenu. La médiathèque les montre par une étiquette « JS » / « 3D » ; « Insérer un fichier… » les propose avec les images et les polices.
 
@@ -79,9 +79,9 @@ l'auteur** (`composeDocument` renvoie la ligne où il commence) ; une erreur hor
 
 ## 7. Vérification
 
-- Unitaires : `components/code-params.test.js`, `components/code-document.test.js` (politique, document, passerelle jouée dans une fenêtre factice), `components/CodeLayer.test.js` (isolation, échelle, messages, mise à jour,
-  erreurs et lignes, navigation, cycle de vie), `layer-kinds.test.js`, `scene-runtime.test.js` (alertes), `dev/asset-format.test.js`, `dev/asset-routes.test.js`, `dev/asset-client.test.js`, `dev/bundle-assets.test.js`,
-  `dev/background-preset-transfer-controller.test.js`, `dev/local-access-policy.test.js`, `dev/background-state-server.test.js` (vrai serveur : l'`Origin` `null` ne lit qu'un fichier).
+- Unitaires : `src/components/code-params.test.js`, `src/components/code-document.test.js` (politique, document, passerelle jouée dans une fenêtre factice), `src/components/CodeLayer.test.js` (isolation, échelle, messages, mise à jour,
+  erreurs et lignes, navigation, cycle de vie), `layer-kinds.test.js`, `scene-runtime.test.js` (alertes), `src/shared/asset-format.test.js`, `server/routes/asset-routes.test.js`, `studio/presets/asset-client.test.js`, `src/shared/bundle-assets.test.js`,
+  `studio/presets/background-preset-transfer-controller.test.js`, `server/local-access-policy.test.js`, `server/background-state-server.test.js` (vrai serveur : l'`Origin` `null` ne lit qu'un fichier).
 - Essai de bout en bout `33-couche-code` dans un vrai Chrome : le code tente de sortir **de l'intérieur** et rapporte ce qui lui est arrivé ; réglages, son, alertes, rechargement, erreurs, navigation, déclaration, fichier inséré,
   publication, usage et suppression refusée, import avec case, masquage qui démonte, rechargement du Studio. Les pages isolées vivent dans une autre cible de Chrome : l'outil d'essai les suspend à leur démarrage pour leur appliquer la réécriture des ports d'essai (sans cela leur requête partirait vers le vrai port de l'owner).
 - Mutations : voir §8.
@@ -112,14 +112,14 @@ une liaison neuve part du défaut du réglage jusqu'à son maximum.
   À l'écriture (forme canonique), les valeurs sont ramenées dans les bornes de la déclaration courante.
 - **Ce qui n'est pas animé** : les réglages texte, couleur, case et liste (pas d'interpolation définie ; les couleurs relèvent des « valeurs animables supplémentaires » de l'inbox).
 - **Preuves** : `layer-param-targets.test.js` et `CodeLayer.test.js` (44 mutations réinjectées, 42 vues rouges, 2 équivalentes : le test du type dans `paramTargets` — seul un nombre porte `min`/`max` — et le test du préfixe dans `paramBase`) ;
-  `dev/e2e/suites/34-reglages-animes.e2e.js` lit les valeurs **dans la page isolée** (images clés, bornes, courbe, liaison qui l'emporte, retour à la valeur manuelle, aucun rechargement), vue rouge sur deux régressions réelles.
+  `e2e/suites/34-reglages-animes.e2e.js` lit les valeurs **dans la page isolée** (images clés, bornes, courbe, liaison qui l'emporte, retour à la valeur manuelle, aucun rechargement), vue rouge sur deux régressions réelles.
 
 ## 9 bis. Modèles de départ et confort de saisie (2026-11-03)
 
-- **Modèles de départ** (`components/code-templates.js`, données seules) : *Titre qui se révèle* (HTML et CSS), *Particules (canvas 2D)*, *Cube 3D (WebGL, sans bibliothèque)*. Chacun porte HTML, CSS, JavaScript et déclaration de réglages ; leurs sources ne contiennent ni import ni adresse externe. `components/code-templates.test.js` vérifie, pour chacun : les limites d'une couche Code, une déclaration sans défaut, un script qui se compile, des réglages utilisés = réglages déclarés (dans les deux sens), une couche valide dans une scène.
+- **Modèles de départ** (`src/components/code-templates.js`, données seules) : *Titre qui se révèle* (HTML et CSS), *Particules (canvas 2D)*, *Cube 3D (WebGL, sans bibliothèque)*. Chacun porte HTML, CSS, JavaScript et déclaration de réglages ; leurs sources ne contiennent ni import ni adresse externe. `src/components/code-templates.test.js` vérifie, pour chacun : les limites d'une couche Code, une déclaration sans défaut, un script qui se compile, des réglages utilisés = réglages déclarés (dans les deux sens), une couche valide dans une scène.
 - **Appliquer** : liste « Modèle de départ » en tête du formulaire d'une couche Code, `onApply(patch)` du moteur de champs → une seule commande de l'éditeur (`html`, `css`, `js`, `paramSpec`, `params: {}`), donc une étape d'annulation. Un code que l'auteur a modifié (autre chose que le défaut ou un modèle) n'est remplacé qu'au second clic (« Remplacer mon code ? ») ; l'état du code est lu **au clic**, pas à la construction du formulaire (il ne se reconstruit pas pendant la frappe).
-- **Saisie** (`dev/code-editing.js`, fonctions pures) : `Tab` indente (deux espaces, toutes les lignes touchées), `Maj+Tab` désindente, `Entrée` garde l'indentation et ouvre un bloc après une parenthèse ou une accolade (le fermant passe à sa ligne) ; numéros de ligne à gauche, qui défilent avec le texte. L'édition passe par `execCommand('insertText')` : l'annulation du navigateur (`Ctrl+Z`) reste celle de l'auteur. **`Échap` puis `Tab` quitte la zone** : la touche Tab ne piège pas le clavier.
-- **Preuves** : `dev/code-editing.test.js`, `dev/background-field-renderer.test.js` (le modèle de départ, y compris la confirmation lue au clic), `dev/e2e/suites/47-modeles-code.e2e.js` (vrai Studio : chaque modèle s'applique, **le script tourne dans la page isolée sans erreur remontée — cube WebGL compris**, un pas d'annulation, touches réelles). 16 défauts réinjectés, tous vus rouges ; le défilement des numéros de ligne n'est vérifié qu'à l'œil.
+- **Saisie** (`studio/inspector/code-editing.js`, fonctions pures) : `Tab` indente (deux espaces, toutes les lignes touchées), `Maj+Tab` désindente, `Entrée` garde l'indentation et ouvre un bloc après une parenthèse ou une accolade (le fermant passe à sa ligne) ; numéros de ligne à gauche, qui défilent avec le texte. L'édition passe par `execCommand('insertText')` : l'annulation du navigateur (`Ctrl+Z`) reste celle de l'auteur. **`Échap` puis `Tab` quitte la zone** : la touche Tab ne piège pas le clavier.
+- **Preuves** : `studio/inspector/code-editing.test.js`, `studio/inspector/background-field-renderer.test.js` (le modèle de départ, y compris la confirmation lue au clic), `e2e/suites/47-modeles-code.e2e.js` (vrai Studio : chaque modèle s'applique, **le script tourne dans la page isolée sans erreur remontée — cube WebGL compris**, un pas d'annulation, touches réelles). 16 défauts réinjectés, tous vus rouges ; le défilement des numéros de ligne n'est vérifié qu'à l'œil.
 
 ## 10. Reste
 

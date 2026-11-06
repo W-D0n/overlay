@@ -50,7 +50,7 @@ réseau pour la structure : tout vit dans une page chargée en une fois (contrai
 Le câblage composant ↔ état live (ex : `StatBlock` VIEWERS → `state.viewers`) vit dans un module
 dédié par scène : `scenes/[id].wire.js`. Il reçoit les instances de composants montées (groupées par
 couche) et les abonne au store via `onStateChange`, puis retourne une fonction de nettoyage. Raison :
-préserver la séparation actuelle — les composants de `components/index.js` **n'importent pas** `store.js`
+préserver la séparation actuelle — les composants de `src/components/index.js` **n'importent pas** `store.js`
 (ils restent agnostiques de la source de données). Le binding reste du **code** par scène jusqu'à ce
 qu'un besoin concret justifie le jalon « data-binding déclaratif » de l'éditeur.
 
@@ -111,7 +111,7 @@ orthogonaux), pas figée par scène.
 
 | ID | Critère | Vérifiable par |
 |---|---|---|
-| AC-06 | `component-registry.js` mappe chaque `ComponentName` (`GoldBar`, `StatBlock`, `ChatFeed`, `PomodoroBar`, `AlertBanner`) vers sa factory de `components/index.js` | review fichier |
+| AC-06 | `component-registry.js` mappe chaque `ComponentName` (`GoldBar`, `StatBlock`, `ChatFeed`, `PomodoroBar`, `AlertBanner`) vers sa factory de `src/components/index.js` | review fichier |
 | AC-07 | `scenes/registry.js` mappe chaque `SceneId` implémenté (`discussion`, `brb`, `codage`) vers son `SceneConfig` importé | review fichier |
 
 ### Montage d'une scène (mount)
@@ -129,7 +129,7 @@ orthogonaux), pas figée par scène.
 |---|---|---|
 | AC-12 | Après montage, le runtime appelle `scenes/[id].wire.js` qui abonne les composants au store via `onStateChange` et retourne une fonction de nettoyage | review fichier |
 | AC-13 | Au démontage d'une scène, le runtime appelle la fonction de nettoyage du wire (désabonnement) puis `destroy()` de chaque composant qui l'expose | review + visuel OBS |
-| AC-14 | Les composants de `components/index.js` n'importent **pas** `store.js` (séparation préservée — le binding vit dans les wire modules) | review (grep) |
+| AC-14 | Les composants de `src/components/index.js` n'importent **pas** `store.js` (séparation préservée — le binding vit dans les wire modules) | review (grep) |
 | AC-39 | `AlertBanner` expose `destroy()` (`clearTimeout` du `hideTimer`) ; le runtime l'appelle au démontage de la scène | review |
 
 ### Résolution de transition (`scene-resolve.js`, pur)
@@ -190,7 +190,7 @@ orthogonaux), pas figée par scène.
 
 ```js
 /**
- * Instance de composant montée — surface retournée par une factory de `components/index.js`.
+ * Instance de composant montée — surface retournée par une factory de `src/components/index.js`.
  * Toutes les méthodes sont optionnelles : un composant DOM pur n'expose que `el`.
  * @typedef {Object} ComponentInstance
  * @property {HTMLElement} el                       - Élément racine, inséré dans l'élément de couche
@@ -224,7 +224,7 @@ orthogonaux), pas figée par scène.
 > **Type effacé (assumé)** : `update`/`show` sont typés `unknown` (et non `*`/`any`, règle CLAUDE)
 > car `ComponentInstance` est la vue **unifiée** du registry pour 5 composants aux signatures
 > hétérogènes (`StatBlock` `{label,value}`, `ChatFeed` `ChatMessage[]`, `PomodoroBar` `PomodoroState`,
-> `AlertBanner` `AlertEvent`). Les types **précis** vivent sur les factories de `components/index.js`
+> `AlertBanner` `AlertEvent`). Les types **précis** vivent sur les factories de `src/components/index.js`
 > (inchangées) ; un wire qui a besoin de précision caste l'instance vers le type concret.
 
 ## Format de données
@@ -455,14 +455,14 @@ lecteur d'écran). Hors périmètre par nature du support OBS.
 | `scenes/discussion.wire.js` | **créer** | Câblage composants `discussion` → store (AD-6) |
 | `scenes/brb.wire.js` | **créer** | Câblage composants `brb` → store (AD-6) |
 | `scenes/codage.wire.js` | **créer** | Câblage composants `codage` → store (AD-6) |
-| `components/DotGridAnimated.js` | modifier | Exporter `GRID_MODES` (clés de `MODE_PARAMS`) pour `resolveDotgridMode` (source unique — DRY) |
-| `components/index.js` | modifier | `AlertBanner` expose `destroy()` (`clearTimeout` du `hideTimer`) — cleanup au démontage (AC-39) |
+| `src/components/DotGridAnimated.js` | modifier | Exporter `GRID_MODES` (clés de `MODE_PARAMS`) pour `resolveDotgridMode` (source unique — DRY) |
+| `src/components/index.js` | modifier | `AlertBanner` expose `destroy()` (`clearTimeout` du `hideTimer`) — cleanup au démontage (AC-39) |
 | `types.js` | modifier | Ajouter `ComponentInstance`, `MountedScene`, `SceneWire` |
 
 > Cross-check avant « done » :
 > - [ ] Chaque AC → implémenté et vérifié (`bun test` pour les purs, review/visuel OBS sinon)
 > - [ ] `scene-resolve.js` ne contient aucun accès DOM / réseau / temps (logique pure, AD-1)
-> - [ ] `components/index.js` n'importe pas `store.js` (AD-6)
+> - [ ] `src/components/index.js` n'importe pas `store.js` (AD-6)
 > - [ ] `overlay:morph` n'est câblé nulle part dans le runtime (AD-7)
 > - [ ] Une seule instance `DotGridAnimated` sur tout le cycle de vie de la page (AC-02)
 > - [ ] `crossfade` utilise `toCssEasing` (jamais le jeton brut) — easing CSS valide (AC-37/38)

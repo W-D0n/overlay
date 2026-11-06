@@ -1,6 +1,6 @@
 ---
 created: 2026-07-26
-updated: 2026-10-29
+updated: 2026-11-06
 ---
 
 # Spec — Couche branding (⑤ de l'audit produit)
@@ -15,7 +15,7 @@ Statut : **livrée et validée en Browser Source réelle** (owner, 2026-07-26). 
 > identiques au rendu précédent (36 × 0,75 et 26 × 0,75).
 
 LAC-01 **résolue à la livraison** : le bloc est rendu dans un espace de conception 2560×1440 puis
-mis à l'échelle du canvas réel (`components/BrandingLayer.js`), donc les tailles suivent la
+mis à l'échelle du canvas réel (`src/components/BrandingLayer.js`), donc les tailles suivent la
 résolution sans cesser d'être explicites.
 
 Décisions owner (2026-07-26) :
@@ -105,11 +105,11 @@ l'élément le plus lisible de l'écran, rien ne doit passer devant.
 | Fichier | Rôle | Nature |
 |---|---|---|
 | `branding-format.js` | Normalisation + validation du bloc, styles de position en pourcentage | **Pur, testé** |
-| `components/BrandingLayer.js` | Composant `{ el, update(branding), destroy() }`, DOM pur (pas de canvas) | Nouveau |
+| `src/components/BrandingLayer.js` | Composant `{ el, update(branding), destroy() }`, DOM pur (pas de canvas) | Nouveau |
 | `background.html` | Montage, lecture des paramètres d'URL, application de `showBranding` | Existant, étendu |
-| `dev/background-state-format.js` | `branding` dans le fichier, `showBranding` sur preset et `current` | Existant, étendu |
-| `dev/background-state-server.js` | `POST /branding`, le mapping OBS (③) joint `showBranding` | Existant, étendu |
-| `dev/background-tuner.html` + contrôleur | Section « Branding », glisser-déposer dans l'aperçu, case « Afficher sur ce preset » | Existants, étendus |
+| `src/shared/background-state-format.js` | `branding` dans le fichier, `showBranding` sur preset et `current` | Existant, étendu |
+| `server/background-state-server.js` | `POST /branding`, le mapping OBS (③) joint `showBranding` | Existant, étendu |
+| `background-tuner.html` + contrôleur | Section « Branding », glisser-déposer dans l'aperçu, case « Afficher sur ce preset » | Existants, étendus |
 
 Le branding ne passe **pas** par `COMPONENT_REGISTRY` : ce n'est pas un effet de fond
 interchangeable, c'est une couche permanente au contrat différent (`update(branding)`, pas
@@ -144,7 +144,7 @@ d'options d'effet, pas de réaction audio, pas de transition).
 ## Découpage en sessions atomiques
 
 1. **Logique et format** — `branding-format.js`, `branding` + `showBranding` validés.
-2. **Composant et rendu** — `components/BrandingLayer.js`, montage dans `background.html`,
+2. **Composant et rendu** — `src/components/BrandingLayer.js`, montage dans `background.html`,
    paramètres d'URL, `showBranding` respecté ; le mapping OBS joint le drapeau.
 3. **Tuner** — section « Branding » (contenu, tailles, couleur, opacité) + **glisser-déposer du
    bloc dans l'aperçu** (met à jour `x`/`y`, affichés en lecture seule à côté) + case « Afficher sur

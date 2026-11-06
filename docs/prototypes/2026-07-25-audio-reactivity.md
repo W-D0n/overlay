@@ -1,3 +1,8 @@
+---
+created: 2026-07-25
+updated: 2026-11-06
+---
+
 # Prototype — Réactivité audio (② de l'audit produit)
 
 **Question** : un fond peut-il réagir au son sans plugin ni process supplémentaire, c'est-à-dire en
@@ -11,7 +16,7 @@ Conséquence : la spec ② se construit sur la **voie 1** ci-dessous (lecture di
 `background.html`). La voie obs-websocket est écartée — elle réintroduirait un process, un secret et
 une dépendance à OBS ouvert, pour un besoin que la voie directe couvre.
 
-Le prototype (`dev/prototype-audio-reactivity.html`, servi par le serveur statique) a été supprimé
+Le prototype (`prototype-audio-reactivity.html`, servi par le serveur statique) a été supprimé
 une fois la question tranchée — voir « Fin de vie » en bas. Il est récupérable dans l'historique git
 si la même question se repose.
 
@@ -70,6 +75,6 @@ la source du fond réactif, sans rien changer dans l'overlay.
 
 ## Fin de vie — close
 
-`dev/prototype-audio-reactivity.html` a été supprimé le 2026-07-25, après que l'owner a constaté en
+`prototype-audio-reactivity.html` a été supprimé le 2026-07-25, après que l'owner a constaté en
 live l'animation réagissant à un vrai micro dans OBS. Ce document reste comme trace de la question
 et de son verdict ; la fonctionnalité vit dans `docs/specs/background-audio-reactivity.md`.

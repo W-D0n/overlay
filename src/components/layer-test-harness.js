@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * components/layer-test-harness.js — Banc de test des effets canvas : horloge pilotée à la main, canvas
+ * src/components/layer-test-harness.js — Banc de test des effets canvas : horloge pilotée à la main, canvas
  * factice dont le contexte enregistre chaque appel de dessin. Utilisé uniquement par les tests.
  */
 import { RENDER_REFERENCE } from '../render/render-reference.js';

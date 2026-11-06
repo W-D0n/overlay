@@ -1,7 +1,7 @@
 // @ts-check
 
 /**
- * components/GroupLayer.js — The container of a layer group: an empty full-frame element that receives the layer elements of the group
+ * src/components/GroupLayer.js — The container of a layer group: an empty full-frame element that receives the layer elements of the group
  * (`scene-runtime.js`). It draws nothing itself; the group's look (opacity, blend, filters, transform…) is applied to the element that wraps it,
  * so it affects the members as one composed whole. See docs/specs/groupes-de-couches.md.
  *

@@ -1,3 +1,8 @@
+---
+created: 2026-07-03
+updated: 2026-11-06
+---
+
 # Handoff — 2026-07-26
 
 **Commencer par `docs/inbox.md`**, section « À regarder en priorité ». L'audit produit est terminé ;
@@ -8,8 +13,8 @@ la prochaine session traite le retour de QA de l'owner, pas une nouvelle fonctio
 - `main` == `origin/main`, working tree propre, **372 tests verts**
 - URL OBS : `http://localhost:5931/background.html`
   (variantes : `?preset=<id>`, `?transparent=1`, `?branding=only`, `?branding=off`, `?quality=performance`)
-- Studio : `http://localhost:5931/dev/studio.html` — trois espaces : Fond · Habillage · Diffusion
-- Serveurs : `start-stream.bat` pour le live (statique + état, port 5932), `start-dev.bat` pour créer
+- Studio : `http://localhost:5931/studio/index.html` — trois espaces : Fond · Habillage · Diffusion
+- Serveurs : `stream.bat` pour le live (statique + état, port 5932), `studio.bat` pour créer
 - Canvas de référence : **2560×1440**. Raisonner et vérifier en 1440p, jamais en 1080p.
 - Connexion OBS (mapping scène → preset) : active seulement si `OBS_WS_PASSWORD` est dans `.env`
 - Moteur de scènes archivé, restaurable via le tag git `scene-engine-v1`
@@ -32,7 +37,7 @@ sur une surface 1,8× plus grande qu'en 1080p. Jamais mesuré en conditions de l
 Audit produit ①→⑦ complet ; détail par lot dans `docs/MAP.md`, spec par spec dans
 `docs/specs/_index.md`. Les quatre points saillants :
 
-- **Audio sur les 11 effets**, motif commun dans `components/audio-reaction.js`. Correction de fond
+- **Audio sur les 11 effets**, motif commun dans `src/components/audio-reaction.js`. Correction de fond
   au passage : `level` moyennait 20–8000 Hz, donc une voix tombait sous 10 % et les effets pilotés
   par lui ne bougeaient que de quelques pourcents. `level` est désormais la **bande la plus
   chargée**, et chaque bande son **maximum**. Conséquence : DotGrid, Bubble et WaterRipple réagissent

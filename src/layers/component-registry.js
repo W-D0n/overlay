@@ -31,7 +31,7 @@ import { GroupLayer } from '../components/GroupLayer.js';
 /**
  * Les factories ont des signatures hétérogènes ; le registry expose la vue unifiée
  * `ComponentInstance` consommée par le runtime (les types précis vivent sur les factories).
- * Typé `Record<LayerKindId, …>` : une fabrique oubliée ou en trop fait échouer `bun dev/typecheck.js`.
+ * Typé `Record<LayerKindId, …>` : une fabrique oubliée ou en trop fait échouer `bun tools/typecheck.js`.
  * @type {Record<import('./layer-kinds.js').LayerKindId, (options: any, environment?: any) => import('../types.js').ComponentInstance>}
  */
 export const COMPONENT_REGISTRY = ({

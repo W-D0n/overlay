@@ -69,7 +69,7 @@ const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 /**
  * Le rendu étendu d'une couche (étape 6d), et ses liaisons (`layer-bindings.js`). Absent = neutre : un document sans ces champs reste valide et se rend comme avant.
- * Seules les valeurs mesurées dans OBS (`dev/obs-bench.html`) sont proposées : fusion produit / superposition claire /
+ * Seules les valeurs mesurées dans OBS (`studio/bench/obs-bench.html`) sont proposées : fusion produit / superposition claire /
  * incrustation, rotation, rognage, flou. Le flou se compte en pixels de la source de référence (`render-reference.js`).
  */
 export const BLEND_MODES = Object.freeze([

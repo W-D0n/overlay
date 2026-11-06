@@ -5,7 +5,7 @@ import { EFFECT_KIND_IDS, LAYER_KIND_IDS } from './layer-kinds.js';
 import { LAYER_KINDS } from './layer-kinds.js';
 import { createLayerHarness } from '../components/layer-test-harness.js';
 
-// Le typage (`Record<LayerKindId, …>`, vérifié par `bun dev/typecheck.js`) garantit déjà cette égalité ;
+// Le typage (`Record<LayerKindId, …>`, vérifié par `bun tools/typecheck.js`) garantit déjà cette égalité ;
 // ce test la rejoue dans la suite par défaut, que le contrôle de types ne fait pas partie de `bun test`.
 test('le registre contient exactement une fabrique par type de couche décrit', () => {
   expect(new Set(Object.keys(COMPONENT_REGISTRY))).toEqual(new Set(LAYER_KIND_IDS));

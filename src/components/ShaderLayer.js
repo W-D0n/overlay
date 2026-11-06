@@ -6,13 +6,13 @@ import { normalizeParamValues, parseParamSpec } from './code-params.js';
 import { NO_ALERT, VERTEX_SOURCE, composeFragment, parseCompileLog, uniformPlan, uniformValue } from './shader-source.js';
 
 /**
- * components/ShaderLayer.js — Couche de contenu « shader » : un fragment GLSL (WebGL2) que l'auteur écrit comme sur Shadertoy, calculé par la carte
+ * src/components/ShaderLayer.js — Couche de contenu « shader » : un fragment GLSL (WebGL2) que l'auteur écrit comme sur Shadertoy, calculé par la carte
  * graphique sur toute la zone de la couche. Là où une couche Code ouvre une page entière, un shader est le moyen léger d'obtenir des fonds génératifs
  * (plasma, fluides, grilles, champs de bruit) : un seul triangle, un programme, quelques uniformes.
  *
  * GLSL n'a ni réseau, ni stockage, ni accès à la page : le shader tourne dans la page de rendu sans bac à sable. Son seul danger est le **coût** (une
  * boucle sans fin fait réinitialiser le pilote graphique) : la qualité de rendu (plein, moitié, quart) le borne, et un lot importé qui en contient le dit
- * avant d'être confirmé (`dev/bundle-assets.js`).
+ * avant d'être confirmé (`src/shared/bundle-assets.js`).
  *
  * Le shader est calculé dans le repère de la **source de référence** (`uResolution` en pixels de référence, comme le texte) quelle que soit la résolution
  * d'OBS et la qualité. Un changement de code ou de déclaration est compilé après une courte pause ; **si la compilation échoue, le dernier programme valide

@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-06
 ---
 
 # Spec — Incidents d'antenne (être prévenu quand la chaîne casse)
@@ -10,7 +10,7 @@ OBS). Conséquence : le streamer ne sait jamais qu'un problème est survenu. Le 
 quand l'état change, et le Studio n'est pas sous les yeux pendant un live (OBS est devant). Cette spec comble ce trou **sans toucher à l'invariant** : le rendu
 OBS ne change pas, c'est le Studio qui prévient.
 
-## 1. Ce qui est surveillé (`dev/incident-watch.js`, pur)
+## 1. Ce qui est surveillé (`studio/settings/incident-watch.js`, pur)
 
 Les trois points dont dépend le fond, lus par le bandeau (`antenna-status.js`) :
 
@@ -26,7 +26,7 @@ Les trois points dont dépend le fond, lus par le bandeau (`antenna-status.js`) 
 - Un point qui n'est pas en jeu n'est jamais un incident : OBS non configuré, ou point non lu parce que le serveur est éteint. Un serveur éteint est
   **une** perte, pas trois ; à son retour, seul le serveur est « rétabli ».
 
-## 2. Où l'incident est dit (`dev/incident-notifier.js`)
+## 2. Où l'incident est dit (`studio/settings/incident-notifier.js`)
 
 1. La **ligne d'état** du Studio (perte en erreur, rétablissement en succès ; le « connecté » ordinaire la reprend ensuite).
 2. Le **titre de l'onglet**, préfixé « ⚠ » tant qu'un incident dure : visible depuis la barre des tâches.
@@ -42,7 +42,7 @@ serveur, `alerts.system`).
 
 ## 3. Vérification
 
-`dev/incidents.test.js` (15 tests : confirmations, battements, serveur éteint, OBS non configuré, titre, tag, autorisation), essai `27-incidents.e2e.js`
+`studio/settings/incidents.test.js` (15 tests : confirmations, battements, serveur éteint, OBS non configuré, titre, tag, autorisation), essai `27-incidents.e2e.js`
 (vrai relevé toutes les 5 secondes, page « cachée », fausse notification : perte, titre, notification unique avec son tag, rétablissement, extinction).
 9 mutations vues rouges (une 10e, équivalente, a fait simplifier le code).
 

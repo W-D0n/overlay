@@ -1,3 +1,8 @@
+---
+created: 2026-06-06
+updated: 2026-11-06
+---
+
 # Overview — Overlay Stream D0n / Mozaïk
 
 ## Pourquoi ce projet
@@ -19,23 +24,23 @@ du 24 juillet est livré en entier ; la phase courante est la **validation en co
 (voir `docs/roadmap.md` et `docs/inbox.md`).
 
 ```text
-background-tuner.html ──► background-tuner-runtime.js
+background-tuner.html ──► studio/main.js
                               │ contrôleurs + client HTTP/WS
                               ▼
-background-state-server.js ──► dev/data/background-state.json
+background-state-server.js ──► data/background-state.json
         │
         ▼
 background.html (OBS)
 ```
 
 - `background.html` rend l'effet courant, ou un preset fixe avec `?preset=...`.
-- `dev/studio.html` est l'entrée de création unique.
-- `dev/background-tuner.html` ne porte que le markup et les styles ;
-  `dev/background-tuner-runtime.js` orchestre ses modules et utilise le même moteur de montage pour
+- `studio/index.html` est l'entrée de création unique.
+- `background-tuner.html` ne porte que le markup et les styles ;
+  `studio/main.js` orchestre ses modules et utilise le même moteur de montage pour
   l'aperçu.
 - La bibliothèque de presets et son transfert import/export sont séparés : un fichier choisi est
   toujours prévisualisé avant que la confirmation n'autorise son écriture.
-- `dev/background-state-server.js` persiste l'état et le diffuse en direct.
+- `server/background-state-server.js` persiste l'état et le diffuse en direct.
 - Un seul effet est actif à la fois parmi les 11 enregistrés.
 - Les presets mémorisent `{ id, name, component, options, tags?, transition?, showBranding? }` et
   exposent une URL OBS stable pour affecter des ambiances différentes aux scènes.
@@ -50,10 +55,10 @@ Le contrat détaillé vit dans `docs/specs/background-standalone.md`.
 
 Un effet de fond est constitué de trois pièces :
 
-1. une factory `components/XxxBackground.js` ;
+1. une factory `src/components/XxxBackground.js` ;
 2. son nom et sa factory dans `component-names.js` / `component-registry.js` ;
 3. son formulaire dans `BACKGROUND_FIELD_SCHEMAS`
-   (`dev/component-field-schemas.js`).
+   (`studio/inspector/component-field-schemas.js`).
 
 Cette structure rend tout nouvel effet immédiatement disponible dans le tuner et dans OBS sans
 modifier les deux pages.
@@ -63,14 +68,14 @@ modifier les deux pages.
 `tokens.css` reste la source de vérité de l'identité Atelier. Les options couleur des animations
 sont volontairement libres : hex, `rgb()`, `oklch()` ou `var(--token)`.
 
-`components/color-palette.json` est la palette de travail destinée au sélecteur de couleurs et aux
+`src/components/color-palette.json` est la palette de travail destinée au sélecteur de couleurs et aux
 gradients nommés. Elle ne remplace pas les tokens CSS utilisés par l'interface et les composants
 non configurables.
 
 ## Moteur de scènes — archivé
 
 Le moteur historique (page unique `index.html`, neuf scènes JSON, couches nommées, transitions,
-protocole `{ type, data }`, relais OBS WebSocket, éditeur `dev/overlay-setting.html`) a été retiré
+protocole `{ type, data }`, relais OBS WebSocket, éditeur `overlay-setting.html`) a été retiré
 du working tree le 2026-07-25. Il reste restaurable via le tag git `scene-engine-v1` et ses specs
 sont conservées dans `docs/specs/archive/`.
 

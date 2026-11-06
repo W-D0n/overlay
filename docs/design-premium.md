@@ -1,13 +1,18 @@
+---
+created: 2026-08-24
+updated: 2026-11-06
+---
+
 # Design & navigation premium — feedback comparatif
 
-Revue du Studio/Tuner (`dev/studio.html`, `dev/background-tuner.html`, `background.html`) à la
+Revue du Studio/Tuner (`studio/index.html`, `background-tuner.html`, `background.html`) à la
 lumière de deux projets voisins de la même famille visuelle : `dither_studio` et `dither_lab`
 (même palette noir/or, même contrat de composant, même réflexe « zéro dépendance »). Les trois
 projets partagent un ADN — ce document compare les décisions de design et de navigation prises de
 part et d'autre, garde ce qui mérite d'être protégé ici, et nomme ce qui casse l'illusion premium.
 
-Produit par revue de code (`tokens.css`, `dev/background-tuner.html`, `dev/studio.html`,
-`components/*`) et par usage réel de l'app (`bun dev\start-dev.js`, Studio ouvert en 1600×1000,
+Produit par revue de code (`tokens.css`, `background-tuner.html`, `studio/index.html`,
+`src/components/*`) et par usage réel de l'app (`bun server\lifecycle\start-studio.js`, Studio ouvert en 1600×1000,
 les trois onglets du tuner parcourus, sidebar repliée/dépliée, `background.html` seul).
 
 ---
@@ -129,8 +134,8 @@ ses voisins immédiats, ce qui se voit d'autant plus qu'il est entouré de champ
 
 ### 2.3 — Un token qui n'existe pas
 
-`var(--color-bg-deep)` est utilisé à deux endroits — `dev/studio.html` (fond du `<body>` et de
-l'`<iframe>`) et `dev/background-tuner.html` (fond de `.preset-thumb`) — mais **n'est défini nulle
+`var(--color-bg-deep)` est utilisé à deux endroits — `studio/index.html` (fond du `<body>` et de
+l'`<iframe>`) et `background-tuner.html` (fond de `.preset-thumb`) — mais **n'est défini nulle
 part dans `tokens.css`**. Vérifié en direct : `getComputedStyle(document.documentElement)
 .getPropertyValue('--color-bg-deep')` renvoie une chaîne vide dans le navigateur. La règle CSS ne
 plante pas (elle retombe silencieusement sur `transparent`), donc l'effet visuel est aujourd'hui
@@ -164,7 +169,7 @@ laisser le reste du texte décoratif (hints, métadonnées de preset) tel quel.
 
 ### 2.6 — Une barre de navigation à un seul onglet, vestige du moteur retiré
 
-`STUDIO_VIEWS` (`dev/studio.config.js`) ne contient plus qu'une entrée (« Fonds & presets ») depuis
+`STUDIO_VIEWS` (`studio.config.js`) ne contient plus qu'une entrée (« Fonds & presets ») depuis
 le retrait du moteur de scènes le 2026-07-25. Le `<nav>` du Studio rend donc un unique bouton en
 permanence actif, qui a toute l'apparence d'une barre d'onglets sans en avoir l'usage — un premier
 regard s'attend à pouvoir choisir entre plusieurs vues. Ce n'est pas un bug, et l'infrastructure a

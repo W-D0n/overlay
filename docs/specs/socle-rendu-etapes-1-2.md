@@ -1,6 +1,6 @@
 ---
 created: 2026-10-29
-updated: 2026-10-29
+updated: 2026-11-06
 ---
 
 # Spec — Socle de rendu : contrat d'URL, transport d'état, horloge unique (étapes 1 et 2)
@@ -15,7 +15,7 @@ Vocabulaire : module, interface, seam, adapter, profondeur (`codebase-design`).
 ## Problème (constats mesurés, `architecture-review.md` F1, F3, A2)
 
 1. **Le contrat d'URL n'a pas de module.** `preset`, `branding`, `transparent` sont lus dans
-   `background.html`, `quality` dans `components/canvas-runtime.js` (global `location.search`) et dans
+   `background.html`, `quality` dans `src/components/canvas-runtime.js` (global `location.search`) et dans
    le tuner, et les URL sont construites dans `background-selection.js`. Un effet dépend donc de
    l'URL de la page : impossible d'avoir deux aperçus de qualités différentes dans une même page.
 2. **Le transport d'état est dans la page.** `background.html` embarque la connexion WebSocket, le
@@ -71,7 +71,7 @@ perte puis retour de connexion, événement éphémère jamais mis en cache.
 
 **À mesurer avant d'activer le cache** (jamais supposé) : le stockage d'une Browser Source OBS survit
 à un redémarrage d'OBS, selon « Désactiver la source… » et « Rafraîchir… ». Case 9 du QA court
-(`docs/inbox.md`) ; sonde : `dev/storage-probe.html`. Tant que ce n'est pas mesuré, `createCachedTransport` existe mais `background.html`
+(`docs/inbox.md`) ; sonde : `studio/bench/storage-probe.html`. Tant que ce n'est pas mesuré, `createCachedTransport` existe mais `background.html`
 utilise le transport local seul.
 
 ### 1c. Critères de l'étape 1

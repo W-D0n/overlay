@@ -1,13 +1,13 @@
 ---
 created: 2026-10-29
-updated: 2026-10-29
+updated: 2026-11-06
 ---
 
 # Spec — Définition unique d'un type de couche (étape 3)
 
 Statut : **livrée le 2026-10-29** (décisions de l'owner : renommer maintenant, ramener hors bornes, fichier de description unique). Reste à faire chez l'owner : redémarrer les serveurs pour migrer `background-state.json` (sauvegarde `background-state.json.pre-v2.bak`). Étape 3 de `docs/architecture-review.md` §5, après le socle de
 rendu (`socle-rendu-etapes-1-2.md`, livré). Elle touche des **surfaces partagées** (`component-names.js`,
-`component-registry.js`, `dev/component-field-schemas.js`, format d'état) et **les valeurs stockées dans vos
+`component-registry.js`, `studio/inspector/component-field-schemas.js`, format d'état) et **les valeurs stockées dans vos
 presets** : à valider avant tout code, avec sauvegarde et migration réversible.
 
 Vocabulaire : module, interface, seam, deletion test (`codebase-design`). « Type de couche » (`LayerKind`) =
@@ -16,11 +16,11 @@ un effet de fond tel que le Studio le propose aujourd'hui (Rain, DotGrid…).
 ## Problème (constats mesurés, `architecture-review.md` F2, F4, B2, B3, B4, B6)
 
 1. **Un effet se déclare à quatre endroits** : `component-names.js` (nom), `component-registry.js`
-   (factory), `dev/component-field-schemas.js` (formulaire), et sa propre capacité audio/événement,
+   (factory), `studio/inspector/component-field-schemas.js` (formulaire), et sa propre capacité audio/événement,
    détectée à l'exécution par `typeof instance.setAudioLevel === 'function'` dans `background-mount.js`.
    Des tests de cohérence compensent l'oubli (`component-names.test.js`, `component-registry.test.js`,
    `component-field-schemas.test.js`) : ils existent parce que le code permet l'incohérence.
-2. **Couches inversées.** Le format d'état (`dev/background-state-format.js`, côté protocole) importe les
+2. **Couches inversées.** Le format d'état (`src/shared/background-state-format.js`, côté protocole) importe les
    schémas de formulaire (côté interface), qui importent à leur tour un effet (`GRID_MODES` depuis
    `DotGridAnimated.js`). Valider un fichier d'état charge donc du code de rendu.
 3. **Une valeur d'interface sert de donnée.** `audioReactive` est stocké `'Oui'` / `'Non'`, le libellé
@@ -45,7 +45,7 @@ un effet de fond tel que le Studio le propose aujourd'hui (Rain, DotGrid…).
 
 Les identifiants sont une union fermée dérivée de la description (`as const`) ; le registre est typé
 `Record<LayerKindId, Factory>` : **oublier une fabrique ou en déclarer une en trop échoue au contrôle de
-types** (`bun dev/typecheck.js`), pas à l'exécution. Pas de vérification qui lève au chargement de
+types** (`bun tools/typecheck.js`), pas à l'exécution. Pas de vérification qui lève au chargement de
 `background.html` : un effet inconnu ne doit jamais produire un écran noir en live (comportement actuel
 conservé : l'effet en place reste affiché, erreur journalisée).
 
@@ -75,7 +75,7 @@ le typage du registre.
   s'importe toujours (migré à l'import). Une page OBS non rafraîchie qui reçoit un booléen ne perd donc pas
   la réactivité audio.
 - **Sauvegarde obligatoire avant la première migration** : copie horodatée de `background-state.json`
-  (`background-state.v1.<date>.bak`) dans `dev/data/` (déjà ignoré par git). Retour arrière documenté : remettre
+  (`background-state.v1.<date>.bak`) dans `data/` (déjà ignoré par git). Retour arrière documenté : remettre
   le fichier et le tag `pre-layer-kind`.
 
 ### 3d. Identifiants neutres avec compatibilité
@@ -112,7 +112,7 @@ Les trois tests de cohérence deviennent inutiles et sont supprimés (le typage 
 
 ## Critères de succès (chacun observé, pas déduit)
 
-- Ajouter un effet de test factice demande deux fichiers ; en oublier un fait échouer `bun dev/typecheck.js`
+- Ajouter un effet de test factice demande deux fichiers ; en oublier un fait échouer `bun tools/typecheck.js`
   (vu rouge sur une régression réinjectée).
 - Votre `background-state.json` réel, migré en copie : mêmes effets, mêmes options, `audioReactive` booléen ;
   le rendu de chaque preset est identique avant/après (sonde de pixels existante, `effect-probe`).

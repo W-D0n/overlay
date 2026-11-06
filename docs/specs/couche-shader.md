@@ -1,6 +1,6 @@
 ---
 created: 2026-11-02
-updated: 2026-11-02
+updated: 2026-11-06
 ---
 
 # Spec — Couche Shader (GLSL en WebGL2, calculé par la carte graphique)
@@ -40,16 +40,16 @@ Un réglage dont la clé contient deux `_` de suite (`a__b`) ne peut pas être t
 
 ## 3. Architecture
 
-- `components/shader-source.js` — pur : source du fragment (`composeFragment`), plan des uniformes (`uniformPlan`, `uniformValue`, `parseColor`), lecture du journal du compilateur (`parseCompileLog`).
-- `components/ShaderLayer.js` — le composant : contexte WebGL2, compilation différée, dernier programme valide conservé, uniformes à chaque image de l'horloge unique (`render-clock.js`), `drive`, `setAudioLevel`, `trigger`, `reports`, perte et restauration du contexte.
+- `src/components/shader-source.js` — pur : source du fragment (`composeFragment`), plan des uniformes (`uniformPlan`, `uniformValue`, `parseColor`), lecture du journal du compilateur (`parseCompileLog`).
+- `src/components/ShaderLayer.js` — le composant : contexte WebGL2, compilation différée, dernier programme valide conservé, uniformes à chaque image de l'horloge unique (`render-clock.js`), `drive`, `setAudioLevel`, `trigger`, `reports`, perte et restauration du contexte.
 - `layer-kinds.js` — type `shader` (contenu, sans vignette, capacités `audio` et `events`), champs `glsl` (code, langage `glsl`, `reports: true`), `paramSpec`, `params`, `quality`, `audioReactive`.
 - Le Studio réutilise ce que la couche Code a posé : champ de code, formulaire des réglages reconstruit à la frappe, erreurs sous le champ (`FieldSchema.reports`), animation des réglages (`layer-bindings.js` : `paramTargets`).
 
 ## 4. Vérification
 
-- `components/shader-source.test.js` et `components/ShaderLayer.test.js` (faux contexte WebGL qui enregistre chaque appel) : composition, journal, programme conservé en cas d'erreur, pause avant compilation, déclaration qui recompile, uniformes (résolution, temps, alerte, son, réglages, valeur imposée bornée), qualité, plafond de taille, contexte perdu et restauré, destruction.
+- `src/components/shader-source.test.js` et `src/components/ShaderLayer.test.js` (faux contexte WebGL qui enregistre chaque appel) : composition, journal, programme conservé en cas d'erreur, pause avant compilation, déclaration qui recompile, uniformes (résolution, temps, alerte, son, réglages, valeur imposée bornée), qualité, plafond de taille, contexte perdu et restauré, destruction.
 - **57 mutations** réinjectées une à une dans ces fichiers, `layer-kinds`, `layer-bindings` et l'import : 56 vues rouges, 1 retirée avec le code qu'elle visait (un test redondant dans `draw`, équivalent). Trois survivantes de la première passe ont fait ajouter un essai (déclaration modifiée → recompilation, cibles du shader).
-- `dev/e2e/suites/35-couche-shader.e2e.js` — 23 contrôles dans un vrai Chrome avec un vrai WebGL2 (carte graphique réelle, mesurée) : un crochet sur `drawArrays` **lit le pixel dessiné** juste après chaque dessin. Couleur rendue, résolution de référence, qualité, erreur de compilation avec sa ligne et programme précédent qui continue (de nouvelles images sont comptées), réglage animé par la timeline (0 → 64 → 128 → 255), alerte, libération du contexte, et **la vraie page de rendu dans une fenêtre qui n'a pas le rapport de la source** (le shader voit toujours 1080 de hauteur de référence). Vue rouge sur quatre régressions réelles : la résolution en pixels réels, le contexte non rendu, l'alerte sans effet et l'erreur qui éteint le programme.
+- `e2e/suites/35-couche-shader.e2e.js` — 23 contrôles dans un vrai Chrome avec un vrai WebGL2 (carte graphique réelle, mesurée) : un crochet sur `drawArrays` **lit le pixel dessiné** juste après chaque dessin. Couleur rendue, résolution de référence, qualité, erreur de compilation avec sa ligne et programme précédent qui continue (de nouvelles images sont comptées), réglage animé par la timeline (0 → 64 → 128 → 255), alerte, libération du contexte, et **la vraie page de rendu dans une fenêtre qui n'a pas le rapport de la source** (le shader voit toujours 1080 de hauteur de référence). Vue rouge sur quatre régressions réelles : la résolution en pixels réels, le contexte non rendu, l'alerte sans effet et l'erreur qui éteint le programme.
 - Deux faiblesses de l'essai ont été vues et corrigées en chemin : un contrôle qui relisait le dernier pixel (resté bleu même si plus rien n'était dessiné) et un autre qui ignorait le résultat d'une attente.
 
 ## 5. Limites et reste

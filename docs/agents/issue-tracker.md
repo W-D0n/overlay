@@ -1,3 +1,8 @@
+---
+created: 2026-07-10
+updated: 2026-11-06
+---
+
 # Issue tracker: GitHub
 
 Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all operations.

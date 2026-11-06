@@ -5,7 +5,7 @@ import { normalizeKindOptions } from './kind-options.js';
 import { gradientLine, pathLength, shapePath, traceParts } from './shape-geometry.js';
 
 /**
- * components/ShapeLayer.js — Couche de contenu « forme » : un cadre, un bandeau, un cercle, un trait, dans la zone de la couche.
+ * src/components/ShapeLayer.js — Couche de contenu « forme » : un cadre, un bandeau, un cercle, un trait, dans la zone de la couche.
  *
  * Dessinée sur un canvas comme les effets et **statique** (`canvas-layer.js`) : elle ne se redessine que si ses options ou sa taille
  * changent. La géométrie est dans `shape-geometry.js`. Redimensionner la couche redimensionne la forme.

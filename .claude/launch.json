@@ -4,7 +4,7 @@
     {
       "name": "overlay",
       "runtimeExecutable": "bun",
-      "runtimeArgs": ["dev/start-studio.js"],
+      "runtimeArgs": ["server/lifecycle/start-studio.js"],
       "port": 5931
     }
   ]

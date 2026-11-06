@@ -16,10 +16,10 @@ concerné ici.
 Quatre pièces communiquent :
 
 - `background.html` — la page à mettre dans OBS. Affiche l'effet de fond courant, rien d'autre.
-- `dev/studio.html` — la page de création : rail de gauche (antenne, bibliothèque, scènes OBS,
+- `studio/index.html` — la page de création : rail de gauche (antenne, bibliothèque, scènes OBS,
   branding), aperçu 1920×1080 au centre, réglages du preset à droite.
 - Le **serveur d'état** (port 5932, lancé automatiquement) — retient le dernier état publié dans
-  `dev/data/background-state.json` et le pousse vers OBS à chaque **Publier**.
+  `data/background-state.json` et le pousse vers OBS à chaque **Publier**.
 
 Concrètement : tu bouges un curseur dans le tuner → l'aperçu change immédiatement → OBS suit dans
 la seconde → au prochain démarrage, OBS recharge le dernier état sauvegardé tout seul.
@@ -42,7 +42,7 @@ toute seule (1 s → 30 s max entre les tentatives).
 
 ## La page de tuning
 
-Ouvrir `http://localhost:5931/dev/studio.html` (s'ouvre aussi automatiquement avec
+Ouvrir `http://localhost:5931/studio/index.html` (s'ouvre aussi automatiquement avec
 `studio.bat`).
 
 - **Trois zones** : le rail de gauche (Bibliothèque, Scènes OBS, Branding : sections repliables), l'aperçu au centre
@@ -97,7 +97,7 @@ Pour la seconde, il faut donner au serveur d'état l'accès au serveur WebSocket
 3. Dans le tuner, section **Scènes OBS** : chaque scène détectée reçoit un preset, puis
    `Enregistrer les associations`.
 
-Le mot de passe reste dans un fichier à côté de votre état (`dev/data/background-state.json.connections.json`,
+Le mot de passe reste dans un fichier à côté de votre état (`data/background-state.json.connections.json`,
 non versionné, jamais servi ni exporté) ; une fois enregistré, il ne s'affiche plus nulle part, le champ dit
 seulement « enregistré ». Un `.env` existant (`OBS_WS_URL`, `OBS_WS_PASSWORD`) reste lu : ce que vous saisissez dans
 les Réglages passe devant.
@@ -223,7 +223,7 @@ Une fonction qui retourne `{ el, update, destroy }` (contrat `ComponentInstance`
 - `component-names.js` : ajouter `'MonEffetBackground'` à la liste.
 - `component-registry.js` : importer la factory + l'ajouter au registry.
 
-### 3. Le schéma de champs — `dev/component-field-schemas.js`
+### 3. Le schéma de champs — `studio/inspector/component-field-schemas.js`
 
 Une entrée dans `BACKGROUND_FIELD_SCHEMAS` décrivant les paramètres réglables — c'est elle qui
 génère le formulaire du tuner :
@@ -253,21 +253,21 @@ presets — `background.html`, le tuner et le serveur n'ont pas bougé.
 
 ## Faire évoluer le tuner
 
-La page `dev/studio.html` ne contient plus sa logique métier. Selon le changement :
+La page `studio/index.html` ne contient plus sa logique métier. Selon le changement :
 
-- **ajouter ou modifier un champ** : déclarer le champ dans `dev/component-field-schemas.js` ; son
-  rendu commun vit dans `dev/background-field-renderer.js` ;
+- **ajouter ou modifier un champ** : déclarer le champ dans `studio/inspector/component-field-schemas.js` ; son
+  rendu commun vit dans `studio/inspector/background-field-renderer.js` ;
 - **ajouter une requête au serveur d'état** : ajouter la méthode et sa route uniquement dans
-  `dev/background-state-client.js` ;
-- **ajouter une action de preset** : intervenir dans `dev/background-preset-controller.js` ;
-- **modifier l'import/export** : intervenir dans `dev/background-preset-transfer-controller.js`
+  `studio/presets/background-state-client.js` ;
+- **ajouter une action de preset** : intervenir dans `studio/presets/background-preset-controller.js` ;
+- **modifier l'import/export** : intervenir dans `studio/presets/background-preset-transfer-controller.js`
   et conserver la prévisualisation puis la confirmation avant écriture ;
 - **modifier le montage, la qualité ou la mesure FPS** : utiliser
-  `dev/background-preview-controller.js` ; l'état courant et le preset actif sont isolés dans
-  `dev/background-preview-session.js` ;
-- **modifier le bandeau Antenne** : les décisions d'affichage sont dans `dev/antenna-status.js`, la
-  relecture et le rendu dans `dev/antenna-controller.js` ;
-- **câbler un nouveau module au démarrage** : le faire dans `dev/background-tuner-runtime.js`.
+  `studio/canvas/background-preview-controller.js` ; l'état courant et le preset actif sont isolés dans
+  `background-preview-session.js` ;
+- **modifier le bandeau Antenne** : les décisions d'affichage sont dans `studio/presets/antenna-status.js`, la
+  relecture et le rendu dans `studio/presets/antenna-controller.js` ;
+- **câbler un nouveau module au démarrage** : le faire dans `studio/main.js`.
 
 Les identifiants HTML, les URL et les routes serveur font partie du contrat : ne pas les recopier
 dans plusieurs modules. Ajouter un test à l'interface concernée, puis lancer `bun test` et vérifier

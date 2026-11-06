@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * components/DotGridAnimated.test.js — Helpers purs (morph, réactions, rampe de couleur) et temps de pulsation.
+ * src/components/DotGridAnimated.test.js — Helpers purs (morph, réactions, rampe de couleur) et temps de pulsation.
  * L'effet lui-même s'instancie avec le banc `layer-test-harness.js` (horloge et canvas factices).
  */
 import { test, expect, describe } from 'bun:test';

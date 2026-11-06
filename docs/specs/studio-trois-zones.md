@@ -1,6 +1,6 @@
 ---
 created: 2026-10-29
-updated: 2026-10-29
+updated: 2026-11-06
 ---
 
 # Spec — Studio en trois zones (refonte de l'écran du tuner)
@@ -9,8 +9,8 @@ Statut : **validée (ordre Z1 → Z3 → Z2 → Z4 → Z5, cadre 16:9 simple, sc
 [`../ux-review.md`](../ux-review.md) (U1, brouillon / publication, est livré). Étapes 1 à 3 du socle sont
 livrées : l'écran peut être refait sans le refaire deux fois.
 
-Périmètre : **l'écran existant** (`dev/studio.html`, `dev/background-tuner.html`,
-`dev/background-tuner-runtime.js` et leurs contrôleurs). Le modèle de scène en couches (`SceneDoc`, étape 4
+Périmètre : **l'écran existant** (`studio/index.html`, `background-tuner.html`,
+`studio/main.js` et leurs contrôleurs). Le modèle de scène en couches (`SceneDoc`, étape 4
 de l'architecture) n'en fait pas partie : cet écran reste celui d'**un fond par preset**, organisé pour
 accueillir plus tard une liste de couches sans nouvelle refonte.
 
@@ -40,7 +40,7 @@ Trois zones, un seul état visible : **ce qui est en antenne** et **ce qui est e
 └──────────────────────┴────────────────────────────┴─────────────────────────┘
 ```
 
-### Z1. Cadre 16:9 fidèle (U3) — livré (`dev/preview-stage.js`)
+### Z1. Cadre 16:9 fidèle (U3) — livré (`studio/canvas/preview-stage.js`)
 
 - Le fond est rendu dans un conteneur **1920×1080 réel** (mêmes dimensions que la source OBS), mis à
   l'échelle par une transformation CSS pour tenir dans la zone centrale. Les effets calculent donc leur

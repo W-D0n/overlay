@@ -6,7 +6,7 @@ import { BINDING_SOURCES, BINDING_TARGETS, FILTER_TARGETS, isTargetId, targetRan
  * layer-timeline.js — La timeline à images clés d'une scène : des **pistes** par couche (une par valeur : opacité, rotation, flou, échelle, position),
  * chacune une suite d'**images clés** `{ t, v, ease }`, et la durée et le mode de lecture de la scène. Module pur, sans DOM : le modèle (forme,
  * bornes, validation, forme canonique), l'évaluation à un instant et l'édition d'une piste. Le moteur (`scene-runtime.js`) évalue et applique ;
- * l'éditeur du Studio (`dev/timeline-controller.js`) édite. Voir docs/specs/timeline.md.
+ * l'éditeur du Studio (`studio/layers/timeline-controller.js`) édite. Voir docs/specs/timeline.md.
  *
  * Les valeurs pilotées et leurs bornes sont celles des liaisons (`layer-bindings.js`, y compris les réglages numériques d'une couche Code) : une même valeur se règle par la timeline (dans le temps,
  * à date fixe) ou par une liaison (par le son, une alerte) ; **la liaison l'emporte** quand les deux visent la même valeur.

@@ -1,3 +1,8 @@
+---
+created: 2026-07-25
+updated: 2026-11-06
+---
+
 # Spec — Preset automatique par scène OBS (③ de l'audit produit)
 
 Statut : **à valider par l'owner**. Créée le 2026-07-25.
@@ -33,10 +38,10 @@ réintroduirait le coût qu'on vient de supprimer.
 |---|---|---|
 | `obs-auth.js` | Auth SHA256 OBS WS v5 | **Restauré tel quel** depuis `scene-engine-v1` (déjà testé contre `node:crypto`) |
 | `obs-scene-mapping.js` | Scène active + table → preset à appliquer ; validation de la table | **Pur, testé** |
-| `dev/obs-scene-client.js` | Connexion, identification, abonnement aux événements, reconnexion | Effets de bord |
-| `dev/background-state-server.js` | Démarre le client si configuré, applique le preset, diffuse | Existant, étendu |
-| `dev/background-state-format.js` | Champ `sceneMap` dans le fichier d'état | Existant, étendu |
-| `dev/background-tuner.html` + contrôleur | Section « Scènes OBS » : associer chaque scène à un preset | Existants, étendus |
+| `server/integrations/obs-scene-client.js` | Connexion, identification, abonnement aux événements, reconnexion | Effets de bord |
+| `server/background-state-server.js` | Démarre le client si configuré, applique le preset, diffuse | Existant, étendu |
+| `src/shared/background-state-format.js` | Champ `sceneMap` dans le fichier d'état | Existant, étendu |
+| `background-tuner.html` + contrôleur | Section « Scènes OBS » : associer chaque scène à un preset | Existants, étendus |
 
 ## Configuration et secret
 
@@ -105,7 +110,7 @@ celles-là, mais ne peut pas proposer de nouvelles scènes — c'est OBS qui a l
 
 1. **Logique et format** — `obs-scene-mapping.js`, `sceneMap` dans le format d'état, restauration de
    `obs-auth.js`. Aucun réseau, tout testé.
-2. **Client OBS** — `dev/obs-scene-client.js` (connexion, identification, `GetSceneList`, événement
+2. **Client OBS** — `server/integrations/obs-scene-client.js` (connexion, identification, `GetSceneList`, événement
    `CurrentProgramSceneChanged`, reconnexion), branché dans le serveur d'état derrière la condition
    « secret présent ». Tests avec un faux serveur OBS WS local.
 3. **Tuner** — section « Scènes OBS », route `POST /scene-map`, état de connexion.

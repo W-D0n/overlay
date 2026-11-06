@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-11-03
+updated: 2026-11-06
 ---
 
 # Procédures — ce que seul l'owner peut faire
@@ -148,7 +148,7 @@ Le mot de passe n'est plus relisible après l'enregistrement (c'est voulu). Le m
 
 À refaire après tout changement de rendu (cette session en a fait : contenus, liaisons, timeline).
 
-1. OBS : Browser Source `http://localhost:5931/dev/obs-bench.html`, à la **taille de votre canvas** (1920×1080).
+1. OBS : Browser Source `http://localhost:5931/studio/bench/obs-bench.html`, à la **taille de votre canvas** (1920×1080).
 2. Attendez ~75 s : dix scénarios s'enchaînent, le tableau se lit à l'écran avec un verdict par ligne (ok / à surveiller / trop coûteux).
 3. Prenez une capture, puis vérifiez que le rapport est lu par le serveur : ouvrez `http://localhost:5932/bench-result` dans un navigateur (un JSON, pas une erreur 404).
 4. Retirez la source de test.
@@ -176,9 +176,9 @@ Aujourd'hui, **Bun est requis** sur la machine. Voulez-vous qu'une version livre
 
 ## 12. `start-stream` : l'invite « remplacer ? »
 
-Quand les serveurs tournent déjà, que doit faire `start-stream.bat` ? Aujourd'hui il s'arrête avec une erreur « port(s) déjà occupé(s) ».
+Quand les serveurs tournent déjà, que doit faire `stream.bat` ? Aujourd'hui il s'arrête avec une erreur « port(s) déjà occupé(s) ».
 
-1. Lancez `start-stream.bat`, laissez-le tourner, puis relancez-le dans un second terminal : lisez le message.
+1. Lancez `stream.bat`, laissez-le tourner, puis relancez-le dans un second terminal : lisez le message.
 2. Choisissez : **(a)** garder l'erreur (sûr : jamais d'arrêt involontaire en plein live), **(b)** proposer « remplacer l'instance en cours ? » avec confirmation.
 
 **Me dire** : a ou b. Je recommande **a** pendant un live, **b** seulement hors live.
@@ -275,7 +275,7 @@ Utilisez l'éditeur pour de vrais lives pendant quelque temps. Notez les moments
 
 ## En cas de problème pendant ces essais
 
-- Le journal du serveur d'état (le terminal où tourne `start-stream.bat`) dit ce qu'il se passe côté connexions.
+- Le journal du serveur d'état (le terminal où tourne `stream.bat`) dit ce qu'il se passe côté connexions.
 - **Réglages** montre l'état d'OBS, de Twitch et de Twitchat, et les dernières alertes reçues ; le **Diagnostic** du bandeau d'antenne vérifie la chaîne jusqu'à OBS.
 - Ne jamais coller un mot de passe, un jeton Twitch ou l'adresse complète de Twitchat (elle contient un jeton) dans un message : décrivez ce que vous voyez. Si l'un d'eux a fuité, **Régénérer le jeton**
   (Twitchat), **Déconnecter** puis reconnecter (Twitch), ou changer le mot de passe dans OBS.

@@ -1,7 +1,7 @@
 // Coquille de l'application « Overlay Studio » (docs/specs/controle-processus.md, D1).
 //
 // Sa fenêtre principale est un panneau de contrôle embarqué (`ui/`) : trois boutons indépendants — Démarrer,
-// Redémarrer, Arrêter — qui lancent et arrêtent `bun dev/start-stream.js`, plus « Ouvrir le Studio » (une seconde
+// Redémarrer, Arrêter — qui lancent et arrêtent `bun server/lifecycle/start-stream.js`, plus « Ouvrir le Studio » (une seconde
 // fenêtre, sur le serveur de fichiers). Le panneau ne dépend pas des serveurs : il sert justement quand ils sont
 // arrêtés ou ne répondent plus. À l'ouverture, l'application démarre les serveurs et ouvre le Studio (ou s'attache à
 // des serveurs déjà lancés à la main) ; un échec reste affiché dans le panneau. À sa fermeture elle n'arrête que ce
@@ -145,7 +145,7 @@ fn bun_version() -> Option<String> {
 
 fn launch_servers(root: &Path) -> std::io::Result<Child> {
     Command::new("bun")
-        .arg("dev/start-stream.js")
+        .arg("server/lifecycle/start-stream.js")
         .current_dir(root)
         .creation_flags(CREATE_NO_WINDOW)
         .spawn()
@@ -198,7 +198,7 @@ fn stop_everything(app: &AppHandle) {
     let config = app.state::<Config>();
     if port_open(config.static_port) || port_open(config.state_port) {
         let _ = Command::new("bun")
-            .arg("dev/kill-servers.js")
+            .arg("server/lifecycle/kill-servers.js")
             .current_dir(&config.root)
             .creation_flags(CREATE_NO_WINDOW)
             .status();
@@ -263,7 +263,7 @@ fn open_studio_window(app: &AppHandle) -> Result<(), String> {
     if !port_open(static_port) {
         return Err("Le serveur de fichiers est arrêté : démarre les serveurs d'abord.".to_string());
     }
-    let url = format!("http://localhost:{static_port}/dev/studio.html");
+    let url = format!("http://localhost:{static_port}/studio/index.html");
     let mut window_config = app
         .config()
         .app

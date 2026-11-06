@@ -1,6 +1,6 @@
 ---
 created: 2026-06-06
-updated: 2026-11-04
+updated: 2026-11-06
 ---
 
 # Inbox — Overlay Stream
@@ -30,7 +30,7 @@ Ce que seul l'owner peut faire (OBS, regard humain, décision). **Claude rappell
 - [ ] **Liaisons au son et aux alertes dans OBS** (2026-10-31, §6) : poser un titre avec une liaison « alerte raid → opacité » et une liaison « niveau sonore → échelle » sur un logo, puis déclencher un vrai raid / parler dans le micro. À vérifier : l'animation est fluide à 60 i/s, le micro est bien demandé, la retombée correspond à la durée réglée.
 - [ ] **Alertes système en conditions réelles** (2026-10-31, §7) : activer « Alertes système » dans le bandeau (autoriser les notifications), réduire le Studio, puis fermer OBS ou couper la source navigateur. À vérifier : la notification arrive en moins de 20 s et le titre de l'onglet porte « ⚠ ». Dire si une chute de FPS (non couverte) mérite d'être remontée par la page de rendu.
 - [ ] **Timeline dans OBS** (2026-10-31, §8) : animer un titre (opacité 0 → 1 en 0,8 s), publier, puis changer de scène OBS et revenir : l'animation doit rejouer à chaque arrivée. À vérifier : fluidité à 60 i/s, boucle, comportement pendant une transition de scène.
-- [ ] **Relancer le banc (§9)** `dev/obs-bench.html` dans OBS après tout changement de rendu, et vérifier que le rapport se lit
+- [ ] **Relancer le banc (§9)** `studio/bench/obs-bench.html` dans OBS après tout changement de rendu, et vérifier que le rapport se lit
   par `GET /bench-result`.
 - [ ] **Tauri (§10)** : cocher la case « démarrage avec Windows » du panneau et vérifier qu'elle tient après redémarrage.
 - [ ] **Exécutable sans Bun (§11)** : décider si on le livre (aujourd'hui Bun est requis).
@@ -41,10 +41,10 @@ Ce que seul l'owner peut faire (OBS, regard humain, décision). **Claude rappell
 
 - ~~**Passe d'audit et de correction des erreurs de typage**~~ — **faite le 2026-10-31 : 83 → 0.** Causes racines : typedef JSDoc
   multi-ligne invalide (6 erreurs en cascade), paramètres à défaut `null` typés `null`, littéraux élargis en `string`,
-  palette typée `never[]` (24 erreurs), `error.message` sur un `catch` non typé (désormais `dev/error-message.js`, gardé par
-  `dev/error-message.test.js`), un test qui fabriquait une fausse erreur 409 au lieu de la vraie, annotations manquantes.
-  La baseline `dev/typecheck-baseline.json` est vide : toute nouvelle erreur de typage fait échouer `bun dev/typecheck.js`.
-- ~~**Parcours clavier de bout en bout** des panneaux~~ — fait le 2026-10-31 (`dev/e2e/suites/20-parcours-clavier.e2e.js`).
+  palette typée `never[]` (24 erreurs), `error.message` sur un `catch` non typé (désormais `src/shared/error-message.js`, gardé par
+  `src/shared/error-message.test.js`), un test qui fabriquait une fausse erreur 409 au lieu de la vraie, annotations manquantes.
+  La baseline `tools/typecheck-baseline.json` est vide : toute nouvelle erreur de typage fait échouer `bun tools/typecheck.js`.
+- ~~**Parcours clavier de bout en bout** des panneaux~~ — fait le 2026-10-31 (`e2e/suites/20-parcours-clavier.e2e.js`).
 - ~~**Audit produit avant toute proposition d'amélioration**~~ — fait le 2026-10-31 ; ses propositions sont livrées (contenus,
   médiathèque, liaisons, versions, incidents, timeline) ou reprises ci-dessous.
 
@@ -84,7 +84,7 @@ Ordre = recommandation.
    **Reste** : textures (image de la médiathèque en `sampler2D`), passes multiples (fluides), vignette, coût GPU mesuré par couche.
 3. ~~**Déclencheurs d'alerte → animation**~~ — **faits le 2026-11-02** (piste 2 ci-dessus) : ils servent aussi les réglages animés des couches Code et Shader.
 4. **Animations de couche** (`specs/animations-de-couche.md`, décidée le 2026-11-03 ; **livrées le 2026-11-03** : modèle, moteur, sortie au départ de la scène, panneau, préréglages de texte et de forme ; reste la mesure dans OBS, §17) : préréglages d'entrée, de boucle et de sortie pour toute couche, **une horloge par couche** (elle peut apparaître n'importe quand), sortie à date fixe et au départ de la scène, relance par alerte couche par couche ; puis lettre par lettre / machine à écrire pour le texte. Le code (CSS, JS, 3D) reste disponible à côté.
-5. **Finitions** : ~~groupes de couches~~ (**faits le 2026-11-03 : « groupes complets »**, `specs/groupes-de-couches.md` ; reste à vous : l'essai OBS, `procedures-owner.md` §18), ~~courbes de Bézier~~ (**faites le 2026-11-03**, `specs/timeline.md`), ~~copier-coller d'images clés~~ (**fait le 2026-11-03**, `specs/timeline.md`), ~~filtres par couche~~ (**lueur et réglages de couleur faits le 2026-11-03**, `specs/liaisons-de-couche.md` ; **animation des filtres faite le 2026-11-03** ; ~~masques~~ **faits le 2026-11-03** : formes simples, inspecteur, `specs/masques-de-couche.md` ; poignées sur l'aperçu faites ; restent l'animation des masques et le masque d'image), ~~bibliothèque de modèles~~ (**faite le 2026-11-03** : 8 modèles prêts à l'emploi dans la fenêtre « Modèles de couches », `dev/builtin-layer-templates.js`).
+5. **Finitions** : ~~groupes de couches~~ (**faits le 2026-11-03 : « groupes complets »**, `specs/groupes-de-couches.md` ; reste à vous : l'essai OBS, `procedures-owner.md` §18), ~~courbes de Bézier~~ (**faites le 2026-11-03**, `specs/timeline.md`), ~~copier-coller d'images clés~~ (**fait le 2026-11-03**, `specs/timeline.md`), ~~filtres par couche~~ (**lueur et réglages de couleur faits le 2026-11-03**, `specs/liaisons-de-couche.md` ; **animation des filtres faite le 2026-11-03** ; ~~masques~~ **faits le 2026-11-03** : formes simples, inspecteur, `specs/masques-de-couche.md` ; poignées sur l'aperçu faites ; restent l'animation des masques et le masque d'image), ~~bibliothèque de modèles~~ (**faite le 2026-11-03** : 8 modèles prêts à l'emploi dans la fenêtre « Modèles de couches », `studio/editor/builtin-layer-templates.js`).
 5bis. **Transitions à mattes vidéo** (2026-11-03, **sujet abordé, rien n'est codé**) : l'owner a des mattes et des transitions en vidéo (`F:\_RESSOURCES\Mask`, `F:\_RESSOURCES\Transition COLLECTION`) et veut en avoir
    plusieurs, par moment, par scène ou au hasard. **Mesuré** (Chrome 156, cette machine, prototype jetable hors dépôt) : les `.mov` en MJPEG (mattes 3D, `Mask.mov`, `Nois.mov`) ne se lisent pas dans Chrome (« no supported streams »),
    les H.264 oui ; aucun de ces fichiers n'a de canal alpha (mattes en niveaux de gris, overlays sur fond noir). Une `<video>` ne peut pas servir de `mask-image` CSS. **Piste prouvée** : convertir chaque matte en **planche d'images**
@@ -105,8 +105,8 @@ Ordre = recommandation.
    coût d'une `iframe` plus un rendu 3D par scène à 1080p/60 → plafond ou indicateur de charge dans le Studio.
 7. **Passe finale d'amélioration et d'enrichissement UX/UI, puis revue et refactorisation de TOUTE la codebase** (demandée par l'owner le 2026-11-03, **à faire une fois les chantiers de fonctions terminés**) :
    ① UX/UI : parcourir chaque surface du Studio (panneaux, inspecteur, timeline, toile, dialogues, palette, états vides, erreurs, clavier, lecteur d'écran, petits écrans) et corriger / enrichir ce qui frotte ;
-   ② revue de code de tout le dépôt (standards du projet, spec contre code, doublons, dette de `dev/typecheck-baseline.json`, fichiers trop gros, noms, tests faibles) ;
-   ③ refactorisation des modules qui ont grossi (`dev/scene-editor.js`, `scene-runtime.js`, `dev/layers-panel-controller.js`…) sans changer le comportement : chaque étape garde `bun test`, le typage et `bun dev/e2e/run.js` verts, et les gardes (défauts réinjectés) prouvent que rien n'a bougé.
+   ② revue de code de tout le dépôt (standards du projet, spec contre code, doublons, dette de `tools/typecheck-baseline.json`, fichiers trop gros, noms, tests faibles) ;
+   ③ refactorisation des modules qui ont grossi (`studio/editor/scene-editor.js`, `scene-runtime.js`, `studio/layers/layers-panel-controller.js`…) sans changer le comportement : chaque étape garde `bun test`, le typage et `bun e2e/run.js` verts, et les gardes (défauts réinjectés) prouvent que rien n'a bougé.
    **Cadrée et commencée le 2026-11-03** : inventaire mesuré, lots et avancement dans `docs/revue-finale.md` (lot 1 fait ; lots 2 à 5 à faire).
 
 ---
@@ -114,7 +114,7 @@ Ordre = recommandation.
 ### Essais de bout en bout : un échec intermittent non élucidé (2026-11-03)
 
 Une exécution complète a rendu `739 / 742` (30 contrôles manquants : une suite s'est interrompue en cours de route) juste après un `bun test` ; sept exécutions complètes suivantes ont donné `772 / 772`. La suite concernée n'a pas été
-identifiée (seule la dernière ligne avait été gardée). `dev/e2e/run.js` rappelle désormais, en fin de sortie, chaque contrôle en échec avec sa suite : **au prochain échec intermittent, relever ce rappel avant de relancer**.
+identifiée (seule la dernière ligne avait été gardée). `e2e/run.js` rappelle désormais, en fin de sortie, chaque contrôle en échec avec sa suite : **au prochain échec intermittent, relever ce rappel avant de relancer**.
 
 ### Noms des effets : décision de vocabulaire (2026-11-04)
 
@@ -164,7 +164,7 @@ devient active » cochée). Statistiques OBS ouvertes (Affichage → Statistique
 servent de référence pour comparer après la refonte.
 
 **1. Votre symptôme d'origine — la source à réactualiser au démarrage** *(la cause est inconnue)*
-- [ ] Serveurs **arrêtés**, lancer OBS, **puis** lancer `start-stream.bat`. Attendre 60 s sans toucher
+- [ ] Serveurs **arrêtés**, lancer OBS, **puis** lancer `stream.bat`. Attendre 60 s sans toucher
       à la source. Le fond s'affiche-t-il seul ? Combien de temps après le lancement des serveurs ?
 - [ ] Même test avec « Rafraîchir quand la scène devient active » **décochée**.
 - [ ] Serveurs lancés **avant** OBS : le fond est-il affiché dès l'ouverture d'OBS ?
@@ -208,7 +208,7 @@ servent de référence pour comparer après la refonte.
       Lisible sur vos fonds clairs et au-dessus d'une caméra (`?branding=only`).
 
 **9. Stockage de la Browser Source** *(décide si le cache du rendu peut être activé, `docs/specs/socle-rendu-etapes-1-2.md` §1b)*
-- [ ] Ajouter une Browser Source de test sur `http://localhost:5931/dev/storage-probe.html`. Noter ce qu'elle affiche (« PREMIÈRE visite »), **fermer OBS complètement**, le relancer : affiche-t-elle « MÉMORISÉ » et la date d'origine ?
+- [ ] Ajouter une Browser Source de test sur `http://localhost:5931/studio/bench/storage-probe.html`. Noter ce qu'elle affiche (« PREMIÈRE visite »), **fermer OBS complètement**, le relancer : affiche-t-elle « MÉMORISÉ » et la date d'origine ?
 - [ ] Même test avec « Désactiver la source quand elle n'est pas visible » cochée, puis avec « Rafraîchir quand la scène devient active » cochée (changer de scène, revenir : le compteur de chargements augmente-t-il, la date reste-t-elle ?).
 - Si « MÉMORISÉ » : le cache peut être activé. Sinon il reste inutile et le serveur doit être démarré avant OBS.
 
@@ -226,8 +226,8 @@ L'objectif est de trouver ce qui casse quand elles cohabitent, et de mesurer le 
 
 **Préparation**
 
-- Lancer `start-stream.bat` (statique + état du fond). Pour tester le mapping de scènes, lancer
-  `start-dev.bat` à la place et vérifier que `.env` contient `OBS_WS_PASSWORD`.
+- Lancer `stream.bat` (statique + état du fond). Pour tester le mapping de scènes, lancer
+  `studio.bat` à la place et vérifier que `.env` contient `OBS_WS_PASSWORD`.
 - OBS lancé **par le raccourci portant `--enable-media-stream`** (sans quoi l'audio ne peut pas
   fonctionner), canvas 1920×1080.
 - Ouvrir le gestionnaire des tâches ou les statistiques OBS pour voir CPU/GPU et les images perdues.
@@ -297,7 +297,7 @@ L'objectif est de trouver ce qui casse quand elles cohabitent, et de mesurer le 
 - **Canvas OBS de l'owner : 1920×1080.** Décision prise : la référence du projet passe à 1080p (le
   1440p posait des problèmes avec certaines scènes et sources OBS). `CLAUDE.md` §2, README, guide et
   protocole de QA mis à jour. **Reste** : la constante `BRANDING_REFERENCE_HEIGHT = 1440`
-  (`components/BrandingLayer.js`) et les valeurs 36/18 px de `branding-format.js`, en attente d'un
+  (`src/components/BrandingLayer.js`) et les valeurs 36/18 px de `branding-format.js`, en attente d'un
   choix de l'owner (changer la référence modifie l'aspect du branding en live).
 - **Réglages de la Browser Source** (`http://localhost:5931/background.html`) : « Désactiver quand
   non visible » décochée, « Rafraîchir quand la scène devient active » **cochée**. L'hypothèse du

@@ -1,6 +1,6 @@
 ---
 created: 2026-07-26
-updated: 2026-11-03
+updated: 2026-11-06
 ---
 
 # Roadmap — Overlay Stream D0n / Mozaïk
@@ -35,7 +35,7 @@ conditions réelles dans OBS (liste « À faire par l'owner » de l'inbox).
 | Shader | Couche Shader : fragment GLSL (WebGL2, style Shadertoy) pour des fonds génératifs légers ; réglages, son et alertes en uniformes, qualité de rendu ; réglages numériques animables par la timeline et les liaisons | `specs/couche-shader.md` |
 
 Le guide d'usage est [`guides/studio-editeur-de-couches.md`](guides/studio-editeur-de-couches.md). Garde-fous : tests unitaires,
-typage strict à 0 erreur, essais de bout en bout dans un vrai Chrome (`bun dev/e2e/run.js`).
+typage strict à 0 erreur, essais de bout en bout dans un vrai Chrome (`bun e2e/run.js`).
 
 ## Livré avant (audit produit 2026-07-24)
 

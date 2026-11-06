@@ -4,7 +4,7 @@ import { referenceScale } from '../render/render-reference.js';
 import { smooth } from '../layers/layer-cost.js';
 
 /**
- * components/canvas-layer.js — Squelette commun des effets de fond dessinés sur un canvas.
+ * src/components/canvas-layer.js — Squelette commun des effets de fond dessinés sur un canvas.
  *
  * Un effet fournit seulement son état et `draw(ctx, frame, size)` ; ce module garde le canvas, le
  * `ResizeObserver`, le ratio de pixels, l'abonnement à l'horloge unique (`render-clock.js`) et la

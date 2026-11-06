@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * components/shape-geometry.js — La géométrie d'une couche forme : pur, sans canvas ni DOM. Une forme remplit la zone de sa couche,
+ * src/components/shape-geometry.js — La géométrie d'une couche forme : pur, sans canvas ni DOM. Une forme remplit la zone de sa couche,
  * réduite de la moitié du contour pour qu'il ne soit jamais rogné par le bord ; `ShapeLayer` n'a plus qu'à la peindre.
  *
  * @typedef {{ type: 'rect', x: number, y: number, width: number, height: number, radius: number }

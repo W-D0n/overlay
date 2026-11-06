@@ -6,7 +6,7 @@ import { BRIDGE_VERSION, composeDocument } from './code-document.js';
 import { normalizeParamValues, paramCssVariables, parseParamSpec } from './code-params.js';
 
 /**
- * components/CodeLayer.js — Couche de contenu « code » : du HTML, du CSS et du JavaScript que l'auteur écrit (ou importe), exécutés dans une
+ * src/components/CodeLayer.js — Couche de contenu « code » : du HTML, du CSS et du JavaScript que l'auteur écrit (ou importe), exécutés dans une
  * `iframe` isolée (`sandbox="allow-scripts"`, document composé par `code-document.js`). C'est ce qui rend possibles les animations CSS riches,
  * le canvas, WebGL et une bibliothèque 3D rangée dans la médiathèque.
  *

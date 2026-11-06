@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * components/text-layer.config.js — Données du type de couche `text` : pile de repli de chaque famille de police, quand
+ * src/components/text-layer.config.js — Données du type de couche `text` : pile de repli de chaque famille de police, quand
  * `tokens.css` n'est pas chargé (essais, page sans feuille de style). Les piles de référence sont les tokens `--font-*`.
  */
 

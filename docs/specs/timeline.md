@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-11-03
+updated: 2026-11-06
 ---
 
 # Spec — Timeline à images clés
@@ -20,19 +20,19 @@ images clés ») et la raison d'être des **chemins adressables** de `scene-doc.
   (validation : exigée avec elle, refusée avec les autres ; forme canonique : arrondie au millième, bornée, retirée des autres courbes). Choisir « Courbe personnalisée » part de la courbe douce de CSS ; régler la courbe
   choisit « personnalisée » ; choisir une autre courbe l'efface. Elle suit l'image clé quand on la déplace, se copie et se colle avec elle. Six préréglages (douce, freine fort, démarre fort, dépasse, recule puis part,
   recule-dépasse-se pose). Dans le panneau : le détail d'une image clé dessine sa courbe (toutes les courbes), et pour une courbe personnalisée montre deux poignées qu'on glisse à la souris (flèches du clavier : 0,05 ;
-  `Maj` : 0,01), les quatre nombres et la liste des préréglages (`dev/curve-editor.js`). Les entrées et sorties d'animation de couche gardent leurs courbes fixes. Preuves : `cubic-bezier.test.js` (calcul vérifié contre un
-  balayage indépendant), `layer-timeline-bezier.test.js`, `dev/e2e/suites/39-courbe-personnalisee.e2e.js` (valeur lue sur le calque réel, poignée à la souris et au clavier ; défauts réinjectés vus rouges).
+  `Maj` : 0,01), les quatre nombres et la liste des préréglages (`studio/layers/curve-editor.js`). Les entrées et sorties d'animation de couche gardent leurs courbes fixes. Preuves : `cubic-bezier.test.js` (calcul vérifié contre un
+  balayage indépendant), `layer-timeline-bezier.test.js`, `e2e/suites/39-courbe-personnalisee.e2e.js` (valeur lue sur le calque réel, poignée à la souris et au clavier ; défauts réinjectés vus rouges).
 - **Copier-coller d'images clés** (2026-11-03) : `copyKeys(tracks, target, indexes?)` copie une image clé ou toute une piste (instants relatifs à la première) ; `pasteKeys(tracks, clip, at, range)` les pose
   à l'instant voulu, sur la même valeur, d'une couche ou d'une autre. Une image déjà posée à un instant collé est remplacée (valeur et courbe de la copie), les autres restent ; les instants sont arrondis et ramenés dans la
   durée possible, les valeurs dans les bornes ; **tout ou rien** si la piste dépasserait 24 images ou si 6 pistes existent déjà. Dans le panneau : ⧉ sur une piste la copie, « Copier » dans le détail copie l'image choisie,
   « Coller » la pose au repère de lecture (la copie survit au changement de couche ; une couche qui n'a pas la valeur copiée, par exemple un réglage de code, refuse en le disant), `Ctrl+C` et `Ctrl+V` sur une image clé.
-  Collage = une entrée d'historique. Preuves : `layer-timeline-clip.test.js` (14 défauts réinjectés vus rouges) et `dev/e2e/suites/38-copier-coller-cles.e2e.js` (11 défauts de l'interface vus rouges).
+  Collage = une entrée d'historique. Preuves : `layer-timeline-clip.test.js` (14 défauts réinjectés vus rouges) et `e2e/suites/38-copier-coller-cles.e2e.js` (11 défauts de l'interface vus rouges).
 - **Relance par une alerte** (2026-11-02) : `SceneDoc.timeline.restartOn` liste les sources d'alerte (`event:any`, `event:follow`, `event:sub`, `event:raid`, `event:bits` : les
   impulsions des liaisons) qui **ramènent la lecture à zéro et la remettent en marche** quand elles arrivent, même arrêtée à sa fin ou mise en pause : « un raid rejoue l'entrée du titre ».
   `event:any` les relance toutes, `event:<type>` celles de ce type ; une liste vide n'est pas écrite (forme canonique, ordre des sources, sans doublon). Le moteur
   (`scene-runtime.js`, `react`) la lit à chaque alerte ; le panneau de la timeline propose une case par alerte. Elle vaut pour toute la scène (la durée est celle de la scène),
   donc pour les valeurs animées des couches Code et Shader comme pour les autres. Preuves : `layer-timeline-restart.test.js` (19 mutations, 18 vues rouges, 1 équivalente retirée du code)
-  et `dev/e2e/suites/36-timeline-alerte.e2e.js` (de vraies alertes par le serveur : choisie → relance, autre → rien, « toute alerte », annulation).
+  et `e2e/suites/36-timeline-alerte.e2e.js` (de vraies alertes par le serveur : choisie → relance, autre → rien, « toute alerte », annulation).
 - Les valeurs animées et leurs bornes sont **celles des liaisons** (`layer-bindings.js`) : opacité, rotation, flou, échelle, décalages, et les réglages numériques bornés d'une
   couche Code (`param:<clé>`, `specs/couche-code.md` §9). Une même
   valeur se règle donc dans le temps (timeline) ou par le son et les alertes (liaison) ; **quand les deux visent la même valeur, la liaison
@@ -54,7 +54,7 @@ la refuse) : l'animation ne se perd jamais en silence dans la projection `{ comp
   d'OBS ne s'en sert pas : l'animation joue seule, depuis l'arrivée de la scène. **Vérifié sur la vraie page `background.html`** (l'essai relève l'opacité
   du texte image par image).
 
-## 3. Le Studio (`dev/timeline-controller.js`, `dev/timeline-view.js`)
+## 3. Le Studio (`studio/layers/timeline-controller.js`, `studio/layers/timeline-view.js`)
 
 Un panneau **sous l'aperçu** : lecture (▶ / ⏸), revenir au début, curseur de position, durée, boucle, puis, dépliées, les **pistes de la couche sélectionnée**.
 
@@ -72,7 +72,7 @@ Un panneau **sous l'aperçu** : lecture (▶ / ⏸), revenir au début, curseur 
 ## 4. Vérification
 
 `layer-timeline.test.js` (modèle, courbes, validation, forme canonique, édition, document de scène), `scene-bindings-runtime.test.js` (moteur : lecture,
-boucle, pause, position, priorité des liaisons, arrivée de scène), `dev/timeline-view.test.js` ; essai `29-timeline.e2e.js` (clés réelles, glisser à la souris,
+boucle, pause, position, priorité des liaisons, arrivée de scène), `studio/layers/timeline-view.test.js` ; essai `29-timeline.e2e.js` (clés réelles, glisser à la souris,
 flèches, courbes, deux pistes, durée, boucle, lecture, publication, **page de rendu d'OBS**). 15 mutations du modèle et du moteur, 10 de l'interface vues
 rouges (certaines survivantes ont fait ajouter des tests).
 

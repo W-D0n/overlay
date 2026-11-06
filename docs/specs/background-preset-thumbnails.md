@@ -1,3 +1,8 @@
+---
+created: 2026-07-26
+updated: 2026-11-06
+---
+
 # Spec — Vignettes de presets (⑥ de l'audit produit)
 
 Statut : **livrée** le 2026-07-26.
@@ -20,7 +25,7 @@ Trois décisions en découlent :
 1. **Photo, pas animation** — l'effet est monté dans une boîte de 104×58, photographié
    (`canvas.toDataURL`), puis **démonté**. Au repos, une vignette est une image : zéro canvas, zéro
    `requestAnimationFrame`. Vérifié : 6 vignettes affichées, 0 canvas et 0 animation au repos.
-2. **Une capture à la fois** — `dev/thumbnail-queue.js` sérialise les captures. Une capture qui
+2. **Une capture à la fois** — `studio/canvas/thumbnail-queue.js` sérialise les captures. Une capture qui
    échoue n'empêche pas les suivantes.
 3. **Le mouvement au survol** — pointer ou clavier (`focusin`) remonte l'effet réel dans la vignette,
    la sortie le démonte. C'est souvent le mouvement qui distingue deux ambiances, mais il ne coûte
@@ -43,10 +48,10 @@ réellement quelque chose — mesuré par `canvasInkRatio`, la part de pixels no
 
 | Fichier | Rôle | Nature |
 |---|---|---|
-| `dev/thumbnail-queue.js` | Sérialisation des captures | **Pur, testé** |
-| `dev/preset-thumbnail.js` | Boîte, capture, survol, `canvasInkRatio` | Effets de bord (canvas) |
-| `dev/background-preset-controller.js` | Une vignette par ligne, libérées à chaque re-rendu | Existant, étendu |
-| `dev/background-tuner.html` | Styles de la vignette | Existant, étendu |
+| `studio/canvas/thumbnail-queue.js` | Sérialisation des captures | **Pur, testé** |
+| `studio/canvas/preset-thumbnail.js` | Boîte, capture, survol, `canvasInkRatio` | Effets de bord (canvas) |
+| `studio/presets/background-preset-controller.js` | Une vignette par ligne, libérées à chaque re-rendu | Existant, étendu |
+| `background-tuner.html` | Styles de la vignette | Existant, étendu |
 
 Les vignettes détiennent des effets montés : `disposeThumbnails()` est appelé à chaque re-rendu de
 liste, sinon un effet resterait vivant derrière une ligne disparue.

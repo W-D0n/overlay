@@ -1,6 +1,6 @@
 ---
 created: 2026-10-29
-updated: 2026-10-29
+updated: 2026-11-06
 ---
 
 # Revue d'architecture — vers le Studio d'overlays
@@ -17,17 +17,17 @@ Revue **en lecture seule** du code actuel, menée contre le cadrage
 Deux défauts **indépendants du Studio**, à traiter avant le prochain live. Détail et preuves en
 annexe (§8, lots 3 et 4).
 
-**U1 — Exposition réseau du mot de passe OBS (sécurité). Corrigé le 2026-10-29** (écoute `127.0.0.1`, liste blanche de fichiers, `dev/local-access-policy.js`, tests `local-access-policy.test.js` ; après correctif : `/.env`, `/.git/config`, `/dev/data/…` → 404, `netstat` : `127.0.0.1` seulement). Constat avant correctif, mesuré sur la machine, serveurs lancés :
+**U1 — Exposition réseau du mot de passe OBS (sécurité). Corrigé le 2026-10-29** (écoute `127.0.0.1`, liste blanche de fichiers, `server/local-access-policy.js`, tests `local-access-policy.test.js` ; après correctif : `/.env`, `/.git/config`, `/data/…` → 404, `netstat` : `127.0.0.1` seulement). Constat avant correctif, mesuré sur la machine, serveurs lancés :
 
 | Mesure | Résultat |
 |---|---|
 | Interface d'écoute des deux serveurs (`netstat`) | `0.0.0.0` et `[::]` : **toutes les interfaces**, pas seulement `localhost` |
 | `GET /.env` sur le serveur statique (port 5931) | **HTTP 200, 154 octets**. Le fichier contient une ligne `OBS_WS_PASSWORD` renseignée |
-| `GET /.git/config`, `/dev/data/background-state.json`, `/src-tauri/Cargo.toml` | HTTP 200 chacun |
+| `GET /.git/config`, `/data/background-state.json`, `/src-tauri/Cargo.toml` | HTTP 200 chacun |
 | Pare-feu Windows (`Get-NetFirewallProfile`) | **Désactivé** sur Domaine, Privé et Public ; aucune règle pour `bun.exe` ni pour les ports 5931/5932 |
 
-Cause : `dev/static-server.js` sert `ROOT = ..` (**toute la racine du dépôt**, dotfiles compris) et
-`Bun.serve({ port })` n'indique aucun `hostname`. Tant que `start-stream.bat` tourne, **tout appareil
+Cause : `server/static-server.js` sert `ROOT = ..` (**toute la racine du dépôt**, dotfiles compris) et
+`Bun.serve({ port })` n'indique aucun `hostname`. Tant que `stream.bat` tourne, **tout appareil
 du même réseau local** peut lire `http://<IP du PC>:5931/.env`. Le mot de passe donne accès à OBS
 WebSocket, qui, d'après le protocole v5 (non vérifié ici), permet de piloter OBS et de lire les
 paramètres du service de diffusion, **clé de stream comprise**. Je n'ai pas lu ni affiché le contenu
@@ -35,9 +35,9 @@ du `.env` : seuls des codes de réponse et des tailles ont été relevés. Je n'
 d'un pare-feu tiers. Je ne sais pas si quelqu'un a déjà accédé à ce fichier.
 
 Correctif proposé (petit, sur accord) : écouter sur `127.0.0.1` ; servir par **liste blanche** de
-chemins (`background.html`, `components/`, modules racine utiles, `dev/` hors `data/`), jamais les
-fichiers dont le nom commence par `.`, ni `src-tauri/`, `docs/`, `dev/data/` ; test rouge puis vert.
-Mesure à rejouer après correctif. En attendant : ne pas lancer `start-stream.bat` sur un réseau
+chemins (`background.html`, `src/components/`, `studio/`), jamais les
+fichiers dont le nom commence par `.`, ni `src-tauri/`, `docs/`, `data/` ; test rouge puis vert.
+Mesure à rejouer après correctif. En attendant : ne pas lancer `stream.bat` sur un réseau
 partagé ; si les serveurs ont tourné sur un réseau non maîtrisé, **changer le mot de passe OBS**.
 
 **U2 — Le serveur d'état accepte n'importe quelle origine (sécurité). Corrigé le 2026-10-29** (Origin et Host locaux exigés, WebSockets compris ; test rouge vu sans la garde). Constat avant correctif : Une requête `OPTIONS` avec une
@@ -155,8 +155,8 @@ Les paramètres `preset`, `branding`, `transparent`, `quality` sont **lus à qua
 | Lieu | Rôle |
 |---|---|
 | `background.html` | lit `preset`, `branding`, `transparent` |
-| `components/canvas-runtime.js` | lit `quality` dans `location.search` (global implicite) |
-| `dev/background-preview-controller.js` | lit et écrit `quality` |
+| `src/components/canvas-runtime.js` | lit `quality` dans `location.search` (global implicite) |
+| `studio/canvas/background-preview-controller.js` | lit et écrit `quality` |
 | `background-selection.js` | construit les URL (`preset`, `transparent`, `quality`) |
 
 Un effet dépend donc de l'URL de la page, ce qui est un couplage caché : le Studio verra plusieurs
@@ -164,7 +164,7 @@ aperçus dans une même page, avec des qualités différentes.
 
 ### F4 — Un effet se déclare à trois endroits, et des tests compensent (moyenne)
 
-Ajouter un effet = `component-names.js` + `component-registry.js` + `dev/component-field-schemas.js`
+Ajouter un effet = `component-names.js` + `component-registry.js` + `studio/inspector/component-field-schemas.js`
 (le guide dit « trois lignes », et « les tests de cohérence attrapent les oublis »). Une structure qui
 exige des tests pour ne pas se désynchroniser est un signal : la *définition d'un effet* est un seul
 concept éclaté en trois fichiers. S'y ajoutent les capacités (audio, réaction native) déclarées
@@ -172,7 +172,7 @@ nulle part.
 
 ### F5 — Le serveur d'état cumule quatre responsabilités (moyenne)
 
-`dev/background-state-server.js` (495 lignes, aucun export) contient : le transport HTTP/WebSocket,
+`server/background-state-server.js` (495 lignes, aucun export) contient : le transport HTTP/WebSocket,
 la persistance avec verrou, **douze** handlers de domaine (presets, import, branding, événements,
 mapping de scènes) et le client OBS. Il porte un état mutable de module (`obsStatus`) et lit
 l'environnement. La logique de domaine est en partie extraite (`background-preset-library.js`,
@@ -192,7 +192,7 @@ l'environnement. La logique de domaine est en partie extraite (`background-prese
 - Aucun modèle d'édition : pas de document de scène, pas d'état d'édition unique, pas de sélection,
   d'annulation ni de manipulation directe. Seul le branding se déplace à la souris (`branding-drag.js`,
   32 lignes).
-- Le dossier `dev/` abrite le produit (Studio, serveur d'état), pas seulement de l'outillage.
+- Le Studio et le serveur d'état sont le produit, pas seulement de l'outillage (`studio/`, `server/`).
 
 ### F7 — Petits modules : suppression utile ou non (faible)
 
@@ -207,7 +207,7 @@ Test de suppression appliqué :
 
 ### F8 — Organisation et dette ponctuelle (faible)
 
-- 14 fichiers à plat à la racine, 41 dans `dev/`, 18 dans `components/` : aucune séparation par
+- Des fichiers à plat à la racine, dans un dossier unique du Studio et des serveurs, et dans `src/components/` : aucune séparation par
   couche, malgré une séparation de fait (moteur / protocole / serveur / Studio).
 - `DotGridAnimated.js` : **708 lignes**, le double de tout autre effet, exposé sous le nom
   `DotGridBackground` (alias dans le registre), avec un outil de réglage historique
@@ -236,7 +236,7 @@ studio/     Interface de création : éditeur de scène, formulaires, brouillon/
 - **Contrat d'URL** : un module qui lit *et* construit (`preset`, `scene`, `branding`, `transparent`,
   `quality`). Corrige F3.
 - Formats existants regroupés : état, presets, branding, événement `{ type, username?, amount? }`.
-  Validation et migration au même endroit (`dev/background-state-format.js` aujourd'hui).
+  Validation et migration au même endroit (`src/shared/background-state-format.js` aujourd'hui).
 - **Valeurs persistées neutres** : `audioReactive` devient un booléen, le libellé « Oui » reste dans
   l'interface. Corrige F2 (avec migration).
 
@@ -334,7 +334,7 @@ Détail des options :
   un petit magasin d'état à abonnement, sans dépendance, conforme à la contrainte ; **(b)** garder les
   contrôleurs impératifs actuels et les étendre ; **(c)** relâcher la contrainte pour une bibliothèque
   d'interface, ce qui contredit `CLAUDE.md` §1. *Recommandation : (a).*
-- **D2 — Renommage et déplacement** (`dev/` → `studio/` + `host/`, racine → `engine/` + `protocol/`,
+- **D2 — Renommage et déplacement** (Studio → `studio/`, serveurs → `server/`, moteur → `src/`,
   `background.html` → `render.html`). Les URL de vos Browser Sources changeraient (`background.html`),
   sauf à conserver une redirection. À arbitrer : renommer, ou garder `background.html` comme alias.
 - **D3 — Valeurs persistées neutres** (`audioReactive` booléen) : demande une migration de vos presets.
@@ -420,7 +420,7 @@ Lus en entier : `DotGridAnimated.js`, `ShapeMorphBackground.js`, `background-aud
 **A8. Le sélecteur « mode » de DotGrid est un leurre [lu + mesuré].** `MODE_PARAMS` déclare **8
 modes** (`discussion`, `codage`, `brb`, `interview`, `react`, `creation`, `fin`, `starting`) : mesuré,
 ils portent **une seule valeur distincte** (`freqX 0.045, freqY 0.045, freqT 0.79, amplitude 0.16`).
-`GRID_MODES` alimente pourtant le champ « mode » du tuner (`dev/component-field-schemas.js:106`) : le
+`GRID_MODES` alimente pourtant le champ « mode » du tuner (`studio/inspector/component-field-schemas.js:106`) : le
 Studio propose huit choix qui ne changent **rien**. Ce sont des vestiges des scènes du moteur archivé.
 À retirer ou à remplacer par des modes réels : candidat direct à votre confusion sur les fonctions.
 
@@ -460,11 +460,11 @@ effets à temps intégré). Défaut mineur.
 
 ### Lot 3 — protocole : état, presets, transitions, schémas de champs
 
-Lus en entier : `dev/background-state-format.js`, `dev/background-preset-library.js`,
-`background-transition.js`, `dev/component-field-schemas.js`.
+Lus en entier : `src/shared/background-state-format.js`, `studio/presets/background-preset-library.js`,
+`background-transition.js`, `studio/inspector/component-field-schemas.js`.
 
 **B1. DÉFAUT CONFIRMÉ — l'export/import de presets perd des données [lu + exécuté].**
-`clonePreset` (`dev/background-preset-library.js:66`) copie par **liste blanche** `id, name,
+`clonePreset` (`studio/presets/background-preset-library.js:66`) copie par **liste blanche** `id, name,
 component, options, tags` et **omet `transition` et `showBranding`**, deux champs ajoutés au type
 `BackgroundPreset` par les specs ④ et ⑤. Exécuté sur le vrai code avec un preset qui porte les deux :
 
@@ -486,16 +486,16 @@ lieu d'une copie qui préserve tous les champs. Correctif prêt, à appliquer su
 d'abord, puis copie structurelle, puis garde sur l'ensemble des clés pour la classe de défaut).
 Impact actuel sur vous : faible (un seul preset), mais réel dès que vous en utiliserez davantage.
 
-**B2. Le protocole dépend de l'interface et d'un effet [lu].** `dev/background-state-format.js` (validation
+**B2. Le protocole dépend de l'interface et d'un effet [lu].** `src/shared/background-state-format.js` (validation
 de l'état persisté, côté serveur) importe `BACKGROUND_COMPONENT_NAMES` depuis
-`dev/component-field-schemas.js` (configuration du formulaire du tuner), qui importe lui-même
-`GRID_MODES` depuis `components/DotGridAnimated.js` (un effet de rendu). La validation d'un fichier
+`studio/inspector/component-field-schemas.js` (configuration du formulaire du tuner), qui importe lui-même
+`GRID_MODES` depuis `src/components/DotGridAnimated.js` (un effet de rendu). La validation d'un fichier
 d'état exige donc de charger la configuration d'interface **et** un effet : la dépendance va du
 protocole vers l'interface, puis vers le rendu, **à l'envers** de la structure voulue (§4).
 
 **B3. Quatre listes de noms d'effets, dont une « source unique » qui ne l'est pas [lu].**
 `component-names.js` s'annonce « source unique » et dit être consommée par
-`dev/component-field-schemas.js`. Or ce dernier **ne l'importe pas** : il dérive sa liste de ses
+`studio/inspector/component-field-schemas.js`. Or ce dernier **ne l'importe pas** : il dérive sa liste de ses
 propres clés (`BACKGROUND_COMPONENT_NAMES = Object.keys(BACKGROUND_FIELD_SCHEMAS)`). La validation
 d'état utilise cette liste-là, le montage utilise `component-registry.js`. Confirme F4 et corrige
 sa formulation : ce n'est pas « trois fichiers à tenir à jour », c'est **un commentaire qui affirme une
@@ -529,8 +529,8 @@ B1 est dans la copie, pas dans la conception de l'import.
 
 ### Lot 4 — serveurs et OBS
 
-Lus en entier : `dev/background-state-server.js`, `dev/obs-scene-client.js`, `obs-scene-mapping.js`,
-`dev/static-server.js`, `dev/dev-server-shared.js`, `docs/security.md`.
+Lus en entier : `server/background-state-server.js`, `server/integrations/obs-scene-client.js`, `obs-scene-mapping.js`,
+`server/static-server.js`, `server/dev-server-shared.js`, `docs/security.md`.
 
 **C1. Sécurité : voir §0 (U1, U2)** — écoute sur toutes les interfaces, racine du dépôt servie en
 entier, CORS ouvert, pare-feu désactivé.
@@ -574,9 +574,9 @@ statique, ni l'exposition mesurée en §0.
 
 ### Lot 5 — Studio (contrôleurs, vignettes, réactions, branding)
 
-Lus en entier : `dev/background-preview-controller.js`, `dev/background-preset-controller.js`,
-`dev/background-field-renderer.js`, `dev/background-preview-session.js`, `dev/preset-thumbnail.js`,
-`components/ReactionOverlay.js`, `components/BrandingLayer.js`, début de `dev/background-live-readiness.js`.
+Lus en entier : `studio/canvas/background-preview-controller.js`, `studio/presets/background-preset-controller.js`,
+`studio/inspector/background-field-renderer.js`, `background-preview-session.js`, `studio/canvas/preset-thumbnail.js`,
+`src/components/ReactionOverlay.js`, `src/components/BrandingLayer.js`, début de `background-live-readiness.js`.
 
 **D1. Le tuner publie à l'antenne à chaque modification, y compris « Essayer » [lu].**
 `createBackgroundPreviewController` appelle `schedulePersist()` (temporisation de 150 ms) après
@@ -651,7 +651,7 @@ dans le Studio.
 ### Lot 6 — petits modules, outillage, tuner historique
 
 Lus sans leurs commentaires : contrôleurs d'import, de branding, de scènes OBS, de préparation au live,
-présentateurs, utilitaires (`keyed-lock`, `port-check`, `kill-servers`, `start-dev`), `tuner-server.js`,
+présentateurs, utilitaires (`keyed-lock`, `port-check`, `kill-servers`, `start-studio`), `tuner-server.js`,
 `dotgrid-params-format.js`, `color-utils.js`, `obs-auth.js`, runtime du tuner, client d'état.
 
 **E1. Le tuner DotGrid historique est déjà cassé [lu + exécuté].** `applyDotGridParamsToSource` cherche
@@ -676,13 +676,13 @@ l'insère dans `document.body`, lit `getComputedStyle`, le retire. Appelé à la
 couleur (pas par image), donc sans coût visible, mais un effet ne peut pas être instancié sans `document`.
 Un service de couleurs avec cache serait plus propre.
 
-**E5. Cycle de vie des processus bricolé en quatre fichiers [lu].** `start-dev.js`, `start-stream.js`,
+**E5. Cycle de vie des processus bricolé en quatre fichiers [lu].** `start-studio.js`, `start-stream.js`,
 `kill-servers.js`, `port-check.js` recomposent à la main : lancement de deux processus enfants, détection
 de port occupé, recherche du PID par `netstat`, vérification par `tasklist` que c'est bien `bun.exe`,
 `taskkill`. C'est la cause racine de vos « un script pour lancer et un autre pour tuer » : **deux
 serveurs = deux processus enfants = des orphelins possibles**. Fusionner le serveur statique et le
 serveur d'état en un seul processus (déjà prévu par la spec zéro-installation) supprime cette classe de
-problèmes. `start-dev.js` ouvre les pages après un délai fixe de 2 s, sans attendre que les serveurs
+problèmes. `start-studio.js` ouvre les pages après un délai fixe de 2 s, sans attendre que les serveurs
 répondent.
 
 **E6. Le préparateur au live est démesuré par rapport à ce qu'il vérifie [lu].** 279 lignes de logique

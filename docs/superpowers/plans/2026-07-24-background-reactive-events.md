@@ -25,8 +25,8 @@
 ### Task 1: Validation d'événement (pure)
 
 **Files:**
-- Create: `dev/background-event-format.js`
-- Test: `dev/background-event-format.test.js`
+- Create: `src/shared/background-event-format.js`
+- Test: `src/shared/background-event-format.test.js`
 
 **Interfaces:**
 - Produces: `VALID_EVENT_TYPES: readonly string[]`, `validateBackgroundEvent(body: unknown): { ok: boolean, errors: string[] }`
@@ -34,7 +34,7 @@
 - [ ] **Step 1: Write the failing test**
 
 ```js
-// dev/background-event-format.test.js
+// src/shared/background-event-format.test.js
 import { expect, test } from 'bun:test';
 import { validateBackgroundEvent, VALID_EVENT_TYPES } from './background-event-format.js';
 
@@ -66,13 +66,13 @@ test('[validateBackgroundEvent] corps non-objet rejeté', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `bun test dev/background-event-format.test.js`
+Run: `bun test src/shared/background-event-format.test.js`
 Expected: FAIL — `Cannot find module './background-event-format.js'`.
 
 - [ ] **Step 3: Write minimal implementation**
 
 ```js
-// dev/background-event-format.js
+// src/shared/background-event-format.js
 // @ts-check
 /**
  * background-event-format.js — Validation pure d'un événement de réaction (2026-07-24).
@@ -107,13 +107,13 @@ export function validateBackgroundEvent(body) {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `bun test dev/background-event-format.test.js`
+Run: `bun test src/shared/background-event-format.test.js`
 Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add dev/background-event-format.js dev/background-event-format.test.js
+git add src/shared/background-event-format.js src/shared/background-event-format.test.js
 git commit -m "feat: validation pure des événements de réaction du fond"
 ```
 
@@ -122,14 +122,14 @@ git commit -m "feat: validation pure des événements de réaction du fond"
 ### Task 2: Route `POST /event` + `WS /event-ws`
 
 **Files:**
-- Modify: `dev/background-state-server.js`
-- Test: `dev/background-state-server.test.js` (ajouter un test)
+- Modify: `server/background-state-server.js`
+- Test: `server/background-state-server.test.js` (ajouter un test)
 
 **Interfaces:**
 - Consumes: `validateBackgroundEvent` (Task 1)
 - Produces: `POST /event` (400 si invalide, sinon diffuse) ; `WS /event-ws` (diffuse l'événement JSON)
 
-- [ ] **Step 1: Write the failing test** (ajouter à la fin de `dev/background-state-server.test.js`, après le test existant)
+- [ ] **Step 1: Write the failing test** (ajouter à la fin de `server/background-state-server.test.js`, après le test existant)
 
 ```js
 test('POST /event valide diffuse une fois sans toucher le fichier ; invalide → 400 sans diffusion', async () => {
@@ -137,7 +137,7 @@ test('POST /event valide diffuse une fois sans toucher le fichier ; invalide →
   const stateFile = join(directory, 'state.json');
   const port = 43000 + (process.pid % 10000);
   const baseUrl = `http://localhost:${port}`;
-  const child = Bun.spawn(['bun', 'dev/background-state-server.js'], {
+  const child = Bun.spawn(['bun', 'server/background-state-server.js'], {
     cwd: join(import.meta.dir, '..'),
     env: { ...process.env, BACKGROUND_STATE_PORT: String(port), BACKGROUND_STATE_FILE: stateFile },
     stdout: 'pipe',
@@ -185,10 +185,10 @@ test('POST /event valide diffuse une fois sans toucher le fichier ; invalide →
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `bun test dev/background-state-server.test.js`
+Run: `bun test server/background-state-server.test.js`
 Expected: FAIL — `/event` renvoie 404 (route absente), l'assertion `invalid.status === 400` échoue.
 
-- [ ] **Step 3: Write minimal implementation** — 4 éditions dans `dev/background-state-server.js` :
+- [ ] **Step 3: Write minimal implementation** — 4 éditions dans `server/background-state-server.js` :
 
 3a. Ajouter l'import (après la ligne `import { CORS_HEADERS, jsonError } from './dev-server-shared.js';`) :
 
@@ -269,13 +269,13 @@ et dans `websocket.open` / `websocket.close` :
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `bun test dev/background-state-server.test.js`
+Run: `bun test server/background-state-server.test.js`
 Expected: PASS (2 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add dev/background-state-server.js dev/background-state-server.test.js
+git add server/background-state-server.js server/background-state-server.test.js
 git commit -m "feat: canal /event éphémère sur le serveur d'état du fond"
 ```
 
@@ -284,8 +284,8 @@ git commit -m "feat: canal /event éphémère sur le serveur d'état du fond"
 ### Task 3: ReactionOverlay — helpers, ordonnanceur, boucle
 
 **Files:**
-- Create: `components/ReactionOverlay.js`
-- Test: `components/ReactionOverlay.test.js`
+- Create: `src/components/ReactionOverlay.js`
+- Test: `src/components/ReactionOverlay.test.js`
 
 **Interfaces:**
 - Produces:
@@ -301,7 +301,7 @@ git commit -m "feat: canal /event éphémère sur le serveur d'état du fond"
 - [ ] **Step 1: Write the failing test**
 
 ```js
-// components/ReactionOverlay.test.js
+// src/components/ReactionOverlay.test.js
 import { expect, test } from 'bun:test';
 import {
   reactionDuration, followRadius, pulseAlpha, raidBandCenter, bitsCount,
@@ -402,13 +402,13 @@ test('[createReactionLoop] stop annule la frame en cours', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `bun test components/ReactionOverlay.test.js`
+Run: `bun test src/components/ReactionOverlay.test.js`
 Expected: FAIL — module introuvable.
 
 - [ ] **Step 3: Write minimal implementation**
 
 ```js
-// components/ReactionOverlay.js
+// src/components/ReactionOverlay.js
 // @ts-check
 import { resolveColor } from './color-utils.js';
 import { canvasPixelRatio } from './canvas-runtime.js';
@@ -603,13 +603,13 @@ export function ReactionOverlay(options = {}) {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `bun test components/ReactionOverlay.test.js`
+Run: `bun test src/components/ReactionOverlay.test.js`
 Expected: PASS (9 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add components/ReactionOverlay.js components/ReactionOverlay.test.js
+git add src/components/ReactionOverlay.js src/components/ReactionOverlay.test.js
 git commit -m "feat: overlay de réaction partagé pour les fonds"
 ```
 
@@ -779,12 +779,12 @@ git commit -m "feat: coordinateur natif/overlay des réactions de fond"
 ### Task 6: Client — `sendEvent` + abonnement `/event-ws`
 
 **Files:**
-- Modify: `dev/background-state-client.js`
+- Modify: `studio/presets/background-state-client.js`
 
 **Interfaces:**
 - Produces: `client.sendEvent(type: string): Promise<unknown>` ; `subscribe` accepte un `onEvent?` optionnel branché sur `/event-ws`.
 
-- [ ] **Step 1: Ajouter `sendEvent`** dans l'objet retourné (après `importPresets`), `dev/background-state-client.js` :
+- [ ] **Step 1: Ajouter `sendEvent`** dans l'objet retourné (après `importPresets`), `studio/presets/background-state-client.js` :
 
 ```js
     /** @param {string} type */
@@ -801,13 +801,13 @@ git commit -m "feat: coordinateur natif/overlay des réactions de fond"
 
 - [ ] **Step 3: Vérifier la non-régression**
 
-Run: `bun test dev/background-state-client.test.js`
+Run: `bun test studio/presets/background-state-client.test.js`
 Expected: PASS (les tests existants ne cassent pas ; `onEvent` optionnel).
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add dev/background-state-client.js
+git add studio/presets/background-state-client.js
 git commit -m "feat: sendEvent et abonnement /event-ws côté client du tuner"
 ```
 
@@ -863,7 +863,7 @@ et l'appeler à côté de `connect();` :
 - [ ] **Step 3: Vérification manuelle live**
 
 ```
-bun dev/background-state-server.js        # port 4462
+bun server/background-state-server.js        # port 4462
 bunx serve                                 # sert background.html
 ```
 
@@ -884,15 +884,15 @@ git commit -m "feat: background.html réagit aux événements via overlay/natif"
 ### Task 8: Tuner — boutons de test + réaction de l'aperçu
 
 **Files:**
-- Modify: `dev/background-preview-controller.js` (overlay + `react` sur l'aperçu)
-- Modify: `dev/background-tuner.html` (section « Tester une réaction »)
-- Modify: `dev/background-tuner-runtime.js` (câblage boutons + abonnement `onEvent`)
+- Modify: `studio/canvas/background-preview-controller.js` (overlay + `react` sur l'aperçu)
+- Modify: `background-tuner.html` (section « Tester une réaction »)
+- Modify: `studio/main.js` (câblage boutons + abonnement `onEvent`)
 
 **Interfaces:**
 - Consumes: `client.sendEvent` / `subscribe({ onEvent })` (Task 6), `ReactionOverlay` + `createReactionCoordinator`.
 - Produces: `preview.react(event): void`.
 
-- [ ] **Step 1: L'aperçu réagit.** Dans `dev/background-preview-controller.js`, importer et monter un overlay + coordinateur sur `input.layer`, exposer `react`. Après `const mount = createBackgroundMount(input.layer);` :
+- [ ] **Step 1: L'aperçu réagit.** Dans `studio/canvas/background-preview-controller.js`, importer et monter un overlay + coordinateur sur `input.layer`, exposer `react`. Après `const mount = createBackgroundMount(input.layer);` :
 
 ```js
 import { ReactionOverlay } from '../components/ReactionOverlay.js';
@@ -905,7 +905,7 @@ import { createReactionCoordinator } from '../background-reactions.js';
 
 Ajouter `react: reactions.handle,` dans l'objet retourné, et `overlay.destroy();` dans `destroy()`.
 
-- [ ] **Step 2: Markup des boutons.** Dans `dev/background-tuner.html`, ajouter une section dans la sidebar (près des contrôles d'effet) :
+- [ ] **Step 2: Markup des boutons.** Dans `background-tuner.html`, ajouter une section dans la sidebar (près des contrôles d'effet) :
 
 ```html
 <section class="tuner-section">
@@ -921,7 +921,7 @@ Ajouter `react: reactions.handle,` dans l'objet retourné, et `overlay.destroy()
 
 (Réutiliser les classes de bouton existantes de la page ; suivre le style de section déjà présent.)
 
-- [ ] **Step 3: Câblage.** Dans `dev/background-tuner-runtime.js` :
+- [ ] **Step 3: Câblage.** Dans `studio/main.js` :
 
 3a. Boutons → `client.sendEvent` (après la création de `preview`) :
 
@@ -956,7 +956,7 @@ Expected: PASS (toute la suite verte).
 - [ ] **Step 5: Commit**
 
 ```bash
-git add dev/background-preview-controller.js dev/background-tuner.html dev/background-tuner-runtime.js
+git add studio/canvas/background-preview-controller.js background-tuner.html studio/main.js
 git commit -m "feat: boutons de test de réaction et aperçu réactif dans le tuner"
 ```
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { LOOK_KEYS, canonicalSceneDoc, validateSceneDoc, withoutLook } from '../scene/scene-doc.js';
-import { createSceneEditor } from '../../dev/scene-editor.js';
+import { createSceneEditor } from '../../studio/editor/scene-editor.js';
 import { createSceneRuntime } from '../scene/scene-runtime.js';
 
 const layer = (extra = {}) => ({ id: 'a', kind: 'text', visible: true, opacity: 1, placement: { x: 0, y: 0, width: 1, height: 1 }, options: {}, ...extra });

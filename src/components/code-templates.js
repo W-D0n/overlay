@@ -1,7 +1,7 @@
 // @ts-check
 
 /**
- * components/code-templates.js — Starting points for a Code layer: a complete HTML + CSS + JavaScript + settings declaration each, that the Studio puts in the layer in one step
+ * src/components/code-templates.js — Starting points for a Code layer: a complete HTML + CSS + JavaScript + settings declaration each, that the Studio puts in the layer in one step
  * ("Modèle de départ"). Data only. The sources are stored as plain text, so they hold no template literal (nothing to escape), and the JavaScript needs no import: a template runs
  * as it is, in the isolated page, with the `overlay` object. The unit test checks that each one is a valid Code layer: sizes, settings declaration, syntax of the script.
  *

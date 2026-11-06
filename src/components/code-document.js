@@ -3,7 +3,7 @@ import { CODE_ASSET_REFERENCE } from '../layers/layer-kinds.js';
 import { paramCssVariables } from './code-params.js';
 
 /**
- * components/code-document.js — Le document isolé d'une couche Code : ce que l'`iframe` charge (`srcdoc`), construit ici et nulle part ailleurs.
+ * src/components/code-document.js — Le document isolé d'une couche Code : ce que l'`iframe` charge (`srcdoc`), construit ici et nulle part ailleurs.
  *
  * Le code de l'auteur ne s'exécute jamais dans la page de rendu ni dans le Studio : il vit dans une `iframe` `sandbox="allow-scripts"` (origine
  * opaque : ni cookies, ni stockage, ni accès à la page qui l'héberge, ni à l'API du Studio) et son document porte une **politique de sécurité

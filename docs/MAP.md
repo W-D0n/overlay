@@ -13,9 +13,9 @@ updated: 2026-11-06
 
 - `background.html` est désormais l'URL OBS principale : elle rend un seul effet de fond, sans
   widgets ni moteur de scènes.
-- `dev/studio.html` est l'entrée de création unique : aperçu plein écran, choix parmi les **11
+- `studio/index.html` est l'entrée de création unique : aperçu plein écran, choix parmi les **11
   effets**, formulaires générés et presets.
-- `dev/background-state-server.js` persiste `{ current, presets }` et synchronise le tuner avec OBS
+- `server/background-state-server.js` persiste `{ current, presets }` et synchronise le tuner avec OBS
   par WebSocket.
 - `stream.bat` et `studio.bat` lancent le serveur statique et l'état du fond ; `studio.bat`
   ouvre en plus le Studio.
@@ -39,7 +39,7 @@ updated: 2026-11-06
 - Lot du 2026-07-24 : ① fonds réactifs (`POST /event`, `WS /event-ws`, `ReactionOverlay`,
   routage natif/overlay via `background-reactions.js`, boutons de test dans le tuner).
 - Lot du 2026-07-25 : ⑦ archivage du moteur de scènes — registre scindé sur les seuls effets de
-  fond, `types.js` réduit, Studio à une entrée, `start-dev` limité aux serveurs statique et fond,
+  fond, `types.js` réduit, Studio à une entrée, `start-studio` limité aux serveurs statique et fond,
   tuner DotGrid nettoyé de sa partie relais OBS.
 - Lot du 2026-07-26 : réactivité audio étendue aux **11 effets** (`src/components/audio-reaction.js`
   partagé) et correction de `level`, qui diluait une voix sous 10 % en moyennant tout le spectre.
@@ -74,7 +74,7 @@ de scènes).
 | S4 | Relais Bun (WS + HTTP `/emit`, auth OBS, secret en env) | ✅ fait |
 | S5 | Persistance `dotgrid-tuner` (portée réduite le 2026-07-04 — placement drag & drop reporté, prérequis `anchor`/`offset` manquant, voir `docs/backlog-history.md`) | ✅ fait |
 | S7 | Panneau de placement — format `Placement` (pixels absolus, pas d'ancrage) + migration des 9 scènes + panneau drag & drop + persistance. 5 sessions atomiques, spec `docs/specs/scene-placement-protocol.md`. Owner a demandé "le panneau complet" (2026-07-04) après S5 réduite. | ✅ fait |
-| S6 | Contrôle programmatique d'OBS (créer/piloter scènes OBS depuis le panneau S7) — **priorisé par l'owner (2026-07-03)**, voir `docs/backlog-history.md` §Contrôle OBS centralisé. 4 sessions atomiques, spec `docs/specs/obs-scene-control.md`. Décision owner (2026-07-06) : routes dans `relay/server.js` (seul process tournant pendant le live), pas un process séparé — évite de dupliquer connexion/auth/reconnexion OBS déjà écrites. Session 1/4 **terminée** (2026-07-06) : `GET /obs/list-scenes`, `POST /obs/create-scene`, `POST /obs/set-current-scene`, réutilisent `sendObsRequest` (déjà écrit pour `/refresh-source`). Session 2/4 **terminée** (2026-07-06) : `GET /obs/list-scene-items`, `POST /obs/create-scene-item`, `POST /obs/set-scene-item-transform`, `POST /obs/set-scene-item-enabled` — positionnement et visibilité des sources dans une scène. Session 3/4 **terminée** (2026-07-06) : section "OBS" dans `dev/overlay-setting.html` (scènes + scene items, activer/créer une scène, ajouter/positionner/masquer une source), réutilise `RELAY_TOKEN` (`obs-config.local.js`, même pattern que `dev/dotgrid-tuner.html`). Les 3 sessions vérifiées avec un faux serveur OBS WS v5 (pas de test unitaire — convention existante des serveurs de dev, effets vérifiés manuellement/visuellement via Playwright). Session 4/4 **terminée** (2026-07-06) : vérification contre la vraie instance OBS de l'owner — `OBS_WS_URL` pointait en fait la machine locale elle-même (hypothèse d'IP LAN injoignable erronée, corrigée), OBS ouvert par l'owner. 7 routes confirmées sur une scène de test dédiée (`_test-s6`, jamais les 9 scènes réelles) : liste, création, ajout de source, positionnement et visibilité relus après écriture, activation/restauration du programme OBS. **S6 complet (4/4).** Scène `_test-s6` laissée dans OBS, à supprimer manuellement (RemoveScene hors périmètre). | ✅ fait |
+| S6 | Contrôle programmatique d'OBS (créer/piloter scènes OBS depuis le panneau S7) — **priorisé par l'owner (2026-07-03)**, voir `docs/backlog-history.md` §Contrôle OBS centralisé. 4 sessions atomiques, spec `docs/specs/obs-scene-control.md`. Décision owner (2026-07-06) : routes dans `relay/server.js` (seul process tournant pendant le live), pas un process séparé — évite de dupliquer connexion/auth/reconnexion OBS déjà écrites. Session 1/4 **terminée** (2026-07-06) : `GET /obs/list-scenes`, `POST /obs/create-scene`, `POST /obs/set-current-scene`, réutilisent `sendObsRequest` (déjà écrit pour `/refresh-source`). Session 2/4 **terminée** (2026-07-06) : `GET /obs/list-scene-items`, `POST /obs/create-scene-item`, `POST /obs/set-scene-item-transform`, `POST /obs/set-scene-item-enabled` — positionnement et visibilité des sources dans une scène. Session 3/4 **terminée** (2026-07-06) : section "OBS" dans `overlay-setting.html` (scènes + scene items, activer/créer une scène, ajouter/positionner/masquer une source), réutilise `RELAY_TOKEN` (`obs-config.local.js`, même pattern que `dotgrid-tuner.html`). Les 3 sessions vérifiées avec un faux serveur OBS WS v5 (pas de test unitaire — convention existante des serveurs de dev, effets vérifiés manuellement/visuellement via Playwright). Session 4/4 **terminée** (2026-07-06) : vérification contre la vraie instance OBS de l'owner — `OBS_WS_URL` pointait en fait la machine locale elle-même (hypothèse d'IP LAN injoignable erronée, corrigée), OBS ouvert par l'owner. 7 routes confirmées sur une scène de test dédiée (`_test-s6`, jamais les 9 scènes réelles) : liste, création, ajout de source, positionnement et visibilité relus après écriture, activation/restauration du programme OBS. **S6 complet (4/4).** Scène `_test-s6` laissée dans OBS, à supprimer manuellement (RemoveScene hors périmètre). | ✅ fait |
 | S8 | Moteur de scène dynamique (jalon 2 de l'éditeur) — `SceneConfig`/`LayerConfig`/`ComponentMount` étendus (pas remplacés) : `placement` par composant (pas par couche), bibliothèque de composants étoffée (Box/Divider/TextLabel/TextList/PollBar/Badge/Image), binding déclaratif, `SceneId` ouvert. 6 sessions atomiques, spec `docs/specs/scene-definition-v2.md`. Pivot demandé par l'owner (2026-07-04) : composer/modifier les composants d'une scène + créer/modifier/supprimer des scènes, modèle Figma. Session 3/6 **terminée** : `TextList` (2 scènes), `Box` (9 couches), `TextLabel`/`Divider` (discussion,
 brb, codage, interview, react, creation, fin — labels/valeurs/séparateurs). `className`/`className: ''`
 ajoutés à Box/Divider/TextLabel pour réutiliser le CSS existant tel quel (marges, sélecteurs
@@ -84,7 +84,7 @@ composites à enfants indépendants (interview/cams+fiches), wrappers imbriqués
 verts sur tous les fichiers touchés — **vérification visuelle en attente** (owner). Session 4/6
 **terminée** (persistance) : `scenes/registry.js` (`loadDynamicScenes()`, `STATIC_SCENE_IDS`),
 `scene-runtime.js` (`init()` async, listeners enregistrés avant l'await réseau — fix review),
-`dev/scene-data-server.js` (3 routes CRUD dev-only, verrou manifeste en mémoire), `dev/scene-data-format.js`
+`scene-data-server.js` (3 routes CRUD dev-only, verrou manifeste en mémoire), `scene-data-format.js`
 (logique pure manifeste, testée), `scenes/data/manifest.json` (`[]` initial). Review multi-angles
 (8 findings, 6 correctness dont un crash total sur manifeste malformé et une race WS sur l'init async,
 2 conventions/reuse) — tous corrigés et reverifiés (`bun test` 115 verts, tests HTTP manuels bout en
@@ -94,14 +94,14 @@ suppression via les routes génériques (risque accepté, git = filet de sécuri
 **Migration des 9 scènes effectuée** (2026-07-04) : `scenes/*.config.js` → `scenes/data/*.scene.json`,
 `scenes/registry.js` ne construit plus `SCENE_CONFIGS` par import statique. `*.wire.js` inchangé
 (reste du JS statique). Effets de bord corrigés au passage : chemins de `loadDynamicScenes()` rendus
-absolus (cassaient depuis `dev/overlay-setting.html`), panneau de placement (S7) mis à jour pour
-appeler `loadDynamicScenes()` et son mécanisme d'écriture réécrit en JSON pur (`dev/scene-placement-format.js`,
-`dev/placement-server.js`, remplace la réécriture par regex sur source JS). `protocol.test.js` bascule
+absolus (cassaient depuis `overlay-setting.html`), panneau de placement (S7) mis à jour pour
+appeler `loadDynamicScenes()` et son mécanisme d'écriture réécrit en JSON pur (`scene-placement-format.js`,
+`placement-server.js`, remplace la réécriture par regex sur source JS). `protocol.test.js` bascule
 sur l'import JSON natif Bun. `bun test` : 114/114. **Vérification visuelle OBS/navigateur des 9 scènes
 toujours à faire par l'owner** (pas d'outil de screenshot dans cet environnement). Migration `jeu` vers
 `AlertBanner`/`PollBar` actée mais différée après S8 (owner, voir `docs/backlog-history.md`). Session 5/6
-**terminée** (2026-07-05, UI de composition) : `dev/overlay-setting.html` étendu — chaque couche liste
-ses `ComponentMount` avec formulaire dédié par type (`dev/component-field-schemas.js`, 12 types
+**terminée** (2026-07-05, UI de composition) : `overlay-setting.html` étendu — chaque couche liste
+ses `ComponentMount` avec formulaire dédié par type (`studio/inspector/component-field-schemas.js`, 12 types
 composables, `DotGridBackground` exclu), bascule valeur fixe/`$bind` par champ, ajout/retrait
 sauvegardent immédiatement (`POST /update-scene`), édition de champ attend le bouton "Enregistrer".
 `liveConfig` devient la copie de travail unique (placement + composition) pour éviter qu'une
@@ -124,7 +124,7 @@ couches ajoutés le jour même (commit `4c2e331`, non retracé ici avant le 2026
 déposer par poignée dédiée. Placement par composant individuel reste hors scope. | ✅ fait |
 | Épopée | Éditeur complet au-delà de S6/S8 (export/import config, skill recherche graphique) | ⬜ hors scope |
 | Track A | Bibliothèque de transitions de scène (`slide`/`wipe`/`morph`) — besoin concret exprimé par l'owner (2026-07-06), sorti de l'épopée. `direction` (slide/wipe) et `color` (wipe) configurables dès la v1. 4 sessions atomiques, spec `docs/specs/scene-transition-library.md`. A1 (spec, 2026-07-06), A2 (`slide`/`wipe`), A3 (`morph` via `DotGridAnimated.morphTo()`, interpolation Simplex entre modes, dégradation en fondu d'opacité si un seul côté a un fond — LAC-01 tranchée) et A4 (UI panneau) **livrées** (2026-07-07, commit `deacfa5`). | ✅ fait (4/4) |
-| Track B | Bibliothèque de 10 effets de fond indépendants (élargie depuis le cycle de formes original suite à recherche CodePen, 2026-07-07) — remplacent `DotGridBackground` sur `#bg-layer`, devenu polymorphe (`SceneConfig.background: ComponentMount`). 8 sessions atomiques, spec `docs/specs/background-effects-library.md`. B1 (spec) → B2 (fondation polymorphe, migration `DotGridBackground` sans régression) → B3-B7 (Rain, Bubble+éclatement, Fireflies, FloatingSymbols, GeometricPattern, ColorDrops, StarsParallax, OrbitingShapes — chacun avec sa section de fine-tuning dans `dev/overlay-setting.html`) → B8 (`ShapeMorphBackground`, cycle pizza/étoile ninja/casque/carapace/masque Batman par interpolation radiale) **toutes livrées** (2026-07-07, commit `deacfa5`). LAC-01 (renommage panneau) tranchée : conservé tel quel. LAC-02 (variabilité couleur DotGrid par bruit) et LAC-03 (positions procédurales `StarsParallaxBackground`) tranchées avec l'owner (2026-07-10, voir §Durcissement ci-dessous). | ✅ fait (8/8) |
+| Track B | Bibliothèque de 10 effets de fond indépendants (élargie depuis le cycle de formes original suite à recherche CodePen, 2026-07-07) — remplacent `DotGridBackground` sur `#bg-layer`, devenu polymorphe (`SceneConfig.background: ComponentMount`). 8 sessions atomiques, spec `docs/specs/background-effects-library.md`. B1 (spec) → B2 (fondation polymorphe, migration `DotGridBackground` sans régression) → B3-B7 (Rain, Bubble+éclatement, Fireflies, FloatingSymbols, GeometricPattern, ColorDrops, StarsParallax, OrbitingShapes — chacun avec sa section de fine-tuning dans `overlay-setting.html`) → B8 (`ShapeMorphBackground`, cycle pizza/étoile ninja/casque/carapace/masque Batman par interpolation radiale) **toutes livrées** (2026-07-07, commit `deacfa5`). LAC-01 (renommage panneau) tranchée : conservé tel quel. LAC-02 (variabilité couleur DotGrid par bruit) et LAC-03 (positions procédurales `StarsParallaxBackground`) tranchées avec l'owner (2026-07-10, voir §Durcissement ci-dessous). | ✅ fait (8/8) |
 | Couche 4 DotGrid | Réactions visuelles aux alertes stream (`follow`/`sub`/`raid`/`bits`) + déclenchement `ambient` périodique — dernier gap du cadrage DotGrid initial (couche 3 devenue obsolète, remplacée par `ShapeMorphBackground`/Track B). 3 sessions atomiques, spec `docs/specs/dotgrid-event-triggers.md`. Session 1 (spec), 2 (`DotGridAnimated.trigger()`, 4 comportements + minuteur ambient, vérifié visuellement par échantillonnage pixel) et 3 (câblage `applyBackgroundReactions` dans `scene-runtime.js` — pas de fichier wire touché, LAC-01 de la spec : évite une dépendance circulaire) **livrées** (2026-07-10). Vérifié bout en bout via `/emit` réel sur un relais de test (OBS non sollicité). `/code-review` : 2 races mineures (fenêtre de chargement de page) documentées LAC-02 de la spec, acceptées telles quelles (owner). | ✅ fait (3/3) |
 
 ## Détail S1 (livré)
@@ -194,11 +194,11 @@ déposer par poignée dédiée. Placement par composant individuel reste hors sc
 
 ## Détail S5 (livré, portée réduite)
 
-- `dev/dotgrid-params-format.js` — logique pure de remplacement du bloc `MODE_PARAMS` +
+- `dotgrid-params-format.js` — logique pure de remplacement du bloc `MODE_PARAMS` +
   `baseOpacity`/`dotRadius` dans le source, testée (4 tests).
-- `dev/tuner-server.js` — serveur de dev séparé (`bun dev/tuner-server.js`, jamais lancé en live),
+- `tuner-server.js` — serveur de dev séparé (`bun tuner-server.js`, jamais lancé en live),
   route unique `POST /save`, réécrit `src/components/DotGridAnimated.js` directement.
-- `dev/dotgrid-tuner.html` — bouton "Sauvegarder" ajouté (bouton "Copier" gardé en secours).
+- `dotgrid-tuner.html` — bouton "Sauvegarder" ajouté (bouton "Copier" gardé en secours).
 - Testé bout en bout manuellement (sauvegarde réelle, vérification du fichier, restauration).
 - Décision de scope (2026-07-04) : le drag & drop de placement (portée initiale du jalon 1) est
   **reporté** — prérequis `anchor`/`offset` jamais construit (AD-2 a mis le placement en CSS),
@@ -218,10 +218,10 @@ déposer par poignée dédiée. Placement par composant individuel reste hors sc
   `codage`/`ide-zone`, `interview`/`subject`, `react`/`source-zone`+`source-credit`+`cam`,
   `creation`/`capture-zone`, `fin`/`cam`. Couches non migrées documentées (wrappers flex, bandes
   stretch `left:0;right:0`, couches composites à enfants indépendants) — hors scope V1.
-- `dev/overlay-setting.html` — charge une `SceneConfig` + le template/CSS réel (`fetch(index.html)`,
+- `overlay-setting.html` — charge une `SceneConfig` + le template/CSS réel (`fetch(index.html)`,
   DRY), couches migrées affichées en rectangles déplaçables à la souris, boutons Réinitialiser
   (par couche + global) et Sauvegarder.
-- `dev/placement-server.js` (`bun dev/placement-server.js`, dev-only, jamais lancé en live) —
+- `placement-server.js` (`bun placement-server.js`, dev-only, jamais lancé en live) —
   `POST /save-placement` réécrit `scenes/*.config.js`. Logique testée (`scene-placement-format.js`,
   6 tests).
 - Rendu visuel identique confirmé par l'owner à chaque étape (preview 1920×1080).
@@ -243,4 +243,4 @@ session ; guides = comment utiliser/étendre l'outil au quotidien) :
   `ShapeMorphBackground`, Track B), Couche 4 (événements stream) livrée le 2026-07-10 (voir
   `docs/specs/dotgrid-event-triggers.md`).
 - Intégration Twitch EventSub/chat réelle qui appellerait `/emit` (hors scope S4, voir `docs/specs/relay-bun-s4.md` §Périmètre Exclu).
-- ~~Persistance des paramètres `dotgrid-tuner`~~ — résolue en S5 (`dev/tuner-server.js`), voir §Détail S5.
+- ~~Persistance des paramètres `dotgrid-tuner`~~ — résolue en S5 (`tuner-server.js`), voir §Détail S5.

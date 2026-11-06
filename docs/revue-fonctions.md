@@ -1,6 +1,6 @@
 ---
 created: 2026-10-29
-updated: 2026-10-29
+updated: 2026-11-06
 ---
 
 # Revue des fonctions de l'outil
@@ -11,7 +11,7 @@ Les colonnes « Proposition » sont des recommandations, rien n'est engagé.
 
 ## Usage réel de l'owner
 
-Mesuré dans `dev/data/background-state.json` : **un seul preset personnel** (`set-1`), `sceneMap`
+Mesuré dans `data/background-state.json` : **un seul preset personnel** (`set-1`), `sceneMap`
 **vide**, aucune association de scène. La Browser Source pointe sur
 `http://localhost:5931/background.html` avec :
 
@@ -41,11 +41,11 @@ l'URL `?preset=` l'ignore).
 | Élément | Rôle | Usage owner | Proposition |
 |---|---|---|---|
 | `background.html` | La source OBS | Oui | Garder |
-| `dev/studio.html` | Cadre (en-tête + iframe) autour du tuner | Probable | **Fusionné avec le tuner le 2026-10-29** (`studio.html` est la page, `studio.config.js` supprimé) : `STUDIO_VIEWS` n'a qu'**une** entrée, le cadre n'ajoute qu'une couche et une URL de plus |
-| `dev/background-tuner.html` | Tuner du fond | Oui | Devenu `dev/studio.html` (2026-10-29) |
-| `dev/dotgrid-tuner.html` + `tuner-server.js` | Tuner DotGrid historique, **réécrit du code source** (`components/DotGridAnimated.js`) | Non | **Retirer et tagger** : outil de dev qui écrit sur disque, hors du flux fond |
-| `start-stream.bat` | Serveurs du live | Oui | Garder (remplacé à terme par l'exécutable, voir spec zéro-installation) |
-| `start-dev.bat` | Session de création | Non | Fusionner avec `start-stream.bat` : un seul lanceur, deux lanceurs prêtent à confusion |
+| `studio/index.html` | Cadre (en-tête + iframe) autour du tuner | Probable | **Fusionné avec le tuner le 2026-10-29** (`studio.html` est la page, `studio.config.js` supprimé) : `STUDIO_VIEWS` n'a qu'**une** entrée, le cadre n'ajoute qu'une couche et une URL de plus |
+| `background-tuner.html` | Tuner du fond | Oui | Devenu `studio/index.html` (2026-10-29) |
+| `dotgrid-tuner.html` + `tuner-server.js` | Tuner DotGrid historique, **réécrit du code source** (`src/components/DotGridAnimated.js`) | Non | **Retirer et tagger** : outil de dev qui écrit sur disque, hors du flux fond |
+| `stream.bat` | Serveurs du live | Oui | Garder (remplacé à terme par l'exécutable, voir spec zéro-installation) |
+| `studio.bat` | Session de création | Non | Fusionner avec `stream.bat` : un seul lanceur, deux lanceurs prêtent à confusion |
 | `kill-servers.bat` | Tue un `bun.exe` orphelin | — | Garder tant que les serveurs Bun existent |
 
 ### Espaces du tuner
@@ -74,14 +74,14 @@ utilisé par l'owner. **Garder** : ils ne coûtent rien tant qu'ils ne sont pas 
 Chaque ligne a été lue dans le dépôt, aucune n'est une hypothèse.
 
 1. **« Prêt pour le live » vérifie un relais qui n'existe plus** :
-   `dev/background-live-readiness.js` interroge `http://localhost:4456/`, le relais archivé avec le
+   `background-live-readiness.js` interroge `http://localhost:4456/`, le relais archivé avec le
    moteur de scènes (tag `scene-engine-v1`). La ligne est « informative » donc silencieuse, mais elle
    affiche un contrôle sur un composant disparu.
 2. **Le guide se contredit** (`docs/guides/tuner-le-fond.md`) : §« Un fond par scène OBS » décrit
    l'association automatique comme livrée ; §« Couleurs, palettes et scènes » dit qu'elle « reste une
    extension possible, mais n'est plus nécessaire ».
 3. **Vestiges du moteur de scènes archivé** : le guide parle encore du « moteur de scènes complet
-   (`index.html`) » ; `start-dev.bat` annonce « l'éditeur de scènes et la preview » ; `studio.html`
+   (`index.html`) » ; `studio.bat` annonce « l'éditeur de scènes et la preview » ; `studio.html`
    est dit commun « aux fonds et aux scènes complètes » dans le guide.
 4. **Le guide recommande l'inverse de votre réglage** : il conseille d'activer « Arrêter la source
    lorsqu'elle n'est pas visible » (§Performance). C'est un conseil pour le cas « une source par

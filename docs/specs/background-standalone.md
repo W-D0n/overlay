@@ -1,7 +1,7 @@
 ---
 feature: background-standalone
 created: 2026-07-14
-updated: 2026-10-30
+updated: 2026-11-06
 status: validated
 ---
 
@@ -33,37 +33,37 @@ Décisions validées (AskUserQuestion, 2026-07-14) :
 | `background.html` (racine) | URL OBS. `#bg-layer` épouse la taille de la Browser Source, `pointer-events: none`. Charge l'état courant (GET), s'abonne au WS, applique les changements live. Serveur absent au démarrage → page vide ; coupure après chargement → dernier rendu valide conservé ; reconnexion avec backoff dans les deux cas. |
 | `scene-runtime.js` (racine) | Module partagé : monte une scène (`scene-doc.js`, `sceneFromCurrent` pour l'état `{ component, options }`) sur un conteneur. Même couche et même type → `update(options)` ; type changé → remplacement de cette couche ; scène sans couche → démontage ; scène porteuse d'une `transition` → arrivée animée. `setPaused(true)` démonte le rendu tout en mémorisant la dernière scène. |
 | `background-selection.js` (racine) | Résout soit l'état courant, soit un preset fixé par `?preset=...`, et construit les URL OBS dédiées. Logique pure testée. |
-| `dev/background-state-format.js` | Logique pure : validation, migration des anciens presets, identifiants stables, création/mise à jour/renommage/duplication/suppression. Testée (`.test.js`). |
-| `dev/background-preset-library.js` | Recherche commune, format d'échange versionné et fusion atomique des imports. Logique pure testée. |
-| `dev/background-preset-import-flow.js` | État pur de confirmation : seule l'action confirmée produit une commande d'import. |
-| `dev/background-preset-presenter.js` | Formate le plan métier pour l'interface, sans polluer la bibliothèque de domaine. |
-| `dev/background-live-readiness.js` | Diagnostic pré-live en lecture seule : état, sélection, URL OBS, mesure locale et relais optionnel. La collecte réseau est séparée de l'évaluation pure. |
-| `dev/background-state-client.js` | Interface unique du protocole HTTP/WS du tuner : lectures, commandes de preset, import et reconnexion des deux flux temps réel. |
-| `dev/background-field-renderer.js` | Rend tous les types de `FieldSchema`, la palette et les contrôles numériques derrière `render(component, options)`. |
-| `dev/background-preview-controller.js` / `background-preview-session.js` | Orchestrent l'effet courant, le preset actif, les options par défaut, le montage, la persistance débouncée, la qualité et la mesure FPS. La session en mémoire est testée sans DOM. |
-| `dev/background-preset-controller.js` | Porte les points de départ, la bibliothèque personnelle, la recherche et les actions CRUD des presets. |
-| `dev/background-preset-transfer-controller.js` | Isole l'export et le parcours d'import prévisualisé puis confirmé ; son câblage est testé sans navigateur. |
-| `dev/background-readiness-controller.js` | Rend et relance le diagnostic pré-live ; rejoue la révélation progressive des résultats en respectant la réduction de mouvement. |
-| `dev/background-tuner-runtime.js` | Point d'entrée d'orchestration : câble les contrôleurs, charge l'état et la palette, puis démarre les abonnements. |
-| `dev/background-state-server.js` | Serveur Bun (port 5932, `BACKGROUND_STATE_PORT`) : script de composition (environnement, écoute, client OBS). |
-| `dev/host.js`, `dev/preset-routes.js` | Routes HTTP/WebSocket et domaine (`createHost`, sans port ni `process.exit` : testés par appel direct de `fetch`). |
-| `dev/state-store.js` | Magasin de `dev/data/background-state.json` : lecture, migration et sauvegarde, écritures sérialisées (`keyed-lock`). |
-| `dev/channels.js` | Canaux temps réel nommés (`state`, `presets`, `event`, `branding`) : abonnement, diffusion, comptage des pages de rendu. |
-| `dev/studio.html` / `dev/studio.config.js` | Entrée unique vers le tuner de fonds et l'éditeur des scènes complètes ; navigation déclarée hors de la page. |
-| `dev/background-tuner.html` | Markup et styles de la page de tuning ; son script d'entrée délègue toute l'implémentation à `background-tuner-runtime.js`. |
-| `dev/builtin-background-presets.js` | Sélection éditoriale immuable ; une copie n'entre dans l'état utilisateur qu'après action explicite. |
-| `components/canvas-runtime.js` | Politique DPR commune : plafond 2 en auto, 1 avec `?quality=performance`. |
-| `dev/numeric-field-control.js` | Contrôle slider + valeur exacte partagé par les deux éditeurs. |
+| `src/shared/background-state-format.js` | Logique pure : validation, migration des anciens presets, identifiants stables, création/mise à jour/renommage/duplication/suppression. Testée (`.test.js`). |
+| `studio/presets/background-preset-library.js` | Recherche commune, format d'échange versionné et fusion atomique des imports. Logique pure testée. |
+| `studio/presets/background-preset-import-flow.js` | État pur de confirmation : seule l'action confirmée produit une commande d'import. |
+| `studio/presets/background-preset-presenter.js` | Formate le plan métier pour l'interface, sans polluer la bibliothèque de domaine. |
+| `background-live-readiness.js` | Diagnostic pré-live en lecture seule : état, sélection, URL OBS, mesure locale et relais optionnel. La collecte réseau est séparée de l'évaluation pure. |
+| `studio/presets/background-state-client.js` | Interface unique du protocole HTTP/WS du tuner : lectures, commandes de preset, import et reconnexion des deux flux temps réel. |
+| `studio/inspector/background-field-renderer.js` | Rend tous les types de `FieldSchema`, la palette et les contrôles numériques derrière `render(component, options)`. |
+| `studio/canvas/background-preview-controller.js` / `background-preview-session.js` | Orchestrent l'effet courant, le preset actif, les options par défaut, le montage, la persistance débouncée, la qualité et la mesure FPS. La session en mémoire est testée sans DOM. |
+| `studio/presets/background-preset-controller.js` | Porte les points de départ, la bibliothèque personnelle, la recherche et les actions CRUD des presets. |
+| `studio/presets/background-preset-transfer-controller.js` | Isole l'export et le parcours d'import prévisualisé puis confirmé ; son câblage est testé sans navigateur. |
+| `background-readiness-controller.js` | Rend et relance le diagnostic pré-live ; rejoue la révélation progressive des résultats en respectant la réduction de mouvement. |
+| `studio/main.js` | Point d'entrée d'orchestration : câble les contrôleurs, charge l'état et la palette, puis démarre les abonnements. |
+| `server/background-state-server.js` | Serveur Bun (port 5932, `BACKGROUND_STATE_PORT`) : script de composition (environnement, écoute, client OBS). |
+| `server/host.js`, `server/routes/preset-routes.js` | Routes HTTP/WebSocket et domaine (`createHost`, sans port ni `process.exit` : testés par appel direct de `fetch`). |
+| `server/stores/state-store.js` | Magasin de `data/background-state.json` : lecture, migration et sauvegarde, écritures sérialisées (`keyed-lock`). |
+| `server/channels.js` | Canaux temps réel nommés (`state`, `presets`, `event`, `branding`) : abonnement, diffusion, comptage des pages de rendu. |
+| `studio/index.html` / `studio.config.js` | Entrée unique vers le tuner de fonds et l'éditeur des scènes complètes ; navigation déclarée hors de la page. |
+| `background-tuner.html` | Markup et styles de la page de tuning ; son script d'entrée délègue toute l'implémentation à `studio/main.js`. |
+| `studio/presets/builtin-background-presets.js` | Sélection éditoriale immuable ; une copie n'entre dans l'état utilisateur qu'après action explicite. |
+| `src/components/canvas-runtime.js` | Politique DPR commune : plafond 2 en auto, 1 avec `?quality=performance`. |
+| `studio/ui/numeric-field-control.js` | Contrôle slider + valeur exacte partagé par les deux éditeurs. |
 | `docs/guides/tuner-le-fond.md` / `.html` | Guide : utiliser l'URL OBS + le tuner, et **ajouter une animation sans agent** (composant + registre + schéma). |
 
-### État persisté — `dev/data/background-state.json`
+### État persisté — `data/background-state.json`
 
 Le fichier est en **version 4** (`scenes` : documents de scène, `scene-doc.js`, où le branding est une couche). Le
 **modèle du serveur est ce document de scène** : `current` (la scène en antenne, éventuellement sans couche) et `scenes`
 (un preset = une scène nommée), `history` et `drafts` portant des scènes. `readBackgroundFile` / `encodePersistedFile`
 ne font que valider et écrire ce modèle (la scène vide de l'antenne s'écrit `null`).
 
-L'API HTTP et les canaux WebSocket portent **deux formes** (`dev/state-wire.js` convertit à la frontière, dans les deux
+L'API HTTP et les canaux WebSocket portent **deux formes** (`src/shared/state-wire.js` convertit à la frontière, dans les deux
 sens) :
 
 - la **scène** (`scene`, `scenes`, et `scene` dans chaque entrée d'historique et de brouillon), autoritaire et complète :
@@ -98,7 +98,7 @@ le branding reçoit sa couche ; « aucun fond » devient une scène du seul bran
 version 4 n'est pas lisible par un serveur antérieur (retour arrière : restaurer la sauvegarde).
 
 - `current.component` : `null` (aucun fond) ou un nom de `BACKGROUND_COMPONENT_NAMES`
-  (`dev/component-field-schemas.js` — source unique du vocabulaire des effets).
+  (`studio/inspector/component-field-schemas.js` — source unique du vocabulaire des effets).
 - `preset.id` : identifiant URL immuable en minuscules/chiffres/tirets. Le nom reste éditable.
 - Les fichiers historiques sans `id` sont migrés en mémoire par slug déterministe. Ils sont
   persistés au prochain changement, sans modifier `component` ni `options`.
@@ -140,9 +140,9 @@ Toutes les écritures passent par un `keyed-lock` (clé unique) — même motif 
 
 ### Intégration lancement
 
-- `dev/start-dev.js` : ajoute le serveur `background-state` (port 5932) + ouvre
-  `dev/studio.html` et la preview complète.
-- `dev/start-stream.js` : ajoute le serveur `background-state` — nécessaire pour que
+- `server/lifecycle/start-studio.js` : ajoute le serveur `background-state` (port 5932) + ouvre
+  `studio/index.html` et la preview complète.
+- `server/lifecycle/start-stream.js` : ajoute le serveur `background-state` — nécessaire pour que
   `background.html` (Browser Source) charge son état et reçoive les changements live. Ce serveur
   ne modifie jamais de code source : safe en live, contrairement à `tuner-server.js`.
 
@@ -155,7 +155,7 @@ Toutes les écritures passent par un `keyed-lock` (clé unique) — même motif 
   `textarea`, `color` et `colors` ; `token` reste disponible pour l'éditeur de scènes historique).
 - Les nombres utilisent les métadonnées `min`, `max`, `step`, `unit`, `control` du `FieldSchema` :
   slider pour le geste et champ numérique pour la précision.
-- Chaque changement : rendu local immédiat dans l'aperçu, en **brouillon** (`dev/background-draft.js`) ; POST `/state` uniquement à « Publier ». « Annuler » restaure l'état en antenne.
+- Chaque changement : rendu local immédiat dans l'aperçu, en **brouillon** (`background-draft.js`) ; POST `/state` uniquement à « Publier ». « Annuler » restaure l'état en antenne.
 - Presets : création/mise à jour avec tags éditables, renommage sans casser l'URL, duplication,
   suppression et copie de l'URL. La recherche couvre nom, effet et tags. Export/import rend la
   bibliothèque personnelle portable ; le plan d'import résume créations, mises à jour, noms
@@ -184,9 +184,9 @@ aux scènes sans réactiver le moteur de scènes historique.
 
 Trois pièces déclaratives, aucune UI à écrire :
 
-1. **Composant** `components/XxxBackground.js` — pattern `{ el, update(options), destroy() }`.
+1. **Composant** `src/components/XxxBackground.js` — pattern `{ el, update(options), destroy() }`.
 2. **Registre** — une ligne dans `component-registry.js` + `component-names.js`.
-3. **Schéma** — une entrée dans `BACKGROUND_FIELD_SCHEMAS` (`dev/component-field-schemas.js`).
+3. **Schéma** — une entrée dans `BACKGROUND_FIELD_SCHEMAS` (`studio/inspector/component-field-schemas.js`).
 
 L'effet apparaît alors dans le dropdown du tuner et est accepté par la validation serveur, sans
 toucher à `background.html`, au tuner ni au serveur. Détail pas-à-pas (y compris sans agent) dans
@@ -194,21 +194,21 @@ toucher à `background.html`, au tuner ni au serveur. Détail pas-à-pas (y comp
 
 ## Tests
 
-`dev/background-state-format.test.js` couvre validation, migration, collisions d'identifiants,
+`src/shared/background-state-format.test.js` couvre validation, migration, collisions d'identifiants,
 création/mise à jour, renommage, duplication, suppression et non-mutation. `scene-runtime.test.js` et
-`scene-runtime.behaviour.test.js` couvrent réconciliation, transitions, routage audio/réactions et pause/reprise ; `components/canvas-runtime.test.js` couvre les deux profils DPR ;
-`dev/builtin-background-presets.test.js` valide les points de départ intégrés ;
-`dev/background-preset-library.test.js` couvre recherche, échange versionné, rejet atomique,
+`scene-runtime.behaviour.test.js` couvrent réconciliation, transitions, routage audio/réactions et pause/reprise ; `src/components/canvas-runtime.test.js` couvre les deux profils DPR ;
+`studio/presets/builtin-background-presets.test.js` valide les points de départ intégrés ;
+`studio/presets/background-preset-library.test.js` couvre recherche, échange versionné, rejet atomique,
 création, mise à jour, renommage, conflit, absence de changement et fusion sans écrasement.
-`dev/background-state-server.test.js` vérifie par HTTP qu'un import invalide
+`server/background-state-server.test.js` vérifie par HTTP qu'un import invalide
 n'écrit pas le fichier, qu'une révision périmée est refusée et qu'aucun événement WebSocket indu
-n'est diffusé. `dev/background-preset-import-flow.test.js` garantit qu'aucune commande réseau
+n'est diffusé. `studio/presets/background-preset-import-flow.test.js` garantit qu'aucune commande réseau
 n'existe avant confirmation ; le présentateur possède son test de libellé séparé.
-`dev/background-live-readiness.test.js` couvre les états prêt, attention et bloquant, les URL
+`background-live-readiness.test.js` couvre les états prêt, attention et bloquant, les URL
 courante et liée à un preset, les données partielles et la collecte réseau exclusivement en GET.
-`dev/background-state-client.test.js`, `background-field-renderer.test.js`,
+`studio/presets/background-state-client.test.js`, `background-field-renderer.test.js`,
 `background-preview-session.test.js`, `background-preset-transfer-controller.test.js`,
-`background-tuner-runtime.test.js` et `background-readiness-controller.test.js` couvrent les
+`studio/main.test.js` et `background-readiness-controller.test.js` couvrent les
 interfaces extraites, les messages de démarrage et les parcours à risque avant leur câblage dans
 la page.
 
@@ -223,10 +223,10 @@ la page.
 ## Extensions livrées après validation (2026-07-16)
 
 - `color` / `colors` dans `FieldSchema` : picker visuel, couleurs nommées, saisie CSS libre,
-  listes dynamiques et gradients issus de `components/color-palette.json`.
-- `dev/color-palette-format.js` : normalisation pure et testée des couleurs/gradients.
+  listes dynamiques et gradients issus de `src/components/color-palette.json`.
+- `studio/inspector/color-palette-format.js` : normalisation pure et testée des couleurs/gradients.
 - `WaterRippleBackground` : effet ajouté après le Track B via factory + registre + schéma.
-- Horloge canvas partagée `components/animation-time.js` : vitesse indépendante du framerate pour
+- Horloge canvas partagée `src/components/animation-time.js` : vitesse indépendante du framerate pour
   Rain, Bubble, Fireflies, FloatingSymbols et ColorDrops.
 - Studio V1, contrôles numériques guidés, presets à identifiant stable, points de départ et
   profil performance livrés le 2026-07-17.

@@ -1,3 +1,8 @@
+---
+created: 2026-07-25
+updated: 2026-11-06
+---
+
 # Spec — Transition entre presets (④ de l'audit produit)
 
 Statut : **livrée et validée en Browser Source réelle** (owner, 2026-07-26). Créée le 2026-07-25.
@@ -83,10 +88,10 @@ aucune animation : une Browser Source qui s'ouvre ne doit pas commencer par un f
 |---|---|---|
 | `background-transition.js` | Normalisation d'une transition (défauts, bornes) + styles de départ/fin par type | **Pur, testé** |
 | `background-mount.js` | Montage en calques, exécution de la transition, démontage de l'ancien | Existant, étendu |
-| `dev/background-state-format.js` | Validation de `transition` sur un preset et sur `current` | Existant, étendu |
-| `dev/background-preview-session.js` / contrôleur | Envoi de `transition` au clic sur un preset, jamais sur un réglage | Existants, étendus |
-| `dev/background-tuner.html` + contrôleur | Section « Arrivée de ce preset » (type, durée, sens) | Existants, étendus |
-| `dev/background-state-server.js` | Le mapping OBS (③) joint la transition du preset entrant | Existant, étendu |
+| `src/shared/background-state-format.js` | Validation de `transition` sur un preset et sur `current` | Existant, étendu |
+| `background-preview-session.js` / contrôleur | Envoi de `transition` au clic sur un preset, jamais sur un réglage | Existants, étendus |
+| `background-tuner.html` + contrôleur | Section « Arrivée de ce preset » (type, durée, sens) | Existants, étendus |
+| `server/background-state-server.js` | Le mapping OBS (③) joint la transition du preset entrant | Existant, étendu |
 
 Les champs de transition **ne passent pas** par `BACKGROUND_FIELD_SCHEMAS` : ce ne sont pas des
 options d'effet, ils appartiennent au preset. Les mélanger obligerait chaque effet à les déclarer.

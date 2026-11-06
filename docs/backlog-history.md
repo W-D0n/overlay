@@ -1,3 +1,8 @@
+---
+created: 2026-06-06
+updated: 2026-11-06
+---
+
 # Historique du backlog — Overlay Stream
 
 Archive des décisions, investigations et lots terminés auparavant conservés dans `docs/inbox.md`.
@@ -9,10 +14,10 @@ conservent leur contexte de l’époque et ne prévalent pas sur le code ou les 
 
 ## Ouverture navigateur + libération des ports — résolu (2026-07-12)
 
-Quatre items liés à `start-dev.bat`/`start-dev.js` :
+Quatre items liés à `studio.bat`/`start-studio.js` :
 - Doc sur l'accès manuel à la preview → section ajoutée dans `docs/guides/utiliser-le-panneau.md`
   (URLs des 3 onglets, à utiliser si l'ouverture auto échoue).
-- Le rendu visuel ne s'ouvrait pas au lancement → `dev/start-dev.js` utilisait
+- Le rendu visuel ne s'ouvrait pas au lancement → `server/lifecycle/start-studio.js` utilisait
   `Bun.spawn(['cmd', '/c', 'start', '""', url])`, technique fragile (parsing du titre vide par
   `start`) qui échouait silencieusement (exit code 0, aucune fenêtre) dans l'environnement de test.
   Premier remplacement par `explorer.exe` : ouvrait bien un navigateur, mais le `?livereload=1` de
@@ -21,10 +26,10 @@ Quatre items liés à `start-dev.bat`/`start-dev.js` :
   `Bun.spawn(['rundll32.exe', 'url.dll,FileProtocolHandler', url])` — appelle directement le handler
   de protocole URL, insensible au contenu de l'URL. **Confirmé fonctionnel par l'owner (2026-07-12)**,
   les 3 onglets s'ouvrent correctement.
-- Port occupé au second lancement / process qui survivent à la fermeture → `dev/port-check.js`
+- Port occupé au second lancement / process qui survivent à la fermeture → `server/lifecycle/port-check.js`
   ajoute `freeStaleBunPorts()` : détecte le PID qui écoute sur chaque port cible (`netstat -ano`),
   vérifie que c'est bien un `bun.exe` (jamais un process d'un autre nom — sécurité), le tue, puis
-  relance le check. `start-dev.js` appelle cette libération automatique avant le check bloquant ;
+  relance le check. `start-studio.js` appelle cette libération automatique avant le check bloquant ;
   l'erreur ne s'affiche plus que si le port est occupé par un process qui n'est pas un des nôtres.
   Testé : lancement à froid OK, relance avec port pré-occupé par un `bun.exe` orphelin → libéré et
   relancé automatiquement, arrêt (SIGTERM) propre sans résidu dans les 3 cas.
@@ -37,20 +42,20 @@ Quatre items liés à `start-dev.bat`/`start-dev.js` :
 
 ## Résolu — process orphelins des scripts de lancement (2026-07-05)
 
-Deux bugs distincts causaient des serveurs de dev/stream qui restaient vivants pendant des heures
-après avoir "fermé" `start-dev.bat`/`start-stream.bat` :
+Deux bugs distincts causaient des serveurs de dev ou de stream qui restaient vivants pendant des heures
+après avoir "fermé" `studio.bat`/`stream.bat` :
 
 1. **`start "titre" cmd /k ...` ouvre des fenêtres détachées**, aucune liée au process du `.bat` —
-   fermer sa fenêtre ne tuait rien. `start-dev.bat` réécrit en `dev/start-dev.js` : un seul process
+   fermer sa fenêtre ne tuait rien. `studio.bat` réécrit en `server/lifecycle/start-studio.js` : un seul process
    Bun qui lance les 5 serveurs comme de vrais enfants (Job Object Windows), tués proprement à la
    fermeture (Ctrl+C), sortie préfixée par serveur dans un seul terminal.
 2. **`bunx serve` relance son vrai process de travail comme petit-fils détaché** — échappe même au
-   Job Object du point 1, orphelin garanti à chaque lancement. Remplacé par `dev/static-server.js`
-   (`Bun.serve` natif, zéro dépendance) dans `start-dev.bat` **et** `start-stream.bat` (qui garde
+   Job Object du point 1, orphelin garanti à chaque lancement. Remplacé par `server/static-server.js`
+   (`Bun.serve` natif, zéro dépendance) dans `studio.bat` **et** `stream.bat` (qui garde
    ses 2 fenêtres séparées, logs relais visibles en live — comportement voulu, pas touché).
 
 Effet de bord découvert en creusant le bug n°2 dans un contexte différent (S8 session 4/6) :
-`dev/scene-data-server.js` importait `STATIC_SCENE_IDS` depuis `scenes/registry.js`, qui importe en
+`scene-data-server.js` importait `STATIC_SCENE_IDS` depuis `scenes/registry.js`, qui importe en
 cascade les 9 `*.wire.js` → `store.js` → `connectWebSocket()` au chargement du module, sans garde
 navigateur. Un serveur Bun sans navigateur se retrouvait donc connecté au relais comme un faux
 client overlay, plantant sur `document.dispatchEvent` à chaque `scene.set` reçu. Corrigé en extrayant
@@ -65,7 +70,7 @@ session) nettoyés manuellement en confirmant le diagnostic.
 
 `jeu.wire.js` reste la seule scène avec un HUD entièrement en DOM brut : cellule d'alerte avec son
 propre `setTimeout`/`clearTimeout` dupliqué à la main (au lieu d'utiliser `AlertBanner`, qui gère
-déjà son minuteur en interne, voir `components/index.js` §AlertBanner), et cellule de vote en HTML
+déjà son minuteur en interne, voir `src/components/index.js` §AlertBanner), et cellule de vote en HTML
 statique (au lieu de `PollBar`, S8). Tant que cette migration n'est pas faite, `jeu` ne peut pas être
 recréée/modifiée depuis le futur éditeur (session 5/6) — elle reste une scène "legacy" à wire.js
 obligatoire, comme les couches composites déjà exclues en session 3/6 (interview/cams, codage/cam-mini).
@@ -78,7 +83,7 @@ découpage à 6 sessions, une fois la persistance livrée.
 `jeu` avec `AlertBanner` standard (bannière centrée, comme `discussion`/`codage`) plutôt que de
 préserver la cellule HUD compacte d'origine — changement d'apparence assumé, pas juste un refactor
 interne. `PollBar` remplace le HTML en dur du vote (styles inline déjà copiés 1:1 de l'ancien CSS,
-voir `components/index.js` §PollBar — apparence quasi-identique attendue).
+voir `src/components/index.js` §PollBar — apparence quasi-identique attendue).
 
 Contrainte architecturale découverte en implémentant : un `ComponentMount` ne peut se monter qu'à la
 racine de sa couche (`layerEl.appendChild`), jamais à l'intérieur d'un wrapper statique existant
@@ -129,11 +134,11 @@ via l'historique git, pas une perte définitive.
 plus `SCENE_CONFIGS` par import statique (`STATIC_SCENE_IDS` vide, aucune scène protégée, décision
 ci-dessus). Effets de bord découverts et corrigés pendant l'implémentation :
 - `loadDynamicScenes()` utilisait des chemins relatifs (`./scenes/data/...`) qui ne résolvaient
-  correctement que depuis `index.html` (racine) — cassé pour `dev/overlay-setting.html` (sous-dossier).
+  correctement que depuis `index.html` (racine) — cassé pour `overlay-setting.html` (sous-dossier).
   Corrigé en chemins absolus (`/scenes/data/...`).
-- `dev/overlay-setting.html` n'appelait jamais `loadDynamicScenes()` — corrigé (son menu de scènes
+- `overlay-setting.html` n'appelait jamais `loadDynamicScenes()` — corrigé (son menu de scènes
   était vide sans ça).
-- `dev/scene-placement-format.js`/`dev/placement-server.js` (S7) réécrivaient le `placement` par
+- `scene-placement-format.js`/`placement-server.js` (S7) réécrivaient le `placement` par
   regex sur source JS — remplacés par un parse/mutate/stringify JSON direct, ciblant
   `scenes/data/*.scene.json`. Testé bout en bout (sauvegarde réelle via le serveur, relecture du
   fichier, restauration).
@@ -153,7 +158,7 @@ uniquement), puis livrée le jour même dans une session de suite non retracée 
 des couches (owner a demandé l'item, découvert déjà fait). Ajouter/supprimer une couche déjà livré
 S8 session 6/6 ; renommer (input éditable par couche, `goldbar` protégée) + réordonner (glisser-
 déposer par poignée dédiée, `moveLayer`) confirmés fonctionnels (vérification visuelle, 2026-07-10) :
-`dev/overlay-setting.html` §Couches.
+`overlay-setting.html` §Couches.
 
 Drag & drop par composant individuel (`ComponentMount.placement`, S8) également hors scope de la
 session 5/6 — le panneau S7 ne fait glisser que des couches entières (`layer.placement`). Un
@@ -187,7 +192,7 @@ pas une réécriture.
 - **Redimensionnement par drag** — livré (2026-07-10) : poignée de resize (coin bas-droit) sur
   chaque couche/composant déplaçable, en plus du drag de position. Même mécanisme que le drag de
   position (mousedown/mousemove/mouseup sur `window`, tenant compte de l'échelle du panneau),
-  factorisé dans `addResizeHandle()` — `dev/overlay-setting.html`. Édite `width`/`height` en live ;
+  factorisé dans `addResizeHandle()` — `overlay-setting.html`. Édite `width`/`height` en live ;
   persistance via le même bouton "Sauvegarder" pour les couches, auto-save via `saveSceneConfig`
   pour les composants individuels. Vérifié en direct (Playwright, scène `react`, 3 poignées
   détectées, resize testé : 1060×800 → 1185×875px cohérent avec le scale du panneau).
@@ -224,9 +229,9 @@ pas une réécriture.
 
 ## dotgrid-tuner — persistance résolue (S5, 2026-07-04)
 
-Serveur de dev séparé (`dev/tuner-server.js`, `bun dev/tuner-server.js`, jamais lancé en live)
-expose `POST /save`, réécrit directement `components/DotGridAnimated.js`. Logique de remplacement
-extraite en module pur testé (`dev/dotgrid-params-format.js`). Bouton "Sauvegarder" dans
+Serveur de dev séparé (`tuner-server.js`, `bun tuner-server.js`, jamais lancé en live)
+expose `POST /save`, réécrit directement `src/components/DotGridAnimated.js`. Logique de remplacement
+extraite en module pur testé (`dotgrid-params-format.js`). Bouton "Sauvegarder" dans
 `dotgrid-tuner.html`, bouton "Copier" gardé en secours. Testé bout en bout manuellement.
 
 ---
@@ -251,8 +256,8 @@ qui écrit cette config au lieu de l'écrire à la main.
 **Jalon 1 — Placement (livré, S7, 2026-07-04)**
 Charger une config de scène, voir le rendu réel, déplacer un widget en drag & drop, lire/sauvegarder
 les nouvelles valeurs. Livré sans système d'ancrage (`Placement` en pixels absolus, plus simple,
-voir `docs/specs/scene-placement-protocol.md`) — `dev/overlay-setting.html` +
-`dev/placement-server.js`, 10 couches migrées sur 9 scènes. Couches non migrées (wrappers flex,
+voir `docs/specs/scene-placement-protocol.md`) — `overlay-setting.html` +
+`placement-server.js`, 10 couches migrées sur 9 scènes. Couches non migrées (wrappers flex,
 bandes stretch, composites) restent hors scope V1.
 
 **Jalon 2 — Composition + gestion de scènes (demande owner confirmée, 2026-07-04)**
@@ -281,7 +286,7 @@ propre session de décomposition avant tout code, voir `CLAUDE.md` §Session dis
 - Mapper la visibilité de chaque couche par niveau (full / minimal / hidden) — déjà possible à la
   main dans `LayerConfig.visibility`, l'éditeur ne ferait qu'exposer un UI dessus.
 - Sliders paramètres Simplex / mode DotGrid, déclenchement `trigger()` — la partie DotGrid existe
-  déjà (`dev/dotgrid-tuner.html`, S5), `trigger()`/couche 4 événements stream reste un stub.
+  déjà (`dotgrid-tuner.html`, S5), `trigger()`/couche 4 événements stream reste un stub.
 - Bibliothèque de transitions (fade, slide, morph DotGrid via `morphTo()`) — `morphTo()` reste un stub.
 - Binding de données par composant (ex : ce StatBlock → `state.viewers`) — actuellement câblé à la
   main dans chaque `*.wire.js`.
@@ -295,7 +300,7 @@ construit que le jalon nécessaire au besoin courant (`zero preemptive code`).
 **Première tranche livrée en avance (2026-07-04)** : `relay/server.js` sait désormais envoyer des
 requêtes OBS WS v5 (pas seulement les recevoir) — `POST /refresh-source` envoie
 `PressInputPropertiesButton` pour rafraîchir le cache de la Browser Source overlay, appelé
-automatiquement par `dev/dotgrid-tuner.html` après une sauvegarde. Besoin concret immédiat (l'owner
+automatiquement par `dotgrid-tuner.html` après une sauvegarde. Besoin concret immédiat (l'owner
 ne voyait pas ses réglages DotGrid appliqués sans rafraîchissement manuel), traité hors du cadrage
 complet de S6 — le mécanisme requête/réponse (opcode 6/7) posé ici sera réutilisable pour le reste
 de S6 (`CreateScene`, etc.) le moment venu.
@@ -312,7 +317,7 @@ activer/désactiver visibilité, configurer filtres et transitions, définir la 
 
 → Le panneau de contrôle unique (S5 jalon 1 + S6) deviendrait le **seul endroit** où l'owner :
 - place/ajuste les widgets de l'overlay (jalon 1, `anchor`/`offset`) ;
-- règle les paramètres DotGrid par mode (`dev/dotgrid-tuner.html`, avec persistance résolue, voir
+- règle les paramètres DotGrid par mode (`dotgrid-tuner.html`, avec persistance résolue, voir
   item ci-dessus) ;
 - crée/pilote les scènes OBS elles-mêmes (`CreateScene`, `SetSceneItemTransform`, activer une
   scène) — sans repasser par l'UI native d'OBS pour ces opérations.
@@ -353,7 +358,7 @@ technique d'une inspiration externe → livrer en config → signaler les écart
 
 ## DotGrid — visibilité et rythme ajustés (résolu, session 2026-07-03)
 
-Ajustement direct dans `components/DotGridAnimated.js` (pas d'éditeur — jalon éditeur toujours pas
+Ajustement direct dans `src/components/DotGridAnimated.js` (pas d'éditeur — jalon éditeur toujours pas
 construit, ajustement documenté ici comme prévu) :
 - `baseOpacity` 0.18 → 0.26, `dotRadius` 0.7 → **1.3** (2 passes, validées visuellement par l'owner).
 - Couche 1 (oscillation individuelle) : amplitude et vitesse augmentées (~+50-60%).

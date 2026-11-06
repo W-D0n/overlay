@@ -1,6 +1,7 @@
 ---
 feature: background-reactive-events
 created: 2026-07-24
+updated: 2026-11-06
 status: validated
 ---
 
@@ -17,7 +18,7 @@ réaction existe donc sur le composant, mais **rien ne l'appelle** dans le flux 
 
 Le sous-système `relay/` (canal `/emit` générique) est en cours d'archivage — ① ne peut pas s'y
 appuyer. Cette spec amène les événements jusqu'à `background.html` par le seul process qui survit et
-tourne en live : `dev/background-state-server.js`.
+tourne en live : `server/background-state-server.js`.
 
 Décisions owner (2026-07-24, AskUserQuestion) :
 - **Source d'événements** — canal dans `background-state-server` : `POST /event` → diffusion
@@ -30,11 +31,11 @@ Décisions owner (2026-07-24, AskUserQuestion) :
 ## Périmètre
 
 **Inclus :**
-- `dev/background-state-server.js` : `POST /event` (valide le corps, 400 sinon) → diffuse l'événement
+- `server/background-state-server.js` : `POST /event` (valide le corps, 400 sinon) → diffuse l'événement
   sur `WS /event-ws`. **Aucune écriture disque, aucun `keyed-lock`** (l'événement est éphémère).
-- `dev/background-event-format.js` : `validateBackgroundEvent(body)` pur → `{ ok, errors }`, accepte
+- `src/shared/background-event-format.js` : `validateBackgroundEvent(body)` pur → `{ ok, errors }`, accepte
   uniquement les 4 types. Testé.
-- `components/ReactionOverlay.js` : composant partagé `{ el, trigger(event), destroy() }`. Canvas
+- `src/components/ReactionOverlay.js` : composant partagé `{ el, trigger(event), destroy() }`. Canvas
   transparent plein cadre, `pointer-events: none`, 4 réactions en or Atelier. Le `requestAnimationFrame`
   **démarre au premier trigger et s'arrête quand plus aucune réaction n'est active** (idle = zéro coût).
 - `background-reactions.js` : `createReactionCoordinator({ mount, overlay })` → `handle(event)`.
@@ -44,8 +45,8 @@ Décisions owner (2026-07-24, AskUserQuestion) :
   `true` si l'effet monté possède `trigger`, `false` sinon (le coordinateur décide de l'overlay).
 - `background.html` : `#reaction-layer` monté au-dessus de `#bg-layer` ; abonnement `WS /event-ws`
   relayé vers `coordinator.handle(event)`.
-- `dev/background-state-client.js` : `sendEvent(type)` (`POST /event`) + abonnement `/event-ws`.
-- Tuner (`dev/background-tuner.html` + `dev/background-tuner-runtime.js` + preview) : section
+- `studio/presets/background-state-client.js` : `sendEvent(type)` (`POST /event`) + abonnement `/event-ws`.
+- Tuner (`background-tuner.html` + `studio/main.js` + preview) : section
   « Tester une réaction » avec 4 boutons → `client.sendEvent(type)`. L'appel passe par le serveur,
   donc l'URL OBS réelle réagit aussi (vérification live).
 
@@ -149,20 +150,20 @@ du RAF si plus rien n'est actif.
 
 | Fichier | Action | Notes |
 |---|---|---|
-| `dev/background-event-format.js` | créer | `validateBackgroundEvent(body)` pur |
-| `dev/background-event-format.test.js` | créer | AC-06 |
-| `dev/background-state-server.js` | modifier | `POST /event` + `WS /event-ws`, sans écriture disque |
-| `dev/background-state-server.test.js` | modifier | AC-07, AC-08, AC-09 |
-| `components/ReactionOverlay.js` | créer | overlay `{ el, trigger, destroy }`, 4 réactions, RAF paresseux |
-| `components/ReactionOverlay.test.js` | créer | AC-01→AC-05 (helpers purs), AC-12, AC-13 |
+| `src/shared/background-event-format.js` | créer | `validateBackgroundEvent(body)` pur |
+| `src/shared/background-event-format.test.js` | créer | AC-06 |
+| `server/background-state-server.js` | modifier | `POST /event` + `WS /event-ws`, sans écriture disque |
+| `server/background-state-server.test.js` | modifier | AC-07, AC-08, AC-09 |
+| `src/components/ReactionOverlay.js` | créer | overlay `{ el, trigger, destroy }`, 4 réactions, RAF paresseux |
+| `src/components/ReactionOverlay.test.js` | créer | AC-01→AC-05 (helpers purs), AC-12, AC-13 |
 | `background-mount.js` | modifier | `react(event)` → `boolean` |
 | `background-mount.test.js` | modifier | AC-10 |
 | `background-reactions.js` | créer | `createReactionCoordinator({ mount, overlay })` |
 | `background-reactions.test.js` | créer | AC-11 |
 | `background.html` | modifier | `#reaction-layer`, abonnement `/event-ws` → coordinator |
-| `dev/background-state-client.js` | modifier | `sendEvent(type)` + abonnement `/event-ws` |
-| `dev/background-tuner.html` | modifier | section « Tester une réaction » (4 boutons) |
-| `dev/background-tuner-runtime.js` | modifier | câble les boutons → `client.sendEvent` |
+| `studio/presets/background-state-client.js` | modifier | `sendEvent(type)` + abonnement `/event-ws` |
+| `background-tuner.html` | modifier | section « Tester une réaction » (4 boutons) |
+| `studio/main.js` | modifier | câble les boutons → `client.sendEvent` |
 
 > Cross-check avant « done » : chaque AC implémenté et vérifiable ; chaque fichier listé modifié ;
 > `bun test` vert ; vérification live bout en bout (bouton test → réaction sur `background.html` en

@@ -8,9 +8,9 @@
  * l'ancien port. Toute valeur numérique doit venir d'ici, jamais d'un littéral recopié ailleurs.
  *
  * - Côté serveur (Bun), `STATIC_PORT`/`BACKGROUND_STATE_PORT` restent la façon de surcharger sans
- *   toucher au code (`dev/start-studio.js`, `dev/start-stream.js`, `dev/static-server.js`,
- *   `dev/background-state-server.js`) : `Number(process.env.STATIC_PORT ?? STATIC_PORT)`.
- * - Côté navigateur (`background.html`, `dev/background-tuner-runtime.js`), il n'y a pas de build
+ *   toucher au code (`server/lifecycle/start-studio.js`, `server/lifecycle/start-stream.js`, `server/static-server.js`,
+ *   `server/background-state-server.js`) : `Number(process.env.STATIC_PORT ?? STATIC_PORT)`.
+ * - Côté navigateur (`background.html`, `studio/main.js`), il n'y a pas de build
  *   ni de `process.env` : ce module s'importe tel quel en ESM natif, comme n'importe quel autre
  *   module partagé du projet.
  * - `.claude/launch.json` (JSON, ne peut pas importer) et les docs en prose (README, guides,
@@ -21,7 +21,7 @@
 /** Port du serveur de fichiers statiques (Studio, tuner, `background.html`). */
 export const STATIC_PORT = 5931;
 
-/** Port du serveur d'état du fond (`dev/background-state-server.js`). */
+/** Port du serveur d'état du fond (`server/background-state-server.js`). */
 export const BACKGROUND_STATE_PORT = 5932;
 
 /** Adresse du serveur d'état vue d'une page du navigateur (aperçu, rendu OBS) : état, médiathèque d'images. */

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { createSceneEditor } from '../../dev/scene-editor.js';
-import { diffScenes } from '../../dev/scene-diff.js';
+import { createSceneEditor } from '../../studio/editor/scene-editor.js';
+import { diffScenes } from '../../studio/editor/scene-diff.js';
 import { LOOK_KEYS, canonicalSceneDoc, createLayer, currentFromScene, validateSceneDoc, withoutLook } from '../scene/scene-doc.js';
 import { createSceneRuntime } from '../scene/scene-runtime.js';
 

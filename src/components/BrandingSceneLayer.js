@@ -3,7 +3,7 @@ import { brandingContent } from '../branding/branding-content.js';
 import { BrandingLayer } from './BrandingLayer.js';
 
 /**
- * components/BrandingSceneLayer.js — Le branding comme couche d'une scène (type `branding`, `layer-kinds.js`).
+ * src/components/BrandingSceneLayer.js — Le branding comme couche d'une scène (type `branding`, `layer-kinds.js`).
  *
  * Au contrat des couches (`{ el, update?, destroy? }`) : elle affiche le contenu global du branding
  * (`branding-content.js`) et le suit en direct ; ses `options` sont vides, son placement, son opacité et sa

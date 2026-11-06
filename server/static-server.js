@@ -1,0 +1,50 @@
+// @ts-check
+/**
+ * server/static-server.js — Serveur de fichiers statiques natif Bun (remplace `bunx serve`, 2026-07-05).
+ *
+ * `bunx serve` relance son vrai process de travail comme petit-fils détaché du process `bunx` —
+ * ce petit-fils échappe au Job Object Windows qui lie normalement un enfant `Bun.spawn` à son
+ * parent, laissant un orphelin à chaque lancement de `server/lifecycle/start-studio.js` (root cause identifiée
+ * 2026-07-05, voir docs/backlog-history.md). Réécrit en `Bun.serve` natif : zéro dépendance (cohérent avec
+ * CLAUDE.md — ce projet évite déjà tout `npm`/`bunx` de package tiers ailleurs), un seul process,
+ * correctement lié à son parent.
+ *
+ * Sert tout en `no-store` : la Browser Source OBS garde sinon d'anciens modules en cache et
+ * continue d'exécuter du code corrigé depuis longtemps (constaté le 2026-07-26 sur les
+ * transitions). Serveur de développement local, aucun intérêt à mettre en cache quoi que ce soit.
+ *
+ * Lancement : `bun server/static-server.js` (port par défaut dans `ports.config.js`, `STATIC_PORT`
+ * pour changer sans toucher au code).
+ */
+import { STATIC_PORT } from '../ports.config.js';
+import { LOOPBACK_HOST, isServablePath, rejectNonLocalRequest } from './local-access-policy.js';
+
+const PORT = Number(process.env.STATIC_PORT ?? STATIC_PORT);
+const ROOT = `${import.meta.dir}/..`;
+
+Bun.serve({
+  hostname: LOOPBACK_HOST,
+  port: PORT,
+  /** @param {Request} req */
+  async fetch(req) {
+    const rejected = rejectNonLocalRequest(req);
+    if (rejected !== null) return rejected;
+
+    const url = new URL(req.url);
+    // Le navigateur réclame cette icône à chaque page ; le projet n'en a pas, et un 404 pollue la console.
+    if (url.pathname === '/favicon.ico') return new Response(null, { status: 204 });
+
+    const pathname = url.pathname === '/' || url.pathname.endsWith('/')
+      ? `${url.pathname}index.html`
+      : url.pathname;
+
+    const file = isServablePath(pathname) ? Bun.file(`${ROOT}${pathname}`) : null;
+    if (file !== null && await file.exists()) {
+      return new Response(file, { headers: { 'Cache-Control': 'no-store, must-revalidate' } });
+    }
+
+    return new Response('Not Found', { status: 404 });
+  },
+});
+
+console.info(`[static-server] écoute sur http://localhost:${PORT} — sert ${ROOT}`);

@@ -6,7 +6,7 @@ import { fitImage } from './image-fit.js';
 import { normalizeKindOptions } from './kind-options.js';
 
 /**
- * components/ImageLayer.js — Couche de contenu « image » : une affiche, un logo, une photo de la médiathèque, dans la zone de la couche.
+ * src/components/ImageLayer.js — Couche de contenu « image » : une affiche, un logo, une photo de la médiathèque, dans la zone de la couche.
  *
  * Dessinée sur un canvas comme les effets et **statique** (`canvas-layer.js`). Le cadrage (contenir, couvrir, étirer) est dans
  * `image-fit.js`, le chargement partagé dans `asset-image.js`. Pendant qu'une autre image se charge, la précédente reste affichée :

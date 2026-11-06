@@ -1,3 +1,8 @@
+---
+created: 2026-06-07
+updated: 2026-11-06
+---
+
 # Devlog — Overlay Stream D0n / Mozaïk
 
 > Décisions structurantes, par session. Mis à jour en clôture (`/done`).
@@ -27,7 +32,7 @@
 
 **Ce qui a été fait :**
 - Refus de `WaterRippleBackground` reproduit contre le vrai `/state` (HTTP 400) : le serveur actif
-  avait chargé le schéma avant l'ajout de l'effet. Instance redémarrée et `start-dev.js` passe le
+  avait chargé le schéma avant l'ajout de l'effet. Instance redémarrée et `start-studio.js` passe le
   serveur d'état en mode watch pour recharger ses imports lors des prochains ajouts.
 - `BubbleBackground` attribue à chaque bulle un trajet aléatoire avant éclatement ; bornes de
   trajet, durée et expansion de l'anneau sont réglables dans le tuner.
@@ -43,7 +48,7 @@
   cette URL avec « URL OBS » et `/presets-ws` propage les resauvegardes du preset.
 - Nettoyage sans modification des rendus : suppression du proxy `placement-server.js` (le panneau
   appelle directement le propriétaire des scènes), des artefacts Playwright et des anciens
-  handoffs/kickoff. `start-dev` ouvre désormais fonds, éditeur et preview avec quatre serveurs utiles.
+  handoffs/kickoff. `start-studio` ouvre désormais fonds, éditeur et preview avec quatre serveurs utiles.
 
 **Vérification :**
 - `bun test` : 261/261 verts.
@@ -59,7 +64,7 @@
   `docs/MAP.md`, `docs/inbox.md`, spec standalone, guides et skill local distinguent désormais le
   flux actif background-only du moteur de scènes historique mis en pause.
 - Tuner couleur enrichi : types déclaratifs `color`/`colors`, picker natif, 15 couleurs nommées,
-  saisie CSS libre, listes ajout/retrait et gradient depuis `components/color-palette.json`.
+  saisie CSS libre, listes ajout/retrait et gradient depuis `src/components/color-palette.json`.
 - Correctifs : OrbitingShapes applique min/max en direct et expose l'opacité ; Rain couvre le cadre
   aux angles forts et garde sa densité.
 - Écart de vitesse OBS/navigateur reproduit par test 30/60 fps : les canvas avançaient par frame.
@@ -126,17 +131,17 @@
 - LAC-02/03 (`background-effects-library.md`) tranchées avec l'owner : LAC-03 (positions
   `StarsParallaxBackground` non-déterministes) acceptée telle quelle. LAC-02 implémentée :
   `DotGridAnimated.js` gagne `colorMode: 'flat'|'noise'`, teinte par point modulée par bruit Simplex
-  (`hueShiftRgb`/`buildHueShiftLUT`, `components/color-utils.js`), exposée en config et panneau dev.
+  (`hueShiftRgb`/`buildHueShiftLUT`, `src/components/color-utils.js`), exposée en config et panneau dev.
 - Bug rapporté par l'owner (flicker `MatrixGridBackground` en vraie Browser Source OBS) : root cause
   `filter:drop-shadow` recalculé chaque frame sur un plan 3D animé en continu — coûteux pour le
   rendu offscreen CEF d'OBS. Retiré, `will-change:transform` ajouté à la place.
-- Bug rapporté (start-stream.bat s'ouvre et se referme immédiatement) : deux `bun.exe` orphelins
+- Bug rapporté (stream.bat s'ouvre et se referme immédiatement) : deux `bun.exe` orphelins
   occupaient déjà les ports 5500/4456, les deux enfants crashaient instantanément (`EADDRINUSE`),
   le parent n'avait plus rien à faire et se terminait silencieusement. Test empirique (kill brutal du
   parent) a confirmé que le Job Object Windows nettoie bien les enfants même sur un kill non-gracieux
-  — pas un bug systémique, des orphelins de test accumulés. `dev/port-check.js` ajouté : préflight
+  — pas un bug systémique, des orphelins de test accumulés. `server/lifecycle/port-check.js` ajouté : préflight
   qui détecte un port déjà occupé AVANT de spawn, message clair unique au lieu de 2 stack traces Bun
-  brutes ; `start-stream.bat`/`start-dev.bat` gagnent un `pause`-on-error pour ne plus jamais
+  brutes ; `stream.bat`/`studio.bat` gagnent un `pause`-on-error pour ne plus jamais
   refermer la fenêtre avant que l'erreur soit lisible.
 - Audit d'optimisation demandé par l'owner (motivation explicite : CPU partagé avec OBS/encodage/jeu
   en contexte stream, pas une hypothèse) sur les 11 effets de fond + DotGrid : `ColorDropsBackground.js`
@@ -163,8 +168,8 @@
 **Impact :**
 - `bun test` : 159/159 verts (5 tests ajoutés cette session : `hueShiftRgb` ×3, `buildHueShiftLUT`,
   `degToLUTIndex` ×2).
-- Nouveaux modules réutilisables : `dev/port-check.js` (préflight ports, réutilisé par
-  `start-stream.js`/`start-dev.js`), `hueShiftRgb`/`buildHueShiftLUT` (`components/color-utils.js`).
+- Nouveaux modules réutilisables : `server/lifecycle/port-check.js` (préflight ports, réutilisé par
+  `start-stream.js`/`start-studio.js`), `hueShiftRgb`/`buildHueShiftLUT` (`src/components/color-utils.js`).
 - Leçon méthodologique retenue : toute optimisation ajoutée en cours de session doit repasser par
   `/code-review` avant clôture — les deux bugs trouvés n'existaient pas avant l'optimisation, ils ont
   été introduits PAR elle.

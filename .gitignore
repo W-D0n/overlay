@@ -21,4 +21,7 @@ Thumbs.db
 .playwright-mcp/
 
 # État runtime du fond standalone (background-state-server) — local, jamais versionné
-dev/data/
+data/
+
+# Client lourd Tauri — artefacts de build Rust (voir plan de migration)
+src-tauri/target/

@@ -156,7 +156,7 @@ Aucun code cette session — spec à valider avant A2 (implémentation `slide`/`
 | `scene-resolve.js` | modifier | `TRANSITION_TYPES` étendu ; validation/repli de `direction` (AC-07) et `color` (AC-08) dans `resolveTransition` |
 | `scene-resolve.test.js` | modifier | tests AC-01, AC-05, AC-07, AC-08 (pure — dégradation `morph` sans changement de mode résolue plus haut dans `scene-runtime.js`, pas ici) |
 | `scene-runtime.js` | modifier | `slide`/`wipe`/`morph` dans la logique de transition (AC-02 à AC-06) — session A2 (`slide`/`wipe`) puis A3 (`morph`) |
-| `components/DotGridAnimated.js` | modifier | implémente enfin `morphTo()` (actuellement stub) — session A3 |
+| `src/components/DotGridAnimated.js` | modifier | implémente enfin `morphTo()` (actuellement stub) — session A3 |
 
 > Règle de cross-check (avant de déclarer "done") :
 > - Chaque AC → implémenté et vérifiable

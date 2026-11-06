@@ -1,9 +1,9 @@
 // @ts-check
-import { errorMessage } from '../../dev/error-message.js';
+import { errorMessage } from '../shared/error-message.js';
 import { CODE_PARAMS_MAX_CHARS } from '../layers/layer-kinds.js';
 
 /**
- * components/code-params.js — Les réglages qu'une couche Code expose : la déclaration (un texte JSON écrit par l'auteur du code), les valeurs
+ * src/components/code-params.js — Les réglages qu'une couche Code expose : la déclaration (un texte JSON écrit par l'auteur du code), les valeurs
  * qu'on en tire, et la vue « formulaire » que le Studio présente. Pur : ni DOM ni réseau.
  *
  * La déclaration est de la **donnée**, lue par l'hôte : un réglage n'existe pas parce que du code l'a annoncé en s'exécutant (un script qui plante

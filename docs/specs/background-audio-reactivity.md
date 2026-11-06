@@ -1,3 +1,8 @@
+---
+created: 2026-07-25
+updated: 2026-11-06
+---
+
 # Spec — Fonds réactifs au son (② de l'audit produit)
 
 Statut : **livrée** (3 effets validés en live le 2026-07-25, étendue aux 11 le 2026-07-26).
@@ -55,10 +60,10 @@ autre fichier à toucher. Ce point est à répercuter dans `docs/guides/creer-un
 | `audio-levels.js` | Spectre + `sampleRate` → `{ level, bass, mid, treble }`, lissage attaque/retour | **Pur, testé** |
 | `background-audio.js` | Session micro : acquisition, boucle rAF, diffusion, arrêt, reprise | Effets de bord |
 | `background-mount.js` | `applyAudio(levels)` — route vers l'instance montée si elle expose `setAudioLevel` | Existant, étendu |
-| `components/{DotGridAnimated,BubbleBackground,WaterRippleBackground}.js` | `setAudioLevel` | Existants, étendus |
-| `components/audio-reaction.js` | Motif commun : intensité, bornage, remise à zéro, détection de pic | Partagé, testé |
-| `dev/component-field-schemas.js` | Champs `audioReactive` / `audioIntensity` sur les 11 effets | Existant, étendu |
-| `background.html`, `dev/background-preview-*` | Branchement identique des deux côtés | Existants, étendus |
+| `src/components/{DotGridAnimated,BubbleBackground,WaterRippleBackground}.js` | `setAudioLevel` | Existants, étendus |
+| `src/components/audio-reaction.js` | Motif commun : intensité, bornage, remise à zéro, détection de pic | Partagé, testé |
+| `studio/inspector/component-field-schemas.js` | Champs `audioReactive` / `audioIntensity` sur les 11 effets | Existant, étendu |
+| `background.html`, `studio/canvas/background-preview-*` | Branchement identique des deux côtés | Existants, étendus |
 
 `background-audio.js` est au même niveau que `background-reactions.js` : partagé mot pour mot entre
 l'URL OBS et l'aperçu du tuner, pour qu'ils ne puissent pas diverger.
@@ -131,7 +136,7 @@ introduire un pour deux valeurs serait un ajout de vocabulaire non justifié.
 | OrbitingShapes | Le grave écarte les formes de leur centre, le niveau accélère la rotation. |
 | ShapeMorph | Le grave gonfle les formes, le niveau accélère leur rotation. |
 
-`components/audio-reaction.js` porte le motif commun (lecture de `audioIntensity`, bornage des
+`src/components/audio-reaction.js` porte le motif commun (lecture de `audioIntensity`, bornage des
 niveaux, remise à zéro quand le preset repasse en non réactif, détection de pic), extrait après la
 troisième occurrence. Chaque effet garde la main sur **ce que** le son modifie chez lui.
 
@@ -142,7 +147,7 @@ les paramètres existants, elle ne les remplace pas.
 
 - **En live** : rien ne s'affiche jamais. Micro perdu → l'effet continue son animation normale.
 - **Dans le Studio** : le contrôle « Avant le live » gagne un point d'état micro
-  (`dev/background-live-readiness.js`) : `ready` si actif, `attention` si indisponible (avec la
+  (`background-live-readiness.js`) : `ready` si actif, `attention` si indisponible (avec la
   cause : option de lancement manquante, permission refusée, aucun périphérique), et rien du tout si
   le preset courant n'est pas réactif.
 - La contrainte permanente `--enable-media-stream` + périphérique par défaut de Windows est

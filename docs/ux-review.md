@@ -1,11 +1,11 @@
 ---
 created: 2026-10-29
-updated: 2026-10-29
+updated: 2026-11-06
 ---
 
 # Revue UX/UI du Studio (2026-10-29)
 
-Observé dans Chromium (Playwright) à 1920×1080 : Studio (`dev/studio.html`) et ses trois onglets
+Observé dans Chromium (Playwright) à 1920×1080 : Studio (`studio/index.html`) et ses trois onglets
 Fond / Habillage / Diffusion. **Non observé dans OBS** (CEF) ni sur un autre écran que 1920×1080.
 Les mesures ci-dessous viennent du DOM réel ; les propositions sont des recommandations.
 
@@ -37,7 +37,7 @@ Cible cohérente avec `docs/specs/studio-cadrage.md` (scènes en couches, brouil
 2. **Centre** : cadre 16:9 fixe à l'échelle de 1920×1080, bandeau d'état **« Brouillon »** (bleu) ou **« En antenne »** (or), bouton **Publier** et **Annuler** (retour à l'antenne).
 3. **Panneau droit** : réglages de l'effet de la sélection, transition d'arrivée au même endroit que le preset qu'elle concerne.
 
-Effet sur U1 à U5 : tous résolus par construction. Coût : refonte du tuner (≈ 640 lignes de HTML/CSS et `background-tuner-runtime.js`), à faire avec le modèle de brouillon du cadrage plutôt que par retouches.
+Effet sur U1 à U5 : tous résolus par construction. Coût : refonte du tuner (≈ 640 lignes de HTML/CSS et `studio/main.js`), à faire avec le modèle de brouillon du cadrage plutôt que par retouches.
 
 ## Décisions à prendre
 

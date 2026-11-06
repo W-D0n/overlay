@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-06
 ---
 
 # Spec — Connexions et alertes (OBS, Twitchat, Twitch)
@@ -13,16 +13,16 @@ les réactions du fond ne servaient qu'en test. Cadrage d'origine : `studio-cadr
 
 | # | Décision | Raison |
 |---|---|---|
-| K1 | Les réglages de connexion sont des **secrets** dans un fichier à part, `<état>.connections.json` (dossier `dev/data`, ignoré par git, jamais servi, mode `0o600` là où le système le permet). | Jamais exportés avec les scènes (le fichier d'état s'exporte), jamais dans le dépôt, jamais servis. |
+| K1 | Les réglages de connexion sont des **secrets** dans un fichier à part, `<état>.connections.json` (dossier `data`, ignoré par git, jamais servi, mode `0o600` là où le système le permet). | Jamais exportés avec les scènes (le fichier d'état s'exporte), jamais dans le dépôt, jamais servis. |
 | K2 | **L'API ne renvoie jamais un secret** : mot de passe OBS (« enregistré », pas sa valeur), jetons Twitch. Le bouton Afficher / Masquer agit sur la **saisie en cours**. | Un secret relisible depuis l'API serait lisible par tout ce qui parle à `localhost`. |
 | K3 | `.env` reste lu en repli ; **ce que le Studio enregistre passe devant**. | Une installation existante continue de marcher sans rien ressaisir. |
 | K4 | Une écriture exige l'en-tête `X-Overlay-Control: 1`. | Il force une requête préalable CORS qu'une page étrangère ne passe pas (comme `/control/*`). |
-| K5 | Un **point d'entrée unique des alertes** (`dev/event-intake.js`) : bouton de test, Twitchat et Twitch y arrivent ; il journalise (20 dernières, avec la source) et **limite les rafales** (20 alertes / 5 s). | Une seule règle de validation et de protection ; le Studio montre d'où vient chaque alerte. |
+| K5 | Un **point d'entrée unique des alertes** (`server/event-intake.js`) : bouton de test, Twitchat et Twitch y arrivent ; il journalise (20 dernières, avec la source) et **limite les rafales** (20 alertes / 5 s). | Une seule règle de validation et de protection ; le Studio montre d'où vient chaque alerte. |
 | K6 | Toute source externe passe par `normalizeAlert` : `{ type, username?, amount? }`, pseudo borné et nettoyé, montant entier borné, **champs inconnus écartés**. | Rien d'autre que ces trois champs n'atteint OBS (contrat des réactions, `CLAUDE.md` §6). |
 | K7 | **Twitchat est client WebSocket** d'un serveur que nous exposons (`WebsocketTrigger`, dépôt Durss/Twitchat : l'action « ws » d'un trigger envoie le payload JSON de l'utilisateur) ; nous n'écoutons pas les `CustomEvent` d'OBS. | Aucun élargissement de la connexion OBS (qui reste en lecture seule et limitée aux scènes) ; aucun `RAID` dans l'API OBS de Twitchat ; le format est le nôtre, donc les quatre types sont couverts. |
 | K8 | Twitch par **EventSub WebSocket** et **autorisation par code d'appareil** (client « Public » : aucun secret). | Aucun serveur public ni adresse de rappel ; l'owner tape un code, le Studio ne voit jamais son mot de passe Twitch. |
 
-## 2. Réglages OBS (`dev/connection-*.js`, `dev/obs-connection.js`, `dev/settings-controller.js`)
+## 2. Réglages OBS (`studio/settings/connection-*.js`, `server/integrations/obs-connection.js`, `studio/settings/settings-controller.js`)
 
 - `GET /connections` : adresse, `passwordSet`, origine (`settings` | `env` | `none`), état. `POST /connections/obs` : `{ url?, password? }` ; `password: null` efface, `url: ''` revient au défaut ; valeurs validées
   (adresse `ws://` ou `wss://`, mot de passe 256 caractères au plus, aucun caractère de contrôle).
@@ -37,7 +37,7 @@ les réactions du fond ne servaient qu'en test. Cadrage d'origine : `studio-cadr
 `event-intake.js` : `publish(alerte, source)` diffuse sur le canal `event`, journalise, refuse au-delà de la rafale (les refus sont comptés et dits). `POST /event` (boutons de test) y passe aussi (429 au-delà de la rafale).
 Le journal vit tant que le serveur tourne ; il n'est pas persisté.
 
-## 4. Twitchat (`dev/twitchat-link.js`, `dev/twitchat-adapter.js`)
+## 4. Twitchat (`server/integrations/twitchat-link.js`, `server/integrations/twitchat-adapter.js`)
 
 - Adresse : `ws://127.0.0.1:<port>/twitchat-ws?token=<jeton>` ; la racine `ws://127.0.0.1:<port>` accepte aussi Twitchat (hôte et port seuls, jeton dans chaque message).
 - **Origine** : la page de Twitchat n'est pas locale. Ce canal est **la seule surface qui accepte une Origin hors boucle locale** ; le filtre est un **jeton** (24 octets du générateur système, 48 hexadécimaux), comparé sans court-circuit,
@@ -47,7 +47,7 @@ Le journal vit tant que le serveur tourne ; il n'est pas persisté.
   pour le pseudo, `viewers` / `bits` pour le montant.
 - Le Studio donne l'adresse (masquée, copiable), l'hôte et le port, un **modèle de message** par type (avec ou sans le jeton dans le message), et **régénère** le jeton (second appui ; les connexions sont coupées, code 4401).
 
-## 5. Twitch (`dev/twitch-auth.js`, `twitch-eventsub.js`, `twitch-alerts.js`, `twitch-connection.js`)
+## 5. Twitch (`server/integrations/twitch-auth.js`, `twitch-eventsub.js`, `twitch-alerts.js`, `twitch-connection.js`)
 
 Faits tenus de la documentation de Twitch (lue le 2026-10-31) :
 

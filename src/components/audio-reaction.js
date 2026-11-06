@@ -3,7 +3,7 @@ import { isAudioPeak } from '../background/audio-levels.js';
 import { isAudioOn } from '../layers/layer-kinds.js';
 
 /**
- * components/audio-reaction.js — État audio partagé par les effets réactifs.
+ * src/components/audio-reaction.js — État audio partagé par les effets réactifs.
  *
  * Le même bloc se répétait dans chaque effet : lire `audioIntensity`, borner les niveaux, remettre
  * à zéro quand le preset repasse en non réactif, détecter un pic. Extrait ici après la troisième

@@ -1,13 +1,13 @@
 ---
 created: 2026-10-29
-updated: 2026-10-30
+updated: 2026-11-06
 ---
 
 # Spec — Document de scène et moteur de scène (étape 4)
 
 Statut : **validée le 2026-10-30** (D1, D2, D4 comme proposé ; D3 modifié : placement en fractions, voir plus bas). Étape 4 de `docs/architecture-review.md` §5, après le
 socle de rendu (étapes 1-2) et la définition unique d'un type de couche (étape 3), toutes livrées. Elle
-touche des **surfaces partagées** (`dev/background-state-format.js`, `background-mount.js`, `types.js`) et
+touche des **surfaces partagées** (`src/shared/background-state-format.js`, `background-mount.js`, `types.js`) et
 **le fichier d'état de l'owner** : migration réversible avec sauvegarde, comme l'étape 3.
 
 Vocabulaire (`codebase-design`) : module, interface, seam. « Scène » = ce que `docs/specs/studio-cadrage.md`
@@ -134,7 +134,7 @@ Le branding reste une surcouche globale (état séparé, `showBranding` par scè
 - Une scène de **trois couches** (par exemple DotGrid + Fireflies + une couche placée dans un coin) s'affiche
   dans l'aperçu et dans la page de rendu, à 1080p et à 1440p ; masquer une couche la retire sans recréer les autres.
 - Mesure de charge (FPS du compteur et CPU OBS, votre protocole habituel) avec 1 couche puis 3 couches :
-  **résultat publié avant d'ouvrir l'éditeur multi-couches** (étape 6). Page de mesure : `dev/charge.html?couches=N`
+  **résultat publié avant d'ouvrir l'éditeur multi-couches** (étape 6). Page de mesure : `studio/bench/charge.html?couches=N`
   (0 à 8, N couches pleine taille aux réglages par défaut, `&types=dotgrid,rain,…` pour choisir, `&hud=0` pour masquer le
   compteur), à charger dans une Browser Source de test 1920×1080 à 60 fps ; relever dans le dock Statistiques d'OBS le CPU,
   le temps de rendu moyen, les images manquées et abandonnées, sur 2 minutes par configuration (0, 1, 3, puis 8 couches).

@@ -3,7 +3,7 @@ import { kindDefaults, normalizeKindOptions } from './kind-options.js';
 import { TEXT_MIN_FIT_SIZE } from './text-layer.config.js';
 
 /**
- * components/text-layout.js — La mise en page d'une couche texte : pur, sans canvas ni DOM. À partir des options et de la zone de
+ * src/components/text-layout.js — La mise en page d'une couche texte : pur, sans canvas ni DOM. À partir des options et de la zone de
  * la couche, il donne la taille retenue et les lignes à dessiner ; `TextLayer` n'a plus qu'à peindre. La mesure d'une ligne est
  * fournie (le canvas la donne, un test la simule).
  *

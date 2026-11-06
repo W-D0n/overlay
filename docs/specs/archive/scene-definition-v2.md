@@ -78,7 +78,7 @@ retirée (plan à 6 sessions) — pas de double système, donc rien à retirer p
   cas spécial.
 - Contrat de binding déclaratif : les `options` d'un `ComponentMount` peuvent contenir
   `{ $bind: 'state.path' }` au lieu d'une valeur littérale. Résolu au montage et à chaque changement
-  d'état (réutilise le contrat existant `{ el, update?, destroy? }` de `components/index.js` — tout
+  d'état (réutilise le contrat existant `{ el, update?, destroy? }` de `src/components/index.js` — tout
   composant qui définit `update()` peut recevoir des options liées).
 - Déclencheurs pour comportements non-continus (alertes, minuteurs) : `{ trigger: 'method-name',
   when: 'state.path' }` — appelle `instance[method](state[path])` quand `state[path]` change
@@ -251,7 +251,7 @@ export function resolveBoundOptions(options, state) {
 | `types.js` | modifier | `SceneId` → `string`, `ComponentMount.placement`/`trigger`, `SceneDefinition`, `LayerDefinition` |
 | `scene-definition-resolve.js` | créer | `resolveBoundValue`, `resolveBoundOptions` — logique pure, testée |
 | `scene-definition-resolve.test.js` | créer | Tests AC-03 à AC-05 |
-| `components/index.js` | modifier | Ajouter `Box`, `Divider`, `TextLabel`, `TextList`, `PollBar`, `Badge`, `Image` — AC-06 à AC-09, AC-11, AC-13, AC-14. Bun n'a pas de DOM en environnement de test (`document` indéfini) — comme les composants existants, ces 7 sont vérifiés visuellement, pas par `bun test` (sauf le rejet d'URL externe d'`Image`, pure logique). |
+| `src/components/index.js` | modifier | Ajouter `Box`, `Divider`, `TextLabel`, `TextList`, `PollBar`, `Badge`, `Image` — AC-06 à AC-09, AC-11, AC-13, AC-14. Bun n'a pas de DOM en environnement de test (`document` indéfini) — comme les composants existants, ces 7 sont vérifiés visuellement, pas par `bun test` (sauf le rejet d'URL externe d'`Image`, pure logique). |
 | `component-registry.js` | modifier | Enregistrer les 7 nouveaux composants + `DotGridAnimated` — AC-12 |
 | `scene-runtime.js` | modifier | Monter DotGrid via le registry au lieu d'un import direct — AC-12 |
 | `protocol.js` | modifier | `validateSceneDefinition` (remplace/étend `validateSceneConfig`) — AC-01, AC-10 |
@@ -301,9 +301,9 @@ entièrement par `applyBindings` (`$bind`/`trigger`).
 - `scene-runtime.js` : `init()` devient async, `await loadDynamicScenes()` avant le montage initial —
   seul changement de flux ; le montage lui-même (`mountScene`) est inchangé, une scène dynamique
   suit exactement le même chemin qu'une scène statique.
-- `dev/scene-data-server.js` (dev-only, jamais en live, même avertissement que `placement-server.js`) :
+- `scene-data-server.js` (dev-only, jamais en live, même avertissement que `placement-server.js`) :
   3 routes qui écrivent `scenes/data/*.scene.json` + `manifest.json`.
-- `dev/scene-data-format.js` : logique pure de manipulation du manifeste (ajout/retrait d'un id),
+- `scene-data-format.js` : logique pure de manipulation du manifeste (ajout/retrait d'un id),
   testée — même séparation logique/effets que `scene-placement-format.js` (S7).
 - `scenes/data/manifest.json` : committé, `[]` initial.
 
@@ -389,9 +389,9 @@ entièrement par `applyBindings` (`$bind`/`trigger`).
 | `scenes/registry.js` | modifier | + `loadDynamicScenes()` (AC-15, AC-16) |
 | `scene-runtime.js` | modifier | `init()` async, `await loadDynamicScenes()` (AC-17) |
 | `scenes/data/manifest.json` | créer | `[]` initial, committé |
-| `dev/scene-data-format.js` | créer | `addSceneToManifest`/`removeSceneFromManifest`, pur (AC-25) |
-| `dev/scene-data-format.test.js` | créer | tests AC-25 |
-| `dev/scene-data-server.js` | créer | 3 routes dev-only (AC-18 à AC-24) |
+| `scene-data-format.js` | créer | `addSceneToManifest`/`removeSceneFromManifest`, pur (AC-25) |
+| `scene-data-format.test.js` | créer | tests AC-25 |
+| `scene-data-server.js` | créer | 3 routes dev-only (AC-18 à AC-24) |
 
 > Règle de cross-check (avant de déclarer "done") :
 > - Chaque AC → implémenté et vérifiable
@@ -411,7 +411,7 @@ entièrement par `applyBindings` (`$bind`/`trigger`).
 
 ### Contexte
 
-Étend `dev/overlay-setting.html` (jalon 1 de l'éditeur, "un seul outil construit par jalons
+Étend `overlay-setting.html` (jalon 1 de l'éditeur, "un seul outil construit par jalons
 successifs", voir `docs/backlog-history.md`) : ajouter/retirer/éditer les `ComponentMount` d'une couche, avec
 un formulaire dédié par type de composant. Les 9 scènes sont désormais des scènes dynamiques (S8,
 migration précédente) — `/update-scene` (session 4/6) accepte déjà n'importe laquelle d'entre elles.
@@ -428,7 +428,7 @@ migration précédente) — `/update-scene` (session 4/6) accepte déjà n'impor
 - Sauvegarde via `POST /update-scene` (`scene-data-server.js`, session 4/6) — la configuration
   complète de la scène est envoyée à chaque action (ajout/retrait/édition), pas de sauvegarde
   partielle.
-- `dev/component-field-schemas.js` : configuration statique (pas de logique) décrivant, pour
+- `studio/inspector/component-field-schemas.js` : configuration statique (pas de logique) décrivant, pour
   chacun des 12 types composables, ses champs éditables (clé, libellé, type d'input, valeur par
   défaut) — pattern "configuration hors composant" (`CLAUDE.md`).
 
@@ -447,7 +447,7 @@ migration précédente) — `/update-scene` (session 4/6) accepte déjà n'impor
 | AC-27 | Retirer un composant met à jour la config locale et déclenche `POST /update-scene` | visuel + review |
 | AC-28 | Un sélecteur propose les 12 types composables (`DotGridBackground` exclu) + bouton "Ajouter" qui insère un `ComponentMount` en fin de couche avec les valeurs par défaut du schéma | visuel |
 | AC-29 | Chaque champ d'un formulaire a une bascule "valeur fixe"/"lié à l'état" ; en mode lié, la valeur sauvegardée est `{ $bind: <chemin saisi> }` | visuel |
-| AC-30 | `dev/component-field-schemas.js` couvre les 12 types composables, un schéma par type reflétant exactement la signature de sa factory (`components/index.js`) | review |
+| AC-30 | `studio/inspector/component-field-schemas.js` couvre les 12 types composables, un schéma par type reflétant exactement la signature de sa factory (`src/components/index.js`) | review |
 | AC-31 | Sauvegarder envoie la `SceneConfig` complète (pas seulement la couche modifiée) à `/update-scene` | review |
 
 > Règle : chaque AC est vérifiable de façon autonome. "Fonctionne correctement" n'est pas un AC.
@@ -479,8 +479,8 @@ migration précédente) — `/update-scene` (session 4/6) accepte déjà n'impor
 
 | Fichier | Action | Notes |
 |---|---|---|
-| `dev/component-field-schemas.js` | créer | schémas des 12 types composables (AC-30) |
-| `dev/overlay-setting.html` | modifier | UI de composition par couche (AC-26 à AC-29, AC-31) |
+| `studio/inspector/component-field-schemas.js` | créer | schémas des 12 types composables (AC-30) |
+| `overlay-setting.html` | modifier | UI de composition par couche (AC-26 à AC-29, AC-31) |
 
 > Règle de cross-check (avant de déclarer "done") :
 > - Chaque AC → implémenté et vérifiable
@@ -512,7 +512,7 @@ l'owner (2026-07-05) au-delà du texte original de la spec :
   `POST /create-scene`.
 - Bouton de suppression de la scène sélectionnée, confirmation via `window.confirm()` (suffisant
   pour un outil de dev local, pas de modale personnalisée) → `POST /delete-scene`.
-- `dev/scene-data-server.js` `/delete-scene` : déplace `scenes/data/<id>.scene.json` vers
+- `scene-data-server.js` `/delete-scene` : déplace `scenes/data/<id>.scene.json` vers
   `scenes/data/archived/<id>.scene.json` avant de retirer l'id du manifeste (ordre préservé : le
   fichier actif disparaît avant que le manifeste ne soit mis à jour, cohérent avec le fix de
   la session 4/6 — pire cas un id fantôme, jamais un fichier orphelin).
@@ -569,8 +569,8 @@ l'owner (2026-07-05) au-delà du texte original de la spec :
 
 | Fichier | Action | Notes |
 |---|---|---|
-| `dev/scene-data-server.js` | modifier | `/delete-scene` archive au lieu de supprimer (AC-35) |
-| `dev/overlay-setting.html` | modifier | création/suppression de scène + gestion minimale des couches (AC-32 à AC-34, AC-36, AC-37) |
+| `scene-data-server.js` | modifier | `/delete-scene` archive au lieu de supprimer (AC-35) |
+| `overlay-setting.html` | modifier | création/suppression de scène + gestion minimale des couches (AC-32 à AC-34, AC-36, AC-37) |
 
 > Règle de cross-check (avant de déclarer "done") :
 > - Chaque AC → implémenté et vérifiable

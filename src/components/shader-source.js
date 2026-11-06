@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * components/shader-source.js — Le shader d'une couche Shader : le source GLSL complet qu'on compile à partir du code que l'auteur écrit, les
+ * src/components/shader-source.js — Le shader d'une couche Shader : le source GLSL complet qu'on compile à partir du code que l'auteur écrit, les
  * uniformes que ses réglages déclarés deviennent, et la lecture du journal du compilateur. Pur : ni DOM ni WebGL.
  *
  * L'auteur écrit `void mainImage(out vec4 fragColor, in vec2 fragCoord)` comme sur Shadertoy : un code copié de là marche presque tel quel

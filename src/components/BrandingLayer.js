@@ -3,7 +3,7 @@ import { RENDER_REFERENCE, referenceScale } from '../render/render-reference.js'
 import { brandingStyles, hasBrandingContent, normalizeBranding } from '../branding/branding-format.js';
 
 /**
- * components/BrandingLayer.js — Pseudo et réseaux posés au-dessus du fond.
+ * src/components/BrandingLayer.js — Pseudo et réseaux posés au-dessus du fond.
  *
  * DOM pur, pas de canvas : c'est du texte, il doit rester net et sélectionnable par OBS comme du
  * texte. Contrat volontairement différent d'un effet de fond (`update(branding)`, pas d'options

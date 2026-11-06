@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-11-03
+updated: 2026-11-06
 ---
 
 # Spec — Liaisons de couche (le son et les alertes pilotent une couche)
@@ -52,7 +52,7 @@ valeur de repos et « À » celle de la source au maximum ; ils peuvent être in
 
 ## 3. Le Studio
 
-Section **Animation** de l'inspecteur (`dev/bindings-controller.js`) : « + Ajouter une liaison » crée une ligne de départ (le son pilote l'échelle
+Section **Animation** de l'inspecteur (`studio/inspector/bindings-controller.js`) : « + Ajouter une liaison » crée une ligne de départ (le son pilote l'échelle
 de 1 à 1,25) ; chaque ligne choisit la source, la valeur pilotée, « De (repos) », « À (source au maximum) » et le lissage ou la retombée ; « × »
 la retire. Changer la valeur pilotée remet « de » et « à » à ses valeurs de départ (leurs bornes diffèrent) ; passer du son à une alerte remet la
 durée de la famille. Une seule couche à la fois : sur plusieurs, la section le dit. Tout passe par les commandes de l'éditeur : annulable, enregistrable
@@ -81,6 +81,6 @@ ne sont pas écrits (forme canonique : bornée, arrondie au centième, couleur e
 (`drop-shadow` sans décalage, portée suivant `--reference-scale`), puis le flou, de sorte que le halo est flouté avec le reste. Inspecteur : section « Filtres » (une seule couche à la fois, annulable). « Réinitialiser » les
 retire. Les filtres suivent la couche dans le presse-papiers de style et dans le récapitulatif de publication (« filtres : aucun → luminosité, lueur »). Ils sont **animables** (2026-11-03) par la timeline et les liaisons : cibles `filter:brightness`, `filter:contrast`, `filter:saturation`, `filter:hue` et `filter:glow` (intensité du halo ; une
 couche sans halo prend le halo de départ, qui apparaît depuis rien). La valeur pilotée remplace celle de la couche, une valeur neutre ne laisse aucun filtre (`animatedFilters`, `layer-filters.js`) ; une
-image clé posée sans rien changer reprend le réglage de la couche (`filterBase`). Essais : `layer-filters-animated.test.js`, `scene-bindings-runtime.test.js`, `dev/e2e/suites/43-filtres-animes.e2e.js`.
+image clé posée sans rien changer reprend le réglage de la couche (`filterBase`). Essais : `layer-filters-animated.test.js`, `scene-bindings-runtime.test.js`, `e2e/suites/43-filtres-animes.e2e.js`.
 Restent hors de cette étape : la couleur et la portée du halo. Preuves : `layer-filters.test.js`, `layer-filters-doc.test.js` (35 défauts réinjectés vus rouges) et
-`dev/e2e/suites/40-filtres-couche.e2e.js` (le filtre CSS lu sur le calque réel ; 17 défauts de l'interface vus rouges).
+`e2e/suites/40-filtres-couche.e2e.js` (le filtre CSS lu sur le calque réel ; 17 défauts de l'interface vus rouges).

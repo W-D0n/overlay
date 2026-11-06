@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Overlay Studio</title>
+  <!--
+    studio/index.html — Studio : rail (antenne, bibliothèque, scènes, branding), aperçu à la taille de la source OBS
+    (même moteur que background.html : scene-runtime.js) et réglages du preset.
+    Chaque réglage : rendu local immédiat (brouillon) ; « Publier » envoie l'état par POST /state à
+    server/background-state-server.js, ce qui met l'URL OBS à jour.
+  -->
+  <link rel="stylesheet" href="../src/styles/tokens.css">
+  <link rel="stylesheet" href="./studio.css">
+</head>
+<body>
+  <header class="studio-bar">
+    <span class="studio-brand">Overlay Studio</span>
+    <div id="antenna" class="antenna" data-tone="warn" aria-live="polite">
+      <strong id="antenna-summary">…</strong>
+      <div id="antenna-items"></div>
+      <button id="antenna-copy" type="button">Copier l’URL OBS</button>
+      <button id="antenna-alerts" type="button" aria-pressed="false" title="Une notification du système quand OBS, le serveur ou la page de rendu est perdu, même si le Studio est derrière une autre fenêtre">Alertes système</button>
+      <button id="settings-open" type="button">Réglages</button>
+      <button id="diagnostic-open" type="button">Diagnostic</button>
+      <button id="history-open" type="button">Historique</button>
+    </div>
+    <div id="servers" class="servers" role="group" aria-label="Serveurs">
+      <button id="servers-restart" type="button" data-control="restart">Redémarrer</button>
+      <button id="servers-stop" type="button" data-control="stop">Arrêter</button>
+      <span id="servers-status" role="status" aria-live="polite"></span>
+    </div>
+    <span class="studio-spacer"></span>
+    <div id="server-status"></div>
+    <span id="settings-sync" role="status" aria-live="polite" data-state="synced"></span>
+    <a class="studio-link" href="../background.html" target="_blank" rel="noopener">Ouvrir le rendu OBS</a>
+  </header>
+
+  <dialog id="diagnostic" class="diagnostic" data-tone="warn" aria-labelledby="diagnostic-title">
+    <div class="diagnostic-bar">
+      <h2 id="diagnostic-title">Diagnostic</h2>
+      <span id="diagnostic-summary" role="status" aria-live="polite">…</span>
+      <div class="diagnostic-actions">
+        <button id="diagnostic-refresh" type="button">Revérifier</button>
+        <button id="diagnostic-copy" type="button">Copier le rapport</button>
+        <button id="diagnostic-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <ul id="diagnostic-list" class="diagnostic-list"></ul>
+  </dialog>
+
+  <dialog id="history" class="diagnostic" aria-labelledby="history-title">
+    <div class="diagnostic-bar">
+      <h2 id="history-title">Historique</h2>
+      <span id="history-summary" role="status" aria-live="polite">…</span>
+      <div class="diagnostic-actions">
+        <button id="history-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <ul id="history-list" class="diagnostic-list"></ul>
+  </dialog>
+
+  <dialog id="custom-commands" class="diagnostic cc-dialog" aria-labelledby="cc-title">
+    <div class="diagnostic-bar">
+      <h2 id="cc-title">Commandes personnalisées</h2>
+      <div class="diagnostic-actions">
+        <button id="cc-create" type="button">Nouvelle commande</button>
+        <button id="cc-record" type="button" title="Enregistrer les commandes que vous exécutez, puis en faire une commande">Enregistrer une macro</button>
+        <button id="cc-import" type="button">Importer</button>
+        <button id="cc-export" type="button">Exporter</button>
+        <button id="cc-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <p id="cc-empty" class="cc-empty">Une commande personnalisée enchaîne plusieurs commandes sous un nom et, si vous le voulez, un raccourci. Elle s’exécute d’un seul geste, annulable d’un seul Ctrl+Z. Créez-en une, ou enregistrez ce que vous faites.</p>
+    <ul id="cc-list" class="cc-list"></ul>
+    <div id="cc-editor" class="cc-editor" hidden>
+      <label class="cc-field">Nom <input id="cc-name" type="text" maxlength="40" autocomplete="off" placeholder="Mise en page du direct"></label>
+      <div class="cc-field">
+        <span>Raccourci</span>
+        <span class="cc-shortcut-row"><button id="cc-shortcut" type="button" class="cc-shortcut" aria-label="Raccourci clavier de la commande"></button><button id="cc-shortcut-clear" type="button" hidden aria-label="Retirer le raccourci">✕</button></span>
+      </div>
+      <div class="cc-field">
+        <span>Étapes, dans l’ordre</span>
+        <ol id="cc-steps" class="cc-steps"></ol>
+        <input id="cc-step-search" type="text" autocomplete="off" placeholder="Ajouter une étape : chercher une commande…" aria-label="Chercher une commande à ajouter">
+        <ul id="cc-step-results" class="cc-results"></ul>
+      </div>
+      <ul id="cc-errors" class="cc-errors" role="alert"></ul>
+      <div class="cc-editor-actions">
+        <button id="cc-save" type="button">Enregistrer</button>
+        <button id="cc-test" type="button" title="Exécuter maintenant les étapes sur la scène (annulable d’un coup)">Essayer</button>
+        <button id="cc-cancel" type="button">Annuler</button>
+      </div>
+    </div>
+    <div id="cc-io" class="cc-io" hidden>
+      <p id="cc-io-status" role="status"></p>
+      <textarea id="cc-io-text" rows="12" spellcheck="false" aria-label="Contenu JSON"></textarea>
+      <div class="cc-editor-actions">
+        <button id="cc-io-confirm" type="button">Importer</button>
+        <button id="cc-io-copy" type="button" hidden>Copier</button>
+        <button id="cc-io-cancel" type="button">Retour</button>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="macro-bar" class="macro-bar" role="status" hidden>
+    <span class="macro-dot" aria-hidden="true"></span>
+    <strong>Enregistrement d’une macro</strong>
+    <span id="macro-count"></span>
+    <span id="macro-steps" class="macro-steps"></span>
+    <button id="macro-finish" type="button">Terminer</button>
+    <button id="macro-cancel" type="button">Annuler</button>
+  </div>
+
+  <dialog id="command-palette" class="diagnostic palette" aria-label="Palette de commandes">
+    <input id="palette-input" type="text" class="palette-input" aria-label="Rechercher une commande" placeholder="Rechercher une commande…" autocomplete="off" spellcheck="false" role="combobox" aria-expanded="true" aria-controls="palette-list">
+    <ul id="palette-list" class="palette-list" role="listbox"></ul>
+  </dialog>
+
+  <dialog id="shortcuts-help" class="diagnostic" aria-labelledby="help-title">
+    <div class="diagnostic-bar">
+      <h2 id="help-title">Raccourcis et gestes</h2>
+      <div class="diagnostic-actions"><button id="help-close" type="button">Fermer</button></div>
+    </div>
+    <div id="help-body" class="help-body"></div>
+  </dialog>
+
+  <dialog id="changes-dialog" class="diagnostic" aria-labelledby="changes-title">
+    <div class="diagnostic-bar">
+      <h2 id="changes-title">Changements avant publication</h2>
+      <span id="changes-summary" role="status"></span>
+      <div class="diagnostic-actions">
+        <button id="changes-send" type="button">Publier</button>
+        <button id="changes-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <ul id="changes-list" class="diagnostic-list"></ul>
+  </dialog>
+
+  <dialog id="edits-dialog" class="diagnostic" aria-labelledby="edits-title">
+    <div class="diagnostic-bar">
+      <h2 id="edits-title">Historique d’édition</h2>
+      <span id="edits-summary" role="status"></span>
+      <div class="diagnostic-actions">
+        <button id="edits-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <ol id="edits-list" class="diagnostic-list edit-list"></ol>
+  </dialog>
+
+  <div id="studio-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <dialog id="templates-dialog" class="diagnostic" aria-labelledby="templates-title">
+    <div class="diagnostic-bar">
+      <h2 id="templates-title">Modèles de couches</h2>
+      <div class="diagnostic-actions">
+        <button id="templates-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <div class="tpl-save">
+      <input id="templates-name" type="text" autocomplete="off" maxlength="40" placeholder="Nom du modèle (la sélection y sera enregistrée)" aria-label="Nom du nouveau modèle">
+      <button id="templates-save" type="button" disabled>Enregistrer la sélection</button>
+      <span id="templates-error" class="tpl-error" role="status" aria-live="polite"></span>
+    </div>
+    <h3 class="tpl-section">Mes modèles</h3>
+    <p id="templates-empty" class="hint">Aucun modèle. Sélectionnez des couches, donnez un nom, puis enregistrez : le modèle s’insère ensuite dans n’importe quelle scène.</p>
+    <ul id="templates-list" class="diagnostic-list"></ul>
+    <h3 class="tpl-section">Bibliothèque</h3>
+    <input id="templates-search" type="search" autocomplete="off" placeholder="Chercher dans la bibliothèque (titre, alerte, néon…)" aria-label="Chercher dans la bibliothèque de modèles">
+    <p id="templates-library-empty" class="hint" hidden>Aucun modèle de la bibliothèque ne correspond.</p>
+    <ul id="templates-library" class="diagnostic-list"></ul>
+  </dialog>
+
+  <div id="context-menu" class="context-menu" role="menu" aria-label="Actions sur la couche" hidden></div>
+
+  <dialog id="layer-gallery" class="diagnostic" aria-labelledby="gallery-title">
+    <div class="diagnostic-bar">
+      <h2 id="gallery-title">Ajouter une couche</h2>
+      <div class="diagnostic-actions">
+        <button id="gallery-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <div id="gallery-grid" class="gallery-grid"></div>
+    <p id="gallery-status" class="gallery-status" role="status" aria-live="polite"></p>
+  </dialog>
+
+  <dialog id="asset-library" class="diagnostic" aria-labelledby="asset-library-title">
+    <div class="diagnostic-bar">
+      <h2 id="asset-library-title">Médiathèque</h2>
+      <div class="diagnostic-actions">
+        <button id="asset-import" type="button">Importer…</button>
+        <button id="asset-library-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <input id="asset-file" aria-label="Choisir des images ou des polices à importer" type="file" accept="image/png,image/jpeg,image/gif,image/webp,.woff2,.woff,.ttf,.otf" multiple hidden>
+    <p id="asset-library-hint" class="hint">Rien pour l’instant. Importez des images (PNG, JPEG, GIF, WebP) ou des polices (WOFF2, WOFF, TTF, OTF), ou glissez-les ici ; elles restent sur cet ordinateur.</p>
+    <div id="asset-grid" class="asset-grid"></div>
+    <p id="asset-status" class="gallery-status" role="status" aria-live="polite"></p>
+  </dialog>
+
+  <dialog id="settings-dialog" class="diagnostic" aria-labelledby="settings-title">
+    <div class="diagnostic-bar">
+      <h2 id="settings-title">Réglages</h2>
+      <div class="diagnostic-actions">
+        <button id="settings-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <div class="settings-body">
+    <section class="settings-section" aria-labelledby="settings-obs-title">
+      <h3 id="settings-obs-title">OBS</h3>
+      <p class="hint">Le Studio suit la scène active d’OBS et vérifie la source navigateur. Le mot de passe est celui d’OBS › Outils › Paramètres du serveur WebSocket. Il reste sur cet ordinateur et ne s’affiche jamais une fois enregistré.</p>
+      <p id="settings-obs-status" class="settings-state" data-tone="attention" role="status" aria-live="polite"></p>
+      <label class="settings-field">Adresse du serveur WebSocket
+        <input id="settings-obs-url" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="ws://127.0.0.1:4455">
+      </label>
+      <label class="settings-field" for="settings-obs-password">Mot de passe</label>
+      <div class="settings-password">
+        <input id="settings-obs-password" type="password" autocomplete="new-password" spellcheck="false" aria-label="Mot de passe du serveur WebSocket d’OBS">
+        <button id="settings-obs-reveal" type="button" aria-pressed="false" aria-label="Afficher le mot de passe">Afficher</button>
+      </div>
+      <div class="settings-actions">
+        <button id="settings-obs-save" type="button">Enregistrer et connecter</button>
+        <button id="settings-obs-clear" type="button">Effacer le mot de passe</button>
+      </div>
+    </section>
+    <section class="settings-section" aria-labelledby="settings-twitch-title">
+      <h3 id="settings-twitch-title">Twitch</h3>
+      <p class="hint">Reçoit directement les follows, subs, raids et bits de votre chaîne (EventSub), sans passer par Twitchat. À faire une fois : créez une application sur dev.twitch.tv/console (type « Public »), collez son identifiant client ici, puis connectez-vous : Twitch vous donne un code à taper sur son site. Le Studio ne reçoit jamais votre mot de passe Twitch.</p>
+      <p id="settings-twitch-status" class="settings-state" data-tone="attention" role="status" aria-live="polite"></p>
+      <label class="settings-field" for="settings-twitch-client">Identifiant client de l’application</label>
+      <div class="settings-password">
+        <input id="settings-twitch-client" type="text" autocomplete="off" spellcheck="false" placeholder="30 caractères, affiché dans la console développeur de Twitch">
+        <button id="settings-twitch-client-save" type="button">Enregistrer</button>
+      </div>
+      <div id="settings-twitch-code" class="settings-code" hidden>
+        <p>Ouvrez <a id="settings-twitch-link" target="_blank" rel="noopener noreferrer">la page d’autorisation de Twitch</a> et tapez ce code :</p>
+        <strong id="settings-twitch-usercode" class="settings-usercode"></strong>
+        <div class="settings-actions">
+          <button id="settings-twitch-code-copy" type="button">Copier le code</button>
+          <button id="settings-twitch-cancel" type="button">Annuler</button>
+        </div>
+      </div>
+      <div class="settings-actions">
+        <button id="settings-twitch-login" type="button">Connecter Twitch</button>
+        <button id="settings-twitch-logout" type="button">Déconnecter</button>
+      </div>
+    </section>
+    <section class="settings-section" aria-labelledby="settings-twitchat-title">
+      <h3 id="settings-twitchat-title">Twitchat</h3>
+      <p class="hint">Twitchat envoie ses alertes (follow, sub, raid, bits) à ce serveur : dans Twitchat, collez l’adresse ci-dessous dans le paramètre WebSocket, puis créez un trigger par alerte avec l’action « WebSocket » et le modèle de message. Elle contient un jeton secret.</p>
+      <p id="settings-twitchat-status" class="settings-state" data-tone="attention" role="status" aria-live="polite"></p>
+      <label class="settings-field" for="settings-twitchat-address">Adresse à coller dans Twitchat</label>
+      <div class="settings-password">
+        <input id="settings-twitchat-address" type="password" readonly spellcheck="false" aria-label="Adresse WebSocket à donner à Twitchat (contient un jeton secret)">
+        <button id="settings-twitchat-reveal" type="button" aria-pressed="false" aria-label="Afficher l’adresse de Twitchat">Afficher</button>
+        <button id="settings-twitchat-copy" type="button">Copier</button>
+      </div>
+      <p id="settings-twitchat-hostport" class="hint"></p>
+      <div class="settings-actions">
+        <select id="settings-twitchat-sample-type" aria-label="Type d’alerte du modèle de message">
+          <option value="follow">Follow</option>
+          <option value="sub">Sub</option>
+          <option value="raid">Raid</option>
+          <option value="bits">Bits</option>
+        </select>
+        <label class="settings-inline"><input id="settings-twitchat-sample-token" type="checkbox"> jeton dans le message</label>
+        <button id="settings-twitchat-sample" type="button">Copier le modèle de message</button>
+        <button id="settings-twitchat-regenerate" type="button" data-armed="false">Régénérer le jeton</button>
+      </div>
+    </section>
+    <section class="settings-section" aria-labelledby="settings-alerts-title">
+      <h3 id="settings-alerts-title">Alertes reçues</h3>
+      <p class="hint">Les dernières alertes arrivées au serveur, de toute source : on y voit qu’un trigger fonctionne.</p>
+      <ul id="settings-alerts" class="settings-alerts" aria-label="Dernières alertes reçues"></ul>
+    </section>
+    </div>
+    <p id="settings-status" class="gallery-status" role="status" aria-live="polite"></p>
+  </dialog>
+
+  <dialog id="versions-dialog" class="diagnostic" aria-labelledby="versions-title">
+    <div class="diagnostic-bar">
+      <h2 id="versions-title">Versions de la scène</h2>
+      <div class="diagnostic-actions">
+        <button id="versions-close" type="button">Fermer</button>
+      </div>
+    </div>
+    <div class="versions-save">
+      <input id="versions-name" type="text" maxlength="60" placeholder="nom de la version (ex. avant le gros changement)" aria-label="Nom de la version à enregistrer">
+      <button id="versions-save" type="button">Enregistrer l’état actuel</button>
+    </div>
+    <ul id="versions-list" class="versions-list" aria-label="Versions enregistrées de cette scène"></ul>
+    <p id="versions-status" class="gallery-status" role="status" aria-live="polite"></p>
+  </dialog>
+
+  <main class="studio-zones">
+    <aside id="rail" class="rail" aria-label="Bibliothèque, scènes et branding">
+
+      <details class="rail-section" open>
+        <summary>Bibliothèque</summary>
+    <p class="section-intro">Essaie une ambiance ou reprends une de tes scènes, puis ajuste-la dans les réglages ci-dessous.</p>
+    <div class="library-tools">
+      <input id="preset-search" type="search" aria-label="Rechercher dans les points de départ et les scènes" placeholder="chercher par nom, effet ou tag">
+    </div>
+    <h3 class="library-group">Mes scènes</h3>
+    <div class="library-tools">
+      <button id="preset-export">Exporter</button>
+      <button id="preset-import-trigger">Importer</button>
+      <input id="preset-import" type="file" aria-label="Importer des scènes (fichier JSON)" accept="application/json,.json" hidden>
+    </div>
+    <div id="preset-import-review" class="preset-import-review" hidden>
+      <p id="preset-import-summary"></p>
+      <div id="preset-import-details" class="preset-import-details" aria-label="Détail des changements"></div>
+      <div id="preset-import-code" class="preset-import-code" role="alert" hidden>
+        <p id="preset-import-code-text"></p>
+        <label class="preset-import-code-ack"><input type="checkbox" id="preset-import-code-ack"> J’ai compris, ce fichier peut faire exécuter du code</label>
+      </div>
+      <div class="preset-import-actions">
+        <button id="preset-import-confirm">Confirmer l'import</button>
+        <button id="preset-import-cancel">Annuler</button>
+      </div>
+    </div>
+    <div id="preset-list"></div>
+    <h3 class="library-group">Points de départ</h3>
+    <div id="builtin-list"></div>
+
+      </details>
+
+      <details class="rail-section">
+        <summary>Scènes OBS</summary>
+    <p class="hint">
+      Associe une scène OBS à une scène du Studio : changer de scène dans OBS change le fond automatiquement.
+      L’association reprend la main sur un réglage fait ici. Une URL <code>?preset=</code> n’est
+      jamais concernée.
+    </p>
+    <div id="obs-scene-status"></div>
+    <input id="obs-scene-filter" type="search" aria-label="Filtrer les scènes OBS" placeholder="filtrer les scènes">
+    <div id="obs-scene-rows"></div>
+    <div class="save-row">
+      <button id="obs-scene-save">Enregistrer les associations</button>
+      <button id="obs-scene-refresh" title="Relire l’état d’OBS">Actualiser</button>
+    </div>
+
+      </details>
+
+      <details class="rail-section">
+        <summary>Branding</summary>
+    <p class="hint">
+      Ton identité, commune à toutes les scènes. Attrape le bloc dans l’aperçu pour le déplacer.
+    </p>
+    <label>Pseudo
+      <input id="branding-name" type="text" maxlength="40" placeholder="D0n">
+    </label>
+    <label>Réseaux (une ligne chacun)
+      <textarea id="branding-lines" rows="3" placeholder="twitch.tv/d0n"></textarea>
+    </label>
+    <div class="save-row">
+      <label>Taille du pseudo
+        <input id="branding-name-size" type="number" min="8" max="72" step="0.5">
+      </label>
+      <label>Taille des lignes
+        <input id="branding-line-size" type="number" min="6" max="36" step="0.5">
+      </label>
+    </div>
+    <label>Couleur
+      <input id="branding-color" type="text" placeholder="var(--color-gold)">
+    </label>
+    <label>Opacité du branding
+      <input id="branding-opacity" type="range" min="0" max="1" step="0.05">
+    </label>
+    <div id="branding-position" class="hint"></div>
+    <label class="branding-toggle">
+      <input id="branding-show-on-preset" type="checkbox">
+      Afficher sur cette scène
+    </label>
+
+      </details>
+    </aside>
+
+    <section class="stage-zone" aria-label="Aperçu à la taille de la source OBS">
+    <div id="publish-bar" data-state="live" role="status" aria-live="polite">
+      <span id="publish-state">En antenne</span>
+      <button id="publish-changes" type="button" class="publish-extra" hidden title="Voir ce qui change par rapport à l’antenne">Aucun changement</button>
+      <button id="publish-compare" type="button" class="publish-extra" hidden aria-pressed="false" title="Montrer l’antenne à la place du brouillon (Ctrl+B)">Avant / après</button>
+      <button id="publish-test" type="button" class="publish-extra" title="Rejouer la transition d’arrivée dans l’aperçu, sans toucher à l’antenne">Tester la transition</button>
+      <button id="publish-discard" type="button" hidden>Annuler</button>
+      <button id="publish-send" type="button" hidden>Publier</button>
+    </div>
+    <div class="runtime-row">
+      <span id="runtime-status">FPS —</span>
+    </div>
+      <div id="stage-area"><div id="bg-layer"></div><div id="canvas-overlay" class="canvas-overlay"></div>
+        <div class="view-bar" role="toolbar" aria-label="Vue de l’aperçu">
+          <button id="view-zoom-out" type="button" title="Dézoomer (−)" aria-label="Dézoomer">−</button>
+          <button id="view-zoom-label" type="button" title="Ajuster à la zone (0)">Ajusté</button>
+          <button id="view-zoom-in" type="button" title="Zoomer (+)" aria-label="Zoomer">+</button>
+          <button id="view-zoom-100" type="button" title="Taille réelle de la source (1)">100 %</button>
+          <span class="view-bar-gap"></span>
+          <button id="view-snap" type="button" title="Aimantation aux bords, centres et autres couches (Ctrl tenu : suspendue)" aria-pressed="true">Aimant</button>
+          <button id="view-grid" type="button" title="Grille de 120 px" aria-pressed="false">Grille</button>
+          <button id="view-rulers" type="button" title="Règles en pixels de la source" aria-pressed="false">Règles</button>
+          <button id="view-safe" type="button" title="Zones de sécurité (5 % et 2,5 %), aussi cibles d’aimantation" aria-pressed="false">Sécurité</button>
+          <span class="view-bar-gap"></span>
+          <button id="view-obs" type="button" title="Rendu OBS : ce que la vraie page de rendu affiche à l’antenne" aria-pressed="false">Rendu OBS</button>
+        </div>
+        <div id="obs-pane" class="obs-pane" role="group" aria-label="Rendu OBS de l’antenne" hidden>
+          <div class="obs-pane-head">
+            <strong>Rendu OBS</strong>
+            <span id="obs-status" role="status" aria-live="polite"></span>
+            <button id="obs-close" type="button" aria-label="Fermer le rendu OBS">✕</button>
+          </div>
+          <div class="obs-pane-frame"><iframe id="obs-frame" title="Rendu OBS de l’antenne" tabindex="-1"></iframe></div>
+        </div>
+      </div>
+          <section id="timeline-panel" class="timeline-panel" data-open="false" aria-label="Timeline de la scène">
+        <div class="tl-head">
+          <h2>Timeline</h2>
+          <button id="timeline-play" type="button" aria-pressed="true" aria-label="Pause">⏸</button>
+          <button id="timeline-restart" type="button" aria-label="Revenir au début" title="Revenir au début">⟲</button>
+          <input id="timeline-scrub" class="tl-scrub" type="range" min="0" max="4000" step="10" value="0" aria-label="Position dans la timeline">
+          <span id="timeline-readout" class="tl-readout" aria-live="off">0,00 s / 4,00 s</span>
+          <label class="tl-field">Durée <input id="timeline-duration" type="number" min="0.5" max="60" step="0.5" value="4" aria-label="Durée de la scène en secondes"> s</label>
+          <label class="tl-field"><input id="timeline-loop" type="checkbox"> Boucle</label>
+          <button id="timeline-toggle" type="button" aria-expanded="false" aria-controls="timeline-body">Images clés ▾</button>
+        </div>
+        <div id="timeline-body" class="tl-body">
+          <div id="timeline-restart-on" class="tl-restart" role="group" aria-labelledby="timeline-restart-label">
+            <span id="timeline-restart-label" class="tl-restart-label">Rejouer l’animation quand arrive</span>
+          </div>
+          <div class="tl-tools">
+            <span id="timeline-title" class="tl-title"></span>
+            <select id="timeline-target" aria-label="Valeur à animer"></select>
+            <button id="timeline-add-key" type="button">+ Image clé</button>
+            <button id="timeline-paste" type="button" disabled>Coller</button>
+          </div>
+          <div id="timeline-tracks"></div>
+          <div id="timeline-detail" class="tl-detail" hidden>
+            <label class="tl-field">Instant <input id="timeline-key-time" type="number" min="0" max="60000" step="10" aria-label="Instant de l’image clé en millisecondes"> ms</label>
+            <label class="tl-field">Valeur <input id="timeline-key-value" type="number" step="0.05"></label>
+            <label class="tl-field">Courbe <select id="timeline-key-ease" aria-label="Courbe vers l’image clé suivante"></select></label>
+            <button id="timeline-key-copy" type="button">Copier</button>
+            <button id="timeline-key-remove" type="button">Supprimer</button>
+            <div id="timeline-curve" class="tl-curve"></div>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <aside id="inspector" class="inspector" aria-label="Réglages de la scène">
+    <section class="layers-panel" aria-labelledby="layers-title">
+      <div class="layers-head">
+        <h2 id="layers-title">Couches</h2>
+        <span id="layers-gauge" class="layers-gauge" data-level="ok" title="Couches de la scène sur la limite"></span>
+        <span id="layers-cost" class="layers-cost" data-level="none"></span>
+        <span class="layers-tools">
+          <button id="layers-versions" type="button" class="layer-button" aria-haspopup="dialog" aria-label="Versions de la scène" title="Versions de la scène"></button>
+          <button id="layers-history" type="button" class="layer-button" aria-label="Historique d’édition" title="Historique d’édition"></button>
+          <button id="layers-undo" type="button" class="layer-button" disabled aria-label="Annuler"></button>
+          <button id="layers-redo" type="button" class="layer-button" disabled aria-label="Rétablir"></button>
+          <button id="layers-add" type="button" class="layers-add" aria-haspopup="dialog">+ Ajouter</button>
+        </span>
+      </div>
+      <div class="layers-meter" aria-hidden="true"><span id="layers-gauge-fill" data-level="ok"></span></div>
+      <p id="layers-gauge-hint" class="hint"></p>
+      <ul id="layers-list" class="layers-list" role="listbox" aria-multiselectable="true" aria-label="Pile de couches, du dessus vers le dessous"></ul>
+      <p id="layers-empty" class="hint" hidden>Aucune couche : ajoutez un effet pour commencer.</p>
+      <div class="layers-selection-tools" role="toolbar" aria-label="Actions sur la sélection">
+        <button id="layers-solo" type="button" class="layer-button" title="Isoler la couche dans l’aperçu" aria-label="Isoler la couche dans l’aperçu" disabled></button>
+        <button id="layers-duplicate" type="button" class="layer-button" title="Dupliquer (Ctrl+D)" aria-label="Dupliquer" disabled></button>
+        <button id="layers-group" type="button" class="layer-button" title="Grouper (Ctrl+G)" aria-label="Grouper" disabled></button>
+        <button id="layers-ungroup" type="button" class="layer-button" title="Dégrouper (Ctrl+Maj+G)" aria-label="Dégrouper" disabled></button>
+        <button id="layers-remove" type="button" class="layer-button" title="Supprimer (Suppr)" aria-label="Supprimer" disabled></button>
+        <span class="layers-tools-gap"></span>
+        <button id="layers-up" type="button" class="layer-button" title="Monter (Alt+↑)" aria-label="Monter" disabled></button>
+        <button id="layers-down" type="button" class="layer-button" title="Descendre (Alt+↓)" aria-label="Descendre" disabled></button>
+      </div>
+    </section>
+
+    <section class="layer-inspector" aria-labelledby="inspector-title">
+      <h2 id="inspector-title">Inspecteur de la couche</h2>
+      <p id="inspector-empty" class="hint">Sélectionnez une couche dans la pile pour régler son opacité, sa position, sa taille et son rendu.</p>
+      <div id="inspector-body" hidden>
+        <h3 class="inspector-subtitle">Position et taille</h3>
+        <div class="inspector-row inspector-units">
+          <span>Unité</span>
+          <span class="inspector-segment" role="group" aria-label="Unité de position et de taille">
+            <button id="inspector-unit-percent" type="button" aria-pressed="true" title="Pourcentage de la toile">%</button>
+            <button id="inspector-unit-pixel" type="button" aria-pressed="false" title="Pixels de la source OBS (référence)">px</button>
+          </span>
+          <button id="inspector-lock" type="button" class="layer-button" aria-pressed="false" aria-label="Lier les proportions"></button>
+        </div>
+        <div class="inspector-grid">
+          <label>X <input id="inspector-x" type="number" step="0.5"></label>
+          <label>Y <input id="inspector-y" type="number" step="0.5"></label>
+          <label>Largeur <input id="inspector-width" type="number" step="0.5" min="0"></label>
+          <label>Hauteur <input id="inspector-height" type="number" step="0.5" min="0"></label>
+        </div>
+        <div class="inspector-row">
+          <label for="inspector-preset">Position</label>
+          <select id="inspector-preset"><option value="">Position prédéfinie…</option></select>
+        </div>
+        <div class="inspector-row inspector-align" role="toolbar" aria-label="Aligner et répartir">
+          <button id="align-left" type="button" class="layer-button" title="Aligner à gauche" aria-label="Aligner à gauche"></button>
+          <button id="align-hcenter" type="button" class="layer-button" title="Centrer horizontalement" aria-label="Centrer horizontalement"></button>
+          <button id="align-right" type="button" class="layer-button" title="Aligner à droite" aria-label="Aligner à droite"></button>
+          <button id="align-top" type="button" class="layer-button" title="Aligner en haut" aria-label="Aligner en haut"></button>
+          <button id="align-vcenter" type="button" class="layer-button" title="Centrer verticalement" aria-label="Centrer verticalement"></button>
+          <button id="align-bottom" type="button" class="layer-button" title="Aligner en bas" aria-label="Aligner en bas"></button>
+          <button id="distribute-h" type="button" class="layer-button" title="Répartir horizontalement (3 couches ou plus)" aria-label="Répartir horizontalement"></button>
+          <button id="distribute-v" type="button" class="layer-button" title="Répartir verticalement (3 couches ou plus)" aria-label="Répartir verticalement"></button>
+        </div>
+        <div class="inspector-row">
+          <label for="inspector-reference">Aligner sur</label>
+          <select id="inspector-reference"><option value="canvas">La toile</option><option value="selection">La sélection</option></select>
+        </div>
+        <h3 class="inspector-subtitle">Rendu</h3>
+        <div class="inspector-row">
+          <label for="inspector-opacity-range">Opacité</label>
+          <input id="inspector-opacity-range" type="range" min="0" max="100" step="1">
+          <span class="inspector-number"><input id="inspector-opacity" type="number" min="0" max="100" step="1" aria-label="Opacité en pourcentage"><span class="field-unit">%</span></span>
+        </div>
+        <div class="inspector-row">
+          <label for="inspector-blend">Fusion</label>
+          <select id="inspector-blend"></select>
+        </div>
+        <div class="inspector-row">
+          <label for="inspector-rotation-range">Rotation</label>
+          <input id="inspector-rotation-range" type="range" min="-180" max="180" step="1">
+          <span class="inspector-number"><input id="inspector-rotation" type="number" min="-180" max="180" step="1" aria-label="Rotation en degrés"><span class="field-unit">°</span></span>
+        </div>
+        <div class="inspector-row">
+          <label for="inspector-blur-range">Flou</label>
+          <input id="inspector-blur-range" type="range" min="0" max="12" step="0.5">
+          <span class="inspector-number"><input id="inspector-blur" type="number" min="0" max="12" step="0.5" aria-label="Flou en pixels de la source"><span class="field-unit">px</span></span>
+        </div>
+        <div class="inspector-grid inspector-crop" role="group" aria-label="Rognage en pourcentage de la toile">
+          <label>Rogner haut (%) <input id="inspector-crop-top" type="number" min="0" max="90" step="0.5"></label>
+          <label>Rogner droite (%) <input id="inspector-crop-right" type="number" min="0" max="90" step="0.5"></label>
+          <label>Rogner bas (%) <input id="inspector-crop-bottom" type="number" min="0" max="90" step="0.5"></label>
+          <label>Rogner gauche (%) <input id="inspector-crop-left" type="number" min="0" max="90" step="0.5"></label>
+        </div>
+        <h3 class="inspector-subtitle">Filtres</h3>
+        <p id="filters-hint" class="hint"></p>
+        <div id="filters-body" class="filters-body"></div>
+        <h3 class="inspector-subtitle">Masque</h3>
+        <p id="mask-hint" class="hint"></p>
+        <div id="mask-body" class="filters-body"></div>
+        <h3 class="inspector-subtitle">Entrée, boucle, sortie</h3>
+        <p id="animation-hint" class="hint"></p>
+        <div id="animation-body" class="animation-body"></div>
+        <button id="animation-replay" type="button" class="layers-add">Rejouer</button>
+        <h3 class="inspector-subtitle">Liaisons</h3>
+        <p id="bindings-hint" class="hint"></p>
+        <div id="bindings-list" class="bindings-list"></div>
+        <button id="bindings-add" type="button" class="layers-add">+ Ajouter une liaison</button>
+        <button id="inspector-reset" type="button" class="layers-add">Réinitialiser</button>
+      </div>
+    </section>
+
+    <h2>Réglages de la couche</h2>
+    <p id="effect-target" class="hint effect-target"></p>
+    <label for="effect-select">Type de la couche</label>
+    <select id="effect-select"></select>
+    <div id="fields"></div>
+
+    <h2>Enregistrer ce réglage</h2>
+    <div class="save-row">
+      <input id="preset-name" type="text" placeholder="nom de la scène" maxlength="60" aria-label="Nom de la scène">
+      <button id="preset-save">Créer</button>
+      <button id="preset-new" title="Créer une nouvelle scène">Nouveau</button>
+    </div>
+    <div class="save-row">
+      <input id="preset-tags" type="text" placeholder="tags séparés par des virgules" aria-label="Tags de la scène">
+    </div>
+
+    <h2>Arrivée de cette scène</h2>
+    <p class="hint">
+      Comment cette scène remplace le fond précédent. Sans effet sur tes réglages en cours : la
+      transition se joue quand la scène arrive (clic sur une scène, ou changement de scène OBS).
+    </p>
+    <label>Type de transition
+      <select id="transition-type">
+        <option value="fade">Fondu</option>
+        <option value="wipe">Balayage</option>
+      </select>
+    </label>
+    <label>Durée (ms)
+      <input id="transition-duration" type="number" min="0" max="2000" step="50">
+    </label>
+    <label>Courbe
+      <select id="transition-easing">
+        <option value="easeInOut">Douce (départ et arrivée)</option>
+        <option value="easeOut">Douce à l’arrivée</option>
+        <option value="easeIn">Douce au départ</option>
+        <option value="linear">Constante</option>
+      </select>
+    </label>
+    <label id="transition-direction-row">Sens du balayage
+      <select id="transition-direction">
+        <option value="right">Vers la droite</option>
+        <option value="left">Vers la gauche</option>
+        <option value="up">Vers le haut</option>
+        <option value="down">Vers le bas</option>
+      </select>
+    </label>
+
+    <h2>Tester une réaction</h2>
+    <p class="section-intro">Simule un événement stream. L’aperçu et l’URL OBS réagissent en direct.</p>
+    <div class="reaction-buttons">
+      <button type="button" data-event="follow">Follow</button>
+      <button type="button" data-event="sub">Sub</button>
+      <button type="button" data-event="raid">Raid</button>
+      <button type="button" data-event="bits">Bits</button>
+    </div>
+
+    </aside>
+  </main>
+
+  <script type="module">
+    import { startBackgroundTuner } from './main.js';
+
+    startBackgroundTuner();
+  </script>
+</body>
+</html>

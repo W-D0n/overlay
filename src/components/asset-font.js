@@ -2,7 +2,7 @@
 import { assetUrl } from './asset-image.js';
 
 /**
- * components/asset-font.js — Charge la police d'un asset de la médiathèque (`dev/asset-routes.js`) pour qu'un texte la dessine.
+ * src/components/asset-font.js — Charge la police d'un asset de la médiathèque (`server/routes/asset-routes.js`) pour qu'un texte la dessine.
  *
  * Même principe que les images (`asset-image.js`) : le contenu d'un identifiant ne change jamais, donc une police chargée (ou en cours de
  * chargement) est partagée par toutes les couches qui l'emploient ; un chargement qui échoue n'est pas retenu, le suivant réessaie. La police est

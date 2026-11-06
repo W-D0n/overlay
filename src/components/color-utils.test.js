@@ -1,6 +1,6 @@
 // @ts-check
 /**
- * components/color-utils.test.js — Logique pure de `hueShiftRgb` (LAC-02, DotGridAnimated).
+ * src/components/color-utils.test.js — Logique pure de `hueShiftRgb` (LAC-02, DotGridAnimated).
  * `resolveColor` nécessite un DOM (probe + getComputedStyle), non testable ici (AD-1).
  */
 import { test, expect } from 'bun:test';

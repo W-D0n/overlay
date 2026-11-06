@@ -1,3 +1,8 @@
+---
+created: 2026-07-10
+updated: 2026-11-06
+---
+
 # Domain Docs
 
 How the engineering skills should consume this repo's domain documentation when exploring the codebase.

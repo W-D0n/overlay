@@ -100,7 +100,7 @@ export function MonEffetBackground(options = {}) {
 | `layer-kinds.js` | Décrire le type : identifiant neutre (`mon-effet`), `legacyIds: []`, libellé, capacités, champs |
 | `component-registry.js` | Importer la factory et l'ajouter au `COMPONENT_REGISTRY` sous le même identifiant |
 
-Deux fichiers de déclaration. Oublier l'un des deux fait échouer `bun dev/typecheck.js` (le registre est
+Deux fichiers de déclaration. Oublier l'un des deux fait échouer `bun tools/typecheck.js` (le registre est
 typé `Record<LayerKindId, …>`). Une fois fait, l'effet apparaît dans le menu déroulant « Fond » du panneau.
 Les valeurs persistées sont neutres : un champ oui/non est de type `boolean` (valeur `true` / `false`).
 
@@ -128,7 +128,7 @@ dans un nouveau composant :
   fichier `.test.js` à côté, `bun test` à la racine du projet.
 - La partie DOM/canvas elle-même (la factory appelée avec un vrai `document.createElement`) n'est
   **pas** testable dans `bun test` (pas de DOM dans Bun) — vérifie-la visuellement en navigateur
-  (`bun dev/start-studio.js`, ouvrir l'onglet preview) ou demande une vérification via un agent.
+  (`bun server/lifecycle/start-studio.js`, ouvrir l'onglet preview) ou demande une vérification via un agent.
 
 ## Réagir aux alertes — `trigger()`
 

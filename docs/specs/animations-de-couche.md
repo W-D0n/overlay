@@ -1,6 +1,6 @@
 ---
 created: 2026-11-03
-updated: 2026-11-03
+updated: 2026-11-06
 ---
 
 # Spec — Animations de couche (entrée, boucle, sortie)
@@ -50,7 +50,7 @@ les changer) ; la pile est retirée après `plus longue sortie + durée de la tr
   (capacité `content` de `layer-kinds.js` : `text` ou `shape`) : le modèle refuse l'un d'eux sur un autre type, le panneau les grise, et changer le type d'une couche qui en utilise un est refusé avec une explication.
   Le calque reste au repos ; le modèle donne au composant une **présence du contenu** de 0 à 1 (`ContentState`, par `ComponentInstance.animate`), et la couche de texte dessine chaque unité à sa place dans la
   ligne entière (`text-layout.js` : `glyphUnits`, `glyphLook`) — un accent décomposé ou un emoji composé reste une seule unité, les espaces ne comptent pas. En sortie, le même préréglage joue à l'envers
-  (la machine à écrire efface depuis la fin). Une durée de départ plus longue (1,5 s) est proposée : une phrase ne se lit pas en 600 ms. Preuves : `components/text-glyph.test.js`, `layer-animation-glyph.test.js`,
+  (la machine à écrire efface depuis la fin). Une durée de départ plus longue (1,5 s) est proposée : une phrase ne se lit pas en 600 ms. Preuves : `src/components/text-glyph.test.js`, `layer-animation-glyph.test.js`,
   et la suite e2e 37 qui lit l'encre réellement dessinée dans le canvas du texte.
 
 ## 6. Ordre de livraison
@@ -58,10 +58,10 @@ les changer) ; la pile est retirée après `plus longue sortie + durée de la tr
 1. Modèle pur + validation + évaluation (`layer-animation.js`), intégré à `scene-doc.js`.
 2. Moteur : horloge par couche, entrée, boucle, sortie à date fixe, relance par alerte.
 3. Sortie au départ de la scène (option 3), avec essais de bout en bout sur la durée de conservation de la pile.
-4. ~~Panneau du Studio~~ — **fait** (`dev/animation-controller.js`, essais `dev/e2e/suites/37-animation-couche.e2e.js`) : un préréglage par phase (ou « Aucune »), durée, retard, courbe, période, amplitude, instant de sortie, case « Quand la scène part », cases d'alertes de relance, bouton « Rejouer » (le même que « recommencer » de la timeline : il rejoue aussi les couches). Modifier une animation la rejoue ; annuler et rétablir passent par l'historique de l'éditeur.
+4. ~~Panneau du Studio~~ — **fait** (`studio/inspector/animation-controller.js`, essais `e2e/suites/37-animation-couche.e2e.js`) : un préréglage par phase (ou « Aucune »), durée, retard, courbe, période, amplitude, instant de sortie, case « Quand la scène part », cases d'alertes de relance, bouton « Rejouer » (le même que « recommencer » de la timeline : il rejoue aussi les couches). Modifier une animation la rejoue ; annuler et rétablir passent par l'historique de l'éditeur.
 5. Préréglages de texte (glyphes).
 5. ~~Préréglages de texte~~ — **fait** (§5).
-6. ~~Formes : tracé du contour~~ — **fait** (§5, `components/ShapeLayer.js`, `shape-geometry.js` : `pathLength`, `traceParts` ; pointillé du contour pour la part tracée, essais e2e qui lisent l'encre du canvas).
+6. ~~Formes : tracé du contour~~ — **fait** (§5, `src/components/ShapeLayer.js`, `shape-geometry.js` : `pathLength`, `traceParts` ; pointillé du contour pour la part tracée, essais e2e qui lisent l'encre du canvas).
 
 ## 7. Limites assumées
 

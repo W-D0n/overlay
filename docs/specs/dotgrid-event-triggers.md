@@ -1,7 +1,7 @@
 ---
 feature: dotgrid-event-triggers
 created: 2026-07-10
-updated: 2026-07-10
+updated: 2026-11-06
 status: draft
 ---
 
@@ -163,8 +163,8 @@ Aucun nouveau `CustomEvent` DOM — le déclenchement passe par une observation 
 | Fichier | Action | Notes |
 |---|---|---|
 | `types.js` | modifier | `ComponentInstance.trigger` formalisé |
-| `components/DotGridAnimated.js` | modifier | `trigger(alert)` implémenté (5 comportements), minuteur `ambient`, `destroy()` clear le minuteur |
-| `components/DotGridAnimated.test.js` | modifier | AC-05, AC-06, AC-07 (bornes), AC-08 — logique pure extraite où possible |
+| `src/components/DotGridAnimated.js` | modifier | `trigger(alert)` implémenté (5 comportements), minuteur `ambient`, `destroy()` clear le minuteur |
+| `src/components/DotGridAnimated.test.js` | modifier | AC-05, AC-06, AC-07 (bornes), AC-08 — logique pure extraite où possible |
 | `scene-runtime.js` | modifier | `applyBackgroundReactions(state)`, abonnée via `onStateChange` dans `init()` — pas de nouveau fichier wire touché (révision session 3, voir §Comportements) |
 
 > Règle de cross-check (avant de déclarer "done") :

@@ -6,7 +6,7 @@
  * son libellé, ses capacités et ses champs éditables. Consommée par la validation d'état, le serveur,
  * les formulaires du Studio et le diagnostic pré-live. La fabrique qui crée l'effet vit à part
  * (`component-registry.js`) et est typée `Record<LayerKindId, …>` : oublier ou ajouter une fabrique
- * échoue au contrôle de types (`bun dev/typecheck.js`).
+ * échoue au contrôle de types (`bun tools/typecheck.js`).
  *
  * `type` d'un champ : `text` (input texte), `number` (input numérique), `select` (liste, `choices`), `boolean` (case à cocher),
  * `textarea` (une ligne par élément d'un tableau de chaînes), `token` (liste des tokens `tokens.css`
@@ -164,7 +164,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 `;
 
 /**
- * Types de couche. Couleurs : `color`/`colors` utilisent `components/color-palette.json`, un picker
+ * Types de couche. Couleurs : `color`/`colors` utilisent `src/components/color-palette.json`, un picker
  * visuel et une saisie CSS libre (hex/rgb/oklch/var()). Les effets reçoivent toujours de simples
  * chaînes CSS ou tableaux de chaînes : la palette reste une facilité du tuner, pas une dépendance du
  * runtime.

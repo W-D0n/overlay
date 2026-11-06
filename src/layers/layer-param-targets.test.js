@@ -5,7 +5,7 @@ import {
 import { canonicalTracks, changeKey, evaluateTimeline, setKey, trackErrors } from './layer-timeline.js';
 import { canonicalSceneDoc, createLayer, validateSceneDoc } from '../scene/scene-doc.js';
 import { createSceneRuntime } from '../scene/scene-runtime.js';
-import { describeKey, valueAt } from '../../dev/timeline-view.js';
+import { describeKey, valueAt } from '../../studio/layers/timeline-view.js';
 
 const SPEC = JSON.stringify([
   { key: 'taille', label: 'Taille', type: 'number', default: 40, min: 10, max: 200, step: 5 },

@@ -23,10 +23,10 @@
 <ul>
   <li><code>background.html</code> — la page à mettre dans OBS. Elle ne fait qu'une chose :
       afficher l'effet de fond courant.</li>
-  <li><code>dev/studio.html</code> — la page de création : rail de gauche (antenne, bibliothèque, scènes OBS,
+  <li><code>studio/index.html</code> — la page de création : rail de gauche (antenne, bibliothèque, scènes OBS,
       branding), aperçu 1920×1080 au centre, réglages du preset à droite.</li>
   <li>Le <strong>serveur d'état</strong> (port 5932, lancé automatiquement) — retient le dernier
-      réglage dans <code>dev/data/background-state.json</code> et pousse chaque changement en
+      réglage dans <code>data/background-state.json</code> et pousse chaque changement en
       direct vers OBS.</li>
 </ul>
 <p>Concrètement : tu bouges un curseur dans le tuner → l'aperçu change immédiatement → OBS suit
@@ -50,7 +50,7 @@ CSS.</p>
 </div>
 
 <h2>La page de tuning</h2>
-<p>Ouvrir <code>http://localhost:5931/dev/studio.html</code> (s'ouvre automatiquement avec
+<p>Ouvrir <code>http://localhost:5931/studio/index.html</code> (s'ouvre automatiquement avec
 <code>studio.bat</code>).</p>
 <ul>
   <li><strong>Trois zones</strong> : le rail de gauche (Bibliothèque, Scènes OBS, Branding : sections repliables),
@@ -222,7 +222,7 @@ import { MonEffetBackground } from './components/MonEffetBackground.js';
 ...
 MonEffetBackground,</code></pre>
 
-<h3>3. Le schéma de champs — <code>dev/component-field-schemas.js</code></h3>
+<h3>3. Le schéma de champs — <code>studio/inspector/component-field-schemas.js</code></h3>
 <p>Une entrée dans <code>BACKGROUND_FIELD_SCHEMAS</code> décrivant les paramètres réglables.
 C'est elle qui génère le formulaire du tuner :</p>
 <pre><code>MonEffetBackground: [
@@ -244,22 +244,22 @@ factory sans schéma, etc. Ensuite, recharger le tuner — le nouvel effet est d
 déroulant, avec son formulaire, ses presets, et l'URL OBS le prend en charge sans rien toucher.</p>
 
 <h2>Faire évoluer le tuner</h2>
-<p><code>dev/studio.html</code> ne contient plus sa logique métier. Selon le changement :</p>
+<p><code>studio/index.html</code> ne contient plus sa logique métier. Selon le changement :</p>
 <ul>
-  <li><strong>Champ</strong> : déclaration dans <code>dev/component-field-schemas.js</code>, rendu
-      commun dans <code>dev/background-field-renderer.js</code>.</li>
+  <li><strong>Champ</strong> : déclaration dans <code>studio/inspector/component-field-schemas.js</code>, rendu
+      commun dans <code>studio/inspector/background-field-renderer.js</code>.</li>
   <li><strong>Requête d'état</strong> : méthode et route uniquement dans
-      <code>dev/background-state-client.js</code>.</li>
-  <li><strong>Action de preset</strong> : <code>dev/background-preset-controller.js</code>.</li>
+      <code>studio/presets/background-state-client.js</code>.</li>
+  <li><strong>Action de preset</strong> : <code>studio/presets/background-preset-controller.js</code>.</li>
   <li><strong>Import/export</strong> :
-      <code>dev/background-preset-transfer-controller.js</code>, en conservant la prévisualisation
+      <code>studio/presets/background-preset-transfer-controller.js</code>, en conservant la prévisualisation
       puis la confirmation avant écriture.</li>
-  <li><strong>Montage, qualité ou FPS</strong> : <code>dev/background-preview-controller.js</code> ;
-      l'état courant et le preset actif vivent dans <code>dev/background-preview-session.js</code>.</li>
+  <li><strong>Montage, qualité ou FPS</strong> : <code>studio/canvas/background-preview-controller.js</code> ;
+      l'état courant et le preset actif vivent dans <code>background-preview-session.js</code>.</li>
   <li><strong>Bandeau Antenne</strong> : décisions d'affichage dans
-      <code>dev/antenna-status.js</code>, relecture et rendu dans
-      <code>dev/antenna-controller.js</code>.</li>
-  <li><strong>Câblage au démarrage</strong> : <code>dev/background-tuner-runtime.js</code>.</li>
+      <code>studio/presets/antenna-status.js</code>, relecture et rendu dans
+      <code>studio/presets/antenna-controller.js</code>.</li>
+  <li><strong>Câblage au démarrage</strong> : <code>studio/main.js</code>.</li>
 </ul>
 <p>Les identifiants HTML, URL et routes serveur font partie du contrat : ne pas les recopier dans
 plusieurs modules. Ajouter un test à l'interface concernée, lancer <code>bun test</code>, puis vérifier

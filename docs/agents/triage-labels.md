@@ -1,3 +1,8 @@
+---
+created: 2026-07-10
+updated: 2026-11-06
+---
+
 # Triage Labels
 
 The skills speak in terms of five canonical triage roles. This file maps those roles to the actual label strings used in this repo's issue tracker.

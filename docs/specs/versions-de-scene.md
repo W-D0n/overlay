@@ -1,6 +1,6 @@
 ---
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-06
 ---
 
 # Spec — Versions nommées d'une scène
@@ -16,7 +16,7 @@ l'utilisateur **nomme** : « avant le gros changement », « version stream du v
 | Durée | la session | les scènes qui ont quitté l'antenne | jusqu'à suppression |
 | Retour | Ctrl+Z | remettre à l'antenne | **dans le brouillon**, annulable |
 
-## 2. Le stockage (`dev/version-store.js`, `dev/version-routes.js`)
+## 2. Le stockage (`server/stores/version-store.js`, `server/routes/version-routes.js`)
 
 Un fichier JSON à côté du fichier d'état (`<fichier d'état>.versions.json`), distinct des réglages du Studio : une version est une donnée, pas un
 réglage, et ses routes n'imposent aucune forme au fichier d'état partagé. Écrit **en entier ou pas du tout** (fichier temporaire renommé),
@@ -35,7 +35,7 @@ réglage, et ses routes n'imposent aucune forme au fichier d'état partagé. Éc
 - **30 versions par scène** : la 31e est refusée avec la raison, **rien n'est jamais supprimé à la place de l'utilisateur**.
 - 100 Ko au plus par version.
 
-## 3. Le Studio (`dev/versions-controller.js`)
+## 3. Le Studio (`studio/settings/versions-controller.js`)
 
 Bouton « Versions de la scène » dans l'en-tête de la pile de couches, et deux commandes de la palette (« Versions de la scène… », « Enregistrer
 une version de la scène… »). La fenêtre garde la scène **telle qu'elle est dans le brouillon**, réglages non publiés compris. Chaque version
@@ -50,7 +50,7 @@ montre son nom, sa date, ce qu'elle contient et **ce que sa restauration changer
 
 ## 4. Vérification
 
-`dev/version-store.test.js` (magasin et routes), `dev/versions.test.js` (restauration, présentation, client), essai `26-versions.e2e.js`
+`server/stores/version-store.test.js` (magasin et routes), `studio/settings/versions.test.js` (restauration, présentation, client), essai `26-versions.e2e.js`
 (enregistrer, nom pris ou vide, résumé de restauration, restaurer sans publier, annuler, renommer, supprimer avec confirmation, rechargement,
 palette). 14 mutations vues rouges, plus celle de la confirmation de suppression dans l'essai.
 

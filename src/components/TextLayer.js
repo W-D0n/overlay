@@ -6,7 +6,7 @@ import { assetFonts } from './asset-font.js';
 import { fontFamilyCss, glyphLook, glyphUnits, isFontInstalled, layoutText, normalizeTextOptions, sanitizeFontFamily } from './text-layout.js';
 
 /**
- * components/TextLayer.js — Couche de contenu « texte » : un titre, un pseudo, un message, dans la zone de la couche.
+ * src/components/TextLayer.js — Couche de contenu « texte » : un titre, un pseudo, un message, dans la zone de la couche.
  *
  * Dessinée sur un canvas comme les effets : la même chaîne de rendu (échelle de la source, vignettes, coût) s'applique, et le texte
  * reste net à toute résolution. Couche **statique** (`canvas-layer.js`) : elle ne se redessine que si ses options ou sa taille

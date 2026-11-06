@@ -1,6 +1,6 @@
 ---
 created: 2026-10-29
-updated: 2026-10-29
+updated: 2026-11-06
 ---
 
 # Spec — Zéro installation, local-first
@@ -30,18 +30,18 @@ local-first, sans jamais risquer la stabilité d'un live.
 
 ## Problème
 
-Ce qui impose l'installation, c'est `dev/background-state-server.js` (Bun) : il persiste l'état et
-les presets dans `dev/data/*.json`, diffuse en WebSocket (`/state-ws`, `/presets-ws`, `/event-ws`,
-`/branding-ws`) et reçoit `POST /event`. Le rendu (`components/`, `background.html`, `tokens.css`) est
+Ce qui impose l'installation, c'est `server/background-state-server.js` (Bun) : il persiste l'état et
+les presets dans `data/*.json`, diffuse en WebSocket (`/state-ws`, `/presets-ws`, `/event-ws`,
+`/branding-ws`) et reçoit `POST /event`. Le rendu (`src/components/`, `background.html`, `tokens.css`) est
 déjà du JS natif exécutable dans n'importe quel navigateur.
 
 Les consommateurs du serveur ne passent pas tous par la même porte :
 
 | Consommateur | Accès au serveur aujourd'hui |
 |---|---|
-| Tuner / Studio | `dev/background-state-client.js` (client unique, injectable : `fetchImpl`, `WebSocketImpl`) |
+| Tuner / Studio | `studio/presets/background-state-client.js` (client unique, injectable : `fetchImpl`, `WebSocketImpl`) |
 | `background.html` | `fetch` et `new WebSocket` **en direct** (lignes ~100–147) |
-| Relais OBS WebSocket | `dev/obs-scene-client.js`, hébergé **dans** le serveur |
+| Relais OBS WebSocket | `server/integrations/obs-scene-client.js`, hébergé **dans** le serveur |
 
 ## Principe directeur
 
@@ -133,7 +133,7 @@ l'environnement ou le `.env` ignoré par git, comme `OBS_WS_PASSWORD` aujourd'hu
 
 ## Question ouverte : Tauri
 
-Constat, mesuré dans `src-tauri/tauri.conf.json` : le shell ouvre `http://localhost:5931/dev/studio.html`.
+Constat, mesuré dans `src-tauri/tauri.conf.json` : le shell ouvre `http://localhost:5931/studio/index.html`.
 Il **dépend du serveur Bun local** et ajoute lui-même une installation.
 
 Ce qu'il apporterait que le navigateur n'apporte pas : raccourcis globaux (déclencher une réaction

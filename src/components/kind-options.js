@@ -2,7 +2,7 @@
 import { LAYER_KINDS, clampOptions } from '../layers/layer-kinds.js';
 
 /**
- * components/kind-options.js — Les options complètes d'une couche de contenu, lues de son schéma (`layer-kinds.js`).
+ * src/components/kind-options.js — Les options complètes d'une couche de contenu, lues de son schéma (`layer-kinds.js`).
  * Une seule source pour les défauts, les types et les bornes : les couches de contenu (texte, forme…) n'ont aucune table à tenir à jour.
  */
 

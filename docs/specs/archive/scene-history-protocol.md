@@ -37,14 +37,14 @@ par des commandes git.
 - `scenes/data/.history/<id>.json` : tableau de versions `{ timestamp, sceneConfig }` par scène.
   Premier instantané jamais enregistré ("origine") **jamais purgé** ; au-delà, fenêtre glissante des
   100 versions les plus récentes (owner, 2026-07-05).
-- `dev/scene-data-server.js` : chaque sauvegarde réussie (`/create-scene`, `/update-scene`) ajoute
+- `scene-data-server.js` : chaque sauvegarde réussie (`/create-scene`, `/update-scene`) ajoute
   une entrée d'historique. Nouvelles routes : `GET /scene-history?sceneId=X` (liste des versions),
   `POST /restore-scene` (`{ sceneId, timestamp }`, réécrit la scène active avec le contenu de cette
   version). **Révisé (owner, 2026-07-05)** : la restauration N'ajoute PAS d'entrée d'historique —
   restaurer plusieurs fois de suite en cherchant la bonne version ne doit pas polluer la liste de
   doublons pile au moment où on essaie d'y voir clair. Décision initiale ("pas de cas spécial")
   abandonnée après retour d'usage réel.
-- `dev/overlay-setting.html` :
+- `overlay-setting.html` :
   - Retrait de tous les boutons "Enregistrer" — chaque modification de champ sauvegarde au `change`
     (perte de focus / validation), pas à chaque frappe (`input` reste pour le retour visuel
     immédiat dans le formulaire, sans déclencher de sauvegarde réseau).
@@ -54,14 +54,14 @@ par des commandes git.
     "Restaurer" par entrée.
   - `broadcastReload()` (déjà câblé, session précédente) continue de déclencher le rechargement de
     l'overlay après restauration comme après toute autre sauvegarde.
-- **Extension (owner, 2026-07-05)** : `dev/scene-history-store.js` extrait la lecture/écriture de
+- **Extension (owner, 2026-07-05)** : `scene-history-store.js` extrait la lecture/écriture de
   l'historique (déjà utilisées par `scene-data-server.js`) dans un module partagé, importé aussi par
-  `dev/placement-server.js` — un déplacement de couche (drag & drop) ajoute désormais une entrée
+  `placement-server.js` — un déplacement de couche (drag & drop) ajoute désormais une entrée
   d'historique au même titre qu'une modification de composition. Comble le trou initialement
   documenté ("l'historique ne couvre que scene-data-server.js").
 - **Extension (owner, 2026-07-06)** : correction d'une race condition découverte en vérification
-  visuelle (voir §Concurrence d'accès) — `dev/placement-server.js` (port 4459) et
-  `dev/scene-data-server.js` (port 4460) sont deux process Bun distincts qui écrivaient tous les deux
+  visuelle (voir §Concurrence d'accès) — `placement-server.js` (port 4459) et
+  `scene-data-server.js` (port 4460) sont deux process Bun distincts qui écrivaient tous les deux
   directement `scenes/data/.history/<id>.json`, sans coordination. Effet observé : un
   `GET /scene-history` concurrent d'une écriture pouvait lire le fichier à moitié écrit
   (`SyntaxError: Unexpected end of JSON input`, 500 non géré) ; pire, deux écritures concurrentes
@@ -92,21 +92,21 @@ supprimé le symptôme visible sans supprimer la perte silencieuse sous écritur
 
 **Revue d'architecture étendue** (owner, 2026-07-06, suite à un test de charge en vérification
 visuelle) : le même défaut — read-modify-write non sérialisé sur un fichier partagé — existait
-aussi sur `scenes/data/<id>.scene.json` lui-même, dans `dev/placement-server.js` (10 requêtes
+aussi sur `scenes/data/<id>.scene.json` lui-même, dans `placement-server.js` (10 requêtes
 `/save-placement` concurrentes reproduisent la même `SyntaxError`), et de façon latente dans
-`dev/tuner-server.js` (`components/DotGridAnimated.js`, jamais déclenché mais même motif). Le
+`tuner-server.js` (`src/components/DotGridAnimated.js`, jamais déclenché mais même motif). Le
 correctif retenu traite la classe de bug entière, pas seulement l'occurrence initialement
 rapportée :
 
-- **`dev/scene-data-server.js` devient l'unique propriétaire de `scenes/data/<id>.scene.json` ET de
-  son historique.** `dev/placement-server.js` n'écrit plus aucun fichier lui-même — il devient un
+- **`scene-data-server.js` devient l'unique propriétaire de `scenes/data/<id>.scene.json` ET de
+  son historique.** `placement-server.js` n'écrit plus aucun fichier lui-même — il devient un
   pur proxy HTTP : `POST /save-placement` reçu est relayé tel quel vers
   `POST http://localhost:4460/save-placement`, qui lit, applique le placement
   (`applyPlacementToLayer`), écrit le fichier de scène ET ajoute l'entrée d'historique dans une
   seule opération sérialisée. Remplace l'idée intermédiaire d'un endpoint dédié
   `/append-scene-history` (écarté : aurait laissé deux endpoints faire deux appels réseau non
   atomiques entre eux, pour un seul et même changement logique).
-- **Sérialisation** : `dev/keyed-lock.js` (nouveau module, extrait après 3 occurrences
+- **Sérialisation** : `server/stores/keyed-lock.js` (nouveau module, extrait après 3 occurrences
   indépendantes du même motif — manifest, historique, fichier de scène/tuner) expose
   `createKeyedLock()`, une file d'attente par clé (`Map<string, Promise<unknown>>`) : toute
   opération sur une même ressource s'enchaîne sur la précédente au lieu de s'exécuter en parallèle,
@@ -121,7 +121,7 @@ rapportée :
   - `scene-history-store.js` : une clé par `sceneId` (`withHistoryLock`), inchangé dans son
     principe, réimplémenté sur `createKeyedLock()`.
   - `tuner-server.js` : une clé unique (`'dotgrid-source'`) autour de son
-    lecture-modification-écriture de `components/DotGridAnimated.js`.
+    lecture-modification-écriture de `src/components/DotGridAnimated.js`.
 - **Durabilité** (défense en profondeur, pas un substitut à la sérialisation) :
   `writeSceneHistory` écrit via fichier temporaire + rename plutôt que d'écraser le fichier cible
   directement — protège contre un crash du process en plein milieu de l'écriture.
@@ -145,11 +145,11 @@ rapportée :
 | AC-09 | Le panneau n'affiche plus aucun bouton "Enregistrer" — chaque champ sauvegarde au `change` | visuel |
 | AC-10 | Retirer une couche/un composant ne demande plus de confirmation — sauvegarde immédiate + entrée d'historique | visuel |
 | AC-11 | La section "Historique" liste les versions d'une scène avec date/heure lisible, bouton "Restaurer" par entrée qui recharge l'overlay (broadcastReload) | visuel |
-| AC-12 | `dev/placement-server.js` `/save-placement` réussi ajoute une entrée à l'historique de la scène (même fichier, même fenêtre glissante que `scene-data-server.js`) | test |
+| AC-12 | `placement-server.js` `/save-placement` réussi ajoute une entrée à l'historique de la scène (même fichier, même fenêtre glissante que `scene-data-server.js`) | test |
 | AC-13 | Une entrée d'historique créée par `/save-placement` est listée par `GET /scene-history` au même titre qu'une entrée créée par `/update-scene` — un seul historique par scène, pas deux séparés | test |
 | AC-14 | Deux appels concurrents (`Promise.all`) qui ajoutent chacun une entrée d'historique sur le même `sceneId` aboutissent à un historique contenant les DEUX entrées (aucune perte), quel que soit l'ordre d'arrivée | test |
 | AC-15 | Un `GET /scene-history` déclenché pendant qu'une écriture est en cours sur le même `sceneId` attend la fin de l'écriture et retourne un JSON valide (jamais `SyntaxError`/500) | test |
-| AC-16 | `dev/placement-server.js` ne contient plus aucune écriture disque directe (ni `scenes/data/*.scene.json`, ni son historique) — `/save-placement` est relayé tel quel vers `scene-data-server.js` | test |
+| AC-16 | `placement-server.js` ne contient plus aucune écriture disque directe (ni `scenes/data/*.scene.json`, ni son historique) — `/save-placement` est relayé tel quel vers `scene-data-server.js` | test |
 | AC-17 | Dix appels concurrents (`Promise.all`) à `POST /save-placement` (serveurs réels lancés) sur le même `sceneId` aboutissent à un fichier de scène valide, aucune `SyntaxError` | manuel (test de charge, reproductible via `Promise.all` de 10 `fetch` dans la console) |
 | AC-18 | `POST /restore-scene` concurrent d'un `POST /update-scene` sur le même `sceneId` ne produit jamais de fichier corrompu (JSON invalide) | manuel (même protocole qu'AC-17, appliqué à ces deux routes) |
 
@@ -196,15 +196,15 @@ rapportée :
 
 | Fichier | Action | Notes |
 |---|---|---|
-| `dev/scene-data-format.js` | modifier | `pushHistoryEntry` (AC-01, AC-02) |
-| `dev/scene-data-format.test.js` | modifier | tests AC-01, AC-02 |
-| `dev/keyed-lock.js` | créer | `createKeyedLock()`, sérialisation générique par clé — extrait après 3 occurrences (manifest, historique, fichier de scène) |
-| `dev/scene-history-store.js` | modifier | lecture/écriture disque de l'historique (AC-12, AC-13) ; sérialisation par `sceneId` via `createKeyedLock()` (AC-14, AC-15), écriture temp+rename |
-| `dev/scene-history-store.test.js` | créer | tests AC-14, AC-15 (écritures concurrentes, lecture pendant écriture) |
-| `dev/scene-data-server.js` | modifier | historique sur create/update, routes `/scene-history`, `/restore-scene` (AC-03 à AC-08) ; unique écrivain de `scenes/data/<id>.scene.json` via nouvelle route `POST /save-placement` (AC-16, AC-17) ; `/restore-scene` sérialisé (AC-18) |
-| `dev/placement-server.js` | modifier | devient un pur proxy HTTP vers `scene-data-server.js` — plus aucune écriture disque directe (AC-16) |
-| `dev/tuner-server.js` | modifier | sérialise son read-modify-write de `components/DotGridAnimated.js` via `createKeyedLock()` (même motif, latent, trouvé en revue) |
-| `dev/overlay-setting.html` | modifier | retrait boutons/confirmations, section Historique (AC-09 à AC-11) |
+| `scene-data-format.js` | modifier | `pushHistoryEntry` (AC-01, AC-02) |
+| `scene-data-format.test.js` | modifier | tests AC-01, AC-02 |
+| `server/stores/keyed-lock.js` | créer | `createKeyedLock()`, sérialisation générique par clé — extrait après 3 occurrences (manifest, historique, fichier de scène) |
+| `scene-history-store.js` | modifier | lecture/écriture disque de l'historique (AC-12, AC-13) ; sérialisation par `sceneId` via `createKeyedLock()` (AC-14, AC-15), écriture temp+rename |
+| `scene-history-store.test.js` | créer | tests AC-14, AC-15 (écritures concurrentes, lecture pendant écriture) |
+| `scene-data-server.js` | modifier | historique sur create/update, routes `/scene-history`, `/restore-scene` (AC-03 à AC-08) ; unique écrivain de `scenes/data/<id>.scene.json` via nouvelle route `POST /save-placement` (AC-16, AC-17) ; `/restore-scene` sérialisé (AC-18) |
+| `placement-server.js` | modifier | devient un pur proxy HTTP vers `scene-data-server.js` — plus aucune écriture disque directe (AC-16) |
+| `tuner-server.js` | modifier | sérialise son read-modify-write de `src/components/DotGridAnimated.js` via `createKeyedLock()` (même motif, latent, trouvé en revue) |
+| `overlay-setting.html` | modifier | retrait boutons/confirmations, section Historique (AC-09 à AC-11) |
 
 > Règle de cross-check (avant de déclarer "done") :
 > - Chaque AC → implémenté et vérifiable

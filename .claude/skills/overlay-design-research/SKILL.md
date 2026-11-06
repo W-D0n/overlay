@@ -10,7 +10,7 @@ description: Cadre toute session de recherche graphique, de design, ou de propos
 Le moteur de scènes (scènes, transitions, panneau `overlay-setting.html`) est **mis de côté** — il
 reste dans le repo mais n'évolue plus. Le focus est le mode **background-only**
 (`docs/specs/background-standalone.md`) : une URL OBS (`background.html`) qui ne rend que l'effet
-de fond courant, piloté en live depuis `dev/studio.html` (dropdown des effets, formulaire
+de fond courant, piloté en live depuis `studio/index.html` (dropdown des effets, formulaire
 généré, presets). Une session de recherche graphique typique porte donc sur **un nouvel effet de
 fond** ou une variation d'un effet existant.
 
@@ -27,7 +27,7 @@ traduire.
 Le principe central : **output = les 3 pièces déclaratives, pas une image.** Un nouvel effet de
 fond livré = la factory `src/components/XxxBackground.js` + la ligne de registre
 (`component-names.js` + `component-registry.js`) + l'entrée `BACKGROUND_FIELD_SCHEMAS`
-(`dev/component-field-schemas.js`). L'effet apparaît alors immédiatement dans le dropdown du tuner
+(`studio/inspector/component-field-schemas.js`). L'effet apparaît alors immédiatement dans le dropdown du tuner
 avec son formulaire de réglage — rien d'autre à toucher. Détail pas-à-pas :
 `docs/guides/tuner-le-fond.md` §Ajouter une nouvelle animation.
 
@@ -67,12 +67,12 @@ Un nouvel effet de fond n'est livré que si les 3 pièces sont là :
 2. **Le registre** — nom ajouté à `component-names.js` + factory dans `component-registry.js`
    (les tests de cohérence existants échouent si l'un des deux manque).
 3. **Le schéma de champs** — entrée dans `BACKGROUND_FIELD_SCHEMAS`
-   (`dev/component-field-schemas.js`) : c'est elle qui génère le formulaire de réglage du tuner.
+   (`studio/inspector/component-field-schemas.js`) : c'est elle qui génère le formulaire de réglage du tuner.
    Chaque option de la factory doit y figurer, avec son `default` exact.
 
 Une proposition sans schéma de champs est invisible dans le tuner et injouable dans OBS — elle
 n'est pas livrée. Vérification : `bun test` + l'effet apparaît dans le dropdown de
-`dev/studio.html`.
+`studio/index.html`.
 
 (Le format `ComponentMount`/`placement` des scènes existe toujours dans `types.js`, mais le moteur
 de scènes est mis de côté — ne livre dans ce format que si l'owner demande explicitement du travail
@@ -126,7 +126,7 @@ délibérément laissé de côté pour cette raison (textures externes, jQuery, 
 2. **Regarder l'existant d'abord** — les `src/components/*Background.js` couvrent déjà beaucoup de
    terrain (11 effets). Une nouvelle demande est souvent une variation de réglages d'un effet
    existant — dans ce cas la livraison est un preset (options exactes à saisir dans
-   `dev/studio.html`), pas un nouveau composant.
+   `studio/index.html`), pas un nouveau composant.
 3. **Si une vraie inspiration externe est utile** (CodePen, capture, description), l'analyser pour
    en extraire la **technique** (quel mouvement, quelle formule, quel timing), pas pour copier une
    image — puis la retraduire immédiatement dans le contrat `ComponentInstance` ci-dessus.
