@@ -1,5 +1,5 @@
 // @ts-check
-import { canonicalSceneDoc, validateSceneDoc } from '../scene-doc.js';
+import { canonicalSceneDoc, validateSceneDoc } from '../src/scene/scene-doc.js';
 import { PRESET_NAME_MAX_LENGTH, canonicalBackgroundPreset, validateBackgroundFile } from './background-state-format.js';
 import { backgroundEffectLabel } from './component-field-schemas.js';
 import { unpackAssets } from './bundle-assets.js';
@@ -18,7 +18,7 @@ const READABLE_BUNDLE_VERSIONS = [1, 2, 3, 4];
  * @property {'overlay-background-presets'} format
  * @property {4} version
  * @property {import('./background-state-format.js').BackgroundPreset[]} presets
- * @property {import('../scene-doc.js').SceneDoc[]} scenes
+ * @property {import('../src/scene/scene-doc.js').SceneDoc[]} scenes
  * @property {import('./bundle-assets.js').PackedAsset[]} assets
  */
 
@@ -172,7 +172,7 @@ export function backgroundPresetRevision(presets) {
 
 /**
  * @param {import('./background-state-format.js').BackgroundPreset[]} presets
- * @param {import('../scene-doc.js').SceneDoc[]} [scenes] les scènes à plusieurs couches, exportées en entier
+ * @param {import('../src/scene/scene-doc.js').SceneDoc[]} [scenes] les scènes à plusieurs couches, exportées en entier
  * @param {import('./bundle-assets.js').PackedAsset[]} [assets] les images que ces presets et ces scènes utilisent, en base64
  * @returns {BackgroundPresetBundle}
  */
@@ -188,7 +188,7 @@ export function createBackgroundPresetBundle(presets, scenes = [], assets = []) 
 
 /**
  * @param {unknown} input
- * @returns {{ok:true,presets:import('./background-state-format.js').BackgroundPreset[],scenes:import('../scene-doc.js').SceneDoc[],assets:import('./bundle-assets.js').BundleAsset[]}|{ok:false,errors:string[]}}
+ * @returns {{ok:true,presets:import('./background-state-format.js').BackgroundPreset[],scenes:import('../src/scene/scene-doc.js').SceneDoc[],assets:import('./bundle-assets.js').BundleAsset[]}|{ok:false,errors:string[]}}
  */
 export function parseBackgroundPresetBundle(input) {
   /** @type {unknown} */
@@ -230,7 +230,7 @@ export function parseBackgroundPresetBundle(input) {
   return {
     ok: true,
     assets: unpacked.assets,
-    scenes: /** @type {import('../scene-doc.js').SceneDoc[]} */ (rawScenes).map((scene) => canonicalSceneDoc(structuredClone(scene))),
+    scenes: /** @type {import('../src/scene/scene-doc.js').SceneDoc[]} */ (rawScenes).map((scene) => canonicalSceneDoc(structuredClone(scene))),
     presets: /** @type {import('./background-state-format.js').BackgroundPreset[]} */ (bundle.presets)
       .map(clonePreset)
       .map(canonicalBackgroundPreset),
@@ -350,19 +350,19 @@ export function mergeBackgroundPresetImport(existing, imported, reserved = []) {
   return { presets, created, updated, renamed, unchanged, changes };
 }
 
-/** @param {import('../scene-doc.js').SceneDoc} scene @returns {string} */
+/** @param {import('../src/scene/scene-doc.js').SceneDoc} scene @returns {string} */
 const sceneKey = (scene) => JSON.stringify(canonicalSceneDoc(structuredClone(scene)));
 
 /**
  * L'import des scènes à plusieurs couches : elles ne remplacent jamais une scène existante. Identique à une scène déjà là
  * (même identifiant et même contenu) : ignorée. Identifiant déjà pris par une scène différente : importée sous un identifiant
  * libre. Nom déjà pris : importée sous un nom ajusté. Le plan se calcule sans rien écrire (c'est l'aperçu).
- * @param {readonly import('../scene-doc.js').SceneDoc[]} existing les scènes de la bibliothèque, flat comme multi-couches
- * @param {readonly import('../scene-doc.js').SceneDoc[]} imported
- * @returns {{ scenes: import('../scene-doc.js').SceneDoc[], created: number, renamed: number, unchanged: number, changes: BackgroundPresetImportChange[] }}
+ * @param {readonly import('../src/scene/scene-doc.js').SceneDoc[]} existing les scènes de la bibliothèque, flat comme multi-couches
+ * @param {readonly import('../src/scene/scene-doc.js').SceneDoc[]} imported
+ * @returns {{ scenes: import('../src/scene/scene-doc.js').SceneDoc[], created: number, renamed: number, unchanged: number, changes: BackgroundPresetImportChange[] }}
  */
 export function planSceneImport(existing, imported) {
-  /** @type {import('../scene-doc.js').SceneDoc[]} */
+  /** @type {import('../src/scene/scene-doc.js').SceneDoc[]} */
   const added = [];
   /** @type {BackgroundPresetImportChange[]} */
   const changes = [];

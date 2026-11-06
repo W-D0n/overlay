@@ -4,15 +4,15 @@
  * Sert `dev/charge.html` (docs/specs/scene-doc-etape-4.md, « Mesure de charge »). Pleine taille = pire cas :
  * chaque couche est un canvas de la taille de la source.
  */
-import { EFFECT_KIND_IDS, LAYER_KINDS, isLayerKindId } from '../layer-kinds.js';
-import { MAX_LAYERS, SCENE_DOC_VERSION, createLayer } from '../scene-doc.js';
+import { EFFECT_KIND_IDS, LAYER_KINDS, isLayerKindId } from '../src/layers/layer-kinds.js';
+import { MAX_LAYERS, SCENE_DOC_VERSION, createLayer } from '../src/scene/scene-doc.js';
 
 /** Ordre des types quand l'URL n'en nomme pas : les plus courants d'abord. */
 export const LOAD_KIND_ORDER = /** @type {const} */ (['dotgrid', 'fireflies', 'rain', 'bubble', 'stars-parallax', 'water-ripple', 'orbiting-shapes', 'shape-morph']);
 
 /**
  * @param {string} [search] `location.search`
- * @returns {{ count: number, kinds: import('../layer-kinds.js').LayerKindId[], hud: boolean }}
+ * @returns {{ count: number, kinds: import('../src/layers/layer-kinds.js').LayerKindId[], hud: boolean }}
  */
 export function parseLoadUrl(search = '') {
   const params = new URLSearchParams(search);
@@ -25,8 +25,8 @@ export function parseLoadUrl(search = '') {
 
 /**
  * @param {number} count
- * @param {import('../layer-kinds.js').LayerKindId[]} [kinds] repris en boucle si moins nombreux que `count`
- * @returns {import('../scene-doc.js').SceneDoc}
+ * @param {import('../src/layers/layer-kinds.js').LayerKindId[]} [kinds] repris en boucle si moins nombreux que `count`
+ * @returns {import('../src/scene/scene-doc.js').SceneDoc}
  */
 export function buildLoadScene(count, kinds = [...LOAD_KIND_ORDER]) {
   if (!Number.isInteger(count) || count < 0 || count > MAX_LAYERS) throw new RangeError(`couches : 0 à ${MAX_LAYERS}`);

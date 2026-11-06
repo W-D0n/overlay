@@ -36,7 +36,7 @@
  * Voir docs/specs/background-standalone.md.
  */
 import { hasEffectLayer, readSceneMap, readBranding } from './background-state-format.js';
-import { liveFromScene } from '../scene-doc.js';
+import { liveFromScene } from '../src/scene/scene-doc.js';
 import { liveSceneFromWire, sceneFromWireCurrent, wireBroadcast, wireDrafts, wireHistory, wireState } from './state-wire.js';
 import { CORS_HEADERS, jsonError } from './dev-server-shared.js';
 import { rejectNonLocalRequest } from './local-access-policy.js';
@@ -45,8 +45,8 @@ import { createPresetRoutes } from './preset-routes.js';
 import { findEntry, recordReplaced } from './background-history.js';
 import { withDraft, withDrafts, withoutDraft } from './preset-drafts.js';
 import { channelForPath } from './channels.js';
-import { resolveSceneMapping, validateSceneMap } from '../obs-scene-mapping.js';
-import { validateBranding } from '../branding-format.js';
+import { resolveSceneMapping, validateSceneMap } from '../src/obs/obs-scene-mapping.js';
+import { validateBranding } from '../src/branding/branding-format.js';
 import { applySettingsPatch, normalizeStudioSettings, validateSettingsPatch } from './studio-settings.js';
 import { createAssetRoutes } from './asset-routes.js';
 import { createVersionRoutes } from './version-routes.js';
@@ -105,7 +105,7 @@ export function createHost({ store, assets, versions, channels, obs, control, co
     return result.value;
   }
 
-  /** Diffuse la scène en antenne aux pages de rendu : la scène, et sa forme plate pour les pages non rechargées. @param {import('../scene-doc.js').SceneDoc} scene */
+  /** Diffuse la scène en antenne aux pages de rendu : la scène, et sa forme plate pour les pages non rechargées. @param {import('../src/scene/scene-doc.js').SceneDoc} scene */
   const broadcastCurrent = (scene) => channels.broadcast('state', wireBroadcast(scene));
 
   /**
@@ -206,7 +206,7 @@ export function createHost({ store, assets, versions, channels, obs, control, co
     const body = /** @type {*} */ (await req.json());
     if (typeof body?.at !== 'string') return jsonError('instant manquant', 400);
 
-    /** @type {import('../scene-doc.js').SceneDoc | null} */
+    /** @type {import('../src/scene/scene-doc.js').SceneDoc | null} */
     let restored = null;
     const response = await update((file) => {
       const entry = findEntry(file.history ?? [], body.at);

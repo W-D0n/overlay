@@ -13,7 +13,7 @@
     Option "?transparent=1" : force le body en transparent (au lieu du noir Atelier) pour
     superposer l'animation au-dessus d'autres sources OBS (gameplay, cam).
   -->
-  <link rel="stylesheet" href="./tokens.css">
+  <link rel="stylesheet" href="./src/styles/tokens.css">
   <style>
     body.transparent { background-color: transparent; }
 
@@ -28,16 +28,16 @@
   <div id="bg-layer"></div>
 
   <script type="module">
-    import { createSceneRuntime } from './scene-runtime.js';
-    import { sceneForBrandingMode, sceneFromCurrent } from './scene-doc.js';
-    import { brandingContent } from './branding-content.js';
-    import { liveSceneOf, selectScene } from './background-selection.js';
-    import { ReactionOverlay } from './components/ReactionOverlay.js';
-    import { createReactionCoordinator } from './background-reactions.js';
-    import { createBrowserAudioSession } from './background-audio.js';
+    import { createSceneRuntime } from './src/scene/scene-runtime.js';
+    import { sceneForBrandingMode, sceneFromCurrent } from './src/scene/scene-doc.js';
+    import { brandingContent } from './src/branding/branding-content.js';
+    import { liveSceneOf, selectScene } from './src/background/background-selection.js';
+    import { ReactionOverlay } from './src/components/ReactionOverlay.js';
+    import { createReactionCoordinator } from './src/background/background-reactions.js';
+    import { createBrowserAudioSession } from './src/background/background-audio.js';
     import { BACKGROUND_STATE_PORT } from './ports.config.js';
-    import { parseRenderUrl } from './render-url.js';
-    import { createLocalTransport } from './render-transport.js';
+    import { parseRenderUrl } from './src/render/render-url.js';
+    import { createLocalTransport } from './src/render/render-transport.js';
 
     // `only` : couche d'identité seule, à poser sur une cam ou un gameplay. `off` : fond seul.
     const { presetRef, branding: brandingMode, transparent, role } = parseRenderUrl(location.search);

@@ -23,9 +23,11 @@ git `scene-engine-v1`, et ses specs vivent dans `docs/specs/archive/`.
 
 ### Régler un fond
 
-Double-cliquer sur `start-dev.bat`. Le script lance l'environnement de création et ouvre notamment :
+Double-cliquer sur `studio.bat` (à la racine). Il lance les serveurs et ouvre le Studio dans le navigateur dès qu'il répond :
 
 `http://localhost:5931/dev/studio.html`
+
+`Ctrl+C` dans la fenêtre (ou la fermer) arrête proprement les serveurs.
 
 Le Studio permet de composer une scène : **11 effets** de fond réglés par des curseurs bornés, des contenus
 (texte, forme, image), des points de départ prêts à l'emploi, et la gestion de ses presets. La recherche couvre
@@ -34,7 +36,7 @@ portable entre deux installations (les images voyagent avec la scène).
 
 ### Utiliser le fond dans OBS
 
-1. Double-cliquer sur `start-stream.bat`.
+1. Double-cliquer sur `stream.bat`.
 2. Ajouter une source **Navigateur** dans OBS.
 3. URL : `http://localhost:5931/background.html`
 4. Dimensions : celles de ton canvas OBS — `1920 × 1080` ici. Le fond les épouse quelles qu'elles soient.
@@ -65,8 +67,8 @@ Le serveur d'état doit rester ouvert pendant le live. Il ne modifie que
 
 ### Si un serveur reste bloqué
 
-`start-dev.bat` libère déjà tout seul un port laissé occupé par un ancien `bun.exe` orphelin.
-`start-stream.bat`, volontairement, se contente de signaler le port occupé sans le libérer — pas de
+`studio.bat` libère déjà tout seul un port laissé occupé par un ancien `bun.exe` orphelin.
+`stream.bat`, volontairement, se contente de signaler le port occupé sans le libérer — pas de
 kill silencieux juste avant/pendant un live. Si ni l'un ni l'autre ne tourne (crash, fermeture au
 Gestionnaire des tâches) et qu'un port reste occupé au lancement suivant : double-cliquer sur
 `kill-servers.bat`. Il ne touche jamais un process qui n'est pas un `bun.exe` du projet.
@@ -74,45 +76,27 @@ Gestionnaire des tâches) et qu'un port reste occupé au lancement suivant : dou
 ## Structure active
 
 ```text
-background.html
-scene-runtime.js
-scene-doc.js
-background-selection.js
-layer-kinds.js
-component-registry.js
-tokens.css
+background.html            Entrée OBS (URL stable : http://localhost:5931/background.html)
+ports.config.js            Ports des serveurs, source unique
+studio.bat                 Lance le Studio et l'ouvre dans le navigateur
+stream.bat                 Lance le fond pour le live (OBS)
+kill-servers.bat           Libère les ports d'un bun.exe orphelin
 
-components/
-  *Background.js
-  color-utils.js
-  color-palette.json
+src/                       Le moteur de l'overlay (jamais de serveur ni d'interface de dev)
+  scene/                   Document de scène (scene-doc) et moteur qui le monte (scene-runtime)
+  layers/                  Types de couche (layer-kinds, component-registry), animation, filtres, masque, groupes, timeline, liaisons
+  background/              État du fond, sélection, transitions, réactions, audio
+  render/                  Source de rendu OBS : résolution de référence, horloge, transport, URL
+  obs/                     Connexion OBS : authentification, correspondance scène ↔ preset
+  branding/                Couche d'identité (pseudo, réseaux)
+  components/              Les effets et les couches (*Background.js, *Layer.js), leurs outils et leur palette
+  styles/tokens.css        Tokens de design Atelier, source de vérité visuelle
+  types.js                 Types JSDoc partagés
 
-branding-format.js
-
-dev/
-  studio.html
-  studio.css
-  builtin-background-presets.js
-  background-preset-import-flow.js
-  background-preset-library.js
-  background-preset-presenter.js
-  background-state-server.js
-  host.js
-  preset-routes.js
-  state-store.js
-  channels.js
-  background-state-format.js
-  component-field-schemas.js
-  numeric-field-control.js
-  start-dev.js
-  start-stream.js
-  kill-servers.js
-  port-check.js
-
-docs/
-  guides/tuner-le-fond.md
-  specs/background-standalone.md
-  specs/background-effects-library.md
+dev/                       Le Studio (studio.html), les serveurs (static-server, background-state-server,
+                           start-studio, start-stream, kill-servers) et les essais de bout en bout (e2e/)
+docs/                      Specs, guides, backlog
+src-tauri/                 Application de bureau (panneau de contrôle des serveurs)
 ```
 
 Chaque effet respecte le contrat :
@@ -131,10 +115,10 @@ le rendu live.
 
 ## Couleurs et design
 
-- `tokens.css` est la source de vérité de l'identité Atelier.
+- `src/styles/tokens.css` est la source de vérité de l'identité Atelier.
 - Les couleurs réglables des effets acceptent une valeur CSS libre : hex, `rgb(...)`,
   `oklch(...)` ou `var(--nom-du-token)`.
-- `components/color-palette.json` contient la palette de travail et les gradients nommés.
+- `src/components/color-palette.json` contient la palette de travail et les gradients nommés.
 
 Les styles des guides HTML vivent dans `docs/guides/guide.css` parce qu'ils appartiennent à la
 documentation, pas au rendu OBS.
@@ -157,7 +141,7 @@ bun test
 ### Contrôler une branche avant fusion
 
 1. Ouvrir la comparaison GitHub `main...nom-de-la-branche` et lire l'onglet **Files changed**.
-2. Lancer `start-dev.bat`, puis vérifier dans le Studio les effets et les presets.
+2. Lancer `studio.bat`, puis vérifier dans le Studio les effets et les presets.
 3. Lancer `bun test` : aucune fusion ne doit être faite si un test échoue.
 4. Fusionner seulement après ce contrôle. Une branche poussée ne modifie pas `main` à elle seule.
 

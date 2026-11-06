@@ -13,11 +13,11 @@
  * grouper et dégrouper (barre d'outils, Ctrl+G, Ctrl+Maj+G),
  * Suppr, Ctrl+D (dupliquer), Ctrl+A, Ctrl+Z / Ctrl+Maj+Z / Ctrl+Y (annuler, rétablir, partout dans le Studio hors champ de saisie).
  *
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
- * @typedef {import('../scene-doc.js').Layer} Layer
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').Layer} Layer
  */
-import { MAX_GROUPS, isGroup, selectionRoots, withMembers } from '../layer-group.js';
-import { isGroupKind, isIdentityKind, isPhotographable } from '../layer-kinds.js';
+import { MAX_GROUPS, isGroup, selectionRoots, withMembers } from '../src/layers/layer-group.js';
+import { isGroupKind, isIdentityKind, isPhotographable } from '../src/layers/layer-kinds.js';
 import { createPresetThumbnail } from './preset-thumbnail.js';
 import { icon, setIcon } from './icons.js';
 import { aloneScene, dropTarget, layerRows, loadGauge } from './layers-panel-view.js';

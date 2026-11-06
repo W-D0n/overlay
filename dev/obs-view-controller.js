@@ -10,8 +10,8 @@
  *
  * La page n'est chargée que fenêtre ouverte : fermée, elle ne dessine rien et ne coûte rien.
  */
-import { RENDER_REFERENCE } from '../render-reference.js';
-import { buildRenderUrl } from '../render-url.js';
+import { RENDER_REFERENCE } from '../src/render/render-reference.js';
+import { buildRenderUrl } from '../src/render/render-url.js';
 
 export const OBS_PANE_WIDTH = 360;
 const OBS_PREFERENCE = 'view.obs';

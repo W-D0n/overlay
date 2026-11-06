@@ -33,7 +33,7 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
    `render-reference.js` ; l'aperçu, les vignettes et le branding la lisent de là, la page de rendu épouse
    sa source et ne fige aucune dimension. Aucun autre fichier source n'écrit 1920 ni 1080 (garde : `dev/render-reference.test.js`) ;
    les positions et tailles de couches se stockent en **fractions** du canvas. `pointer-events: none`.
-   Les effets dessinent dans ce repère de référence : `components/canvas-layer.js` (et `ReactionOverlay`,
+   Les effets dessinent dans ce repère de référence : `src/components/canvas-layer.js` (et `ReactionOverlay`,
    `GeometricPatternBackground`) mettent le dessin à l'échelle de la source réelle, donc **une taille en px
    dans un effet vaut pour la hauteur de référence** et suit la résolution de la source sans code d'effet.
    Les interfaces de dev s'adaptent à l'écran (colonnes proportionnelles, empilement sous 1100 px, aperçu
@@ -41,12 +41,27 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 3. **Source de vérité design** — toutes les variables visuelles dans `tokens.css`. Jamais de valeur
    hardcodée dans un composant si un token existe.
 4. **Pattern composant** — chaque composant est une fonction retournant
-   `{ el, update?(data), destroy?() }`. Voir `components/*Background.js`.
+   `{ el, update?(data), destroy?() }`. Voir `src/components/*Background.js`.
 5. **Configuration hors composant** — données statiques qui pilotent un composant (schémas de
    champs, items de nav, options) → fichier `*.config.js` dédié, jamais en dur dans le composant.
 6. **Protocoles locaux explicites** — l'état du fond (`{ component, options }`) et les événements de
    réaction (`{ type, username?, amount? }`) sont consommés sans connaître leur source.
    Indépendance = protocole, pas absence de connexion. Voir `{overview}`.
+
+---
+
+## Structure du dépôt
+
+Racine courte et fixe (garde : `dev/repo-layout.test.js`) : `background.html` (entrée OBS, URL stable),
+`ports.config.js`, `tsconfig.json`, les lanceurs `studio.bat` (Studio, ouvre le navigateur), `stream.bat` (live) et
+`kill-servers.bat`. Aucun module à la racine.
+
+- `src/` — le moteur : `scene/` (document et moteur de scène), `layers/` (types de couche, animation, filtres, masque,
+  groupes, timeline, liaisons), `background/` (état, sélection, transitions, réactions, audio), `render/` (source de
+  rendu OBS), `obs/` (connexion et correspondance scène ↔ preset), `branding/`, `components/` (effets et couches),
+  `styles/tokens.css`, `types.js`. Les essais vivent à côté du module qu'ils couvrent.
+- `dev/` — le Studio, les serveurs, l'outillage et les essais de bout en bout.
+- Dans `src/`, un nom de fichier est unique : le nom seul (`scene-doc.js`) suffit à désigner un module.
 
 ---
 

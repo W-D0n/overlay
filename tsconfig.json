@@ -12,6 +12,6 @@
     "resolveJsonModule": true,
     "types": []
   },
-  "include": ["*.js", "components/**/*.js", "dev/**/*.js", "dev/types/*.d.ts"],
+  "include": ["*.js", "src/**/*.js", "dev/**/*.js", "dev/types/*.d.ts"],
   "exclude": ["**/*.test.js", "dev/e2e", "src-tauri", "docs", ".playwright-mcp"]
 }

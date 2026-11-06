@@ -1,3 +1,8 @@
+---
+created: 2026-06-07
+updated: 2026-11-06
+---
+
 # MAP — Overlay Stream D0n / Mozaïk
 
 > Feuille de route et état d'avancement. Mis à jour en clôture de session (`/done`).
@@ -12,8 +17,8 @@
   effets**, formulaires générés et presets.
 - `dev/background-state-server.js` persiste `{ current, presets }` et synchronise le tuner avec OBS
   par WebSocket.
-- `start-stream.bat` et `start-dev.bat` lancent le serveur statique et l'état du fond ; `start-dev`
-  ouvre en plus le Studio et le rendu OBS.
+- `stream.bat` et `studio.bat` lancent le serveur statique et l'état du fond ; `studio.bat`
+  ouvre en plus le Studio.
 - Le moteur de scènes, l'éditeur et le relais OBS ont été **archivés le 2026-07-25** : retirés du
   working tree, restaurables via le tag git `scene-engine-v1`, specs déplacées dans
   `docs/specs/archive/`. Les lignes S1→S8 et Track A ci-dessous restent l'historique de ce socle,
@@ -36,7 +41,7 @@
 - Lot du 2026-07-25 : ⑦ archivage du moteur de scènes — registre scindé sur les seuls effets de
   fond, `types.js` réduit, Studio à une entrée, `start-dev` limité aux serveurs statique et fond,
   tuner DotGrid nettoyé de sa partie relais OBS.
-- Lot du 2026-07-26 : réactivité audio étendue aux **11 effets** (`components/audio-reaction.js`
+- Lot du 2026-07-26 : réactivité audio étendue aux **11 effets** (`src/components/audio-reaction.js`
   partagé) et correction de `level`, qui diluait une voix sous 10 % en moyennant tout le spectre.
 - Lot du 2026-07-26 : refonte UX du tuner (trois espaces de travail, hiérarchie typographique,
   panneau opaque : 5,4 → 1,7 écrans de défilement) et ⑥ vignettes de presets (photo capturée puis
@@ -124,8 +129,8 @@ déposer par poignée dédiée. Placement par composant individuel reste hors sc
 
 ## Détail S1 (livré)
 
-- `components/simplex.js` — Simplex 2D Gustavson, `simplex2(x,y) → [-1,1]`, zéro dépendance.
-- `components/DotGridAnimated.js` — couches 1+2, stockage SoA, `setMode`/`destroy` fonctionnels, `trigger`/`morphTo` en stubs.
+- `src/components/simplex.js` — Simplex 2D Gustavson, `simplex2(x,y) → [-1,1]`, zéro dépendance.
+- `src/components/DotGridAnimated.js` — couches 1+2, stockage SoA, `setMode`/`destroy` fonctionnels, `trigger`/`morphTo` en stubs.
 - DotGrid testé sur `scenes/BRB.html` (S1) — depuis S3, monté par le runtime dans `index.html` (`#bg-layer`).
 
 ## Détail S2 (livré)
@@ -146,7 +151,7 @@ déposer par poignée dédiée. Placement par composant individuel reste hors sc
 - `component-registry.js` (`ComponentName` → factory) + `scenes/registry.js` (`SceneId` → config + wire).
 - `scenes/{discussion,brb,codage}.wire.js` — câblage composants ↔ store par scène (AD-6).
 - `scene-resolve.test.js` — 22 tests `bun test`.
-- Modifs surfaces partagées : `components/index.js` (`AlertBanner.destroy()`), `components/DotGridAnimated.js` (`GRID_MODES`), `types.js` (`ComponentInstance`, `MountedScene`, `SceneWire`).
+- Modifs surfaces partagées : `src/components/index.js` (`AlertBanner.destroy()`), `src/components/DotGridAnimated.js` (`GRID_MODES`), `types.js` (`ComponentInstance`, `MountedScene`, `SceneWire`).
 - Décisions : AD-4 (périmètre 3 scènes), AD-5 (`<template>` inline), AD-6 (wire par scène), AD-7 (`hidden` masque le fond).
 - `scenes/{BRB,Discussion,Codage}.html` supprimées (superseded par `index.html`).
 
@@ -192,7 +197,7 @@ déposer par poignée dédiée. Placement par composant individuel reste hors sc
 - `dev/dotgrid-params-format.js` — logique pure de remplacement du bloc `MODE_PARAMS` +
   `baseOpacity`/`dotRadius` dans le source, testée (4 tests).
 - `dev/tuner-server.js` — serveur de dev séparé (`bun dev/tuner-server.js`, jamais lancé en live),
-  route unique `POST /save`, réécrit `components/DotGridAnimated.js` directement.
+  route unique `POST /save`, réécrit `src/components/DotGridAnimated.js` directement.
 - `dev/dotgrid-tuner.html` — bouton "Sauvegarder" ajouté (bouton "Copier" gardé en secours).
 - Testé bout en bout manuellement (sauvegarde réelle, vérification du fichier, restauration).
 - Décision de scope (2026-07-04) : le drag & drop de placement (portée initiale du jalon 1) est

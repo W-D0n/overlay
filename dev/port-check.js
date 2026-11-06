@@ -2,7 +2,7 @@
 /**
  * dev/port-check.js — Vérification préflight qu'un port TCP est libre avant de lancer un serveur.
  *
- * Utilisé par `start-stream.js`/`start-dev.js` pour détecter un port déjà pris (typiquement : une
+ * Utilisé par `start-stream.js`/`start-studio.js` pour détecter un port déjà pris (typiquement : une
  * instance précédente encore ouverte) AVANT de spawn les enfants, et donner un message clair et
  * unique au lieu des piles d'erreur `EADDRINUSE` brutes de chaque serveur Bun (root cause du
  * symptôme « la fenêtre s'ouvre et se referme immédiatement », owner 2026-07-10 — le process

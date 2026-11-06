@@ -1,5 +1,5 @@
 // @ts-check
-import { ASSET_ID_PATTERN, CODE_ASSET_REFERENCE, CODE_OPTION_KEYS } from '../layer-kinds.js';
+import { ASSET_ID_PATTERN, CODE_ASSET_REFERENCE, CODE_OPTION_KEYS } from '../src/layers/layer-kinds.js';
 
 /**
  * dev/asset-format.js — Les assets d'image : reconnaissance du type, lecture des dimensions, limites, usages. Pur : octets en

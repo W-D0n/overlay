@@ -1,7 +1,7 @@
 // @ts-check
-import { ANIMATION_EASES, AFTER_LIMITS, AMOUNT_LIMITS, DELAY_LIMITS, DURATION_LIMITS, LOOPS, PERIOD_LIMITS, PRESETS, changePhase, setPhase, toggleRestart } from '../layer-animation.js';
-import { kindCapabilities } from '../layer-kinds.js';
-import { RESTART_SOURCES } from '../layer-timeline.js';
+import { ANIMATION_EASES, AFTER_LIMITS, AMOUNT_LIMITS, DELAY_LIMITS, DURATION_LIMITS, LOOPS, PERIOD_LIMITS, PRESETS, changePhase, setPhase, toggleRestart } from '../src/layers/layer-animation.js';
+import { kindCapabilities } from '../src/layers/layer-kinds.js';
+import { RESTART_SOURCES } from '../src/layers/layer-timeline.js';
 
 /**
  * dev/animation-controller.js — La section « Entrée, boucle, sortie » de l'inspecteur : l'animation de la couche sélectionnée (`layer-animation.js`).
@@ -57,7 +57,7 @@ export function createAnimationController(input) {
     return el;
   }
 
-  /** @returns {import('../scene-doc.js').Layer | undefined} la couche sélectionnée, quand il n'y en a qu'une */
+  /** @returns {import('../src/scene/scene-doc.js').Layer | undefined} la couche sélectionnée, quand il n'y en a qu'une */
   function selectedLayer() {
     const { selection } = editor.state();
     if (selection.length !== 1) return undefined;
@@ -69,12 +69,12 @@ export function createAnimationController(input) {
     if (!result.ok && result.message !== undefined) input.report.error(result.message);
   }
 
-  /** @param {string} id @param {import('../layer-animation.js').Animation | undefined} next @param {string} key */
+  /** @param {string} id @param {import('../src/layers/layer-animation.js').Animation | undefined} next @param {string} key */
   function commit(id, next, key) {
     settle(editor.setLayers([id], { animation: next ?? {} }, { coalesceKey: `animation:${id}:${key}` }));
   }
 
-  /** L'animation de la couche **maintenant** : les contrôles construits une fois survivent aux modifications. @returns {{ id: string, animation: import('../layer-animation.js').Animation | undefined } | null} */
+  /** L'animation de la couche **maintenant** : les contrôles construits une fois survivent aux modifications. @returns {{ id: string, animation: import('../src/layers/layer-animation.js').Animation | undefined } | null} */
   function live() {
     const layer = selectedLayer();
     return layer === undefined ? null : { id: layer.id, animation: layer.animation };

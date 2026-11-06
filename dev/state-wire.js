@@ -15,11 +15,11 @@
  * @typedef {import('./background-state-format.js').BackgroundCurrent} BackgroundCurrent
  * @typedef {import('./background-state-format.js').BackgroundPreset} BackgroundPreset
  * @typedef {import('./background-state-format.js').BackgroundFile} BackgroundFile
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
  * @typedef {{ at: string, current: BackgroundCurrent, scene: SceneDoc }} WireHistoryEntry
  * @typedef {{ at: string, state: BackgroundCurrent, scene: SceneDoc }} WireDraftEntry
  */
-import { CURRENT_SCENE, canonicalSceneDoc, currentFromScene, presetFromScene, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
+import { CURRENT_SCENE, canonicalSceneDoc, currentFromScene, presetFromScene, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../src/scene/scene-doc.js';
 import {
   canonicalBackgroundCurrent,
   canonicalBackgroundPreset,

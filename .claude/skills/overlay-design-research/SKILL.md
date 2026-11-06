@@ -25,7 +25,7 @@ existe pour que la sortie d'une session de recherche soit **directement utilisab
 traduire.
 
 Le principe central : **output = les 3 pièces déclaratives, pas une image.** Un nouvel effet de
-fond livré = la factory `components/XxxBackground.js` + la ligne de registre
+fond livré = la factory `src/components/XxxBackground.js` + la ligne de registre
 (`component-names.js` + `component-registry.js`) + l'entrée `BACKGROUND_FIELD_SCHEMAS`
 (`dev/component-field-schemas.js`). L'effet apparaît alors immédiatement dans le dropdown du tuner
 avec son formulaire de réglage — rien d'autre à toucher. Détail pas-à-pas :
@@ -57,13 +57,13 @@ N'invente jamais un widget avec une autre forme (pas de classe, pas de composant
 pas de web component). Si l'inspiration vient d'un CodePen ou d'une lib quelconque, la question
 n'est jamais "comment l'importer" mais "comment réécrire ce comportement dans ce contrat" — voir
 `docs/guides/creer-un-composant.md` pour le squelette exact et des exemples réels
-(`components/*.js`).
+(`src/components/*.js`).
 
 ### 2. Livraison en 3 pièces déclaratives — jamais de code orphelin
 
 Un nouvel effet de fond n'est livré que si les 3 pièces sont là :
 
-1. **La factory** — `components/XxxBackground.js` (contrat `ComponentInstance` ci-dessus).
+1. **La factory** — `src/components/XxxBackground.js` (contrat `ComponentInstance` ci-dessus).
 2. **Le registre** — nom ajouté à `component-names.js` + factory dans `component-registry.js`
    (les tests de cohérence existants échouent si l'un des deux manque).
 3. **Le schéma de champs** — entrée dans `BACKGROUND_FIELD_SCHEMAS`
@@ -113,7 +113,7 @@ Si une inspiration semble vouloir plusieurs calques (ex. étoiles + brume), réi
 Toute proposition de code est HTML/CSS/JS natif, ES modules, sans bundler ni framework ni CDN.
 Si l'inspiration source utilise une lib (GSAP, Three.js, une police via Google Fonts CDN...),
 réinterprète l'effet avec les moyens du bord déjà dans le projet (canvas 2D natif, Web Animations
-API, CSS pur, `components/simplex.js` pour du bruit procédural) — jamais en importer une nouvelle.
+API, CSS pur, `src/components/simplex.js` pour du bruit procédural) — jamais en importer une nouvelle.
 C'est déjà arrivé plusieurs fois (Track B, 11 effets de fond inspirés de CodePen) : voir
 `docs/specs/background-effects-library.md` §Exclu pour des exemples concrets de ce qui a été
 délibérément laissé de côté pour cette raison (textures externes, jQuery, Trianglify...).
@@ -123,7 +123,7 @@ délibérément laissé de côté pour cette raison (textures externes, jQuery, 
 1. **Comprendre le besoin réel** avant de chercher de l'inspiration — quel moment du stream,
    quelle ambiance (calme, énergique, thématique) ? Un effet de fond est strictement ambiant :
    pas d'interaction souris (Browser Source OBS, `pointer-events: none`).
-2. **Regarder l'existant d'abord** — les `components/*Background.js` couvrent déjà beaucoup de
+2. **Regarder l'existant d'abord** — les `src/components/*Background.js` couvrent déjà beaucoup de
    terrain (11 effets). Une nouvelle demande est souvent une variation de réglages d'un effet
    existant — dans ce cas la livraison est un preset (options exactes à saisir dans
    `dev/studio.html`), pas un nouveau composant.

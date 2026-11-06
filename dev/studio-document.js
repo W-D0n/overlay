@@ -16,10 +16,10 @@
  *
  * Aucun DOM, aucun réseau : testable seul.
  *
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
  * @typedef {{ scene: SceneDoc, onAir: SceneDoc, activePresetId: string | null, isDraft: boolean, hasArrival: boolean }} DocumentState
  */
-import { liveFromScene } from '../scene-doc.js';
+import { liveFromScene } from '../src/scene/scene-doc.js';
 import { createSceneEditor } from './scene-editor.js';
 
 /** @param {SceneDoc} scene @returns {string} les seules couches, dans l'ordre : ce qui se voit à l'antenne */

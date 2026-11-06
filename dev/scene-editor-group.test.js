@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { MAX_LAYERS, canonicalSceneDoc, createLayer } from '../scene-doc.js';
-import { MAX_GROUPS, groupErrors } from '../layer-group.js';
+import { MAX_LAYERS, canonicalSceneDoc, createLayer } from '../src/scene/scene-doc.js';
+import { MAX_GROUPS, groupErrors } from '../src/layers/layer-group.js';
 import { createSceneEditor, viewScene } from './scene-editor.js';
 
 const at = (x, y, width, height) => ({ x, y, width, height });

@@ -1,5 +1,5 @@
 // @ts-check
-import { kindFamily } from '../layer-kinds.js';
+import { kindFamily } from '../src/layers/layer-kinds.js';
 
 /**
  * dev/version-view.js — Comment la fenêtre des versions décrit une version : sa date, ce qu'elle contient, ce qui la distingue de la scène en
@@ -20,7 +20,7 @@ export function formatVersionDate(iso) {
 
 /**
  * « 3 couches : Pluie, Texte, Identité » (les libellés sont fournis).
- * @param {import('../scene-doc.js').SceneDoc} scene
+ * @param {import('../src/scene/scene-doc.js').SceneDoc} scene
  * @param {(kind: string) => string} labelOf
  * @returns {string}
  */
@@ -34,15 +34,15 @@ export function describeVersion(scene, labelOf) {
 
 /**
  * Ce qui change si on restaure cette version dans la scène en cours : une phrase courte, pour décider avant de cliquer.
- * @param {import('../scene-doc.js').SceneDoc} version
- * @param {import('../scene-doc.js').SceneDoc} current
+ * @param {import('../src/scene/scene-doc.js').SceneDoc} version
+ * @param {import('../src/scene/scene-doc.js').SceneDoc} current
  * @returns {string}
  */
 export function describeRestoration(version, current) {
   const stable = (/** @type {unknown} */ value) => JSON.stringify(value);
   if (stable(version.layers) === stable(current.layers) && stable(version.transition) === stable(current.transition)) return 'identique à la scène en cours';
   const diff = version.layers.length - current.layers.length;
-  const contents = (/** @type {import('../scene-doc.js').SceneDoc} */ scene) => scene.layers.filter((layer) => kindFamily(layer.kind) === 'content').length;
+  const contents = (/** @type {import('../src/scene/scene-doc.js').SceneDoc} */ scene) => scene.layers.filter((layer) => kindFamily(layer.kind) === 'content').length;
   if (diff > 0) return `ajoute ${diff} couche${diff > 1 ? 's' : ''} par rapport à la scène en cours`;
   if (diff < 0) return `retire ${-diff} couche${-diff > 1 ? 's' : ''} par rapport à la scène en cours`;
   const delta = contents(version) - contents(current);

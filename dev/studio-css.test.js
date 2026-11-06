@@ -5,6 +5,11 @@ import { join } from 'node:path';
 const ROOT = join(import.meta.dir, '..');
 const read = (/** @type {string} */ path) => readFileSync(join(ROOT, path), 'utf8');
 
+/** `directory` (relative to the root) and every folder below it. @param {string} directory @returns {string[]} */
+function directoriesUnder(directory) {
+  return [directory, ...readdirSync(join(ROOT, directory), { withFileTypes: true }).filter((entry) => entry.isDirectory()).flatMap((entry) => directoriesUnder(`${directory}/${entry.name}`))];
+}
+
 /** The stylesheet without its comments. */
 const css = read('dev/studio.css').replace(/\/\*[\s\S]*?\*\//g, '');
 const html = read('dev/studio.html');
@@ -12,7 +17,7 @@ const html = read('dev/studio.html');
 /** The page and every script the page can load (tests excluded): where a class or an id can be written. */
 const sources = (() => {
   let text = html;
-  for (const directory of ['dev', 'components', '']) {
+  for (const directory of ['dev', '', ...directoriesUnder('src')]) {
     for (const name of readdirSync(join(ROOT, directory))) {
       if (name.endsWith('.js') && !name.endsWith('.test.js')) text += `\n${read(join(directory, name))}`;
     }
@@ -134,8 +139,8 @@ describe('dev/studio.css', () => {
   });
 
   test('la page charge sa feuille de style, après les tokens, et ne garde aucun style en ligne dans <style>', () => {
-    expect(html).toContain('<link rel="stylesheet" href="../tokens.css">');
-    expect(html.indexOf('href="./studio.css"')).toBeGreaterThan(html.indexOf('href="../tokens.css"'));
+    expect(html).toContain('<link rel="stylesheet" href="../src/styles/tokens.css">');
+    expect(html.indexOf('href="./studio.css"')).toBeGreaterThan(html.indexOf('href="../src/styles/tokens.css"'));
     expect(html).not.toContain('<style');
   });
 

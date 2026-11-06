@@ -3,7 +3,7 @@
  * dev/starter-row.js — "Modèle de départ" of a Code layer: a choice of ready-made HTML + CSS + JavaScript + settings, applied in one step. Replacing code the author has written asks a second click.
  */
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
-import { CODE_TEMPLATES } from '../components/code-templates.js';
+import { CODE_TEMPLATES } from '../src/components/code-templates.js';
 
 /**
  * Whether the code of a Code layer is still one the Studio gave (the default or a starting point): then a starting point can replace it without asking.

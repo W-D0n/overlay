@@ -34,7 +34,7 @@ dans la seconde → et au prochain démarrage, OBS recharge le dernier état sau
 
 <h2>Mettre le fond dans OBS</h2>
 <ol>
-  <li>Lancer <code>start-stream.bat</code> (ou <code>start-dev.bat</code> pour bricoler).</li>
+  <li>Lancer <code>stream.bat</code> (ou <code>studio.bat</code> pour bricoler).</li>
   <li>Dans OBS : Source → <strong>Navigateur</strong> (Browser Source).</li>
   <li>URL : <code>http://localhost:5931/background.html</code></li>
   <li>Largeur <code>1920</code>, hauteur <code>1080</code>.</li>
@@ -51,7 +51,7 @@ CSS.</p>
 
 <h2>La page de tuning</h2>
 <p>Ouvrir <code>http://localhost:5931/dev/studio.html</code> (s'ouvre automatiquement avec
-<code>start-dev.bat</code>).</p>
+<code>studio.bat</code>).</p>
 <ul>
   <li><strong>Trois zones</strong> : le rail de gauche (Bibliothèque, Scènes OBS, Branding : sections repliables),
       l'aperçu au centre avec le bandeau En antenne / Brouillon, les réglages du preset à droite. L'aperçu est un
@@ -78,7 +78,7 @@ CSS.</p>
   <li><strong>FPS et densité</strong> : la ligne en haut du panneau affiche les FPS mesurés de l'aperçu et la densité de pixels active.</li>
 </ul>
 <p>La ligne de statut en bas de la barre indique si le serveur d'état répond. Si elle est rouge,
-lancer <code>start-dev.bat</code> ou <code>start-stream.bat</code>.</p>
+lancer <code>studio.bat</code> ou <code>stream.bat</code>.</p>
 
 <h2>Un fond par scène OBS</h2>
 <p>Deux façons, non exclusives :</p>
@@ -92,7 +92,7 @@ lancer <code>start-dev.bat</code> ou <code>start-stream.bat</code>.</p>
 <p>Pour la seconde : activer le serveur WebSocket dans OBS (Outils → Paramètres du serveur
 WebSocket), créer un fichier <code>.env</code> à la racine avec <code>OBS_WS_URL</code> et
 <code>OBS_WS_PASSWORD</code> (gabarit dans <code>.env.example</code>), puis relancer
-<code>start-dev.bat</code>. Dans la section <strong>Scènes OBS</strong>, chaque scène détectée reçoit
+<code>studio.bat</code>. Dans la section <strong>Scènes OBS</strong>, chaque scène détectée reçoit
 un preset.</p>
 <p>Une scène <strong>sans</strong> association ne change rien — un oubli ne noircit jamais un live.
 L'association reprend la main sur un réglage fait à la main au prochain changement de scène, et une
@@ -138,7 +138,7 @@ moment le plus coûteux pour la machine.</p>
 <p>Le bandeau <strong>Antenne</strong>, dans l'en-tête (toujours visible), se relit toutes les 5 secondes tant que la
 page est visible. Il dit où en est la chaîne jusqu'à OBS :</p>
 <ul>
-  <li><strong>Serveur d'état</strong> : connecté ou injoignable (relancer <code>start-stream.bat</code>) ;</li>
+  <li><strong>Serveur d'état</strong> : connecté ou injoignable (relancer <code>stream.bat</code>) ;</li>
   <li><strong>OBS</strong> : connecté avec le nom de la scène active, non configuré
       (<code>OBS_WS_PASSWORD</code> dans <code>.env</code>), injoignable ou mot de passe refusé ;</li>
   <li><strong>Page de rendu</strong> : nombre de pages <code>background.html</code> connectées au serveur.
@@ -157,7 +157,7 @@ dans OBS. Faire une dernière vérification visuelle avant le live.</div>
       l'interface.</li>
   <li>Les couleurs des effets acceptent une valeur CSS libre : hex, <code>rgb(...)</code>,
       <code>oklch(...)</code> ou <code>var(--nom-du-token)</code>.</li>
-  <li><code>components/color-palette.json</code> contient les couleurs nommées et les gradients de
+  <li><code>src/components/color-palette.json</code> contient les couleurs nommées et les gradients de
       travail destinés au tuner.</li>
 </ul>
 <p>Deux modes sont disponibles :</p>
@@ -176,7 +176,7 @@ scène affichée.</p>
 <p>Le tuner et l'URL OBS n'ont <strong>jamais</strong> besoin d'être modifiés : ils lisent tout
 depuis trois déclarations. Ajouter une animation = créer un fichier et ajouter trois lignes.</p>
 
-<h3>1. Le composant — <code>components/MonEffetBackground.js</code></h3>
+<h3>1. Le composant — <code>src/components/MonEffetBackground.js</code></h3>
 <p>Une fonction qui retourne <code>{ el, update, destroy }</code>. Squelette minimal fonctionnel :</p>
 <pre><code>// @ts-check
 /**
@@ -210,7 +210,7 @@ export function MonEffetBackground(options = {}) {
   };
 }</code></pre>
 <p>Le plus simple est de partir d'une copie d'un effet existant proche
-(<code>components/RainBackground.js</code> est un bon modèle : canvas, resize, couleurs via
+(<code>src/components/RainBackground.js</code> est un bon modèle : canvas, resize, couleurs via
 tokens). Détail complet du contrat dans <a href="creer-un-composant.html">Créer un composant</a>.</p>
 
 <h3>2. Le registre — deux fichiers, une ligne chacun</h3>
@@ -266,7 +266,7 @@ plusieurs modules. Ajouter un test à l'interface concernée, lancer <code>bun t
 les parcours du Studio à 1920×1080.</p>
 
 <h2>Performance et cycle de vie</h2>
-<p>Les canvas utilisent <code>components/canvas-runtime.js</code> : DPR 2 maximum en Auto, DPR 1
+<p>Les canvas utilisent <code>src/components/canvas-runtime.js</code> : DPR 2 maximum en Auto, DPR 1
 avec <code>?quality=performance</code> (paramètre toujours lu, plus proposé dans le Studio : dans OBS le DPR vaut déjà 1, mesuré le 2026-10-29). Le tuner et <code>background.html</code> démontent l'effet
 quand leur page devient invisible, puis remontent le dernier état à la reprise. Dans OBS, conserver
 également <strong>Arrêter la source lorsqu'elle n'est pas visible</strong>.</p>

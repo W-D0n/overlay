@@ -13,7 +13,7 @@ test('les cinq points de départ sont valides et ont des identifiants uniques', 
 
 test('les points de départ à plusieurs couches sont des scènes valides, uniques, à plusieurs effets, sans collision avec les autres', async () => {
   const { BUILTIN_BACKGROUND_SCENES } = await import('./builtin-background-presets.js');
-  const { validateSceneDoc } = await import('../scene-doc.js');
+  const { validateSceneDoc } = await import('../src/scene/scene-doc.js');
   expect(BUILTIN_BACKGROUND_SCENES.length).toBeGreaterThanOrEqual(3);
   const ids = [...BUILTIN_BACKGROUND_PRESETS, ...BUILTIN_BACKGROUND_SCENES].map(({ id }) => id);
   expect(new Set(ids).size).toBe(ids.length);
@@ -28,7 +28,7 @@ test('les points de départ à plusieurs couches sont des scènes valides, uniqu
 
 test('les points de départ à contenu posent un titre lisible : texte et formes dans la scène, ordre du fond vers le premier plan', async () => {
   const { BUILTIN_BACKGROUND_SCENES } = await import('./builtin-background-presets.js');
-  const { kindFamily } = await import('../layer-kinds.js');
+  const { kindFamily } = await import('../src/layers/layer-kinds.js');
   const withContent = BUILTIN_BACKGROUND_SCENES.filter((scene) => scene.layers.some((layer) => kindFamily(layer.kind) === 'content'));
   expect(withContent.map(({ name }) => name)).toEqual(['Début de live', 'Je reviens', 'Fin de live']);
   for (const scene of withContent) {

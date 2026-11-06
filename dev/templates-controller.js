@@ -4,8 +4,8 @@
  * renommer ou supprimer un modèle. Les modèles vivent dans les réglages du Studio (serveur) : ils suivent l'utilisateur
  * d'une scène à l'autre et d'un navigateur à l'application de bureau.
  */
-import { layersToCopy } from '../layer-group.js';
-import { isIdentityKind } from '../layer-kinds.js';
+import { layersToCopy } from '../src/layers/layer-group.js';
+import { isIdentityKind } from '../src/layers/layer-kinds.js';
 import { libraryByCategory, searchLibrary } from './builtin-layer-templates.js';
 import { createTemplate, describeTemplate, templateNameError } from './layer-templates.js';
 
@@ -60,7 +60,7 @@ export function createTemplatesController(input) {
 
   /**
    * Inserts a template in the scene, one history step. An identity layer (branding) is unique in the scene: if it is already there, the template goes in without it.
-   * @param {string} name @param {readonly import('../scene-doc.js').Layer[]} templateLayers
+   * @param {string} name @param {readonly import('../src/scene/scene-doc.js').Layer[]} templateLayers
    */
   function insertTemplate(name, templateLayers) {
     const present = new Set(editor.state().scene.layers.map((layer) => layer.kind));

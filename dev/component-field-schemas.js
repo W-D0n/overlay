@@ -1,5 +1,5 @@
 // @ts-check
-import { CONTENT_KIND_IDS, EFFECT_KIND_IDS, LAYER_KINDS, LAYER_KIND_IDS, NUMBER_FIELD_GUIDANCE } from '../layer-kinds.js';
+import { CONTENT_KIND_IDS, EFFECT_KIND_IDS, LAYER_KINDS, LAYER_KIND_IDS, NUMBER_FIELD_GUIDANCE } from '../src/layers/layer-kinds.js';
 import { CHOICE_LABELS } from './choice-labels.js';
 
 /**
@@ -8,7 +8,7 @@ import { CHOICE_LABELS } from './choice-labels.js';
  * La description vit dans `layer-kinds.js` (donnée pure, sans dépendance vers les effets) ; ce module
  * ne fait que la présenter sous la forme attendue par le rendu des formulaires.
  *
- * @typedef {import('../layer-kinds.js').FieldSchema} FieldSchema
+ * @typedef {import('../src/layers/layer-kinds.js').FieldSchema} FieldSchema
  * @typedef {FieldSchema & { choiceLabels?: Readonly<Record<string, string>> }} FormField un champ tel que le formulaire l'affiche : une liste porte le libellé de chacun de ses choix
  */
 

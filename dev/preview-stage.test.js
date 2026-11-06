@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { RENDER_REFERENCE } from '../render-reference.js';
+import { RENDER_REFERENCE } from '../src/render/render-reference.js';
 import { createPreviewStage, fitStage, STAGE_HEIGHT, STAGE_WIDTH } from './preview-stage.js';
 
 test('le cadre suit la résolution de référence, jamais une valeur recopiée', () => {

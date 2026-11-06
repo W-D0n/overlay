@@ -32,7 +32,7 @@ describe('rendu des champs de fond', () => {
   });
 });
 
-import { CODE_TEMPLATES } from '../components/code-templates.js';
+import { CODE_TEMPLATES } from '../src/components/code-templates.js';
 import { createBackgroundFieldRenderer } from './background-field-renderer.js';
 
 describe('champ booléen', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createLayer } from '../scene-doc.js';
+import { createLayer } from '../src/scene/scene-doc.js';
 import { describeKey, formatSeconds, percentOf, timeFromPointer, timelineOf, valueAt } from './timeline-view.js';
 
 describe('temps', () => {

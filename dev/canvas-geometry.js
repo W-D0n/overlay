@@ -6,11 +6,11 @@
  * Tout se calcule en **pixels de la source** (`render-reference.js`) : c'est le repère de l'utilisateur à l'écran, indépendant
  * de l'échelle d'affichage. `toPixelRect` / `fromPixelRect` font le pont avec les fractions de la scène.
  *
- * @typedef {import('../scene-doc.js').Placement} Placement
+ * @typedef {import('../src/scene/scene-doc.js').Placement} Placement
  * @typedef {{ x: number, y: number, width: number, height: number }} Rect
  * @typedef {'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'} Handle
  */
-import { RENDER_REFERENCE } from '../render-reference.js';
+import { RENDER_REFERENCE } from '../src/render/render-reference.js';
 
 /** Taille minimale d'une couche à la manipulation, en pixels de la source : en deçà, elle deviendrait impossible à ressaisir. */
 export const MIN_SIZE_PX = 8;

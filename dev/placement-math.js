@@ -3,12 +3,12 @@
  * dev/placement-math.js — Le calcul du placement des couches : unités, proportions, alignement, répartition, positions
  * prédéfinies. Logique pure, sans DOM ni scène : elle rend des placements (fractions du canvas), que l'éditeur applique.
  *
- * @typedef {import('../scene-doc.js').Placement} Placement
+ * @typedef {import('../src/scene/scene-doc.js').Placement} Placement
  * @typedef {'x' | 'y' | 'width' | 'height'} PlacementKey
  * @typedef {'percent' | 'pixel'} Unit
  * @typedef {'left' | 'hcenter' | 'right' | 'top' | 'vcenter' | 'bottom'} AlignMode
  */
-import { RENDER_REFERENCE } from '../render-reference.js';
+import { RENDER_REFERENCE } from '../src/render/render-reference.js';
 
 /** Tolérance de comparaison de fractions : en deçà, deux placements sont le même. */
 const EPSILON = 1e-6;

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { STAGE_HEIGHT, STAGE_WIDTH } from './preview-stage.js';
-import { sceneFromCurrent } from '../scene-doc.js';
+import { sceneFromCurrent } from '../src/scene/scene-doc.js';
 import { createPresetThumbnail, onceVisible, THUMBNAIL_HEIGHT, THUMBNAIL_WIDTH } from './preset-thumbnail.js';
 
 function fakeObserverFactory() {

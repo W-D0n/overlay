@@ -183,7 +183,7 @@ fn ensure_servers(app: &AppHandle) -> Result<(), String> {
         Ok(())
     } else {
         Err(format!(
-            "Les serveurs n'ont pas répondu après {} s. Lance start-stream.bat dans un terminal pour lire l'erreur.",
+            "Les serveurs n'ont pas répondu après {} s. Lance stream.bat dans un terminal pour lire l'erreur.",
             SERVERS_READY_TIMEOUT.as_secs()
         ))
     }

@@ -9,7 +9,7 @@
  *
  * Logique pure : ni disque, ni horloge (l'instant est fourni), ni réseau.
  *
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
  * @typedef {{ at: string, scene: SceneDoc }} HistoryEntry
  */
 

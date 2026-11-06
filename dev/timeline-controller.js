@@ -1,7 +1,7 @@
 // @ts-check
-import { layerTargets, targetLabel, targetRange } from '../layer-bindings.js';
+import { layerTargets, targetLabel, targetRange } from '../src/layers/layer-bindings.js';
 import { createCurveEditor } from './curve-editor.js';
-import { DURATION_BOUNDS, EASES, MAX_KEYS, RESTART_SOURCES, changeKey, copyKeys, pasteKeys, removeKey, setKey } from '../layer-timeline.js';
+import { DURATION_BOUNDS, EASES, MAX_KEYS, RESTART_SOURCES, changeKey, copyKeys, pasteKeys, removeKey, setKey } from '../src/layers/layer-timeline.js';
 import { describeKey, formatSeconds, percentOf, timeFromPointer, timelineOf, valueAt } from './timeline-view.js';
 
 /**
@@ -32,13 +32,13 @@ export function createTimelineController(input) {
   const windowRef = input.windowRef ?? window;
   const { elements, studio, timeline } = input;
   const { editor } = studio;
-  /** @type {{ target: import('../layer-bindings.js').BindingTarget, index: number } | null} */
+  /** @type {{ target: import('../src/layers/layer-bindings.js').BindingTarget, index: number } | null} */
   let selected = null;
   let selectedLayerId = '';
-  /** Les images clés copiées : elles survivent au changement de couche, c'est ce qui permet de les coller ailleurs. @type {import('../layer-timeline.js').KeyClip | null} */
+  /** Les images clés copiées : elles survivent au changement de couche, c'est ce qui permet de les coller ailleurs. @type {import('../src/layers/layer-timeline.js').KeyClip | null} */
   let clip = null;
 
-  /** @returns {import('../scene-doc.js').Layer | null} la couche réglée : la seule sélectionnée */
+  /** @returns {import('../src/scene/scene-doc.js').Layer | null} la couche réglée : la seule sélectionnée */
   function layer() {
     const { selection } = editor.state();
     const layers = studio.state().scene.layers.filter((candidate) => selection.includes(candidate.id));
@@ -63,14 +63,14 @@ export function createTimelineController(input) {
     if (documentRef.activeElement !== field) field.value = value;
   }
 
-  /** @param {import('../layer-timeline.js').Track[]} tracks @param {string} key */
+  /** @param {import('../src/layers/layer-timeline.js').Track[]} tracks @param {string} key */
   function commitTracks(tracks, key) {
     const target = layer();
     if (target === null) return;
     settle(editor.setLayers([target.id], { timeline: tracks }, { coalesceKey: `timeline:${target.id}:${key}` }));
   }
 
-  /** @param {Partial<import('../layer-timeline.js').SceneTimeline>} change */
+  /** @param {Partial<import('../src/layers/layer-timeline.js').SceneTimeline>} change */
   function commitScene(change) {
     const current = timelineOf(studio.state().scene);
     settle(editor.setSceneProps({ timeline: { ...current, ...change } }, { coalesceKey: 'timeline-scene' }));
@@ -96,7 +96,7 @@ export function createTimelineController(input) {
 
   /** Les valeurs proposées pour une nouvelle piste : les communes, et les réglages animables de la couche ; la liste ne se reconstruit que si elle change. */
   let targetsKey = '';
-  /** @param {import('../scene-doc.js').Layer | null} owner */
+  /** @param {import('../src/scene/scene-doc.js').Layer | null} owner */
   function syncTargets(owner) {
     const list = layerTargets(owner);
     const key = list.map(({ id, range }) => `${id}=${range.label}`).join('|');
@@ -213,14 +213,14 @@ export function createTimelineController(input) {
 
   // ── Images clés ─────────────────────────────────────────────────────────
 
-  /** @param {import('../layer-bindings.js').BindingTarget} target @param {number} index */
+  /** @param {import('../src/layers/layer-bindings.js').BindingTarget} target @param {number} index */
   function select(target, index) {
     selected = { target, index };
     renderTracks();
   }
 
   /** Glisser une image clé : l'instant suit le pointeur (à 10 ms), l'aperçu se place sur cet instant. */
-  function startDrag(/** @type {PointerEvent} */ event, /** @type {import('../scene-doc.js').Layer | null} */ owner, /** @type {import('../layer-bindings.js').BindingTarget} */ target, /** @type {number} */ index, /** @type {HTMLElement} */ area) {
+  function startDrag(/** @type {PointerEvent} */ event, /** @type {import('../src/scene/scene-doc.js').Layer | null} */ owner, /** @type {import('../src/layers/layer-bindings.js').BindingTarget} */ target, /** @type {number} */ index, /** @type {HTMLElement} */ area) {
     if (owner === null || event.button !== 0) return;
     event.preventDefault();
     let current = index;
@@ -249,7 +249,7 @@ export function createTimelineController(input) {
     windowRef.addEventListener('pointercancel', stop);
   }
 
-  /** @param {KeyboardEvent} event @param {import('../layer-bindings.js').BindingTarget} target @param {number} index */
+  /** @param {KeyboardEvent} event @param {import('../src/layers/layer-bindings.js').BindingTarget} target @param {number} index */
   function onKeyKey(event, target, index) {
     const live = layer();
     if (live === null) return;
@@ -271,7 +271,7 @@ export function createTimelineController(input) {
 
   /**
    * Copie des images clés de la couche réglée : toutes celles de la piste, ou seulement celle qu'on désigne.
-   * @param {import('../layer-bindings.js').BindingTarget} target @param {number} [index]
+   * @param {import('../src/layers/layer-bindings.js').BindingTarget} target @param {number} [index]
    */
   function copyFrom(target, index) {
     const live = layer();
@@ -301,7 +301,7 @@ export function createTimelineController(input) {
     select(clip.target, result.firstIndex);
   }
 
-  /** @param {import('../layer-bindings.js').BindingTarget} target @param {number} index */
+  /** @param {import('../src/layers/layer-bindings.js').BindingTarget} target @param {number} index */
   function removeSelected(target, index) {
     const live = layer();
     if (live === null) return;
@@ -313,7 +313,7 @@ export function createTimelineController(input) {
   elements.addKey.addEventListener('click', () => {
     const live = layer();
     if (live === null) return;
-    const target = /** @type {import('../layer-bindings.js').BindingTarget} */ (elements.target.value);
+    const target = /** @type {import('../src/layers/layer-bindings.js').BindingTarget} */ (elements.target.value);
     const t = Math.round(timeline.state().timeMs);
     const tracks = setKey(live.timeline ?? [], target, t, valueAt(live, target, t), 'easeInOut', targetRange(target, live));
     if (tracks === null) {
@@ -325,7 +325,7 @@ export function createTimelineController(input) {
     select(target, index);
   });
 
-  /** Le détail de l'image clé choisie : instant, valeur, courbe. @param {{ t?: number, v?: number, ease?: import('../layer-timeline.js').Ease, bezier?: import('../cubic-bezier.js').Bezier }} change @param {string} key */
+  /** Le détail de l'image clé choisie : instant, valeur, courbe. @param {{ t?: number, v?: number, ease?: import('../src/layers/layer-timeline.js').Ease, bezier?: import('../src/layers/cubic-bezier.js').Bezier }} change @param {string} key */
   function changeSelected(change, key) {
     const live = layer();
     if (live === null || selected === null) return;
@@ -342,7 +342,7 @@ export function createTimelineController(input) {
   }
   elements.detailTime.addEventListener('input', () => { const t = Number.parseFloat(elements.detailTime.value); if (Number.isFinite(t)) changeSelected({ t }, 't'); });
   elements.detailValue.addEventListener('input', () => { const v = Number.parseFloat(elements.detailValue.value.replace(',', '.')); if (Number.isFinite(v)) changeSelected({ v }, 'v'); });
-  elements.detailEase.addEventListener('change', () => changeSelected({ ease: /** @type {import('../layer-timeline.js').Ease} */ (elements.detailEase.value) }, 'ease'));
+  elements.detailEase.addEventListener('change', () => changeSelected({ ease: /** @type {import('../src/layers/layer-timeline.js').Ease} */ (elements.detailEase.value) }, 'ease'));
   elements.detailTime.addEventListener('blur', renderFields);
   elements.detailValue.addEventListener('blur', renderFields);
   elements.detailRemove.addEventListener('click', () => { if (selected !== null) removeSelected(selected.target, selected.index); });

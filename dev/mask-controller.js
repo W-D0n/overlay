@@ -1,5 +1,5 @@
 // @ts-check
-import { DEFAULT_MASKS, MASK_LIMITS, MASK_SHAPES, setMask } from '../layer-mask.js';
+import { DEFAULT_MASKS, MASK_LIMITS, MASK_SHAPES, setMask } from '../src/layers/layer-mask.js';
 import { createSliderRow } from './slider-row.js';
 
 /**
@@ -19,7 +19,7 @@ export function createMaskController(input) {
   const { elements, studio } = input;
   const { editor } = studio;
 
-  /** @returns {import('../scene-doc.js').Layer | undefined} the selected layer, when there is only one */
+  /** @returns {import('../src/scene/scene-doc.js').Layer | undefined} the selected layer, when there is only one */
   function selectedLayer() {
     const { selection } = editor.state();
     if (selection.length !== 1) return undefined;
@@ -28,7 +28,7 @@ export function createMaskController(input) {
 
   /**
    * Slider drags of one setting make one history step; choosing a shape or inverting is a discrete choice, one step each.
-   * @param {(mask: import('../layer-mask.js').Mask | undefined) => import('../layer-mask.js').Mask | undefined} change @param {string} key @param {boolean} [coalesce]
+   * @param {(mask: import('../src/layers/layer-mask.js').Mask | undefined) => import('../src/layers/layer-mask.js').Mask | undefined} change @param {string} key @param {boolean} [coalesce]
    */
   function commit(change, key, coalesce = true) {
     const layer = selectedLayer();
@@ -54,7 +54,7 @@ export function createMaskController(input) {
   shapeRow.className = 'filter-row';
   shapeRow.append(shape);
   elements.body.appendChild(shapeRow);
-  shape.addEventListener('change', () => commit((mask) => (shape.value === 'none' ? setMask(mask, null) : setMask(mask, { shape: /** @type {import('../layer-mask.js').MaskShape} */ (shape.value) })), 'shape', false));
+  shape.addEventListener('change', () => commit((mask) => (shape.value === 'none' ? setMask(mask, null) : setMask(mask, { shape: /** @type {import('../src/layers/layer-mask.js').MaskShape} */ (shape.value) })), 'shape', false));
 
   /** The settings; a fraction is shown in percent of the layer. @type {{ key: string, percent: boolean, shapes: string[], range: HTMLInputElement, number: HTMLInputElement, row: HTMLElement }[]} */
   const fields = [];

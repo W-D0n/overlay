@@ -10,7 +10,7 @@
     scénarios (fusion, rotation, flou, rognage) en mesurant le temps réel de chaque image. Elle n'écrit rien nulle part et ne parle
     à aucun serveur d'état. Le tableau final se lit à l'écran ; « Rejouer » (clic sur la source, ou `?auto=1`) recommence.
   -->
-  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="../src/styles/tokens.css">
   <style>
     html, body { margin: 0; height: 100%; background: #0b0b0d; color: #e8e6df; font: 15px/1.35 system-ui, sans-serif; overflow: hidden; }
     #stage { position: absolute; inset: 0; }
@@ -33,9 +33,9 @@
   </div>
 
   <script type="module">
-    import { createSceneRuntime } from '../scene-runtime.js';
-    import { createLayer } from '../scene-doc.js';
-    import { EFFECT_KIND_IDS } from '../layer-kinds.js';
+    import { createSceneRuntime } from '../src/scene/scene-runtime.js';
+    import { createLayer } from '../src/scene/scene-doc.js';
+    import { EFFECT_KIND_IDS } from '../src/layers/layer-kinds.js';
     import { defaultBackgroundOptions } from './component-field-schemas.js';
     import { BACKGROUND_STATE_PORT } from '../ports.config.js';
     import { SCENARIOS, compareToBaseline, formatSummary, summarizeFrames } from './obs-bench.js';

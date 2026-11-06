@@ -6,8 +6,8 @@ const request = (url, headers = {}) => new Request(url, { headers });
 
 test('seuls les fichiers de l’overlay sont servables', () => {
   for (const path of [
-    '/background.html', '/tokens.css', '/ports.config.js', '/components/RainBackground.js',
-    '/components/color-palette.json', '/dev/studio.html', '/dev/background-tuner-runtime.js',
+    '/background.html', '/src/styles/tokens.css', '/ports.config.js', '/src/components/RainBackground.js',
+    '/src/components/color-palette.json', '/dev/studio.html', '/dev/background-tuner-runtime.js',
   ]) {
     expect(isServablePath(path)).toBe(true);
   }
@@ -18,7 +18,7 @@ test('secrets, dépôt git, docs et état persisté ne sont jamais servables', (
     '/.env', '/.env.example', '/.git/config', '/.claude/launch.json', '/.gitignore',
     '/dev/data/background-state.json', '/dev/data/', '/src-tauri/Cargo.toml',
     '/docs/security.md', '/AGENTS.md', '/CLAUDE.md', '/README.md', '/kill-servers.bat',
-    '/node_modules/x/index.js', '/components/.hidden.js',
+    '/node_modules/x/index.js', '/src/components/.hidden.js',
   ]) {
     expect(isServablePath(path)).toBe(false);
   }
@@ -26,9 +26,9 @@ test('secrets, dépôt git, docs et état persisté ne sont jamais servables', (
 
 test('les contournements de chemin sont refusés', () => {
   for (const path of [
-    '/components/../.env', '/%2e%65nv', '/%2E%2E/.env', '/dev/data%2Fbackground-state.json',
-    '/components/%2e%2e/.git/config', '/dev\\data\\background-state.json', '/background.html%00.png',
-    '/components/%zz.js', '//.env',
+    '/src/components/../.env', '/%2e%65nv', '/%2E%2E/.env', '/dev/data%2Fbackground-state.json',
+    '/src/components/%2e%2e/.git/config', '/dev\\data\\background-state.json', '/background.html%00.png',
+    '/src/components/%zz.js', '//.env',
   ]) {
     expect(isServablePath(path)).toBe(false);
   }

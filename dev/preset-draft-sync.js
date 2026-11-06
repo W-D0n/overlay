@@ -10,7 +10,7 @@
  * Un serveur sans la route des brouillons (ancien code) est signalé une fois à la lecture, et rien n'est envoyé ensuite :
  * jamais d'échec silencieux répété à chaque réglage.
  *
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
  * @typedef {{ at: string, scene: SceneDoc }} DraftEntry
  * @typedef {{ presetId: string, scene: SceneDoc }} PendingDraft
  */

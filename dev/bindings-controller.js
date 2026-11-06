@@ -1,5 +1,5 @@
 // @ts-check
-import { BINDING_SOURCES, DURATION_LIMITS, MAX_BINDINGS, addBinding, changeBinding, isContinuousSource, layerTargets, removeBinding, targetLabel, targetRange } from '../layer-bindings.js';
+import { BINDING_SOURCES, DURATION_LIMITS, MAX_BINDINGS, addBinding, changeBinding, isContinuousSource, layerTargets, removeBinding, targetLabel, targetRange } from '../src/layers/layer-bindings.js';
 
 /**
  * dev/bindings-controller.js — La section « Animation » de l'inspecteur : les liaisons de la couche sélectionnée (`layer-bindings.js`).
@@ -24,7 +24,7 @@ export function createBindingsController(input) {
   /** La structure affichée : change quand une ligne apparaît, disparaît ou change de source ou de valeur. */
   let shownKey = '';
 
-  /** @returns {import('../scene-doc.js').Layer[]} */
+  /** @returns {import('../src/scene/scene-doc.js').Layer[]} */
   function selected() {
     const { selection } = editor.state();
     return studio.state().scene.layers.filter((layer) => selection.includes(layer.id));
@@ -43,7 +43,7 @@ export function createBindingsController(input) {
     return el;
   }
 
-  /** @param {import('../scene-doc.js').Layer} layer @param {import('../layer-bindings.js').Binding[]} next @param {string} key */
+  /** @param {import('../src/scene/scene-doc.js').Layer} layer @param {import('../src/layers/layer-bindings.js').Binding[]} next @param {string} key */
   function commit(layer, next, key) {
     settle(editor.setLayers([layer.id], { bindings: next }, { coalesceKey: `bindings:${layer.id}:${key}` }));
   }
@@ -53,12 +53,12 @@ export function createBindingsController(input) {
     if (documentRef.activeElement !== field) field.value = value;
   }
 
-  /** Les liaisons d'une couche **maintenant** : les lignes affichées survivent à plusieurs modifications. @param {string} id @returns {import('../layer-bindings.js').Binding[]} */
+  /** Les liaisons d'une couche **maintenant** : les lignes affichées survivent à plusieurs modifications. @param {string} id @returns {import('../src/layers/layer-bindings.js').Binding[]} */
   function live(id) {
     return studio.state().scene.layers.find((layer) => layer.id === id)?.bindings ?? [];
   }
 
-  /** @param {import('../scene-doc.js').Layer} layer */
+  /** @param {import('../src/scene/scene-doc.js').Layer} layer */
   function build(layer) {
     const bindings = layer.bindings ?? [];
     elements.list.replaceChildren();

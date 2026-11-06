@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createLayer, sceneFromCurrent, sceneFromPreset } from '../scene-doc.js';
+import { createLayer, sceneFromCurrent, sceneFromPreset } from '../src/scene/scene-doc.js';
 import { filterScenes, sceneDetails, sceneEffectsLabel } from './scene-labels.js';
 
 const labelOf = (kind) => ({ rain: 'Pluie', bubble: 'Bulles', dotgrid: 'Grille de points', branding: 'Branding' })[kind] ?? kind;

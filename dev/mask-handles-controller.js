@@ -5,9 +5,9 @@
  * `mask-geometry.js`; every gesture is a command of the editor (one history step per continuous gesture). The mask is drawn in the frame of the layer's calque: the layer's own
  * placement, or the whole canvas for a group, and turned with the layer, so the handles sit on what the mask really cuts.
  */
-import { RENDER_REFERENCE } from '../render-reference.js';
-import { isGroup } from '../layer-group.js';
-import { setMask } from '../layer-mask.js';
+import { RENDER_REFERENCE } from '../src/render/render-reference.js';
+import { isGroup } from '../src/layers/layer-group.js';
+import { setMask } from '../src/layers/layer-mask.js';
 import { HANDLES, HANDLE_CURSORS, handlePoints, toPixelRect } from './canvas-geometry.js';
 import { gradientLine, moveBox, moveStop, resizeBox } from './mask-geometry.js';
 import { sourceToScreen } from './view-transform.js';
@@ -55,7 +55,7 @@ export function createMaskHandlesController(input) {
   frameEl.hidden = true;
   overlay.appendChild(frameEl);
 
-  /** @returns {import('../scene-doc.js').Layer | undefined} the selected layer when it is alone and has a mask */
+  /** @returns {import('../src/scene/scene-doc.js').Layer | undefined} the selected layer when it is alone and has a mask */
   function maskedLayer() {
     const { selection } = editor.state();
     if (selection.length !== 1) return undefined;
@@ -63,7 +63,7 @@ export function createMaskHandlesController(input) {
     return layer?.mask === undefined ? undefined : layer;
   }
 
-  /** @param {import('../scene-doc.js').Layer} layer the frame the mask is drawn in, in pixels of the source */
+  /** @param {import('../src/scene/scene-doc.js').Layer} layer the frame the mask is drawn in, in pixels of the source */
   function frameOf(layer) {
     return isGroup(layer) ? { x: 0, y: 0, width: RENDER_REFERENCE.width, height: RENDER_REFERENCE.height } : toPixelRect(layer.placement);
   }
@@ -77,7 +77,7 @@ export function createMaskHandlesController(input) {
   /**
    * Starts a drag: the pointer is captured by the handle, every move is turned into fractions of the frame and handed to `apply`.
    * @param {HTMLElement} el
-   * @param {(dx: number, dy: number, width: number, height: number, start: import('../layer-mask.js').Mask) => Partial<import('../layer-mask.js').Mask>} apply
+   * @param {(dx: number, dy: number, width: number, height: number, start: import('../src/layers/layer-mask.js').Mask) => Partial<import('../src/layers/layer-mask.js').Mask>} apply
    */
   function draggable(el, apply) {
     el.addEventListener('pointerdown', (event) => {

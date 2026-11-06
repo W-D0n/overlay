@@ -49,7 +49,7 @@ describe('boutons Redémarrer et Arrêter', () => {
     stop.click();
     await settle();
     expect(calls).toEqual(['stop']);
-    expect(status.textContent).toContain('start-stream.bat');
+    expect(status.textContent).toContain('stream.bat');
     expect(status.dataset.tone).toBe('info');
     expect(reloads).toEqual([]);
   });

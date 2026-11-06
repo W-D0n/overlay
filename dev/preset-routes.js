@@ -32,7 +32,7 @@ import {
   parseBackgroundPresetBundle,
   planSceneImport,
 } from './background-preset-library.js';
-import { sceneFromPreset } from '../scene-doc.js';
+import { sceneFromPreset } from '../src/scene/scene-doc.js';
 import { namedSceneFromWire, sceneFromWirePreset, wirePreset } from './state-wire.js';
 
 /**
@@ -79,7 +79,7 @@ function takenIds(file, imported) {
  * La bibliothèque après un lot : d'abord les presets plats (fusion, mises à jour), puis les scènes à plusieurs couches du lot,
  * qui s'ajoutent sans jamais remplacer une scène existante. Aperçu et import passent par ici : ce que l'un annonce, l'autre le fait.
  * @param {BackgroundFile} file
- * @param {{ presets: import('./background-state-format.js').BackgroundPreset[], scenes: import('../scene-doc.js').SceneDoc[] }} parsed
+ * @param {{ presets: import('./background-state-format.js').BackgroundPreset[], scenes: import('../src/scene/scene-doc.js').SceneDoc[] }} parsed
  */
 function applyImport(file, parsed) {
   const library = flatLibrary(file);
@@ -119,7 +119,7 @@ export function createPresetRoutes({ update, inspect, announce }) {
    */
   async function handleSavePreset(req) {
     const body = /** @type {*} */ (await req.json());
-    /** @type {import('../scene-doc.js').SceneDoc | null} */
+    /** @type {import('../src/scene/scene-doc.js').SceneDoc | null} */
     let saved = null;
     const response = await update((file) => {
       const requestedId = typeof body?.id === 'string' ? body.id : null;
@@ -193,7 +193,7 @@ export function createPresetRoutes({ update, inspect, announce }) {
     const id = body?.id;
     if (typeof id !== 'string' || id.length === 0) return jsonError('id manquant', 400);
 
-    /** @type {import('../scene-doc.js').SceneDoc | null} */
+    /** @type {import('../src/scene/scene-doc.js').SceneDoc | null} */
     let copy = null;
     const response = await update((file) => {
       copy = duplicateScene(file.scenes, id);
@@ -234,7 +234,7 @@ export function createPresetRoutes({ update, inspect, announce }) {
 
     /** @type {import('./background-state-format.js').BackgroundPreset[]} */
     let importedPresets = [];
-    /** @type {import('../scene-doc.js').SceneDoc[]} */
+    /** @type {import('../src/scene/scene-doc.js').SceneDoc[]} */
     let importedScenes = [];
     const response = await update((file) => {
       if (backgroundPresetRevision(file.scenes) !== body.expectedRevision) {
@@ -261,7 +261,7 @@ export function createPresetRoutes({ update, inspect, announce }) {
     const id = body?.id;
     if (typeof id !== 'string' || id.length === 0) return jsonError('id manquant', 400);
 
-    /** @type {import('../scene-doc.js').SceneDoc | null} */
+    /** @type {import('../src/scene/scene-doc.js').SceneDoc | null} */
     let deleted = null;
     const response = await update((file) => {
       deleted = file.scenes.find((scene) => scene.id === id) ?? null;

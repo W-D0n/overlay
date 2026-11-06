@@ -5,7 +5,7 @@
  * fermeture 4009 d'OBS, répond à `GetSceneList` et sait annoncer un changement de scène. Port attribué par le système : jamais le
  * 4455 de l'owner.
  */
-import { computeObsAuthResponse } from '../../obs-auth.js';
+import { computeObsAuthResponse } from '../../src/obs/obs-auth.js';
 
 const OP = { HELLO: 0, IDENTIFY: 1, IDENTIFIED: 2, EVENT: 5, REQUEST: 6, REQUEST_RESPONSE: 7 };
 const SALT = 'sel-de-l-essai';

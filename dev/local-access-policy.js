@@ -15,7 +15,7 @@ const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', 'tauri.local
 /** Extensions d'assets de l'overlay ; tout le reste (`.md`, `.bat`, `.toml`, `.env`…) est refusé. */
 const SERVABLE_EXTENSIONS = new Set(['html', 'js', 'css', 'json', 'png', 'svg', 'ico', 'woff2']);
 /** Dossiers servables ; à la racine, seuls les fichiers à extension autorisée le sont. */
-const SERVABLE_DIRECTORIES = new Set(['components', 'dev']);
+const SERVABLE_DIRECTORIES = new Set(['src', 'dev']);
 /** Sous-dossiers de `SERVABLE_DIRECTORIES` jamais servables. */
 const PRIVATE_SUBPATHS = ['dev/data'];
 

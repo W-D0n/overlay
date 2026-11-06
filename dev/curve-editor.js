@@ -1,6 +1,6 @@
 // @ts-check
-import { BEZIER_LIMITS, BEZIER_PRESETS, isBezier } from '../cubic-bezier.js';
-import { easeValue } from '../layer-timeline.js';
+import { BEZIER_LIMITS, BEZIER_PRESETS, isBezier } from '../src/layers/cubic-bezier.js';
+import { easeValue } from '../src/layers/layer-timeline.js';
 
 /**
  * dev/curve-editor.js — L'éditeur de la courbe d'une image clé (`cubic-bezier.js`) : un dessin de la courbe entre deux images clés, deux poignées qu'on glisse (ou qu'on déplace
@@ -13,7 +13,7 @@ import { easeValue } from '../layer-timeline.js';
  *
  * @param {{
  *   root: HTMLElement,
- *   onChange: (bezier: import('../cubic-bezier.js').Bezier) => void,
+ *   onChange: (bezier: import('../src/layers/cubic-bezier.js').Bezier) => void,
  *   documentRef?: Document,
  * }} input
  */
@@ -92,10 +92,10 @@ export function createCurveEditor(input) {
   });
   root.appendChild(controls);
 
-  /** La courbe montrée : `null` quand la courbe de l'image clé n'est pas personnalisée (dessin seul, rien à régler). @type {import('../cubic-bezier.js').Bezier | null} */
+  /** La courbe montrée : `null` quand la courbe de l'image clé n'est pas personnalisée (dessin seul, rien à régler). @type {import('../src/layers/cubic-bezier.js').Bezier | null} */
   let current = null;
 
-  /** @param {import('../layer-timeline.js').Ease} ease @param {import('../cubic-bezier.js').Bezier | undefined} bezier */
+  /** @param {import('../src/layers/layer-timeline.js').Ease} ease @param {import('../src/layers/cubic-bezier.js').Bezier | undefined} bezier */
   function draw(ease, bezier) {
     const points = [];
     for (let step = 0; step <= 48; step += 1) points.push(`${px(step / 48)},${py(easeValue(ease, step / 48, bezier))}`);
@@ -104,7 +104,7 @@ export function createCurveEditor(input) {
     path.setAttribute('points', points.join(' '));
   }
 
-  /** @param {import('../cubic-bezier.js').Bezier} bezier */
+  /** @param {import('../src/layers/cubic-bezier.js').Bezier} bezier */
   function place(bezier) {
     const [x1, y1, x2, y2] = bezier;
     const at = (/** @type {number} */ value) => Math.min(VIEW.max, Math.max(VIEW.min, value));
@@ -134,7 +134,7 @@ export function createCurveEditor(input) {
    */
   function setPoint(index, x, y) {
     if (current === null) return;
-    const next = /** @type {import('../cubic-bezier.js').Bezier} */ ([...current]);
+    const next = /** @type {import('../src/layers/cubic-bezier.js').Bezier} */ ([...current]);
     next[index * 2] = x;
     next[index * 2 + 1] = y;
     input.onChange(next);
@@ -174,7 +174,7 @@ export function createCurveEditor(input) {
     field.addEventListener('input', () => {
       const typed = fields.map((other) => Number.parseFloat(other.value.replace(',', '.')));
       if (current === null || typed.some((value) => !Number.isFinite(value))) return;
-      input.onChange(/** @type {import('../cubic-bezier.js').Bezier} */ (typed));
+      input.onChange(/** @type {import('../src/layers/cubic-bezier.js').Bezier} */ (typed));
     });
     field.addEventListener('blur', () => { if (current !== null) place(current); });
   });
@@ -182,13 +182,13 @@ export function createCurveEditor(input) {
   preset.addEventListener('change', () => {
     const chosen = BEZIER_PRESETS.find(({ id }) => id === preset.value);
     preset.value = '';
-    if (chosen !== undefined && current !== null) input.onChange(/** @type {import('../cubic-bezier.js').Bezier} */ ([...chosen.bezier]));
+    if (chosen !== undefined && current !== null) input.onChange(/** @type {import('../src/layers/cubic-bezier.js').Bezier} */ ([...chosen.bezier]));
   });
 
   return {
     /**
      * Montre la courbe d'une image clé.
-     * @param {{ ease: import('../layer-timeline.js').Ease, bezier?: import('../cubic-bezier.js').Bezier }} key
+     * @param {{ ease: import('../src/layers/layer-timeline.js').Ease, bezier?: import('../src/layers/cubic-bezier.js').Bezier }} key
      */
     show(key) {
       current = key.ease === 'bezier' && isBezier(key.bezier) ? key.bezier : null;

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createLayer, validateSceneDoc } from '../scene-doc.js';
+import { createLayer, validateSceneDoc } from '../src/scene/scene-doc.js';
 import { createSceneEditor } from './scene-editor.js';
 import { effectLayers, filterScenes, sceneDetails, sceneEffectsLabel } from './scene-labels.js';
 import { ADDABLE_KIND_IDS, defaultBackgroundOptions } from './component-field-schemas.js';

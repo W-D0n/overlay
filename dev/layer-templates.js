@@ -5,7 +5,7 @@
  * (serveur, donc partagé entre navigateur et application de bureau) et l'interface dans `templates-controller.js`.
  *
  * @typedef {import('./studio-settings.js').StoredTemplate} StoredTemplate
- * @typedef {import('../scene-doc.js').Layer} Layer
+ * @typedef {import('../src/scene/scene-doc.js').Layer} Layer
  */
 import { SETTINGS_LIMITS } from './studio-settings.js';
 import { slugify } from './custom-commands.js';

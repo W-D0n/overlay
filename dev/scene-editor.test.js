@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { MAX_LAYERS, createLayer, validateSceneDoc } from '../scene-doc.js';
+import { MAX_LAYERS, createLayer, validateSceneDoc } from '../src/scene/scene-doc.js';
 import { createSceneEditor, viewScene } from './scene-editor.js';
 import { uniqueLayerId } from './scene-edits.js';
 

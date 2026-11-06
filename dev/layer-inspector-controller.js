@@ -12,7 +12,7 @@
  * @typedef {import('./placement-math.js').PlacementKey} PlacementKey
  * @typedef {import('./placement-math.js').Unit} Unit
  */
-import { BLEND_MODES, CROP_SIDES, LOOK_LIMITS } from '../scene-doc.js';
+import { BLEND_MODES, CROP_SIDES, LOOK_LIMITS } from '../src/scene/scene-doc.js';
 import { icon, setIcon } from './icons.js';
 import {
   PLACEMENT_PRESETS, alignPlacements, applyPlacementChange, distributePlacements, fromDisplay, matchingPreset, toDisplay,
@@ -33,7 +33,7 @@ const UNIT_PREFERENCE = 'placement.unit';
  *     rotationNumber: HTMLInputElement,
  *     blurRange: HTMLInputElement,
  *     blurNumber: HTMLInputElement,
- *     crop: Record<import('../scene-doc.js').CropSide, HTMLInputElement>,
+ *     crop: Record<import('../src/scene/scene-doc.js').CropSide, HTMLInputElement>,
  *     fields: Record<PlacementKey, HTMLInputElement>,
  *     unitPercent: HTMLButtonElement,
  *     unitPixel: HTMLButtonElement,
@@ -63,7 +63,7 @@ export function createLayerInspectorController(input) {
   let unit = storedUnit();
   let lockRatio = false;
 
-  /** @returns {import('../scene-doc.js').Layer[]} les couches sélectionnées, du dessous au dessus */
+  /** @returns {import('../src/scene/scene-doc.js').Layer[]} les couches sélectionnées, du dessous au dessus */
   function selected() {
     const { selection } = editor.state();
     return studio.state().scene.layers.filter((layer) => selection.includes(layer.id));
@@ -124,12 +124,12 @@ export function createLayerInspectorController(input) {
     elements.distributeV.disabled = layers.length < 3;
   }
 
-  /** @param {import('../scene-doc.js').Layer[]} layers */
+  /** @param {import('../src/scene/scene-doc.js').Layer[]} layers */
   function renderLook(layers) {
     const blends = layers.map((layer) => layer.blend ?? 'normal');
     const mixedBlend = blends.some((value) => value !== blends[0]);
     elements.blend.value = mixedBlend ? '' : blends[0];
-    /** @type {[HTMLInputElement, HTMLInputElement, (layer: import('../scene-doc.js').Layer) => number][]} */
+    /** @type {[HTMLInputElement, HTMLInputElement, (layer: import('../src/scene/scene-doc.js').Layer) => number][]} */
     const scalars = [
       [elements.rotationRange, elements.rotationNumber, (layer) => layer.rotation ?? 0],
       [elements.blurRange, elements.blurNumber, (layer) => layer.blur ?? 0],
@@ -155,7 +155,7 @@ export function createLayerInspectorController(input) {
     if (!Number.isFinite(typed)) return;
     const fraction = fromDisplay(key, typed, unit);
     const layers = selected();
-    /** @type {Record<string, Partial<import('../scene-doc.js').Placement>>} */
+    /** @type {Record<string, Partial<import('../src/scene/scene-doc.js').Placement>>} */
     const patches = {};
     for (const layer of layers) patches[layer.id] = applyPlacementChange(layer.placement, key, fraction, { lockRatio });
     settle(editor.setPlacements(patches, { coalesceKey: `placement:${key}:${ids().join(',')}`, label: 'Placer' }));
@@ -176,7 +176,7 @@ export function createLayerInspectorController(input) {
     settle(editor.setLayers(ids(), { [key]: Math.max(min, Math.min(max, typed)) }, { coalesceKey: `${key}:${ids().join(',')}` }));
   }
 
-  /** @param {import('../scene-doc.js').CropSide} side @param {string} raw */
+  /** @param {import('../src/scene/scene-doc.js').CropSide} side @param {string} raw */
   function onCropInput(side, raw) {
     const typed = Number.parseFloat(raw.replace(',', '.'));
     if (!Number.isFinite(typed)) return;
@@ -201,7 +201,7 @@ export function createLayerInspectorController(input) {
   }
   elements.blend.addEventListener('change', () => {
     if (elements.blend.value === '') return;
-    settle(editor.setLayers(ids(), { blend: /** @type {import('../scene-doc.js').BlendMode} */ (elements.blend.value) }));
+    settle(editor.setLayers(ids(), { blend: /** @type {import('../src/scene/scene-doc.js').BlendMode} */ (elements.blend.value) }));
   });
   for (const [key, range, number] of /** @type {const} */ ([['rotation', elements.rotationRange, elements.rotationNumber], ['blur', elements.blurRange, elements.blurNumber]])) {
     range.addEventListener('input', () => onScalarInput(key, range.value));
@@ -229,7 +229,7 @@ export function createLayerInspectorController(input) {
   elements.preset.addEventListener('change', () => {
     const preset = PLACEMENT_PRESETS.find(({ id }) => id === elements.preset.value);
     if (preset === undefined) return;
-    /** @type {Record<string, Partial<import('../scene-doc.js').Placement>>} */
+    /** @type {Record<string, Partial<import('../src/scene/scene-doc.js').Placement>>} */
     const patches = {};
     for (const id of ids()) patches[id] = { ...preset.placement };
     settle(editor.setPlacements(patches, { label: preset.label }));

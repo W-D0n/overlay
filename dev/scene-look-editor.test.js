@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createLayer } from '../scene-doc.js';
+import { createLayer } from '../src/scene/scene-doc.js';
 import { createSceneEditor } from './scene-editor.js';
 import { diffScenes } from './scene-diff.js';
 import { applyStep, describeStep, mergeSteps, operationToStep, stepErrors, stepFields, withStepValue } from './operation-steps.js';
@@ -164,7 +164,7 @@ describe('vignettes : rendu étendu', () => {
   });
 
   test('la vignette d’une couche seule dans la pile n’affiche pas son rendu étendu : c’est l’effet lui-même', () => {
-    const { withoutLook } = require('../scene-doc.js');
+    const { withoutLook } = require('../src/scene/scene-doc.js');
     expect(withoutLook(effect('a', 'rain', { blend: 'screen', rotation: 3, blur: 1, crop: { top: 0.1, right: 0, bottom: 0, left: 0 }, opacity: 0.5 }))).toEqual(effect('a', 'rain', { opacity: 0.5 }));
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createLayer } from '../scene-doc.js';
+import { createLayer } from '../src/scene/scene-doc.js';
 import { createTemplate, describeTemplate, templateNameError, uniqueTemplateId } from './layer-templates.js';
 import { createSceneEditor } from './scene-editor.js';
 import { validateStudioSettings } from './studio-settings.js';

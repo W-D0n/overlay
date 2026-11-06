@@ -12,7 +12,7 @@ const MAX_SOURCE_LINES = 700;
  * @type {Record<string, { lines: number, reason: string }>}
  */
 const EXEMPT = {
-  'layer-kinds.js': { lines: 888, reason: 'une table de description : une entrée par type de couche (champs, bornes, capacités), sans logique à découper' },
+  'src/layers/layer-kinds.js': { lines: 888, reason: 'une table de description : une entrée par type de couche (champs, bornes, capacités), sans logique à découper' },
 };
 
 const SKIPPED_DIRECTORIES = new Set(['node_modules', '.git', '.playwright-mcp', '.claude', '.agents', 'docs', 'src-tauri', 'e2e', 'data', 'tools']);
@@ -34,7 +34,7 @@ describe('taille des fichiers source', () => {
     expect(sizes.length).toBeGreaterThan(150);
     expect(sizes.some(({ file }) => file === 'dev/scene-editor.js')).toBe(true);
     expect(sizes.some(({ file }) => file.endsWith('.test.js'))).toBe(false);
-    expect(sizes.find(({ file }) => file === 'layer-kinds.js')?.lines).toBeGreaterThan(MAX_SOURCE_LINES);
+    expect(sizes.find(({ file }) => file === 'src/layers/layer-kinds.js')?.lines).toBeGreaterThan(MAX_SOURCE_LINES);
   });
 
   test(`aucun fichier source ne dépasse ${MAX_SOURCE_LINES} lignes, hors la liste des exemptions`, () => {

@@ -62,11 +62,11 @@ export function createServerControlController(input) {
       return;
     }
     if (action === 'stop') {
-      say('Serveurs arrêtés. Pour les relancer : start-stream.bat ou l’application.');
+      say('Serveurs arrêtés. Pour les relancer : stream.bat ou l’application.');
       return;
     }
     if (!(await waitForServer())) {
-      say('Le serveur n’est pas revenu : relance start-stream.bat.', true);
+      say('Le serveur n’est pas revenu : relance stream.bat.', true);
       setBusy(false);
       return;
     }

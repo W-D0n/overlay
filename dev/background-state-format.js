@@ -1,9 +1,9 @@
 // @ts-check
-import { clampOptions, isIdentityKind, isKnownKindId, neutralizeOptions, resolveKindId, validateOptions } from '../layer-kinds.js';
-import { validateSceneMap } from '../obs-scene-mapping.js';
-import { validateTransition } from '../background-transition.js';
-import { normalizeBranding, validateBranding } from '../branding-format.js';
-import { BRANDING_LAYER_ID, CURRENT_SCENE, SCENE_DOC_VERSION, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../scene-doc.js';
+import { clampOptions, isIdentityKind, isKnownKindId, neutralizeOptions, resolveKindId, validateOptions } from '../src/layers/layer-kinds.js';
+import { validateSceneMap } from '../src/obs/obs-scene-mapping.js';
+import { validateTransition } from '../src/background/background-transition.js';
+import { normalizeBranding, validateBranding } from '../src/branding/branding-format.js';
+import { BRANDING_LAYER_ID, CURRENT_SCENE, SCENE_DOC_VERSION, sceneFromCurrent, sceneFromPreset, validateSceneDoc } from '../src/scene/scene-doc.js';
 import { validateHistory } from './background-history.js';
 import { validateDrafts } from './preset-drafts.js';
 import { validateStudioSettings } from './studio-settings.js';
@@ -19,11 +19,11 @@ import { validateStudioSettings } from './studio-settings.js';
  * `{ component, options, … }` (`BackgroundCurrent`, `BackgroundPreset`) reste celle des fichiers antérieurs à la
  * version 3 et des lots d'import ; la frontière HTTP (`dev/state-wire.js`) la convertit.
  *
- * @typedef {import('../background-transition.js').BackgroundTransition} BackgroundTransition
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/background/background-transition.js').BackgroundTransition} BackgroundTransition
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
  * @typedef {{ component: string | null, options: Record<string, unknown>, transition?: BackgroundTransition, showBranding?: boolean }} BackgroundCurrent
  * @typedef {{ id: string, name: string, component: string, options: Record<string, unknown>, tags?: string[], transition?: BackgroundTransition, showBranding?: boolean }} BackgroundPreset
- * @typedef {import('../branding-format.js').Branding} Branding
+ * @typedef {import('../src/branding/branding-format.js').Branding} Branding
  * @typedef {import('./background-history.js').HistoryEntry} HistoryEntry
  * @typedef {import('./preset-drafts.js').Drafts} Drafts
  * @typedef {import('./studio-settings.js').StudioSettings} StudioSettings
@@ -340,7 +340,7 @@ export function readBackgroundFile(raw) {
  * Valide un état courant `{ component, options }`. `component: null` = aucun fond (valide).
  * Ne lève jamais (même convention que `validateSceneConfig`).
  * @param {unknown} current
- * @returns {import('../types.js').ValidationResult}
+ * @returns {import('../src/types.js').ValidationResult}
  */
 export function validateBackgroundCurrent(current) {
   /** @type {string[]} */
@@ -367,7 +367,7 @@ export function validateBackgroundCurrent(current) {
  * Valide un nom de preset (après trim côté appelant — un nom avec espaces autour est rejeté,
  * pas corrigé silencieusement).
  * @param {unknown} name
- * @returns {import('../types.js').ValidationResult}
+ * @returns {import('../src/types.js').ValidationResult}
  */
 export function validatePresetName(name) {
   /** @type {string[]} */
@@ -384,7 +384,7 @@ export function validatePresetName(name) {
  * Valide un preset complet. `component: null` est interdit ici — un preset « aucun fond »
  * n'a pas de sens (il n'y a rien à rappeler).
  * @param {unknown} preset
- * @returns {import('../types.js').ValidationResult}
+ * @returns {import('../src/types.js').ValidationResult}
  */
 export function validateBackgroundPreset(preset) {
   if (!isPlainObject(preset)) return { ok: false, errors: ['preset : objet attendu'] };
@@ -446,7 +446,7 @@ export function validateNamedScene(scene) {
  * Valide le modèle complet du fichier d'état. Un fichier invalide est une erreur à faire remonter, jamais à réparer
  * silencieusement (voir spec §État persisté).
  * @param {unknown} raw
- * @returns {import('../types.js').ValidationResult}
+ * @returns {import('../src/types.js').ValidationResult}
  */
 export function validateSceneFile(raw) {
   if (!isPlainObject(raw)) return { ok: false, errors: ['fichier d\'état : objet attendu'] };
@@ -486,7 +486,7 @@ export function validateSceneFile(raw) {
 /**
  * Valide un fichier plat — les versions antérieures à 3 et les lots d'import de presets.
  * @param {unknown} raw
- * @returns {import('../types.js').ValidationResult}
+ * @returns {import('../src/types.js').ValidationResult}
  */
 export function validateBackgroundFile(raw) {
   if (!isPlainObject(raw)) return { ok: false, errors: ['fichier d\'état : objet attendu'] };

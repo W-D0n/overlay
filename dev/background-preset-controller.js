@@ -1,11 +1,11 @@
 // @ts-check
-import { backgroundPresetUrl } from '../background-selection.js';
+import { backgroundPresetUrl } from '../src/background/background-selection.js';
 import { BUILTIN_BACKGROUND_PRESETS, BUILTIN_BACKGROUND_SCENES } from './builtin-background-presets.js';
 import { backgroundEffectLabel } from './component-field-schemas.js';
 import { effectLayers, filterScenes, sceneEffectsLabel } from './scene-labels.js';
 import { hasEffectLayer } from './background-state-format.js';
-import { normalizeTransition } from '../background-transition.js';
-import { presetFromScene, sceneFromPreset } from '../scene-doc.js';
+import { normalizeTransition } from '../src/background/background-transition.js';
+import { presetFromScene, sceneFromPreset } from '../src/scene/scene-doc.js';
 import { createPresetThumbnail } from './preset-thumbnail.js';
 import { createBackgroundPresetTransferController } from './background-preset-transfer-controller.js';
 import { errorMessage } from './error-message.js';
@@ -48,12 +48,12 @@ export function createBackgroundPresetController(input) {
   const navigatorRef = input.navigatorRef ?? navigator;
   const windowRef = input.windowRef ?? window;
   const elements = input.elements;
-  /** @type {import('../scene-doc.js').SceneDoc[]} */
+  /** @type {import('../src/scene/scene-doc.js').SceneDoc[]} */
   let cachedPresets = [];
   let presetQuery = '';
   /** Les points de départ intégrés sont des presets plats : ils s'ouvrent comme des scènes. */
   const builtinScenes = [...BUILTIN_BACKGROUND_PRESETS.map((preset) => sceneFromPreset(preset)), ...BUILTIN_BACKGROUND_SCENES];
-  const effectLabel = (/** @type {import('../scene-doc.js').SceneDoc} */ scene) => sceneEffectsLabel(scene, backgroundEffectLabel);
+  const effectLabel = (/** @type {import('../src/scene/scene-doc.js').SceneDoc} */ scene) => sceneEffectsLabel(scene, backgroundEffectLabel);
   /** @type {Map<string, { line: HTMLElement }>} */
   const draftMarks = new Map();
 
@@ -86,14 +86,14 @@ export function createBackgroundPresetController(input) {
   }
 
   /** Une vignette par ligne, capturée une fois puis animée seulement au survol. */
-  /** @param {HTMLElement} row @param {import('../scene-doc.js').SceneDoc} scene @param {{ destroy: () => void }[]} set */
+  /** @param {HTMLElement} row @param {import('../src/scene/scene-doc.js').SceneDoc} scene @param {{ destroy: () => void }[]} set */
   function appendThumbnail(row, scene, set) {
     const thumbnail = createPresetThumbnail({ scene, documentRef });
     set.push(thumbnail);
     row.appendChild(thumbnail.el);
   }
 
-  /** @param {import('../scene-doc.js').SceneDoc} preset @param {string} metaText */
+  /** @param {import('../src/scene/scene-doc.js').SceneDoc} preset @param {string} metaText */
   function createPresetRowShell(preset, metaText) {
     const row = documentRef.createElement('div');
     row.className = 'preset-row';
@@ -113,7 +113,7 @@ export function createBackgroundPresetController(input) {
     }
   }
 
-  /** @param {import('../scene-doc.js').SceneDoc[]} presets */
+  /** @param {import('../src/scene/scene-doc.js').SceneDoc[]} presets */
   function renderPresets(presets) {
     disposeThumbnails(presetThumbnails);
     draftMarks.clear();
@@ -371,7 +371,7 @@ export function createBackgroundPresetController(input) {
         if (activePresetId !== null) input.drafts?.forget(activePresetId);
         input.report.ok();
         const presets = await refresh();
-        const savedPreset = presets?.find((/** @type {import('../scene-doc.js').SceneDoc} */ preset) => preset.name === name);
+        const savedPreset = presets?.find((/** @type {import('../src/scene/scene-doc.js').SceneDoc} */ preset) => preset.name === name);
         if (savedPreset) input.preview.setActivePresetId(savedPreset.id);
       } catch (error) {
         reportClientError('save-preset', error);

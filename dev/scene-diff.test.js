@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createLayer } from '../scene-doc.js';
+import { createLayer } from '../src/scene/scene-doc.js';
 import { diffScenes, summarize } from './scene-diff.js';
 
 const scene = (layers) => ({ version: 1, id: 'current', name: 'En antenne', layers });

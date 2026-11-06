@@ -6,7 +6,7 @@
  * Le contrôleur ne reconstruit rien : il pose une pastille dans chaque ligne existante à intervalle régulier (et juste après
  * un changement de la scène), sans bruit quand l'onglet est caché.
  */
-import { costLevel, formatCost, sumCosts } from '../layer-cost.js';
+import { costLevel, formatCost, sumCosts } from '../src/layers/layer-cost.js';
 
 const NOTE = 'Mesure relative prise dans le Studio : elle classe les couches entre elles, OBS peut donner d’autres valeurs.';
 

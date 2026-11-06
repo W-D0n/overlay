@@ -1,7 +1,7 @@
 // @ts-check
 import { normalizeColorPalette } from './color-palette-format.js';
 import { createBackgroundPresetController } from './background-preset-controller.js';
-import { isAudioOn, kindCapabilities } from '../layer-kinds.js';
+import { isAudioOn, kindCapabilities } from '../src/layers/layer-kinds.js';
 import { createBackgroundPreviewController } from './background-preview-controller.js';
 import { createAntennaController } from './antenna-controller.js';
 import { createIncidentWatcher } from './incident-watch.js';
@@ -30,7 +30,7 @@ import { createEditHistoryController } from './edit-history-controller.js';
 import { createSettingsSyncIndicator } from './settings-sync-indicator.js';
 import { createCustomCommandsController } from './custom-commands-controller.js';
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
-import { isIdentityKind } from '../layer-kinds.js';
+import { isIdentityKind } from '../src/layers/layer-kinds.js';
 import { ADDABLE_KIND_IDS, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
 import { createAssetClient } from './asset-client.js';
 import { createAnimationController } from './animation-controller.js';
@@ -46,10 +46,10 @@ import { setIcon } from './icons.js';
 import { createVersionsController } from './versions-controller.js';
 import { collectAssetUsage } from './asset-format.js';
 import { createAssetLibraryController } from './asset-library-controller.js';
-import { assetUrl } from '../components/asset-image.js';
-import { assetFonts } from '../components/asset-font.js';
-import { placementForImage } from '../components/image-fit.js';
-import { RENDER_REFERENCE } from '../render-reference.js';
+import { assetUrl } from '../src/components/asset-image.js';
+import { assetFonts } from '../src/components/asset-font.js';
+import { placementForImage } from '../src/components/image-fit.js';
+import { RENDER_REFERENCE } from '../src/render/render-reference.js';
 import { createPresetDraftSync } from './preset-draft-sync.js';
 import { createObsSceneMapController } from './obs-scene-map-controller.js';
 import { createTransitionController } from './background-transition-controller.js';
@@ -85,7 +85,7 @@ export function stateLoadErrorMessage(error) {
   if (error instanceof BackgroundStateClientError && error.status !== null) {
     return `GET /state : ${message}`;
   }
-  return `serveur d'état injoignable — lancer start-dev/start-stream (${message})`;
+  return `serveur d'état injoignable — lancer start-studio/start-stream (${message})`;
 }
 
 /**
@@ -512,7 +512,7 @@ export async function startBackgroundTuner(environment = {}) {
   });
 
   try {
-    const response = await windowRef.fetch('../components/color-palette.json');
+    const response = await windowRef.fetch('../src/components/color-palette.json');
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     preview.setPalette(normalizeColorPalette(await response.json()));
   } catch (error) {

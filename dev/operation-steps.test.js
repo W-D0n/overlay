@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createLayer } from '../scene-doc.js';
+import { createLayer } from '../src/scene/scene-doc.js';
 import { createCommandRegistry } from './command-registry.js';
 import { createMacroRecorder, toCommand, validateCustomCommand } from './custom-commands.js';
 import { applyStep, describeStep, mergeSteps, operationToStep, stepErrors, stepFields, withStepValue } from './operation-steps.js';

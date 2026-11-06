@@ -16,9 +16,9 @@
  *
  * Aucun DOM, aucune horloge propre (`now` est injecté), aucun disque : testable seul.
  *
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
- * @typedef {import('../scene-doc.js').Layer} Layer
- * @typedef {import('../scene-doc.js').Placement} Placement
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').Layer} Layer
+ * @typedef {import('../src/scene/scene-doc.js').Placement} Placement
  * @typedef {{ scene: SceneDoc, selection: string[], solo: string | null, canUndo: boolean, canRedo: boolean, dirty: boolean, undoLabel: string | null, redoLabel: string | null }} EditorState
  * @typedef {{ ok: true }} Done
  * @typedef {{ ok: false, reason: 'limit' | 'unique' | 'unknown' | 'invalid' | 'empty', message: string }} Refused
@@ -26,8 +26,8 @@
  * @typedef {import('./operation-steps.js').EditorOperation} EditorOperation
  * @typedef {ReturnType<typeof createSceneEditor>} SceneEditor
  */
-import { canonicalSceneDoc, validateSceneDoc, withoutLook } from '../scene-doc.js';
-import { boundingBox, isGroup, membersOf, relocateLayers, resizeGroup, selectionRoots } from '../layer-group.js';
+import { canonicalSceneDoc, validateSceneDoc, withoutLook } from '../src/scene/scene-doc.js';
+import { boundingBox, isGroup, membersOf, relocateLayers, resizeGroup, selectionRoots } from '../src/layers/layer-group.js';
 import {
   planAddLayer, planDuplicateLayers, planGroupLayers, planInsertLayers, planMoveLayers, planRemoveLayers, planSetLayerKind, planUngroupLayers, knownIds, refuse,
 } from './scene-edits.js';
@@ -341,7 +341,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
      * Drops layers next to another layer, or into a group (a drag in the layers panel). A group moves with its members ; layers dropped next to a member join its group,
      * dropped next to a group or a free layer they leave theirs ; a group left empty is dissolved.
      * @param {string[]} ids
-     * @param {import('../layer-group.js').DropTarget} target
+     * @param {import('../src/layers/layer-group.js').DropTarget} target
      * @returns {Done | Refused}
      */
     moveLayersTo(ids, target) {
@@ -355,7 +355,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
     /**
      * Règle `name`, `visible`, `locked`, `opacity` ou le rendu étendu (`blend`, `rotation`, `crop`, `blur`) sur des couches.
      * @param {string[]} ids
-     * @param {{ name?: string, visible?: boolean, locked?: boolean, opacity?: number, blend?: import('../scene-doc.js').BlendMode, rotation?: number, crop?: Partial<import('../scene-doc.js').Crop>, blur?: number, bindings?: import('../layer-bindings.js').Binding[], timeline?: import('../layer-timeline.js').Track[], animation?: import('../layer-animation.js').Animation, filters?: import('../layer-filters.js').Filters, mask?: import('../layer-mask.js').Mask }} patch
+     * @param {{ name?: string, visible?: boolean, locked?: boolean, opacity?: number, blend?: import('../src/scene/scene-doc.js').BlendMode, rotation?: number, crop?: Partial<import('../src/scene/scene-doc.js').Crop>, blur?: number, bindings?: import('../src/layers/layer-bindings.js').Binding[], timeline?: import('../src/layers/layer-timeline.js').Track[], animation?: import('../src/layers/layer-animation.js').Animation, filters?: import('../src/layers/layer-filters.js').Filters, mask?: import('../src/layers/layer-mask.js').Mask }} patch
      * @param {CoalesceOptions} [options]
      * @returns {Done | Refused}
      */
@@ -370,7 +370,7 @@ export function createSceneEditor({ scene: initial, now = Date.now, historyLimit
         if (patch.name !== undefined && patch.name.trim() === '') delete next.name;
         else if (patch.name !== undefined) next.name = patch.name.trim();
         if (patch.locked === false) delete next.locked;
-        if (patch.crop !== undefined) next.crop = /** @type {import('../scene-doc.js').Crop} */ ({ top: 0, right: 0, bottom: 0, left: 0, ...layer.crop, ...patch.crop });
+        if (patch.crop !== undefined) next.crop = /** @type {import('../src/scene/scene-doc.js').Crop} */ ({ top: 0, right: 0, bottom: 0, left: 0, ...layer.crop, ...patch.crop });
         return next;
       });
       return announce(finish(layers, describePatch(keys, targets.length), coalesceKey), 'setLayers', targets, { patch });

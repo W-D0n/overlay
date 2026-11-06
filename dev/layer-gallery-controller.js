@@ -4,9 +4,9 @@
  *
  * It holds nothing: adding is an editor command, so it can be undone, and a refusal (limit, a second branding) is shown in the dialog.
  *
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
  */
-import { isIdentityKind, isPhotographable } from '../layer-kinds.js';
+import { isIdentityKind, isPhotographable } from '../src/layers/layer-kinds.js';
 import { createPresetThumbnail } from './preset-thumbnail.js';
 import { icon } from './icons.js';
 import { aloneScene } from './layers-panel-view.js';

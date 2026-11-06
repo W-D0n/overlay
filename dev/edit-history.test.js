@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createLayer } from '../scene-doc.js';
+import { createLayer } from '../src/scene/scene-doc.js';
 import { compareWithCurrent, describeHistory, formatAge } from './edit-history.js';
 import { createSceneEditor } from './scene-editor.js';
 

@@ -19,8 +19,8 @@
  * @typedef {import('./canvas-geometry.js').Rect} Rect
  * @typedef {import('./canvas-geometry.js').Handle} Handle
  */
-import { RENDER_REFERENCE } from '../render-reference.js';
-import { isEffectivelyLocked, isEffectivelyVisible, selectionRoots, withMembers } from '../layer-group.js';
+import { RENDER_REFERENCE } from '../src/render/render-reference.js';
+import { isEffectivelyLocked, isEffectivelyVisible, selectionRoots, withMembers } from '../src/layers/layer-group.js';
 import {
   HANDLES, HANDLE_CURSORS, fromPixelRect, handlePoints, hitTestAll, isSelectableOnCanvas, marqueeHits, rectBetween, toPixelRect, unionRect,
 } from './canvas-geometry.js';

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { createBackgroundPresetController } from './background-preset-controller.js';
 import { STATIC_PORT } from '../ports.config.js';
-import { sceneFromPreset } from '../scene-doc.js';
+import { sceneFromPreset } from '../src/scene/scene-doc.js';
 
 /** Un preset enregistré, tel que le Studio le détient : une scène nommée. */
 const saved = (kind = 'rain', options = { speed: 1 }) => sceneFromPreset({ id: 'a', name: 'Perso', component: kind, options });

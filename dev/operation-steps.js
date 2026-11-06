@@ -19,12 +19,12 @@
  * @typedef {{ key: string, label: string, type: 'percent' | 'number' | 'boolean' | 'text' | 'choice', value: number | boolean | string, choices?: readonly { id: string, label: string }[] }} StepField
  */
 
-import { BLEND_MODES, CROP_LABELS, CROP_SIDES, LOOK_LIMITS } from '../scene-doc.js';
-import { BINDING_SOURCES, bindingErrors, targetLabel } from '../layer-bindings.js';
-import { trackErrors } from '../layer-timeline.js';
-import { animationErrors } from '../layer-animation.js';
-import { filterErrors } from '../layer-filters.js';
-import { maskErrors } from '../layer-mask.js';
+import { BLEND_MODES, CROP_LABELS, CROP_SIDES, LOOK_LIMITS } from '../src/scene/scene-doc.js';
+import { BINDING_SOURCES, bindingErrors, targetLabel } from '../src/layers/layer-bindings.js';
+import { trackErrors } from '../src/layers/layer-timeline.js';
+import { animationErrors } from '../src/layers/layer-animation.js';
+import { filterErrors } from '../src/layers/layer-filters.js';
+import { maskErrors } from '../src/layers/layer-mask.js';
 
 export const OPERATIONS = Object.freeze(['layer', 'placement', 'translate', 'options', 'addLayer', 'removeLayers', 'duplicateLayers', 'moveLayers', 'resetLayers', 'layerKind', 'sceneProps']);
 
@@ -201,8 +201,8 @@ export function describeStep(step, kindLabel = (kind) => kind) {
       if (key === 'blend') return `fusion ${BLEND_MODES.find(({ id }) => id === value)?.label ?? value}`;
       if (key === 'rotation') return `rotation ${value}°`;
       if (key === 'blur') return `flou ${value} px`;
-      if (key === 'timeline') return `animation : ${value.length} piste${value.length > 1 ? 's' : ''} (${value.map((/** @type {{ target: string, keys: unknown[] }} */ track) => `${targetLabel(/** @type {import('../layer-bindings.js').BindingTarget} */ (track.target))} : ${track.keys.length} clé${track.keys.length > 1 ? 's' : ''}`).join(', ')})`;
-      if (key === 'bindings') return value.length === 0 ? 'aucune liaison' : `liaisons : ${value.map((/** @type {import('../layer-bindings.js').Binding} */ binding) => `${BINDING_SOURCES.find(({ id }) => id === binding.source)?.label ?? binding.source} → ${targetLabel(binding.target)}`).join(', ')}`;
+      if (key === 'timeline') return `animation : ${value.length} piste${value.length > 1 ? 's' : ''} (${value.map((/** @type {{ target: string, keys: unknown[] }} */ track) => `${targetLabel(/** @type {import('../src/layers/layer-bindings.js').BindingTarget} */ (track.target))} : ${track.keys.length} clé${track.keys.length > 1 ? 's' : ''}`).join(', ')})`;
+      if (key === 'bindings') return value.length === 0 ? 'aucune liaison' : `liaisons : ${value.map((/** @type {import('../src/layers/layer-bindings.js').Binding} */ binding) => `${BINDING_SOURCES.find(({ id }) => id === binding.source)?.label ?? binding.source} → ${targetLabel(binding.target)}`).join(', ')}`;
       if (key === 'crop') return `rognage ${CROP_SIDES.filter((side) => value[side]).map((side) => `${CROP_LABELS[side]} ${percent(value[side])}`).join(', ') || 'aucun'}`;
       return `nom « ${value} »`;
     })}`;

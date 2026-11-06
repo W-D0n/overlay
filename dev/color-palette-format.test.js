@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { isHexColor, normalizeColorPalette } from './color-palette-format.js';
-import rawPalette from '../components/color-palette.json';
+import rawPalette from '../src/components/color-palette.json';
 
 test('normalizeColorPalette sépare les couleurs et résout les références des gradients', () => {
   const palette = normalizeColorPalette(rawPalette);

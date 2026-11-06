@@ -12,7 +12,7 @@
  *   durationInput: HTMLInputElement,
  *   directionSelect: HTMLSelectElement,
  *   directionRow: HTMLElement,
- *   onChange: (patch: Record<string, unknown>) => { transition: import('../background-transition.js').BackgroundTransition },
+ *   onChange: (patch: Record<string, unknown>) => { transition: import('../src/background/background-transition.js').BackgroundTransition },
  * }} input
  */
 export function createTransitionController(input) {
@@ -22,7 +22,7 @@ export function createTransitionController(input) {
     input.directionRow.hidden = type !== 'wipe';
   }
 
-  /** @param {import('../background-transition.js').BackgroundTransition} transition */
+  /** @param {import('../src/background/background-transition.js').BackgroundTransition} transition */
   function render(transition) {
     input.typeSelect.value = transition.type;
     input.easingSelect.value = transition.easing;

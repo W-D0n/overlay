@@ -1,5 +1,5 @@
 // @ts-check
-import { computeObsAuthResponse } from '../obs-auth.js';
+import { computeObsAuthResponse } from '../src/obs/obs-auth.js';
 
 /**
  * dev/obs-scene-client.js — Client OBS WebSocket v5 en lecture seule.

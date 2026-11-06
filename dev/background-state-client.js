@@ -1,6 +1,6 @@
 // @ts-check
 import { canonicalBackgroundState } from './background-state-format.js';
-import { sceneFromCurrent, sceneFromPreset } from '../scene-doc.js';
+import { sceneFromCurrent, sceneFromPreset } from '../src/scene/scene-doc.js';
 import { errorMessage } from './error-message.js';
 
 export class BackgroundStateClientError extends Error {
@@ -119,7 +119,7 @@ export function createBackgroundStateClient(options) {
     readObsStatus() {
       return request('obs-status');
     },
-    /** Scènes qui ont quitté l'antenne, la plus récente d'abord. @returns {Promise<{ at: string, scene: import('../scene-doc.js').SceneDoc }[]>} */
+    /** Scènes qui ont quitté l'antenne, la plus récente d'abord. @returns {Promise<{ at: string, scene: import('../src/scene/scene-doc.js').SceneDoc }[]>} */
     async readHistory() {
       return (await request('history')).history;
     },
@@ -131,7 +131,7 @@ export function createBackgroundStateClient(options) {
     async readDrafts() {
       return (await request('drafts')).drafts;
     },
-    /** @param {string} presetId @param {import('../scene-doc.js').SceneDoc} scene */
+    /** @param {string} presetId @param {import('../src/scene/scene-doc.js').SceneDoc} scene */
     saveDraft(presetId, scene) {
       return request('draft', { presetId, scene });
     },
@@ -158,13 +158,13 @@ export function createBackgroundStateClient(options) {
     saveBranding(branding) {
       return request('branding', { branding });
     },
-    /** Envoie une scène à l'antenne. @param {import('../scene-doc.js').SceneDoc} scene */
+    /** Envoie une scène à l'antenne. @param {import('../src/scene/scene-doc.js').SceneDoc} scene */
     publishScene(scene) {
       return request('state', { scene });
     },
     /**
      * Range une scène comme preset : la crée, ou — avec `id` — remplace celle qui porte cet identifiant.
-     * @param {import('../scene-doc.js').SceneDoc} scene
+     * @param {import('../src/scene/scene-doc.js').SceneDoc} scene
      * @param {string | null} [id]
      */
     saveScene(scene, id = null) {

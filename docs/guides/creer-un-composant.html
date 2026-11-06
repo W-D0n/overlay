@@ -100,7 +100,7 @@ export function MonEffetBackground(options = {}) {
 
 <table>
 <tr><th>Fichier</th><th>Action</th></tr>
-<tr><td>components/MonEffetBackground.js</td><td>La factory (squelette ci-dessus)</td></tr>
+<tr><td>src/components/MonEffetBackground.js</td><td>La factory (squelette ci-dessus)</td></tr>
 <tr><td>component-names.js</td><td>Ajouter le nom à <code>COMPONENT_NAMES</code> (suffixe <code>Background</code> — détecté automatiquement comme fond)</td></tr>
 <tr><td>component-registry.js</td><td>Importer + ajouter au <code>COMPONENT_REGISTRY</code></td></tr>
 <tr><td>dev/component-field-schemas.js</td><td>Ajouter un schéma dans <code>BACKGROUND_FIELD_SCHEMAS</code></td></tr>
@@ -124,13 +124,13 @@ export function MonEffetBackground(options = {}) {
 <p>Toute logique <strong>pure</strong> (calculs, formatage, validation — pas de <code>document</code>/<code>canvas</code>)
 doit avoir un <code>.test.js</code> à côté, <code>bun test</code> à la racine. La partie DOM/canvas
 elle-même n'est <strong>pas</strong> testable dans <code>bun test</code> (pas de DOM dans Bun) —
-vérifie-la visuellement en navigateur (<code>bun dev/start-dev.js</code>).</p>
+vérifie-la visuellement en navigateur (<code>bun dev/start-studio.js</code>).</p>
 
 <h2>Réagir aux alertes — <code>trigger()</code></h2>
 <p>Pour qu'un effet réagisse aux alertes stream (follow/sub/raid/bits), implémente
 <code>trigger(payload)</code> — il reçoit l'événement complet. Référence :
 <code>DotGridAnimated.js</code>. Les effets qui ne l'implémentent pas sont couverts par l'overlay
-partagé <code>components/ReactionOverlay.js</code>, rien à câbler.</p>
+partagé <code>src/components/ReactionOverlay.js</code>, rien à câbler.</p>
 
 <h2>Réagir au son — <code>setAudioLevel()</code></h2>
 <p>Appelée au plus une fois par frame avec <code>{ level, bass, mid, treble }</code>, quatre nombres

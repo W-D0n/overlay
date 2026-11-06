@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { MAX_LAYERS, createLayer } from '../scene-doc.js';
-import { MAX_GROUPS } from '../layer-group.js';
+import { MAX_LAYERS, createLayer } from '../src/scene/scene-doc.js';
+import { MAX_GROUPS } from '../src/layers/layer-group.js';
 import {
   knownIds, planAddLayer, planDuplicateLayers, planGroupLayers, planInsertLayers, planMoveLayers, planRemoveLayers, planSetLayerKind, planUngroupLayers, uniqueLayerId,
 } from './scene-edits.js';

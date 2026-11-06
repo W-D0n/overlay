@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createLayer } from '../scene-doc.js';
+import { createLayer } from '../src/scene/scene-doc.js';
 import { CLIPBOARD_FORMAT, createLayerClipboard, layersPayload, parsePayload, styleOf } from './layer-clipboard.js';
 
 const L = (id, kind = 'rain', over = {}) => createLayer({ id, kind, ...over });

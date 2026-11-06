@@ -10,7 +10,7 @@
  * @typedef {{ mode: 'fit' } | { mode: 'free', scale: number, left: number, top: number }} View
  * @typedef {{ scale: number, left: number, top: number }} Transform
  */
-import { RENDER_REFERENCE } from '../render-reference.js';
+import { RENDER_REFERENCE } from '../src/render/render-reference.js';
 
 export const STAGE_WIDTH = RENDER_REFERENCE.width;
 export const STAGE_HEIGHT = RENDER_REFERENCE.height;

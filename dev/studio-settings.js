@@ -11,11 +11,11 @@
  * @typedef {string | { op: string, args: Record<string, unknown>, target?: string, kind?: string }} CommandStep
  * @typedef {{ id: string, name: string, steps: CommandStep[], shortcut?: string }} StoredCommand
  * @typedef {Record<string, string | number | boolean>} Preferences
- * @typedef {{ id: string, name: string, layers: import('../scene-doc.js').Layer[] }} StoredTemplate
+ * @typedef {{ id: string, name: string, layers: import('../src/scene/scene-doc.js').Layer[] }} StoredTemplate
  * @typedef {{ customCommands: StoredCommand[], preferences: Preferences, templates: StoredTemplate[] }} StudioSettings
  */
 
-import { MAX_LAYERS, validateSceneDoc } from '../scene-doc.js';
+import { MAX_LAYERS, validateSceneDoc } from '../src/scene/scene-doc.js';
 
 export const SETTINGS_LIMITS = Object.freeze({
   templates: 50,

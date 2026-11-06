@@ -19,7 +19,7 @@ export function createVersionClient({ baseUrl, fetchImpl }) {
       return (await (await request(`/versions?scene=${encodeURIComponent(sceneId)}`)).json()).versions;
     },
 
-    /** @param {import('../scene-doc.js').SceneDoc} scene @param {string} name @returns {Promise<StoredVersion>} */
+    /** @param {import('../src/scene/scene-doc.js').SceneDoc} scene @param {string} name @returns {Promise<StoredVersion>} */
     async add(scene, name) {
       return (await (await request('/versions', json({ scene, name }))).json()).version;
     },

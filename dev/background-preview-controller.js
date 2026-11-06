@@ -1,11 +1,11 @@
 // @ts-check
-import { createSceneRuntime } from '../scene-runtime.js';
-import { isGroupKind, isIdentityKind, kindFamily } from '../layer-kinds.js';
-import { ReactionOverlay } from '../components/ReactionOverlay.js';
-import { createReactionCoordinator } from '../background-reactions.js';
-import { createBrowserAudioSession } from '../background-audio.js';
-import { normalizeTransition } from '../background-transition.js';
-import { liveSceneOf } from '../background-selection.js';
+import { createSceneRuntime } from '../src/scene/scene-runtime.js';
+import { isGroupKind, isIdentityKind, kindFamily } from '../src/layers/layer-kinds.js';
+import { ReactionOverlay } from '../src/components/ReactionOverlay.js';
+import { createReactionCoordinator } from '../src/background/background-reactions.js';
+import { createBrowserAudioSession } from '../src/background/background-audio.js';
+import { normalizeTransition } from '../src/background/background-transition.js';
+import { liveSceneOf } from '../src/background/background-selection.js';
 import {
   BACKGROUND_COMPONENT_NAMES,
   CONTENT_COMPONENT_NAMES,
@@ -15,16 +15,16 @@ import {
 import { createBackgroundFieldRenderer } from './background-field-renderer.js';
 import { createStudioDocument } from './studio-document.js';
 import { viewScene } from './scene-editor.js';
-import { sceneFromCurrent } from '../scene-doc.js';
+import { sceneFromCurrent } from '../src/scene/scene-doc.js';
 import { errorMessage } from './error-message.js';
 
 const NONE_VALUE = '__none__';
 
 /**
  * La couche que le panneau d'effet règle : la couche d'effet sélectionnée en dernier, sinon la première couche d'effet.
- * @param {import('../scene-doc.js').SceneDoc} scene
+ * @param {import('../src/scene/scene-doc.js').SceneDoc} scene
  * @param {string[]} selection
- * @returns {import('../scene-doc.js').Layer | null}
+ * @returns {import('../src/scene/scene-doc.js').Layer | null}
  */
 export function targetLayer(scene, selection) {
   // A group has no effect settings of its own: it is a container, set from the inspector.
@@ -79,7 +79,7 @@ export function createBackgroundPreviewController(input) {
   let arrivalPending = false;
   /** Vrai pendant qu'un champ du formulaire écrit dans l'éditeur : il garde le focus, on ne le redessine pas. */
   let fieldEdit = false;
-  /** @type {import('../scene-doc.js').SceneDoc | null} */
+  /** @type {import('../src/scene/scene-doc.js').SceneDoc | null} */
   let renderedScene = null;
   /** @type {string | null} */
   let renderedSolo = null;
@@ -159,7 +159,7 @@ export function createBackgroundPreviewController(input) {
     input.onDraftChange?.(state.isDraft);
   }
 
-  /** @type {import('../scene-doc.js').SceneDoc | null} */
+  /** @type {import('../src/scene/scene-doc.js').SceneDoc | null} */
   let lastScene = null;
   doc.subscribe((state) => {
     reflect();
@@ -196,7 +196,7 @@ export function createBackgroundPreviewController(input) {
     }, 200);
   }
 
-  /** @param {import('../scene-doc.js').SceneDoc} scene */
+  /** @param {import('../src/scene/scene-doc.js').SceneDoc} scene */
   function withoutTransition(scene) {
     if (scene.transition === undefined) return scene;
     const { transition: _transition, ...rest } = scene;
@@ -205,7 +205,7 @@ export function createBackgroundPreviewController(input) {
 
   /**
    * Ouvre une scène dans l'aperçu.
-   * @param {import('../scene-doc.js').SceneDoc} scene
+   * @param {import('../src/scene/scene-doc.js').SceneDoc} scene
    * @param {string | null} [presetId]
    * @param {boolean} [asDraft] Vrai pour un preset essayé : l'aperçu change, l'antenne attend « Publier ».
    */

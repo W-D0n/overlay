@@ -83,7 +83,7 @@ export function diagnose(input) {
 function serverCheck({ serverReachable }) {
   return serverReachable
     ? { id: 'server', label: 'Serveurs', tone: 'ok', short: 'en marche', detail: 'Le serveur d’état répond.', fix: null }
-    : { id: 'server', label: 'Serveurs', tone: 'bad', short: 'injoignable', detail: 'Le serveur d’état ne répond pas.', fix: 'Lance les serveurs (menu Serveurs de l’application, ou start-stream.bat).' };
+    : { id: 'server', label: 'Serveurs', tone: 'bad', short: 'injoignable', detail: 'Le serveur d’état ne répond pas.', fix: 'Lance les serveurs (menu Serveurs de l’application, ou stream.bat).' };
 }
 
 /** @param {{ obs: ObsState | null }} input @returns {Check} */

@@ -10,8 +10,8 @@
  * figurent dans l'aide sans être traités deux fois.
  */
 import { createCommandRegistry } from './command-registry.js';
-import { isGroup, layersToCopy } from '../layer-group.js';
-import { isIdentityKind } from '../layer-kinds.js';
+import { isGroup, layersToCopy } from '../src/layers/layer-group.js';
+import { isIdentityKind } from '../src/layers/layer-kinds.js';
 import { PLACEMENT_PRESETS, alignPlacements, distributePlacements } from './placement-math.js';
 
 /**

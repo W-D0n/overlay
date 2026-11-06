@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { MAX_LAYERS, createLayer } from '../scene-doc.js';
+import { MAX_LAYERS, createLayer } from '../src/scene/scene-doc.js';
 import { createSceneEditor } from './scene-editor.js';
 import { LOAD_WARNING_LAYERS, aloneScene, dropTarget, layerRows, loadGauge } from './layers-panel-view.js';
 

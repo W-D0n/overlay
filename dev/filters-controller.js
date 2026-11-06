@@ -1,6 +1,6 @@
 // @ts-check
 import { createSliderRow } from './slider-row.js';
-import { ADJUSTMENTS, ADJUST_KEYS, DEFAULT_GLOW, GLOW_LIMITS, setAdjustment, setGlow } from '../layer-filters.js';
+import { ADJUSTMENTS, ADJUST_KEYS, DEFAULT_GLOW, GLOW_LIMITS, setAdjustment, setGlow } from '../src/layers/layer-filters.js';
 
 /**
  * dev/filters-controller.js — La section « Filtres » de l'inspecteur : les réglages de couleur (luminosité, contraste, saturation, teinte) et la lueur de la couche
@@ -28,7 +28,7 @@ export function createFiltersController(input) {
     return el;
   }
 
-  /** @returns {import('../scene-doc.js').Layer | undefined} la couche sélectionnée, quand il n'y en a qu'une */
+  /** @returns {import('../src/scene/scene-doc.js').Layer | undefined} la couche sélectionnée, quand il n'y en a qu'une */
   function selectedLayer() {
     const { selection } = editor.state();
     if (selection.length !== 1) return undefined;
@@ -40,7 +40,7 @@ export function createFiltersController(input) {
     if (!result.ok && result.message !== undefined) input.report.error(result.message);
   }
 
-  /** @param {(filters: import('../layer-filters.js').Filters | undefined) => import('../layer-filters.js').Filters | undefined} change @param {string} key */
+  /** @param {(filters: import('../src/layers/layer-filters.js').Filters | undefined) => import('../src/layers/layer-filters.js').Filters | undefined} change @param {string} key */
   function commit(change, key) {
     const layer = selectedLayer();
     if (layer === undefined) return;

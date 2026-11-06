@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { RENDER_REFERENCE } from '../render-reference.js';
+import { RENDER_REFERENCE } from '../src/render/render-reference.js';
 import { hitTestAll, marqueeHits, shownLayers } from './canvas-geometry.js';
 
 const isIdentity = (kind) => kind === 'branding';

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { canonicalSceneDoc, MAX_LAYERS, validateSceneDoc } from '../scene-doc.js';
+import { canonicalSceneDoc, MAX_LAYERS, validateSceneDoc } from '../src/scene/scene-doc.js';
 import { LIBRARY_PREFIX, LIBRARY_TEMPLATES, libraryByCategory, searchLibrary } from './builtin-layer-templates.js';
 import { SETTINGS_LIMITS, validateStudioSettings } from './studio-settings.js';
 

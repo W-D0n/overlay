@@ -5,8 +5,8 @@
  * Le panneau liste les couches du dessus vers le dessous (comme dans un éditeur graphique), les couches d'identité
  * (branding) toujours en tête puisque le moteur les montre au-dessus des effets.
  *
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
- * @typedef {import('../scene-doc.js').Layer} Layer
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').Layer} Layer
  * @typedef {{
  *   id: string,
  *   title: string,
@@ -29,9 +29,9 @@
  *   lockedByGroup: boolean,
  * }} LayerRow
  */
-import { MAX_LAYERS, withoutLook } from '../scene-doc.js';
-import { isGroup, membersOf, relocateLayers } from '../layer-group.js';
-import { isIdentityKind } from '../layer-kinds.js';
+import { MAX_LAYERS, withoutLook } from '../src/scene/scene-doc.js';
+import { isGroup, membersOf, relocateLayers } from '../src/layers/layer-group.js';
+import { isIdentityKind } from '../src/layers/layer-kinds.js';
 
 /** À partir de combien de couches la jauge prévient : chaque couche d'effet pleine toile est un canvas de plus à dessiner. */
 export const LOAD_WARNING_LAYERS = 6;
@@ -105,12 +105,12 @@ export function loadGauge(scene) {
  * @param {string} overId the row under the pointer
  * @param {'top' | 'bottom'} edge the edge of that row, as displayed
  * @param {ReadonlySet<string>} [collapsed] the groups shown collapsed
- * @returns {import('../layer-group.js').DropTarget | null}
+ * @returns {import('../src/layers/layer-group.js').DropTarget | null}
  */
 export function dropTarget(scene, movingIds, overId, edge, collapsed = new Set()) {
   const over = scene.layers.find((layer) => layer.id === overId);
   if (over === undefined) return null;
-  /** @type {import('../layer-group.js').DropTarget[]} */
+  /** @type {import('../src/layers/layer-group.js').DropTarget[]} */
   const candidates = [];
   if (isGroup(over) && !collapsed.has(over.id) && edge === 'bottom') candidates.push({ into: over.id });
   candidates.push({ beside: overId, side: edge === 'top' ? 'front' : 'back' });

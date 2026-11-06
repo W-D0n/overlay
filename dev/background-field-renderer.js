@@ -1,11 +1,11 @@
 // @ts-check
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 import { isHexColor } from './color-palette-format.js';
-import { isAudioOn } from '../layer-kinds.js';
+import { isAudioOn } from '../src/layers/layer-kinds.js';
 import { DESIGN_TOKENS, tokenLabel } from './design-tokens.js';
 import { buildNumericFieldControl } from './numeric-field-control.js';
 import { assetKind } from './asset-format.js';
-import { normalizeParamValues, paramFieldSchemas, parseParamSpec } from '../components/code-params.js';
+import { normalizeParamValues, paramFieldSchemas, parseParamSpec } from '../src/components/code-params.js';
 import { createCodeField } from './code-field.js';
 import { buildStarterRow } from './starter-row.js';
 
@@ -13,7 +13,7 @@ const DEFAULT_ADDED_COLOR = 'var(--color-gold)';
 
 /**
  * @typedef {{ assets: () => import('./asset-client.js').LibraryAsset[], subscribe: (listener: (assets: import('./asset-client.js').LibraryAsset[]) => void) => () => void, open: (choose: (asset: import('./asset-client.js').LibraryAsset) => void, accept?: 'image' | 'font') => void }} AssetLibraryAccess
- * @typedef {Pick<NonNullable<import('../types.js').ComponentInstance['reports']>, 'current' | 'subscribe'>} CodeReports
+ * @typedef {Pick<NonNullable<import('../src/types.js').ComponentInstance['reports']>, 'current' | 'subscribe'>} CodeReports
  * @typedef {import('./color-palette-format.js').NamedColor} PaletteColor
  * @typedef {import('./color-palette-format.js').NamedGradient} PaletteGradient
  */
@@ -133,7 +133,7 @@ export function createBackgroundFieldRenderer(input) {
 
   /** @typedef {(key: string, value: unknown) => void} Emit */
 
-  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit */
+  /** @param {import('../src/layers/layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit */
   function buildAssetField(field, value, emit) {
     const wrapper = documentRef.createElement('div');
     wrapper.className = 'asset-field';
@@ -167,7 +167,7 @@ export function createBackgroundFieldRenderer(input) {
     return wrapper;
   }
 
-  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit */
+  /** @param {import('../src/layers/layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit */
   function buildTokenField(field, value, emit) {
     const wrapper = documentRef.createElement('div');
     const select = documentRef.createElement('select');
@@ -197,7 +197,7 @@ export function createBackgroundFieldRenderer(input) {
     return wrapper;
   }
 
-  /** @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit */
+  /** @param {import('../src/layers/layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit */
   function buildColorsField(field, value, emit) {
     const wrapper = documentRef.createElement('div');
     wrapper.className = 'colors-control';
@@ -328,7 +328,7 @@ export function createBackgroundFieldRenderer(input) {
 
   /**
    * Un texte de code (voir `code-field.js`) ; les erreurs que la page a remontées sont suivies tant que le formulaire est affiché.
-   * @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit
+   * @param {import('../src/layers/layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit
    */
   function buildCodeField(field, value, emit) {
     const codeField = createCodeField({ documentRef, field, value, emit, ...(input.assetLibrary === undefined ? {} : { assetLibrary: input.assetLibrary }), reports: codeReports, onParamSpec: rebuildParams });
@@ -339,7 +339,7 @@ export function createBackgroundFieldRenderer(input) {
   /**
    * Les réglages que le code déclare, présentés comme les champs de n'importe quelle couche. Leurs valeurs vivent dans l'option `params` ; la déclaration
    * (`paramSpec`) vient des options de la couche réglée et se relit à chaque frappe (voir `rebuildParams`).
-   * @param {import('../layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit @param {Record<string, unknown>} options
+   * @param {import('../src/layers/layer-kinds.js').FieldSchema} field @param {unknown} value @param {Emit} emit @param {Record<string, unknown>} options
    */
   function buildParamsField(field, value, emit, options) {
     const host = documentRef.createElement('div');

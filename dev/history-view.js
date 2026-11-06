@@ -5,7 +5,7 @@ import { sceneDetails, sceneEffectsLabel } from './scene-labels.js';
  * dev/history-view.js — Présentation de l'historique des publications : de quoi remplir une ligne du panneau.
  * Pur : le libellé d'effet et l'horloge sont fournis.
  *
- * @typedef {{ at: string, scene: import('../scene-doc.js').SceneDoc }} HistoryEntry
+ * @typedef {{ at: string, scene: import('../src/scene/scene-doc.js').SceneDoc }} HistoryEntry
  * @typedef {{ at: string, title: string, when: string, detail: string }} HistoryRow
  */
 

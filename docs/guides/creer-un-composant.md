@@ -1,6 +1,6 @@
 ---
 created: 2026-07-10
-updated: 2026-07-26
+updated: 2026-11-06
 ---
 
 # Guide — Créer un nouvel effet de fond
@@ -96,7 +96,7 @@ export function MonEffetBackground(options = {}) {
 
 | Fichier | Action |
 |---|---|
-| `components/MonEffetBackground.js` | La factory (squelette ci-dessus) |
+| `src/components/MonEffetBackground.js` | La factory (squelette ci-dessus) |
 | `layer-kinds.js` | Décrire le type : identifiant neutre (`mon-effet`), `legacyIds: []`, libellé, capacités, champs |
 | `component-registry.js` | Importer la factory et l'ajouter au `COMPONENT_REGISTRY` sous le même identifiant |
 
@@ -111,11 +111,11 @@ dans un nouveau composant :
 
 1. **Ne jamais recréer un objet canvas coûteux (`createLinearGradient`, etc.) dans `tick()`** —
    le construire une fois hors de la boucle de rendu (ou une fois par changement d'option), puis le
-   réutiliser/repositionner via `ctx.translate()`. Voir `components/ColorDropsBackground.js` pour un
+   réutiliser/repositionner via `ctx.translate()`. Voir `src/components/ColorDropsBackground.js` pour un
    exemple concret (gradient en coordonnées locales + translate par frame).
 2. **Ne jamais recalculer une conversion de couleur coûteuse (HSL↔RGB) par point/par frame** si le
    résultat est déterministe pour un nombre fini de valeurs — précalculer une table de correspondance
-   (LUT) une fois. Voir `components/DotGridAnimated.js` (`buildHueShiftLUT`)/`color-utils.js`.
+   (LUT) une fois. Voir `src/components/DotGridAnimated.js` (`buildHueShiftLUT`)/`color-utils.js`.
 3. **Éviter `filter:` CSS (`drop-shadow`, `blur`) sur un élément animé en continu** — combiné à un
    transform 3D, c'est un cas connu de saccades/flicker dans le rendu offscreen d'OBS (CEF). Préférer
    un effet équivalent sans `filter` (gradients superposés, `box-shadow` statique).
@@ -128,14 +128,14 @@ dans un nouveau composant :
   fichier `.test.js` à côté, `bun test` à la racine du projet.
 - La partie DOM/canvas elle-même (la factory appelée avec un vrai `document.createElement`) n'est
   **pas** testable dans `bun test` (pas de DOM dans Bun) — vérifie-la visuellement en navigateur
-  (`bun dev/start-dev.js`, ouvrir l'onglet preview) ou demande une vérification via un agent.
+  (`bun dev/start-studio.js`, ouvrir l'onglet preview) ou demande une vérification via un agent.
 
 ## Réagir aux alertes — `trigger()`
 
 Pour qu'un effet réagisse aux alertes stream (follow/sub/raid/bits), implémente `trigger(payload)` —
 il reçoit l'événement complet (`{ type, username, timestamp, amount? }`). Référence :
-`components/DotGridAnimated.js` (4 comportements + minuteur `ambient`). Les effets qui ne
-l'implémentent pas sont couverts par l'overlay partagé `components/ReactionOverlay.js`, rien à
+`src/components/DotGridAnimated.js` (4 comportements + minuteur `ambient`). Les effets qui ne
+l'implémentent pas sont couverts par l'overlay partagé `src/components/ReactionOverlay.js`, rien à
 câbler. Voir `docs/specs/background-reactive-events.md`.
 
 ## Réagir au son — `setAudioLevel()`
@@ -163,7 +163,7 @@ Déclare aussi les deux champs `audioReactive` (type `boolean`) et `audioIntensi
 de l'effet (`layer-kinds.js`), avec `capabilities.audio: true` : c'est ce réglage, propre à chaque preset, qui autorise
 l'ouverture du micro. Sans lui, `setAudioLevel` ne sera jamais appelée.
 
-En pratique, n'écris pas ce bloc à la main : `components/audio-reaction.js` le fournit déjà.
+En pratique, n'écris pas ce bloc à la main : `src/components/audio-reaction.js` le fournit déjà.
 
 ```js
 const audio = createAudioReaction(options);      // à la création

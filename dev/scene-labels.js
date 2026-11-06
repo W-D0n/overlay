@@ -3,9 +3,9 @@
  * dev/scene-labels.js — Comment le Studio nomme une scène dans ses listes : ses effets, ses particularités.
  * Pur : le libellé d'un type de couche est fourni.
  *
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
  */
-import { isIdentityKind, kindFamily } from '../layer-kinds.js';
+import { isIdentityKind, kindFamily } from '../src/layers/layer-kinds.js';
 
 /**
  * « Pluie », « Pluie + Bulles » : les effets de la scène, du dessous au dessus ; « Aucun fond » quand elle n'en a pas

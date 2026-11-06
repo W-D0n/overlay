@@ -42,7 +42,7 @@ function processName(pid) {
 }
 
 /**
- * Lanceurs du projet (`start-stream.js`, `start-dev.js`) qui sont parents d'un des processus donnés.
+ * Lanceurs du projet (`start-stream.js`, `start-studio.js`) qui sont parents d'un des processus donnés.
  * @param {number[]} holderPids
  * @returns {number[]}
  */

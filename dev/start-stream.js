@@ -6,7 +6,7 @@
  * Restreint au strict nécessaire du mode background-only (owner, 2026-07-14) : statique
  * (sert background.html à la Browser Source) + background-state (état du fond, suivi live).
  *
- * Même architecture que dev/start-dev.js : un seul process Bun, sortie préfixée par serveur,
+ * Même architecture que dev/start-studio.js : un seul process Bun, sortie préfixée par serveur,
  * enfants liés au Job Object Windows du parent — fermeture du terminal (X ou Ctrl+C) tue les
  * enfants proprement, plus de port orphelin. `start "titre" cmd /k ...` (ancien start-stream.bat)
  * ouvrait des fenêtres détachées hors du Job Object, laissant `bun.exe` tourner après fermeture
@@ -15,7 +15,7 @@
  * Le lanceur supervise les serveurs par code de sortie (`dev/supervisor.js`) : le Studio peut demander
  * un arrêt (code 0) ou un redémarrage (code 75) via `POST /control/*` (docs/specs/controle-processus.md).
  *
- * Lancement : `bun dev/start-stream.js` (ou double-clic sur start-stream.bat).
+ * Lancement : `bun dev/start-stream.js` (ou double-clic sur stream.bat).
  */
 import { findBusyPorts } from './port-check.js';
 import { STATIC_PORT, BACKGROUND_STATE_PORT } from '../ports.config.js';

@@ -24,7 +24,7 @@ import {
   readBranding,
   PRESET_NAME_MAX_LENGTH,
 } from './background-state-format.js';
-import { sceneFromCurrent, sceneFromPreset } from '../scene-doc.js';
+import { sceneFromCurrent, sceneFromPreset } from '../src/scene/scene-doc.js';
 
 /** @type {(over?: object) => { id: string, name: string, component: string, options: Record<string, unknown> }} */
 const preset = (over = {}) => ({ id: 'pluie-douce', name: 'pluie douce', component: 'rain', options: { intensity: 0.3 }, ...over });

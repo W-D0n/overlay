@@ -5,8 +5,8 @@
  *
  * No state, no clock, no DOM: each edit is tested here on plain scenes.
  *
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
- * @typedef {import('../scene-doc.js').Layer} Layer
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').Layer} Layer
  * @typedef {{ ok: false, reason: 'limit' | 'unique' | 'unknown' | 'invalid' | 'empty', message: string }} Refused
  * @typedef {{ ok: true, unchanged: true }} Unchanged
  * @typedef {{
@@ -19,12 +19,12 @@
  * }} Planned `result`: what the command answers besides `ok`; `operation`: what a recorded macro keeps of it (absent: the edit is not recorded)
  * @typedef {Refused | Unchanged | Planned} Plan
  */
-import { MAX_LAYERS, createLayer } from '../scene-doc.js';
-import { animationFits } from '../layer-animation.js';
+import { MAX_LAYERS, createLayer } from '../src/scene/scene-doc.js';
+import { animationFits } from '../src/layers/layer-animation.js';
 import {
   MAX_GROUPS, blockRange, dissolveEmptyGroups, groupLayers, isGroup, membersOf, reorderItems, selectionRoots, topLevelBlocks, ungroupLayers, withMembers,
-} from '../layer-group.js';
-import { isGroupKind, isIdentityKind, kindCapabilities, kindFamily, resolveKindId } from '../layer-kinds.js';
+} from '../src/layers/layer-group.js';
+import { isGroupKind, isIdentityKind, kindCapabilities, kindFamily, resolveKindId } from '../src/layers/layer-kinds.js';
 
 /** @param {Refused['reason']} reason @param {string} message @returns {Refused} */
 export const refuse = (reason, message) => ({ ok: false, reason, message });
@@ -71,7 +71,7 @@ function insertionPoint(layers, identity, selection) {
  * Adds a layer (selected afterwards).
  * @param {SceneDoc} scene
  * @param {readonly string[]} selection
- * @param {{ kind: string, name?: string, options?: Record<string, unknown>, placement?: Partial<import('../scene-doc.js').Placement>, opacity?: number }} input
+ * @param {{ kind: string, name?: string, options?: Record<string, unknown>, placement?: Partial<import('../src/scene/scene-doc.js').Placement>, opacity?: number }} input
  * @returns {Plan}
  */
 export function planAddLayer(scene, selection, { kind, name, options, placement, opacity }) {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { sceneFromCurrent, sceneFromPreset } from '../scene-doc.js';
+import { sceneFromCurrent, sceneFromPreset } from '../src/scene/scene-doc.js';
 import { emptyLiveScene } from './background-state-format.js';
 import {
   sceneFromWireCurrent,

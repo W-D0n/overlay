@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { LAYER_KINDS } from '../layer-kinds.js';
-import { MAX_LAYERS, validateSceneDoc } from '../scene-doc.js';
+import { LAYER_KINDS } from '../src/layers/layer-kinds.js';
+import { MAX_LAYERS, validateSceneDoc } from '../src/scene/scene-doc.js';
 import { LOAD_KIND_ORDER, buildLoadScene, parseLoadUrl } from './charge-scene.js';
 
 describe('buildLoadScene', () => {

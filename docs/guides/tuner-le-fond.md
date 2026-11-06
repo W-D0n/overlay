@@ -1,6 +1,6 @@
 ---
 created: 2026-07-17
-updated: 2026-10-29
+updated: 2026-11-06
 ---
 
 # Fond seul dans OBS et page de tuning
@@ -26,7 +26,7 @@ la seconde → au prochain démarrage, OBS recharge le dernier état sauvegardé
 
 ## Mettre le fond dans OBS
 
-1. Lancer `start-stream.bat` (ou `start-dev.bat` pour bricoler).
+1. Lancer `stream.bat` (ou `studio.bat` pour bricoler).
 2. Dans OBS : Source → **Navigateur** (Browser Source).
 3. URL : `http://localhost:5931/background.html`
 4. Largeur et hauteur : celles de ton canvas OBS — `1920 × 1080`. Le fond remplit la source quelle
@@ -43,7 +43,7 @@ toute seule (1 s → 30 s max entre les tentatives).
 ## La page de tuning
 
 Ouvrir `http://localhost:5931/dev/studio.html` (s'ouvre aussi automatiquement avec
-`start-dev.bat`).
+`studio.bat`).
 
 - **Trois zones** : le rail de gauche (Bibliothèque, Scènes OBS, Branding : sections repliables), l'aperçu au centre
   avec le bandeau En antenne / Brouillon, les réglages du preset à droite. L'aperçu est un cadre 16:9 à l'échelle de
@@ -172,7 +172,7 @@ Ce qu'il faut savoir :
 Le bandeau **Antenne**, dans l'en-tête (toujours visible), se relit toutes les 5 secondes tant que la page est
 visible. Il dit où en est la chaîne jusqu'à OBS :
 
-- **Serveur d'état** : connecté ou injoignable (relancer `start-stream.bat`) ;
+- **Serveur d'état** : connecté ou injoignable (relancer `stream.bat`) ;
 - **OBS** : connecté avec le nom de la scène active, non configuré (mot de passe à saisir dans **Réglages**),
   injoignable ou mot de passe refusé ;
 - **Page de rendu** : nombre de pages `background.html` connectées au serveur. « Aucune page
@@ -190,7 +190,7 @@ dans OBS avant le live.
 - `tokens.css` contient les couleurs de l'identité Atelier utilisées par l'interface.
 - Les couleurs des effets acceptent une valeur CSS libre : hex, `rgb(...)`, `oklch(...)` ou
   `var(--nom-du-token)`.
-- `components/color-palette.json` contient les couleurs nommées et les gradients de travail destinés
+- `src/components/color-palette.json` contient les couleurs nommées et les gradients de travail destinés
   au tuner.
 
 Deux modes sont disponibles :
@@ -211,11 +211,11 @@ au changement de scène OBS reste une extension possible, mais n'est plus néces
 Le tuner et l'URL OBS n'ont **jamais** besoin d'être modifiés : ils lisent tout depuis trois
 déclarations. Ajouter une animation = créer un fichier et ajouter trois lignes.
 
-### 1. Le composant — `components/MonEffetBackground.js`
+### 1. Le composant — `src/components/MonEffetBackground.js`
 
 Une fonction qui retourne `{ el, update, destroy }` (contrat `ComponentInstance`, détail dans
 `creer-un-composant.md`). Partir d'une copie d'un effet existant proche —
-`components/RainBackground.js` est un bon modèle (canvas, resize, couleurs via tokens).
+`src/components/RainBackground.js` est un bon modèle (canvas, resize, couleurs via tokens).
 `destroy()` doit impérativement annuler le `requestAnimationFrame`.
 
 ### 2. Le registre — deux fichiers, une ligne chacun
@@ -275,7 +275,7 @@ les parcours du Studio.
 
 ## Performance et cycle de vie
 
-Les canvas utilisent `components/canvas-runtime.js` : DPR plafonné à 2 par défaut, ou à 1 avec
+Les canvas utilisent `src/components/canvas-runtime.js` : DPR plafonné à 2 par défaut, ou à 1 avec
 `?quality=performance` (paramètre toujours lu, plus proposé dans le Studio : dans OBS le DPR vaut déjà 1, mesuré le 2026-10-29). `background.html` et le tuner démontent l'effet lorsque l'onglet devient
 invisible, puis remontent le dernier état reçu à la reprise. Dans OBS, conserver en plus l'option
 **Arrêter la source lorsqu'elle n'est pas visible** : OBS évite alors de garder la page active.

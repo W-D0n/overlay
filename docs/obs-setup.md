@@ -1,6 +1,6 @@
 ---
 created: 2026-07-03
-updated: 2026-10-30
+updated: 2026-11-06
 ---
 
 # Configuration OBS — fond autonome
@@ -14,8 +14,8 @@ document ne les concerne.
 
 | Script | Usage |
 |---|---|
-| `start-stream.bat` | Streamer : serveur statique (`5931`) + serveur d'état du fond (`5932`). |
-| `start-dev.bat` | Créer : mêmes serveurs, ouvre le Studio. **Ne pas lancer pendant un live.** |
+| `stream.bat` | Streamer : serveur statique (`5931`) + serveur d'état du fond (`5932`). |
+| `studio.bat` | Créer : mêmes serveurs, ouvre le Studio. **Ne pas lancer pendant un live.** |
 | `kill-servers.bat` | Libérer les ports si un `bun.exe` est resté orphelin après une fermeture brutale. |
 
 Les deux serveurs n'écoutent que sur `127.0.0.1` ; ils refusent les requêtes dont l'`Origin` ou le

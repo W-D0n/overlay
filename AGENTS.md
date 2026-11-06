@@ -26,7 +26,7 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 3. **Source de vérité design** — toutes les variables visuelles dans `tokens.css`. Jamais de valeur
    hardcodée dans un composant si un token existe.
 4. **Pattern composant** — chaque composant est une fonction retournant
-   `{ el, update?(data), destroy?() }`. Voir `components/index.js`.
+   `{ el, update?(data), destroy?() }`. Voir `src/components/index.js`.
 5. **Configuration hors composant** — données statiques qui pilotent un composant (couches d'une
    scène, items de nav, options) → fichier `*.config.js` dédié, jamais en dur dans le composant.
 6. **Communication par messages `{ type, data }`** — le store consomme un protocole abstrait, sans
@@ -41,7 +41,7 @@ Ces règles priment sur toute préférence de style. Elles découlent du context
 - `tokens.css` — touché par toutes les scènes
 - `store.js` — protocole `{ type, data }` consommé par toutes les scènes
 - `types.js` — types JSDoc partagés
-- `components/index.js` — composants réutilisés
+- `src/components/index.js` — composants réutilisés
 - Le **format de config de scène** — spécifié dans `docs/specs/scene-config-protocol.md`
 
 Modifier l'une de ces surfaces impacte plusieurs scènes : vérifier en aval avant d'éditer.

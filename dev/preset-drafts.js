@@ -5,7 +5,7 @@
  * Un brouillon est rangé sous l'identifiant du preset ; il n'est jamais diffusé à l'antenne. Logique pure : ni disque,
  * ni horloge (l'instant est fourni).
  *
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
  * @typedef {{ at: string, scene: SceneDoc }} DraftEntry
  * @typedef {Record<string, DraftEntry>} Drafts
  */

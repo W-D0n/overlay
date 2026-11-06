@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { historyRows, relativeTime } from './history-view.js';
-import { createLayer, sceneFromCurrent } from '../scene-doc.js';
+import { createLayer, sceneFromCurrent } from '../src/scene/scene-doc.js';
 
 const NOW = Date.parse('2026-10-30T12:00:00.000Z');
 const formatDate = (date) => `le ${date.toISOString().slice(0, 10)}`;

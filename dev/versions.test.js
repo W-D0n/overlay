@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createLayer } from '../scene-doc.js';
+import { createLayer } from '../src/scene/scene-doc.js';
 import { createSceneEditor } from './scene-editor.js';
 import { describeRestoration, describeVersion, formatVersionDate } from './version-view.js';
 import { operationToStep } from './operation-steps.js';

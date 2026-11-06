@@ -1,7 +1,7 @@
 // @ts-check
 import { expect, test } from 'bun:test';
 import { createObsSceneClient, reconnectDelayMs, RECONNECT_DELAYS_MS } from './obs-scene-client.js';
-import { computeObsAuthResponse } from '../obs-auth.js';
+import { computeObsAuthResponse } from '../src/obs/obs-auth.js';
 
 /**
  * Faux socket OBS : on pilote à la main les messages reçus et on inspecte ceux envoyés.

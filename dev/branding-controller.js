@@ -1,6 +1,6 @@
 // @ts-check
-import { BrandingLayer } from '../components/BrandingLayer.js';
-import { normalizeBranding } from '../branding-format.js';
+import { BrandingLayer } from '../src/components/BrandingLayer.js';
+import { normalizeBranding } from '../src/branding/branding-format.js';
 import { pointerToPercent } from './branding-drag.js';
 import { errorMessage } from './error-message.js';
 
@@ -70,7 +70,7 @@ export function createBrandingController(input) {
     saveTimer = setTimeout(persist, 250);
   }
 
-  /** @param {Partial<import('../branding-format.js').Branding>} patch */
+  /** @param {Partial<import('../src/branding/branding-format.js').Branding>} patch */
   function change(patch) {
     branding = normalizeBranding({ ...branding, ...patch });
     apply();

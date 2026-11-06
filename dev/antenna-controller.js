@@ -1,5 +1,5 @@
 // @ts-check
-import { backgroundCurrentUrl, backgroundPresetUrl } from '../background-selection.js';
+import { backgroundCurrentUrl, backgroundPresetUrl } from '../src/background/background-selection.js';
 import { antennaItems, antennaSummary } from './antenna-status.js';
 
 const POLL_INTERVAL_MS = 5000;

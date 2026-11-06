@@ -7,14 +7,14 @@
  * Le récapitulatif ne parle que de ce qui se voit à l'antenne : l'identité de la scène, ses étiquettes et la transition d'une
  * simple modification n'en font pas partie (la transition est signalée à part, car elle ne joue qu'à l'arrivée d'un preset).
  *
- * @typedef {import('../scene-doc.js').SceneDoc} SceneDoc
- * @typedef {import('../scene-doc.js').Layer} Layer
+ * @typedef {import('../src/scene/scene-doc.js').SceneDoc} SceneDoc
+ * @typedef {import('../src/scene/scene-doc.js').Layer} Layer
  * @typedef {{ layerId: string | null, kind: 'added' | 'removed' | 'changed' | 'order', title: string, details: string[] }} Change
  */
-import { LOOPS, PRESETS } from '../layer-animation.js';
-import { ADJUSTMENTS, ADJUST_KEYS } from '../layer-filters.js';
-import { MASK_SHAPES } from '../layer-mask.js';
-import { BLEND_MODES, CROP_LABELS, CROP_SIDES } from '../scene-doc.js';
+import { LOOPS, PRESETS } from '../src/layers/layer-animation.js';
+import { ADJUSTMENTS, ADJUST_KEYS } from '../src/layers/layer-filters.js';
+import { MASK_SHAPES } from '../src/layers/layer-mask.js';
+import { BLEND_MODES, CROP_LABELS, CROP_SIDES } from '../src/scene/scene-doc.js';
 import { toDisplay } from './placement-math.js';
 
 /** @param {unknown} value @returns {string} */

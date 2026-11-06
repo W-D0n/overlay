@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { LAYER_KINDS, LAYER_KIND_IDS } from '../layer-kinds.js';
+import { LAYER_KINDS, LAYER_KIND_IDS } from '../src/layers/layer-kinds.js';
 import { CHOICE_LABELS } from './choice-labels.js';
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 

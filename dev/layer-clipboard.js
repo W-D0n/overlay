@@ -7,10 +7,10 @@
  * est refusé, jamais collé à moitié. Il est gardé en mémoire et, quand le navigateur le permet, dans `localStorage` pour
  * survivre à un rechargement et se partager entre onglets de même origine.
  *
- * @typedef {import('../scene-doc.js').Layer} Layer
+ * @typedef {import('../src/scene/scene-doc.js').Layer} Layer
  * @typedef {{ kind: string, opacity: number, options: Record<string, unknown>, look?: Partial<Pick<Layer, 'blend' | 'rotation' | 'crop' | 'blur' | 'bindings' | 'timeline' | 'animation' | 'filters' | 'mask'>> }} LayerStyle
  */
-import { LOOK_KEYS, validateSceneDoc } from '../scene-doc.js';
+import { LOOK_KEYS, validateSceneDoc } from '../src/scene/scene-doc.js';
 
 export const CLIPBOARD_FORMAT = 'overlay-layers';
 const STORAGE_KEY = 'overlay.studio.clipboard';

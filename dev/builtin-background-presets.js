@@ -48,7 +48,7 @@ const FULL = { x: 0, y: 0, width: 1, height: 1 };
 /**
  * Points de départ à plusieurs couches : de quoi voir tout de suite ce qu'une pile d'effets (placements, opacités) donne.
  * Mêmes réglages d'effet que les points de départ à un effet ; ils ne sont écrits dans l'état utilisateur que par « + ».
- * @type {import('../scene-doc.js').SceneDoc[]}
+ * @type {import('../src/scene/scene-doc.js').SceneDoc[]}
  */
 export const BUILTIN_BACKGROUND_SCENES = [
   {

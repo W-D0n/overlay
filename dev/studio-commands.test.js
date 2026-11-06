@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { sceneFromCurrent } from '../scene-doc.js';
+import { sceneFromCurrent } from '../src/scene/scene-doc.js';
 import { BACKGROUND_COMPONENT_NAMES, backgroundEffectLabel, defaultBackgroundOptions } from './component-field-schemas.js';
 import { createLayerClipboard } from './layer-clipboard.js';
 import { createStudioCommands } from './studio-commands.js';

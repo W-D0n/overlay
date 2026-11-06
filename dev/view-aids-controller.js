@@ -12,7 +12,7 @@
  * - **Zones de sécurité** : les retraits de 5 % (titres) et 2,5 % (action) ; avec elles, le retrait de 5 % devient aussi une
  *   cible d'aimantation.
  */
-import { RENDER_REFERENCE } from '../render-reference.js';
+import { RENDER_REFERENCE } from '../src/render/render-reference.js';
 import { rulerTicks } from './ruler-ticks.js';
 
 const KEYS = /** @type {const} */ (['snap', 'grid', 'rulers', 'safe']);

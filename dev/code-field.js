@@ -4,10 +4,10 @@
  * (`code-editing.js`), the insertion of a file of the media library, and a report underneath — the declaration of the settings tells its defaults live, the JavaScript shows the
  * errors the page reported.
  */
-import { parseParamSpec } from '../components/code-params.js';
+import { parseParamSpec } from '../src/components/code-params.js';
 import { codeKeyEdit, lineCount } from './code-editing.js';
 
-/** @typedef {Pick<NonNullable<import('../types.js').ComponentInstance['reports']>, 'current' | 'subscribe'>} CodeReports */
+/** @typedef {Pick<NonNullable<import('../src/types.js').ComponentInstance['reports']>, 'current' | 'subscribe'>} CodeReports */
 
 /** @param {string} text @param {{ start: number, end: number }} selection @param {string} insertion */
 export function insertAt(text, selection, insertion) {
@@ -22,7 +22,7 @@ export function codeRows(language) {
 /**
  * @param {{
  *   documentRef: Document,
- *   field: import('../layer-kinds.js').FieldSchema,
+ *   field: import('../src/layers/layer-kinds.js').FieldSchema,
  *   value: unknown,
  *   emit: (key: string, value: unknown) => void,
  *   assetLibrary?: { open: (choose: (asset: { id: string }) => void, accept?: 'image' | 'font') => void },

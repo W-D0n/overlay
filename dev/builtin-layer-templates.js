@@ -4,10 +4,10 @@
  * the templates the owner saves (one history step), never written to the settings until "Copier dans mes modèles" is chosen. Data only: each template is a valid list of
  * layers (groups included), checked by `builtin-layer-templates.test.js` against the scene document rules.
  *
- * @typedef {import('../scene-doc.js').Layer} Layer
+ * @typedef {import('../src/scene/scene-doc.js').Layer} Layer
  * @typedef {{ id: string, name: string, category: string, description: string, layers: Layer[] }} LibraryTemplate
  */
-import { deriveGroupPlacements } from '../layer-group.js';
+import { deriveGroupPlacements } from '../src/layers/layer-group.js';
 
 export const LIBRARY_PREFIX = 'lib.';
 

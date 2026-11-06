@@ -1,6 +1,6 @@
 // @ts-check
-import { createSceneRuntime } from '../scene-runtime.js';
-import { isPhotographable } from '../layer-kinds.js';
+import { createSceneRuntime } from '../src/scene/scene-runtime.js';
+import { isPhotographable } from '../src/layers/layer-kinds.js';
 import { createThumbnailQueue } from './thumbnail-queue.js';
 import { STAGE_HEIGHT, STAGE_WIDTH } from './preview-stage.js';
 
@@ -163,7 +163,7 @@ export function canvasInkRatio(canvas) {
 
 /**
  * @param {{
- *   scene: import('../scene-doc.js').SceneDoc,
+ *   scene: import('../src/scene/scene-doc.js').SceneDoc,
  *   documentRef: Document,
  *   width?: number,
  *   delay?: (ms: number) => Promise<void>,

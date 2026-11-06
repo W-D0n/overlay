@@ -3,7 +3,7 @@
  * La courbe personnalisée d'une image clé : on choisit « Courbe personnalisée », on la règle (préréglage, nombres, poignées à la souris et au clavier),
  * et l'aperçu la suit — la valeur lue sur le calque réel est celle de la courbe, rebond compris. Puis annuler, publier, retrouver.
  */
-import { cubicBezier } from '../../../cubic-bezier.js';
+import { cubicBezier } from '../../../src/layers/cubic-bezier.js';
 import { openStudio } from '../studio.js';
 
 export const name = 'courbe personnalisée';

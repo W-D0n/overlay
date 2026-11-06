@@ -62,7 +62,7 @@ export function describeHistory(history, now, labels = {}) {
  * Ce qui change entre l'état d'une ligne et l'état actuel, ce qu'un retour à cette ligne ferait disparaître ou revenir.
  * @param {EditorHistory} history
  * @param {number} position
- * @param {import('../scene-doc.js').SceneDoc} current
+ * @param {import('../src/scene/scene-doc.js').SceneDoc} current
  * @param {DiffLabels} [labels]
  */
 export function compareWithCurrent(history, position, current, labels = {}) {

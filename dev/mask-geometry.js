@@ -8,7 +8,7 @@
  * @typedef {import('./canvas-geometry.js').Handle} Handle
  * @typedef {{ x: number, y: number, width: number, height: number }} Box
  */
-import { MASK_LIMITS } from '../layer-mask.js';
+import { MASK_LIMITS } from '../src/layers/layer-mask.js';
 
 const MIN = MASK_LIMITS.size.min;
 

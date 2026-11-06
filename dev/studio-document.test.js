@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { createLayer, sceneFromCurrent, sceneFromPreset } from '../scene-doc.js';
+import { createLayer, sceneFromCurrent, sceneFromPreset } from '../src/scene/scene-doc.js';
 import { createStudioDocument } from './studio-document.js';
 
 const onAir = () => sceneFromCurrent({ component: 'rain', options: { speed: 1 } });

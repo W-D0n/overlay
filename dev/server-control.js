@@ -14,7 +14,7 @@
 export function controlFailure(status, detail = '') {
   if (status === 501) return 'Ce serveur n’a pas été lancé par start-stream : il ne peut pas être piloté d’ici.';
   if (status === 403) return 'Demande refusée : origine non autorisée.';
-  if (status === 404) return 'Ce serveur est antérieur à cette fonction : relance-le une fois avec start-stream.bat.';
+  if (status === 404) return 'Ce serveur est antérieur à cette fonction : relance-le une fois avec stream.bat.';
   const reason = detail === '' ? '' : ` : ${detail}`;
   if (status === null) return `Le serveur n’a pas répondu${reason}.`;
   return `Le serveur a refusé la demande (HTTP ${status})${reason}.`;

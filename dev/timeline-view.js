@@ -1,6 +1,6 @@
 // @ts-check
-import { filterBase, paramBase, targetLabel, targetRange } from '../layer-bindings.js';
-import { effectiveTimeline, sampleKeys } from '../layer-timeline.js';
+import { filterBase, paramBase, targetLabel, targetRange } from '../src/layers/layer-bindings.js';
+import { effectiveTimeline, sampleKeys } from '../src/layers/layer-timeline.js';
 
 /**
  * dev/timeline-view.js — Ce que le panneau de la timeline calcule pour s'afficher : temps lisible, position d'une image clé, instant sous le pointeur,
@@ -33,9 +33,9 @@ export function timeFromPointer(pointerX, lane, durationMs, snapMs = 10) {
 
 /** La valeur de base d'une valeur commune : celle de la couche quand rien ne l'anime (opacité et rotation de la couche, 1 pour l'échelle, 0 sinon). */
 const BASES = /** @type {const} */ ({
-  opacity: (/** @type {import('../scene-doc.js').Layer} */ layer) => layer.opacity,
-  rotation: (/** @type {import('../scene-doc.js').Layer} */ layer) => layer.rotation ?? 0,
-  blur: (/** @type {import('../scene-doc.js').Layer} */ layer) => layer.blur ?? 0,
+  opacity: (/** @type {import('../src/scene/scene-doc.js').Layer} */ layer) => layer.opacity,
+  rotation: (/** @type {import('../src/scene/scene-doc.js').Layer} */ layer) => layer.rotation ?? 0,
+  blur: (/** @type {import('../src/scene/scene-doc.js').Layer} */ layer) => layer.blur ?? 0,
   scale: () => 1,
   x: () => 0,
   y: () => 0,
@@ -44,8 +44,8 @@ const BASES = /** @type {const} */ ({
 /**
  * La valeur d'une couche pour une valeur animée au repère de lecture : celle de sa piste si elle en a une, sinon sa valeur de base. C'est ce qu'une
  * image clé posée à cet endroit doit prendre pour ne rien changer d'abord.
- * @param {import('../scene-doc.js').Layer} layer
- * @param {import('../layer-bindings.js').BindingTarget} target
+ * @param {import('../src/scene/scene-doc.js').Layer} layer
+ * @param {import('../src/layers/layer-bindings.js').BindingTarget} target
  * @param {number} timeMs
  * @returns {number}
  */
@@ -59,9 +59,9 @@ export function valueAt(layer, target, timeMs) {
 
 /**
  * La phrase lue par un lecteur d'écran pour une image clé.
- * @param {import('../layer-bindings.js').BindingTarget} target
- * @param {import('../layer-timeline.js').Keyframe} key
- * @param {import('../layer-bindings.js').TargetOwner | null} [owner] la couche, pour le nom d'un réglage
+ * @param {import('../src/layers/layer-bindings.js').BindingTarget} target
+ * @param {import('../src/layers/layer-timeline.js').Keyframe} key
+ * @param {import('../src/layers/layer-bindings.js').TargetOwner | null} [owner] la couche, pour le nom d'un réglage
  * @returns {string}
  */
 export function describeKey(target, key, owner = null) {
@@ -71,8 +71,8 @@ export function describeKey(target, key, owner = null) {
 
 /**
  * La durée affichée d'une scène : la sienne, ou celle par défaut.
- * @param {import('../scene-doc.js').SceneDoc} scene
- * @returns {import('../layer-timeline.js').SceneTimeline}
+ * @param {import('../src/scene/scene-doc.js').SceneDoc} scene
+ * @returns {import('../src/layers/layer-timeline.js').SceneTimeline}
  */
 export function timelineOf(scene) {
   return effectiveTimeline(scene.timeline, scene.layers);

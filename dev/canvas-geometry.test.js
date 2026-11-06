@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { RENDER_REFERENCE } from '../render-reference.js';
+import { RENDER_REFERENCE } from '../src/render/render-reference.js';
 import {
   HANDLES, HANDLE_CURSORS, MIN_SIZE_PX, fromPixelRect, handlePoints, hitTest, hitTestAll, marqueeHits, moveRect, rectBetween, resizeRect, scaleRectsWithin, toPixelRect, unionRect,
 } from './canvas-geometry.js';

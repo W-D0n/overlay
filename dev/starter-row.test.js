@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { CODE_TEMPLATES } from '../components/code-templates.js';
+import { CODE_TEMPLATES } from '../src/components/code-templates.js';
 import { BACKGROUND_FIELD_SCHEMAS } from './component-field-schemas.js';
 import { buildStarterRow, isUntouchedCode } from './starter-row.js';
 

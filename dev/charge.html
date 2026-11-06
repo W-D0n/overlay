@@ -11,7 +11,7 @@
     Paramètres : ?couches=0..8 (défaut 1), ?types=dotgrid,rain,… (défaut : dotgrid, fireflies, rain, …),
     ?hud=0 masque le compteur.
   -->
-  <link rel="stylesheet" href="../tokens.css">
+  <link rel="stylesheet" href="../src/styles/tokens.css">
   <style>
     #layers { position: absolute; inset: 0; pointer-events: none; }
     #hud {
@@ -25,7 +25,7 @@
   <div id="hud">…</div>
 
   <script type="module">
-    import { createSceneRuntime } from '../scene-runtime.js';
+    import { createSceneRuntime } from '../src/scene/scene-runtime.js';
     import { buildLoadScene, parseLoadUrl } from './charge-scene.js';
 
     const { count, kinds, hud } = parseLoadUrl(location.search);
